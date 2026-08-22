@@ -115,6 +115,77 @@ def corrupt_for_mntp(
     )
 
 
+def corrupt_fixed_rate_mntp(
+    input_ids: torch.Tensor,
+    lowercase_mask: torch.Tensor,
+    sample_ids: torch.Tensor,
+    *,
+    mask_token_id: int,
+    canonical_token_ids: tuple[int, ...],
+    seed: int,
+    mask_probability: float,
+) -> CorruptedBatch:
+    """Mask eligible bases at one fixed rate, resampling empty sequences.
+
+    This matches the fixed-rate LLM2Vec MNTP setup while retaining the exp479
+    shifted-label, special-token, repeat-weight, and deterministic-resume contracts.
+    Selected targets are always replaced, because leaving a target unchanged under
+    full attention would reveal the answer directly.
+    """
+
+    if not 0 < mask_probability <= 1:
+        raise ValueError(f"mask_probability must be in (0, 1], got {mask_probability}")
+    if input_ids.ndim != 2:
+        raise ValueError(f"input_ids must be rank 2, got shape {tuple(input_ids.shape)}")
+    if input_ids.shape != lowercase_mask.shape:
+        raise ValueError("lowercase_mask must have the same shape as input_ids")
+    if sample_ids.ndim != 1 or sample_ids.shape[0] != input_ids.shape[0]:
+        raise ValueError("sample_ids must contain one ID per sequence")
+    if input_ids.device.type != "cpu":
+        raise ValueError("corruption runs on CPU before device transfer")
+
+    eligible = _canonical_mask(input_ids, canonical_token_ids)
+    if not torch.all(eligible.any(dim=1)):
+        bad = (~eligible.any(dim=1)).nonzero(as_tuple=False).flatten().tolist()
+        raise ValueError(f"sequences without an eligible A/C/G/T target: {bad}")
+
+    corrupted = input_ids.clone()
+    labels = torch.full_like(input_ids, IGNORE_INDEX)
+    loss_weights = torch.zeros_like(input_ids, dtype=torch.float32)
+    target_mask = torch.zeros_like(input_ids, dtype=torch.bool)
+
+    for row, raw_sample_id in enumerate(sample_ids.tolist()):
+        generator = torch.Generator(device="cpu")
+        generator.manual_seed(sample_seed(seed, int(raw_sample_id), stream=2))
+        selected = torch.zeros(input_ids.shape[1], dtype=torch.bool)
+        for _ in range(1_024):
+            selected = torch.rand(input_ids.shape[1], generator=generator) < mask_probability
+            selected &= eligible[row]
+            if selected.any():
+                break
+        else:
+            raise RuntimeError(f"failed to sample a target for sample {raw_sample_id}")
+
+        target_positions = selected.nonzero(as_tuple=False).flatten()
+        output_positions = target_positions - 1
+        labels[row, output_positions] = input_ids[row, target_positions]
+        loss_weights[row, output_positions] = torch.where(
+            lowercase_mask[row, target_positions],
+            SOFT_MASKED_WEIGHT,
+            1.0,
+        )
+        target_mask[row, output_positions] = True
+        corrupted[row, target_positions] = mask_token_id
+
+    return CorruptedBatch(
+        input_ids=corrupted,
+        labels=labels,
+        loss_weights=loss_weights,
+        target_mask=target_mask,
+        mask_probabilities=torch.full((input_ids.shape[0],), mask_probability),
+    )
+
+
 def corrupt_single_mask(
     input_ids: torch.Tensor,
     lowercase_mask: torch.Tensor,

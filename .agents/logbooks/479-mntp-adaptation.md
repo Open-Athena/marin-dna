@@ -583,3 +583,76 @@ The accepted [bidirectional-models research question](../../docs/research/questi
 - Sequential selection: Advance only the better existing-token choice to the first rank-16 LoRA pilot; if their paired intervals overlap, prefer `[UNK]` for its unknown-nucleotide semantics.
 - Compute: Keep the readout on one Lambda A10 at the current listed price of `$1.29/hour` and record that rate explicitly in the cost estimator.
 - Boundaries: Nucleotide-dependency and VEP evaluation remain paused.
+
+### 2026-08-22 00:20 - Paired nucleotide information gate completed
+
+- Launch snapshot: `605122f27f94c06231a864efedda2d3740221920`.
+- Verification: All 118 locked tests passed on the Lambda A10 before data preparation or model loading.
+- Identity: Every readout used the same 640 validation sequences and deterministic target nucleotide indices from plan hash `35542611d71102479f3d07dc6565350120d1d89944e5a93f88efb641ece7e3ba`.
+- Source causal: Four-way nucleotide CE was `1.051060` and accuracy was `0.507812`.
+- Step-0 full attention: New `[MASK]`, existing `[UNK]`, and existing `[PAD]` produced CE `1.412228`, `1.424901`, and `1.422409`, with accuracy `0.276563`, `0.271875`, and `0.273438`, respectively.
+- Mask-token conclusion: Neither existing token improved the unadapted full-attention readout; the new vocabulary row is therefore not the leading cause of the bidirectional deficit.
+- Adapted checkpoint: Step-1,000 causal CE/accuracy was `1.056157/0.512500`, while full-attention CE/accuracy was `1.260321/0.415625`.
+- Paired adapted comparison: Full attention versus its own causal readout changed CE by `+0.204164` with 95% CI `[+0.158707, +0.250380]` and accuracy by `-0.096875` with 95% CI `[-0.140625, -0.053125]`.
+- Primary gate: Adapted full attention versus released source causal changed CE by `+0.209261` with 95% CI `[+0.162877, +0.256399]` and accuracy by `-0.092188` with 95% CI `[-0.135938, -0.048438]`; both the point-estimate and confidence-supported gates failed.
+- Evidence: [W&B u29jytbi](https://wandb.ai/gonzalobenegas/marin/runs/u29jytbi) and artifact `gonzalobenegas/marin/dna-exp479-paired-nucleotide-information-gate:paired-gate`.
+- Cost: The self-terminating A10 attempt took `0.142880` instance-hours and added an estimated `$0.184315`, bringing the cumulative listed-price estimate to `$32.473494 / $50`.
+- Boundaries: No VEP, nucleotide-dependency, knowledge-base update, Hugging Face upload, or checkpoint deletion was performed.
+- Next action: Specify one frozen-base rank-16 LoRA pilot using `[UNK]`, fixed low-rate corruption, and the identical paired information gate; do not proceed to VEP unless the gate passes.
+
+### 2026-08-22 00:45 - Frozen-base rank-16 LoRA pilot preregistered
+
+- Trigger: The exact paired gate failed after full-parameter MNTP, the user selected LoRA as the next idea, and the LLM2Vec implementation provides a concrete adapter recipe.
+- Initialization: Load the untouched released `marin-dna/marin-dna-exp135-m5.1@a73a5dcf`, keep every base-model parameter frozen, and add zero-effect PEFT LoRA adapters with rank 16, alpha 16, dropout 0.05, and no bias training.
+- Target modules: Adapt `q_proj`, `k_proj`, `v_proj`, `o_proj`, `gate_proj`, `up_proj`, and `down_proj`, matching the official LLM2Vec MNTP code.
+- Mask token: Use existing `[UNK]`; `[UNK]` and `[PAD]` were practically indistinguishable in the step-0 control, so `[UNK]` is selected for its unknown-nucleotide semantics.
+- Corruption: Select eligible A/C/G/T targets independently at fixed probability 0.20, matching LLM2Vec's configured rate, but replace 100% of selected targets with `[UNK]` so full attention cannot leak unchanged answers.
+- Alignment and loss: Continue to supervise target nucleotide `i` from output `i - 1`, apply each repeat weight once with per-sequence effective-weight normalization, and include source z-loss during training.
+- Optimizer: Train only adapter matrices with fresh AdamW at `1e-5`, betas `(0.9, 0.95)`, epsilon `1e-8`, zero weight decay, and global gradient clipping at `1.0`.
+- Schedule: Warm linearly through step 100, stay constant through step 800, and decay linearly to zero through step 1,000.
+- Exposure: Use microbatch 16 with four-step gradient accumulation on one A10, preserving effective batch 64 and the exact 64,000-sequence, 16,384,000-token exposure.
+- Paired trajectory: At steps 0, 25, 50, 100, and every 100 steps through 1,000, score the identical 640 deterministic target nucleotides with active adapters and full attention against the frozen source causal baseline.
+- Gate: Require final full-attention LoRA four-way CE no higher and accuracy no lower than source causal, with both paired 95% sequence-bootstrap intervals supporting those directions.
+- Preservation: Disable adapters after training and require the causal per-target scores to be bit-exact to their step-0 values.
+- Retention: Commit every selected adapter-only snapshot and one final adapter-plus-optimizer/RNG checkpoint to W&B; do not delete a checkpoint or upload to Hugging Face.
+- Verification: Run the complete locked suite on the worker before model loading, and require finite 1,000-step loss and gradient traces.
+- Compute: Use one self-terminating Lambda A10 at `$1.29/hour`; a four-hour bound projects at most `$37.633494 / $50` cumulative.
+- Boundaries: Do not run VEP, nucleotide dependency, or knowledge-base interpretation unless the paired nucleotide information gate passes.
+
+### 2026-08-22 01:20 - DiffuLLaMA reference reviewed and attention annealing added
+
+- Reference: Gong et al., [Scaling Diffusion Language Models via Adaptation from Autoregressive Models](https://arxiv.org/abs/2410.17891), ICLR 2025, with released code at [HKUNLP/DiffuLLaMA](https://github.com/HKUNLP/DiffuLLaMA).
+- Relevance: The paper identifies the same two discontinuities present here: replacing causal attention with bidirectional attention and replacing clean autoregressive inputs with noisy denoising inputs.
+- Shift: Its adaptation keeps the autoregressive next-token shift, so output position `i - 1` predicts target token `i`; exp479 already satisfies this requirement.
+- Annealing method: The released code opens every otherwise-forbidden future attention edge independently with probability `min(1, (global_step + 1) / anneal_steps)`, shares the sampled matrix across the batch, and retains all causal edges.
+- Paper scale: DiffuGPT anneals for 10,000 steps and uses full-parameter training at much larger token exposure than this pilot.
+- Limitation: DiffuLLaMA 7B skips annealing for FlashAttention efficiency, and the paper describes its measured ablation gain as minimal.
+- Ablation evidence: On their GSM8K-symbolic proxy, discrete diffusion without annealing reaches 43.3/47.2 accuracy for GPT2-S/M versus 45.4/49.7 with the full recipe.
+- Diffusion objective: The paper samples one continuous time `t` per sequence, masks each token with probability `t`, and weights masked-token cross-entropy by `1/t`.
+- Tokenizer: The paper generally reuses a rare existing vocabulary token as `[MASK]`, consistent with the exp479 choice to avoid adding another embedding row after the existing-token controls.
+- LoRA boundary: The paper's autoregressive-to-diffusion adaptation is full-parameter; LoRA is used only for downstream GSM8K-symbolic fine-tuning, so it does not directly validate frozen-base LoRA for this conversion.
+- Experimental implication: Attention annealing directly targets exp479's measured step-0 full-attention collapse and is the only paper-derived change added to the first LoRA pilot.
+- Revised attention schedule: During training, linearly open stochastic future edges over optimizer steps 0 through 99, reaching full attention with the last microbatches before optimizer step 100, then keep full attention through step 1,000.
+- Rationale for 100 steps: This makes the transition occupy the preregistered 10% learning-rate warmup and avoids spending most of a 1,000-step sanity run in an intermediate attention regime.
+- Controlled scope: Retain fixed 20% corruption and the existing exp479 loss for this run so attention annealing is not confounded with a simultaneous switch to variable `t` and `1/t` weighting.
+- Determinism: Seed each sampled future-edge matrix from the experiment seed and first sample ID, share it across the microbatch as in the released implementation, and preserve the token padding mask.
+- Instrumentation: Log the future-edge probability with every optimizer step and retain it in the loss and gradient trace.
+- Behavioral verification: Require exact causal and full endpoints, deterministic sampled masks, shared batch masks, enforced key padding, and the existing causal/full right-flank tests before model loading.
+- Follow-up if needed: If annealed LoRA fails the exact paired nucleotide gate, test the paper's continuous-time mask-rate and `1/t` weighting as a separately preregistered objective change rather than interpreting VEP.
+- Boundaries: The run remains one A10 pilot with no VEP, nucleotide dependency, knowledge-base update, Hugging Face upload, or checkpoint deletion.
+
+### 2026-08-22 01:45 - Frozen-source attention annealing sanity diagnostic preregistered
+
+- Trigger: The user asked whether the source degradation from about 50% causal accuracy to about 27% full-attention accuracy appears gradually as the causal mask is removed, before any parameter update.
+- Model: Load the untouched released `marin-dna/marin-dna-exp135-m5.1@a73a5dcf` in BF16 and perform zero optimizer steps.
+- Targets: Reuse the exact 640 deterministic target nucleotides from validation plan hash `35542611d71102479f3d07dc6565350120d1d89944e5a93f88efb641ece7e3ba`.
+- Mask token: Replace the selected target with existing `[UNK]`; causal scores cannot depend on that future embedding, and the earlier full-attention controls show no material advantage for `[MASK]` or `[PAD]`.
+- Attention levels: Evaluate future-edge opening probabilities `0, 0.01, 0.02, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.8, 1`.
+- Nested masks: For each of five fixed mask seeds and each evaluation batch, reuse one uniform random matrix across all probabilities so increasing probability only adds future edges and never removes an already opened edge.
+- Pairing: Score every probability, mask replicate, sample, and target under the same model weights and record both four-way A/C/G/T-renormalized and full-vocabulary CE and accuracy.
+- Endpoint parity: Compare the custom 0% and 100% masks with the standard causal and full-attention code paths on the identical targets; require identical nucleotide correctness and maximum per-target four-way CE error below 0.002.
+- Uncertainty: Plot every nested-mask replicate plus their mean and range, and compute paired 95% sequence-bootstrap intervals from replicate-mean per-target scores against the 0% causal endpoint.
+- Interpretation: Report the fraction of adjacent intervals with increasing CE and decreasing accuracy and the normalized fraction of the total endpoint degradation reached at every attention level.
+- Sequential decision: Pause the LoRA launch until this no-training curve is complete and inspected.
+- Compute: Run the complete locked suite and then this source-only diagnostic on one self-terminating Lambda A10 at `$1.29/hour`; a two-hour bound projects at most `$35.053494 / $50` cumulative.
+- Boundaries: Do not train, evaluate VEP, run nucleotide dependency, update the knowledge base, upload to Hugging Face, or delete any checkpoint.

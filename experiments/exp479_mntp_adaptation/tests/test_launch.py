@@ -202,3 +202,67 @@ def test_paired_nucleotide_gate_uses_a10_and_wandb_only() -> None:
     assert stage.count("uv run --locked pytest") == 1
     assert "accelerators: A10:1" in stage
     assert "mntp-dependency" not in stage
+
+
+def test_attention_anneal_diagnostic_uses_one_a10_and_no_training() -> None:
+    command = launch_command(
+        "attention-anneal-diagnostic",
+        "a" * 40,
+        1234,
+        prior_cost_usd=32.473494,
+        retry_until_up=True,
+    )
+    assert command[:5] == [
+        "sky",
+        "launch",
+        "-c",
+        "dna-exp479-anneal-a10",
+        "sky/attention-anneal-diagnostic.yaml",
+    ]
+    assert "EXP479_INSTANCE_PRICE_PER_HOUR_USD=1.29" in command
+    assert command.count("--secret") == 1
+    assert "WANDB_API_KEY" in command
+    assert "HF_TOKEN" not in command
+    assert "--down" in command
+
+    stage = Path("sky/attention-anneal-diagnostic.yaml").read_text(encoding="utf-8")
+    assert stage.count("uv run --locked exp479 attention-anneal-diagnostic") == 1
+    assert stage.count("uv run --locked pytest") == 1
+    assert "accelerators: A10:1" in stage
+    assert "WANDB_API_KEY" in stage
+    assert "HF_TOKEN" not in stage
+    assert "lora-mntp" not in stage
+    assert "vep" not in stage.lower()
+    assert "nuc-dep" not in stage
+
+
+def test_lora_mntp_uses_one_a10_wandb_and_no_downstream_evaluation() -> None:
+    command = launch_command(
+        "lora-mntp",
+        "a" * 40,
+        1234,
+        prior_cost_usd=32.473494,
+        retry_until_up=True,
+    )
+    assert command[:5] == [
+        "sky",
+        "launch",
+        "-c",
+        "dna-exp479-lora-a10",
+        "sky/lora-mntp.yaml",
+    ]
+    assert "EXP479_INSTANCE_PRICE_PER_HOUR_USD=1.29" in command
+    assert command.count("--secret") == 1
+    assert "WANDB_API_KEY" in command
+    assert "HF_TOKEN" not in command
+    assert "--down" in command
+
+    stage = Path("sky/lora-mntp.yaml").read_text(encoding="utf-8")
+    assert stage.count("uv run --locked exp479 lora-mntp") == 1
+    assert stage.count("uv run --locked pytest") == 1
+    assert "accelerators: A10:1" in stage
+    assert "--batch-size 64" in stage
+    assert "WANDB_API_KEY" in stage
+    assert "HF_TOKEN" not in stage
+    assert "vep" not in stage.lower()
+    assert "nuc-dep" not in stage

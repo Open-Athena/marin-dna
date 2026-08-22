@@ -28,6 +28,7 @@ class ExperimentDataModule(L.LightningDataModule):
         batch_size: int,
         seed: int,
         num_workers: int,
+        fixed_mask_probability: float | None = None,
     ) -> None:
         super().__init__()
         self.train_plan_path = train_plan
@@ -39,6 +40,7 @@ class ExperimentDataModule(L.LightningDataModule):
         self.batch_size = batch_size
         self.seed = seed
         self.num_workers = num_workers
+        self.fixed_mask_probability = fixed_mask_probability
         self.train_dataset: SequencePlanDataset | None = None
         self.validation_dataset: SequencePlanDataset | None = None
         self._restored_state: dict[str, Any] | None = None
@@ -78,6 +80,9 @@ class ExperimentDataModule(L.LightningDataModule):
                 mask_token_id=self.mask_token_id,
                 seed=self.seed,
                 validation_mode=validation_mode,  # type: ignore[arg-type]
+                fixed_mask_probability=(
+                    self.fixed_mask_probability if validation_mode == "diffusion" else None
+                ),
             ),
         )
 

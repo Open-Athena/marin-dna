@@ -23,6 +23,8 @@ STAGE_CONFIGS = {
     "mntp-longrun": "sky/mntp-longrun.yaml",
     "mntp-dependency": "sky/mntp-dependency.yaml",
     "paired-nucleotide-gate": "sky/paired-nucleotide-gate.yaml",
+    "attention-anneal-diagnostic": "sky/attention-anneal-diagnostic.yaml",
+    "lora-mntp": "sky/lora-mntp.yaml",
     "loss-normalization": "sky/loss-normalization.yaml",
     "source-validation": "sky/source-validation.yaml",
 }
@@ -44,6 +46,8 @@ def execution_environment(stage: str) -> dict[str, str]:
         "mntp-longrun",
         "mntp-dependency",
         "paired-nucleotide-gate",
+        "attention-anneal-diagnostic",
+        "lora-mntp",
         "loss-normalization",
         "source-validation",
     }
@@ -62,6 +66,8 @@ def execution_environment(stage: str) -> dict[str, str]:
         "mntp-longrun",
         "mntp-dependency",
         "paired-nucleotide-gate",
+        "attention-anneal-diagnostic",
+        "lora-mntp",
         "loss-normalization",
         "source-validation",
     }:
@@ -115,7 +121,14 @@ def launch_command(
 ) -> list[str]:
     """Build the self-terminating Lambda GH200 launch command."""
 
-    cluster_name = "dna-exp479-a10" if stage == "paired-nucleotide-gate" else CLUSTER_NAME
+    if stage == "attention-anneal-diagnostic":
+        cluster_name = "dna-exp479-anneal-a10"
+    elif stage == "paired-nucleotide-gate":
+        cluster_name = "dna-exp479-a10"
+    elif stage == "lora-mntp":
+        cluster_name = "dna-exp479-lora-a10"
+    else:
+        cluster_name = CLUSTER_NAME
     command = [
         "sky",
         "launch",
@@ -131,7 +144,7 @@ def launch_command(
         "--env",
         f"EXP479_INSTANCE_START_UNIX={instance_start_unix}",
     ]
-    if stage == "paired-nucleotide-gate":
+    if stage in {"paired-nucleotide-gate", "attention-anneal-diagnostic", "lora-mntp"}:
         command.extend(["--env", "EXP479_INSTANCE_PRICE_PER_HOUR_USD=1.29"])
     if stage in {"pilot", "diagnostics", "audit", "stability", "dependency", "calibration"}:
         command.extend(
@@ -154,6 +167,8 @@ def launch_command(
         "mntp-longrun",
         "mntp-dependency",
         "paired-nucleotide-gate",
+        "attention-anneal-diagnostic",
+        "lora-mntp",
         "loss-normalization",
         "source-validation",
     }:
