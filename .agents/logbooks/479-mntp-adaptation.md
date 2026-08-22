@@ -861,3 +861,17 @@ The accepted [bidirectional-models research question](../../docs/research/questi
 - Reference update scale: Its executable code sets LoRA alpha to twice rank, so rank 16 means alpha 32, and its config inherits Transformers' `5e-5` learning rate and linear decay rather than this pilot's alpha 16, `1e-5`, and WSD.
 - Anti-leak boundary: LLM2Vec provides an all-mask collator but its published configuration selects the default 80/10/10 MLM collator; retaining 100% `[UNK]` replacement is necessary here because an unchanged selected nucleotide is directly visible under full attention.
 - Sequential fallback: If the registered gate fails after reload validation, the leading next test is a small reference-strength, full-attention LoRA probe with the anti-leak replacement retained; do not launch it before finalization.
+
+### 2026-08-22 05:21 - Localized predictor-row attention control preregistered
+
+- Literature trigger: PreDiff-LM reports that uniform full attention can perturb pretrained prompt computation and instead keeps a prompt prefix causal while opening attention within the target suffix.
+- Applicability boundary: Exp479 masks arbitrary interior nucleotides and reads the shifted predictor row, so the paper's prompt-prefix/target-suffix mask cannot be copied literally.
+- Diagnostic inference: Keep every query causal except the exact shifted predictor row `i-1`, which can attend to every non-padding key, including right context.
+- Controls: Compare standard causal, an additive-mask causal parity control, localized predictor-row attention, and uniform full attention on the same 640 frozen-source paired targets under math SDPA.
+- Encoding gate: Require zero top-1 prediction mismatches and maximum per-target four-way CE drift below `0.002` between standard and additive causal encodings.
+- Information gate: Require localized attention to have paired four-way CE no higher and top-1 nucleotide accuracy no lower than causal with 95% sequence-bootstrap support.
+- Immutable source: Commit `eb0db004b6418e9db1f7db71c8041983c4a90a9a`, tag `exp479-localized-predictor-attention-zero-training-v1`.
+- Compute: The one-hour AWS `g5.xlarge` A10G configuration passed a no-cost SkyPilot dry run at the pinned commit.
+- Sequence: Launch only after the corrected LoRA replay and its independent final-adapter reload audit complete.
+- Boundaries: No training, VEP, nucleotide dependency, Hugging Face upload, checkpoint deletion, or knowledge-base update occurs in this diagnostic.
+- Issue record: Posted the preregistration at https://github.com/Open-Athena/marin-dna/issues/479#issuecomment-5378162150.
