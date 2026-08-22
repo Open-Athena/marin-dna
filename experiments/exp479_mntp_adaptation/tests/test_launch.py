@@ -424,3 +424,40 @@ def test_two_pass_gate_uses_one_a10g_wandb_and_no_model_updates() -> None:
     assert "nuc-dep" not in stage
     assert "timeout --signal=TERM 3600" in stage
     assert "export CUBLAS_WORKSPACE_CONFIG=:4096:8" in stage
+
+
+def test_two_pass_vep_uses_one_lambda_gh200_and_no_external_upload() -> None:
+    command = launch_command(
+        "two-pass-vep",
+        "a" * 40,
+        1234,
+        prior_cost_usd=39.5,
+        retry_until_up=True,
+    )
+    assert command[:5] == [
+        "sky",
+        "launch",
+        "-c",
+        "dna-exp479-two-pass-vep-gh200",
+        "sky/two-pass-vep.yaml",
+    ]
+    assert "EXP479_INSTANCE_PRICE_PER_HOUR_USD=2.29" in command
+    assert command.count("--secret") == 1
+    assert "WANDB_API_KEY" in command
+    assert "HF_TOKEN" not in command
+    assert "--down" in command
+
+    stage = Path("sky/two-pass-vep.yaml").read_text(encoding="utf-8")
+    assert stage.count("uv run --locked exp479 two-pass-vep") == 1
+    assert stage.count("uv run --locked pytest") == 1
+    assert "cloud: lambda" in stage
+    assert "accelerators: GH200:1" in stage
+    assert "disk_size: 256" in stage
+    assert "--batch-size 1024" in stage
+    assert "--n-bootstrap 1000" in stage
+    assert "WANDB_API_KEY" in stage
+    assert "HF_TOKEN" not in stage
+    assert "nuc-dep" not in stage
+    assert "upload" not in stage.lower()
+    assert "timeout --signal=TERM 7200" in stage
+    assert "export CUBLAS_WORKSPACE_CONFIG=:4096:8" in stage

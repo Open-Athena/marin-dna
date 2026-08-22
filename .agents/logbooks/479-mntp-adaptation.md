@@ -1034,3 +1034,20 @@ The accepted [bidirectional-models research question](../../docs/research/questi
 - Boundaries: No VEP, nucleotide dependency, Hugging Face upload, checkpoint deletion, or knowledge-base update occurred.
 - Interpretation: The information-theoretic prerequisite is satisfied for a calibrated two-causal-pass construction, but this does not establish that a one-pass full-attention conversion is safe.
 - Next step: Preregister a VEP evaluation that applies the frozen calibrated two-pass score without training and compares it directly with the source CLM protocol on the allowed odd-autosome/X development labels.
+
+### 2026-08-22 10:05 - Frozen two-pass VEP gate preregistered
+
+- Trigger: The unchanged two-causal-pass construction passed the paired information gate, so odd-autosome/X VEP is unblocked while full-attention adaptation remains rejected.
+- Model state: Load the pinned released source once and perform zero parameter or optimizer updates.
+- Symmetric calibration: Using only the original 640 training-plan calibration rows, evaluate the fixed `0..1` grid for the normalized geometric mean of forward-anchored and reverse-anchored two-pass distributions; the minimum is fixed at `alpha = 0.408` before loading any VEP label.
+- Nucleotide cross-check: That fixed symmetric readout reaches CE `0.9134472674` and accuracy `0.625` on the already-used 640-target nucleotide validation panel, improving over the accepted forward-anchored `alpha = 0.615` readout.
+- Variant readout: Center each reference SNV at 0-based nucleotide index `127`, replace its input token with `[UNK]`, obtain native causal left and reverse-complement right distributions, realign A/C/G/T, and compute alternate-minus-reference log-probability ratios.
+- Source baseline: Recompute full-sequence source CLM likelihood ratios in FWD and reverse-complement orientations in the same process and apply the original FWD+RC averaging and dataset-specific sign or absolute-value protocols.
+- Dataset boundary: Load only the pinned public train splits of Mendelian traits, complex traits, and SGE, and fail if any labeled chromosome is outside odd-numbered autosomes or X.
+- Primary endpoints: Retain the original Mendelian consequence macro, complex-trait global, and SGE accession-consequence macro AUPRC aggregations.
+- Paired uncertainty: Bootstrap the original natural match groups for matched datasets and variants within qualifying SGE accession/consequence cells, then combine macro delta standard errors with the original equal-cell aggregation.
+- Decision gate: Require the symmetric two-pass primary AUPRC delta versus source CLM FWD+RC to be nonnegative with a nonnegative 95% lower bound on all three endpoints and strictly positive with 95% support on at least one.
+- Controls: Assert exact BOS/UNK/PAD IDs, central reference token identity, input-to-output shift, `i -> 254 - i` mapping, A/C/G/T permutation, fixed unpadded length, finite scores, and exact double reverse complementation on every row.
+- Outputs: Retain raw per-variant development scores, full metrics, paired primary comparisons, coordinate/token controls, runtimes, gate JSON, manifest, and one primary-endpoint figure in W&B.
+- Compute: Use one self-terminating Lambda GH200 with a two-hour hard timeout at `$2.29/hour`, projecting at most `$44.010148 / $50` from the conservative `$39.430148` cumulative estimate.
+- Boundaries: Perform no training, nucleotide dependency, knowledge-base update, Hugging Face upload, or checkpoint deletion.
