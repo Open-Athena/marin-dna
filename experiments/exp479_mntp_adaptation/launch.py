@@ -26,6 +26,7 @@ STAGE_CONFIGS = {
     "attention-anneal-diagnostic": "sky/attention-anneal-diagnostic.yaml",
     "localized-attention-diagnostic": "sky/localized-attention-diagnostic.yaml",
     "lora-mntp": "sky/lora-mntp.yaml",
+    "gated-lora-mntp": "sky/gated-lora-mntp.yaml",
     "lora-reload-audit": "sky/lora-reload-audit.yaml",
     "loss-normalization": "sky/loss-normalization.yaml",
     "source-validation": "sky/source-validation.yaml",
@@ -51,6 +52,7 @@ def execution_environment(stage: str) -> dict[str, str]:
         "attention-anneal-diagnostic",
         "localized-attention-diagnostic",
         "lora-mntp",
+        "gated-lora-mntp",
         "lora-reload-audit",
         "loss-normalization",
         "source-validation",
@@ -73,6 +75,7 @@ def execution_environment(stage: str) -> dict[str, str]:
         "attention-anneal-diagnostic",
         "localized-attention-diagnostic",
         "lora-mntp",
+        "gated-lora-mntp",
         "lora-reload-audit",
         "loss-normalization",
         "source-validation",
@@ -135,6 +138,8 @@ def launch_command(
         cluster_name = "dna-exp479-a10"
     elif stage == "lora-mntp":
         cluster_name = "dna-exp479-lora-a10"
+    elif stage == "gated-lora-mntp":
+        cluster_name = "dna-exp479-gated-lora-a10"
     elif stage == "lora-reload-audit":
         cluster_name = "dna-exp479-lora-reload-a10"
     else:
@@ -159,6 +164,7 @@ def launch_command(
         "attention-anneal-diagnostic",
         "localized-attention-diagnostic",
         "lora-mntp",
+        "gated-lora-mntp",
         "lora-reload-audit",
     }:
         price = (
@@ -168,6 +174,7 @@ def launch_command(
                 "attention-anneal-diagnostic",
                 "localized-attention-diagnostic",
                 "lora-mntp",
+                "gated-lora-mntp",
                 "lora-reload-audit",
             }
             else "1.29"
@@ -197,6 +204,7 @@ def launch_command(
         "attention-anneal-diagnostic",
         "localized-attention-diagnostic",
         "lora-mntp",
+        "gated-lora-mntp",
         "loss-normalization",
         "lora-reload-audit",
         "source-validation",
