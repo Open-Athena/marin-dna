@@ -69,7 +69,9 @@ def evaluate_readout(
     readout: str,
     attention_mode: str,
     replacement_mask_token_id: int | None = None,
-    attention_mask_transform: Callable[[torch.Tensor, torch.Tensor], torch.Tensor] | None = None,
+    attention_mask_transform: (
+        Callable[[torch.Tensor, torch.Tensor, torch.Tensor], torch.Tensor] | None
+    ) = None,
 ) -> pd.DataFrame:
     """Evaluate one model/readout on identical deterministic single-mask targets."""
 
@@ -105,7 +107,11 @@ def evaluate_readout(
                 input_ids[batch_rows, output_positions + 1] = replacement_mask_token_id
 
             if attention_mask_transform is not None:
-                attention_mask = attention_mask_transform(attention_mask, batch["sample_ids"])
+                attention_mask = attention_mask_transform(
+                    attention_mask,
+                    batch["sample_ids"],
+                    output_positions,
+                )
 
             logits = model_logits(
                 model,

@@ -158,10 +158,11 @@ def paired_score_parity(
 def _training_format_full_mask(
     attention_mask: torch.Tensor,
     sample_ids: torch.Tensor,
+    output_positions: torch.Tensor,
 ) -> torch.Tensor:
     """Recreate the all-open additive mask used after attention annealing."""
 
-    del sample_ids
+    del sample_ids, output_positions
     return annealed_attention_mask(
         attention_mask,
         future_edge_probability=1.0,

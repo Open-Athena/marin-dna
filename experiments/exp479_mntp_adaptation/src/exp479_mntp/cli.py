@@ -226,6 +226,16 @@ def _parser() -> argparse.ArgumentParser:
     attention_anneal.add_argument("--batch-size", type=int, default=64)
     attention_anneal.add_argument("--n-bootstrap", type=int, default=2_000)
 
+    localized_attention = subparsers.add_parser(
+        "localized-attention-diagnostic",
+        help="compare frozen causal and localized predictor-row attention",
+    )
+    localized_attention.add_argument("--artifact-dir", type=Path, required=True)
+    localized_attention.add_argument("--output-dir", type=Path, required=True)
+    localized_attention.add_argument("--validation-plan", type=Path, required=True)
+    localized_attention.add_argument("--batch-size", type=int, default=64)
+    localized_attention.add_argument("--n-bootstrap", type=int, default=2_000)
+
     lora_mntp = subparsers.add_parser(
         "lora-mntp",
         help="train one frozen-base rank-16 LoRA and apply the paired information gate",
@@ -505,6 +515,19 @@ def main() -> None:
         )
 
         run_attention_anneal_diagnostic(
+            artifact_dir=args.artifact_dir,
+            output_dir=args.output_dir,
+            validation_plan=args.validation_plan,
+            batch_size=args.batch_size,
+            n_bootstrap=args.n_bootstrap,
+        )
+        return
+    if args.command == "localized-attention-diagnostic":
+        from exp479_mntp.localized_attention_diagnostic import (
+            run_localized_attention_diagnostic,
+        )
+
+        run_localized_attention_diagnostic(
             artifact_dir=args.artifact_dir,
             output_dir=args.output_dir,
             validation_plan=args.validation_plan,
