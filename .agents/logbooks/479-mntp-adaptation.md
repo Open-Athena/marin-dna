@@ -801,3 +801,14 @@ The accepted [bidirectional-models research question](../../docs/research/questi
 - Gate context: The exact readout remained far behind released source causal `1.051060/0.5078125` and did not pass.
 - Interpretation boundary: This remains an intermediate observation before the schedule reaches full attention at step 800 and trains there for 200 steps.
 - Issue record: Posted the milestone at https://github.com/Open-Athena/marin-dna/issues/479#issuecomment-5377633272.
+
+### 2026-08-22 03:47 - LoRA step-700 milestone and primary-code audit
+
+- Exact paired readout: Step 700 full-attention four-way CE was `1.4032503088` and accuracy was `0.2875`, improving CE by `0.0224272798` and gaining ten correct targets relative to step 0.
+- Local trajectory: Relative to step 600, CE improved by `0.0120808401` and accuracy gained two correct targets as the scheduled future-edge probability rose from `0.087284` to approximately `0.357170`.
+- Stability: All 702 W&B optimizer rows observed through step 701 were finite; loss min/median/max was `1.267362/1.337512/1.589207`, latest-20 mean was `1.330645`, latest-100 mean was `1.333240`, and the attention trace remained monotone.
+- Gate context: The exact readout remained far behind released source causal `1.051060/0.5078125` and did not pass.
+- Primary-code pin: Audited HKUNLP/DiffuLLaMA at commit `c17e897f6476c174b4623da594e4c65554f1613d`.
+- Attention match: Its annealing sampler independently opens upper-triangular edges with one shared sequence matrix and keeps the causal lower triangle, matching the live implementation structurally.
+- Objective difference: Its trainer samples one continuous `t` per sequence, masks each eligible token with probability `t`, shifts logits/targets by one, and weights selected-token CE by `1/t`; the live LoRA run instead holds the corruption rate at 20% and therefore does not test that reference objective.
+- Issue record: Posted the milestone and pinned primary-code audit at https://github.com/Open-Athena/marin-dna/issues/479#issuecomment-5377668557.
