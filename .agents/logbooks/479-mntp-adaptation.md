@@ -765,3 +765,11 @@ The accepted [bidirectional-models research question](../../docs/research/questi
 - Schedule context: The latest logged optimizer step had future-edge probability `0.0159368254`; the step-300 readout is still in the deliberately slow opening phase.
 - Interpretation boundary: The small CE improvement is an intermediate observation, not evidence that the final source-matching gate will pass.
 - Issue record: Posted the milestone and commit-pinned reload-audit preregistration at https://github.com/Open-Athena/marin-dna/issues/479#issuecomment-5377521171.
+
+### 2026-08-22 03:11 - LoRA step-400 milestone
+
+- Exact paired readout: Step 400 full-attention four-way CE was `1.4161973607` and accuracy was `0.2765625`, improving CE by `0.0094802279` and gaining three correct targets relative to step 0.
+- Gate context: Released source causal remained `1.051060/0.5078125`, so this intermediate readout remained far from passing.
+- Stability: All 401 W&B optimizer rows through step 400 were present and finite; loss min/median/max was `1.272581/1.342372/1.589207`, latest-20 mean was `1.336021`, and the future-edge probability trace was monotone.
+- Reload audit: The commit-pinned Sky configuration completed its no-cost dry run on AWS `g5.xlarge` at the quoted `$1.006/hour`.
+- Issue record: Posted the milestone at https://github.com/Open-Athena/marin-dna/issues/479#issuecomment-5377553210 and updated the issue body from preregistration to live-run status.
