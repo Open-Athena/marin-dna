@@ -1173,3 +1173,31 @@ The accepted [bidirectional-models research question](../../docs/research/questi
 - Cost: The failed launch added a conservative `$0.503428`, bringing cumulative listed-price exposure to `$40.858327 / $50`.
 - Correction: Install BICO attention permanently for the model's full training and backward lifetime and verify the installed hook through a non-reentrant activation-checkpoint backward regression test.
 - Resume plan: Rerun the complete locked suite, recheck only the registered batch 94 in a fresh two-step process, and start the 1,000-step run without repeating the completed diagnostic or batch search.
+
+### 2026-08-22 14:30 - Corrected maximum-batch BICO LoRA training completed
+
+- Immutable source: W&B run `t37n0upf` used commit `b34b2ab75a37a7f2431b8c5b388225405b40d01f`, tagged `exp479-bico-lora-gh200-resume-v1`.
+- Verification: All `202` locked tests passed remotely, including the activation-checkpoint backward regression.
+- Batch preflight: The exact two-step batch-94 path passed again with peak reserved memory `90,850,721,792 / 101,468,602,368` bytes, `10.4642%` headroom, accumulation 1, and finite loss and gradients.
+- Exposure: The run completed 1,000 optimizer steps over 94,000 sequences, 24,064,000 model tokens, and 3,597,607 supervised masked targets.
+- Adapter: Rank-16 LoRA trained 13,424,640 parameters while the 1.1B source parameters remained frozen.
+- Schedule: AdamW used `1e-5`, 100 warmup steps, a constant rate through step 800, and cooldown through step 1,000.
+- Training stability: Every loss and gradient was finite, maximum observed pre-clipping norm was `0.140021`, and zero steps clipped at the registered norm 1.0 threshold.
+- Full-attention trajectory: Four-way nucleotide CE/accuracy moved from `1.387224/0.329688` at step 0 to `1.282991/0.409375` at step 1,000; step 900 was `1.282781/0.418750`.
+- Retention: Adapters at steps 0, 25, 50, 100, every 100 through 1,000, plus the final optimizer/scheduler/RNG checkpoint, remain in W&B with no deletion.
+- Runtime and cost: The corrected GH200 run added a conservative `$1.281500`, bringing cumulative listed-price exposure to `$42.139827 / $50` including the earlier failed launch.
+- Boundaries: No VEP, nucleotide dependency, Hugging Face upload, checkpoint deletion, or knowledge-base update occurred.
+
+### 2026-08-22 14:47 - Retained BICO causal-baseline correction preregistered
+
+- Audit finding: The custom attention hook discarded the `is_causal` keyword passed by the Qwen3 SDPA path.
+- Scope: BICO full-attention training and every candidate trajectory row are unaffected, but the adapter-disabled row labeled as causal in run `t37n0upf` actually used full attention and cannot support its published gate.
+- Evidence before rerun: The misreported source row was CE/accuracy `1.387563/0.326563`, close to the untrained full-attention BICO readout and far from the previously verified causal source `1.051000/0.509375`.
+- Code correction: Honor `is_causal` inside the reflected-RoPE hook by excluding every future key before applying any supplied padding or additive attention mask.
+- Unit gate: An implicit SDPA-style `is_causal=True` call without an explicit triangular mask must match standard causal RoPE weights and outputs.
+- End-to-end causal gate: Fresh standard SDPA causal scores must match adapter-disabled causal scores through the corrected BICO hook with maximum per-target CE difference at most `0.002` and zero nucleotide and full-vocabulary correctness mismatches.
+- Bug-reproduction gate: The retained mislabeled source scores must match a fresh adapter-disabled full-BICO, PAD-attended readout within the same tolerance and with zero correctness mismatches.
+- Reload gate: A fresh-process final step-1,000 adapter readout must match the retained candidate scores within the same tolerance and with zero correctness mismatches.
+- Corrected scientific gate: Replace only the invalid source row and freshly reload the final adapter, preserve the retained candidate trajectory at steps 0 through 900, and recompute all paired bootstrap intervals against the true causal source.
+- Compute: Use one self-terminating AWS A10G with a one-hour ceiling at `$1.006/hour`, projecting at most `$43.145827 / $50` from the current `$42.139827` cumulative estimate.
+- Storage and evaluation boundary: Publish compact corrected tables, checks, manifests, and one trajectory figure to W&B; do not run VEP or nucleotide dependency, upload to Hugging Face, delete any checkpoint, or update the research knowledge base.

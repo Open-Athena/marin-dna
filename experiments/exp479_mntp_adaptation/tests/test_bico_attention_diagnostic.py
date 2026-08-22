@@ -103,6 +103,32 @@ def test_bico_attention_matches_standard_rope_under_causal_mask() -> None:
     torch.testing.assert_close(output, expected_output)
 
 
+def test_bico_attention_honors_sdpa_is_causal_without_explicit_mask() -> None:
+    module = TinyAttention().eval()
+    generator = torch.Generator().manual_seed(5)
+    hidden = torch.randn((2, 4, 4), generator=generator)
+    cos, sin = _position_embeddings(hidden.shape[1])
+    output, weights = bico_attention_forward(
+        module,
+        hidden,
+        (cos, sin),
+        None,
+        is_causal=True,
+    )
+
+    query = hidden[:, None, :, :]
+    key = hidden[:, None, :, :]
+    query, key = apply_rotary_pos_emb(query, key, cos, sin)
+    expected_logits = torch.matmul(query, key.transpose(2, 3)) * module.scaling
+    allowed = torch.ones((4, 4), dtype=torch.bool).tril()
+    expected_logits = expected_logits.masked_fill(~allowed[None, None], -torch.inf)
+    expected_weights = expected_logits.softmax(dim=-1)
+    expected_output = torch.matmul(expected_weights, hidden[:, None]).transpose(1, 2)
+    expected_output = expected_output.reshape_as(hidden)
+    torch.testing.assert_close(weights, expected_weights)
+    torch.testing.assert_close(output, expected_output)
+
+
 def test_reflected_future_rope_restores_original_layer_forward() -> None:
     attention = TinyAttention()
     original = attention.forward

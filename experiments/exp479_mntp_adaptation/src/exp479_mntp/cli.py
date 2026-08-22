@@ -271,6 +271,16 @@ def _parser() -> argparse.ArgumentParser:
     bico_lora.add_argument("--evaluation-batch-size", type=int, default=64)
     bico_lora.add_argument("--n-bootstrap", type=int, default=2_000)
 
+    bico_lora_gate_audit = subparsers.add_parser(
+        "bico-lora-gate-audit",
+        help="correct the retained BICO causal gate and audit final-adapter reload",
+    )
+    bico_lora_gate_audit.add_argument("--artifact-dir", type=Path, required=True)
+    bico_lora_gate_audit.add_argument("--output-dir", type=Path, required=True)
+    bico_lora_gate_audit.add_argument("--validation-plan", type=Path, required=True)
+    bico_lora_gate_audit.add_argument("--batch-size", type=int, default=64)
+    bico_lora_gate_audit.add_argument("--n-bootstrap", type=int, default=2_000)
+
     lora_mntp = subparsers.add_parser(
         "lora-mntp",
         help="train one frozen-base rank-16 LoRA and apply the paired information gate",
@@ -641,6 +651,17 @@ def main() -> None:
             seed=args.seed,
             num_workers=args.num_workers,
             evaluation_batch_size=args.evaluation_batch_size,
+            n_bootstrap=args.n_bootstrap,
+        )
+        return
+    if args.command == "bico-lora-gate-audit":
+        from exp479_mntp.bico_lora_gate_audit import run_bico_lora_gate_audit
+
+        run_bico_lora_gate_audit(
+            artifact_dir=args.artifact_dir,
+            output_dir=args.output_dir,
+            validation_plan=args.validation_plan,
+            batch_size=args.batch_size,
             n_bootstrap=args.n_bootstrap,
         )
         return
