@@ -575,3 +575,11 @@ The accepted [bidirectional-models research question](../../docs/research/questi
 - LoRA next step: If the existing checkpoint fails, freeze the released base and test a rank-16 MNTP adapter against this identical paired gate before any VEP evaluation.
 - Canceled LDLR attempt: The earlier Lambda GH200 dependency job was canceled and the cluster torn down after the user requested cheaper compute; it produced no replacement map and did not modify or delete the retained checkpoint.
 - Next action: Commit and push the exact evaluator, dry-run the A10 launch, run the complete locked suite remotely, and inspect the paired figure before specifying the LoRA pilot.
+
+### 2026-08-22 00:09 - Existing-token mask control amended
+
+- User direction: Explore both existing `[UNK]` and `[PAD]` tokens early rather than assume one mask representation.
+- Step-0 panel: Add full-attention `[UNK]` and `[PAD]` readouts beside the new `[MASK]` row on the identical paired targets.
+- Sequential selection: Advance only the better existing-token choice to the first rank-16 LoRA pilot; if their paired intervals overlap, prefer `[UNK]` for its unknown-nucleotide semantics.
+- Compute: Keep the readout on one Lambda A10 at the current listed price of `$1.29/hour` and record that rate explicitly in the cost estimator.
+- Boundaries: Nucleotide-dependency and VEP evaluation remain paused.

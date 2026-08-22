@@ -15,11 +15,12 @@ import torch
 import wandb
 from torch.utils.data import DataLoader
 
-from exp479_mntp.checkpoint_audit import LoadedArm, _loaded_from_hf
+from exp479_mntp.checkpoint_audit import _loaded_from_hf
 from exp479_mntp.config import EXPERIMENT_TAGS, NUCLEOTIDE_LENGTH, WANDB_PROJECT
 from exp479_mntp.data import SequenceCollator, SequencePlanDataset, plan_sha256
 from exp479_mntp.mntp_dependency import SOURCE_MODEL_ARTIFACT
 from exp479_mntp.modeling import ModelBundle, load_model_bundle, model_logits
+from exp479_mntp.vep import LoadedArm
 
 EXPECTED_VALIDATION_PLAN_SHA256 = "35542611d71102479f3d07dc6565350120d1d89944e5a93f88efb641ece7e3ba"
 PAIRED_GATE_RUN_NAME = "dna-exp479-paired-nucleotide-information-gate"
@@ -234,6 +235,7 @@ def plot_paired_gate(scores: pd.DataFrame, summary: pd.DataFrame, output_path: P
         "source_causal": "Source causal",
         "source_full_new_mask": "Source full + new MASK",
         "source_full_unk_mask": "Source full + UNK mask",
+        "source_full_pad_mask": "Source full + PAD mask",
         "adapted_causal_step1000": "Adapted causal",
         "adapted_full_step1000": "Adapted full",
     }
@@ -241,6 +243,7 @@ def plot_paired_gate(scores: pd.DataFrame, summary: pd.DataFrame, output_path: P
         "source_causal": "#4C78A8",
         "source_full_new_mask": "#F58518",
         "source_full_unk_mask": "#ECA82C",
+        "source_full_pad_mask": "#B279A2",
         "adapted_causal_step1000": "#72B7B2",
         "adapted_full_step1000": "#E45756",
     }
@@ -404,6 +407,16 @@ def run_paired_nucleotide_gate(
                 replacement_mask_token_id=int(source.tokenizer.unk_token_id),
             )
         )
+        score_frames.append(
+            evaluate_readout(
+                source,
+                validation_plan=validation_plan,
+                batch_size=batch_size,
+                readout="source_full_pad_mask",
+                attention_mode="full",
+                replacement_mask_token_id=int(source.tokenizer.pad_token_id),
+            )
+        )
         source.model.to(device="cpu")
         del source
         gc.collect()
@@ -451,6 +464,12 @@ def run_paired_nucleotide_gate(
             paired_comparison(
                 scores,
                 candidate="source_full_unk_mask",
+                baseline="source_causal",
+                n_bootstrap=n_bootstrap,
+            ),
+            paired_comparison(
+                scores,
+                candidate="source_full_pad_mask",
                 baseline="source_causal",
                 n_bootstrap=n_bootstrap,
             ),
