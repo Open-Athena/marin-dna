@@ -1,26 +1,44 @@
 # One-pass MNTP adaptation of MarinDNA m5.1
 
 > [!NOTE]
-> **TL;DR:** A 1,000-step LoRA adaptation with reflected-RoPE bidirectional attention improved one-pass nucleotide prediction but remained worse than the causal source, and Mendelian VEP stayed near its 0.10 random-ranking baseline.
+> **TL;DR:** Several full-attention and causal-preserving adaptations failed to match the causal source in a single forward pass, and the evaluated MNTP models remained near-random on Mendelian VEP.
 
 ## Findings
 
-The 1,000-step run combined rank-16 LoRA and masked next-token prediction with [BIdirectional Causal language model Optimization (BICO)](https://aclanthology.org/2024.emnlp-main.754/), which opens future attention while mapping future-key RoPE offsets into the negative-offset range seen during causal pretraining.
-It did not produce a useful one-pass bidirectional model.
-Its nucleotide prediction improved during adaptation, then plateaued below the causal source despite access to both sequence directions.
-The symmetric two-causal-pass control remained better than either model.
+No tested candidate produced a useful single-forward-pass bidirectional model.
+Ordinary full-attention MNTP, attention annealing, predictor-row-only future attention, and reflected-RoPE LoRA all remained worse than the causal source on paired nucleotide prediction.
+Changing among `[MASK]`, `[UNK]`, and `[PAD]` did not explain the full-attention deficit.
+A zero-initialized gated causal/full LoRA route came closest, but it required two computation paths and still failed cross-entropy non-inferiority.
+The symmetric two-causal-pass control was better than the source causal readout, confirming that complementary right-context information exists outside the single-pass constraint.
 
-Mendelian macro AUPRC stayed between 0.1048 and 0.1113, close to the 0.10 random-ranking baseline defined by one positive and nine matched negatives per group.
-The run did not establish better-than-random VEP or a change over optimization steps; every paired checkpoint interval versus step 0 included zero.
+The original transferred and scratch MNTP models reached Mendelian macro AUPRC 0.1151 and 0.1112, compared with 0.3951 for the source CLM.
+The final standard-rate reflected-RoPE LoRA trajectory stayed between 0.1048 and 0.1113, close to the 0.10 random-ranking baseline defined by one positive and nine matched negatives per group.
+The final run did not establish better-than-random VEP or a change over optimization steps; every paired checkpoint interval versus step 0 included zero.
 Gonzalo Benegas interprets this near-random VEP result as evidence that the adapted representations are poor for the intended use.
 
-The source model remained frozen, the adapter-disabled causal readout was bit-exact, and the latest run had finite losses and gradient norms without clipping.
-The result does not support selecting a VEP checkpoint or extending the same recipe beyond 1,000 steps.
+The frozen-base runs reproduced the source causal readout exactly when their adapters were disabled.
+The evidence does not support selecting a VEP checkpoint or extending any tested recipe beyond 1,000 steps.
 
 ## Evidence
 
 The fixed validation panel used 640 identical masked nucleotide targets: 128 sequences from each of CDS, downstream, enhancer, ncRNA, and upstream data.
-The source used its causal next-token readout, while the candidate used full BICO attention and excluded masked keys.
+The approaches were tested sequentially and differ in trainable parameter count and inference cost.
+
+| Tested route | Setup | Outcome |
+|---|---|---|
+| Full-parameter transferred and scratch MNTP | Ordinary full attention with shifted masked-token prediction for 1,000 steps. | The corrected transferred model reached CE/accuracy 1.260/41.56%, below the causal source at 1.051/50.78%; the earlier transferred and scratch models had Mendelian AUPRC 0.115/0.111. |
+| Mask-token controls | No training; compare a new `[MASK]` row with existing `[UNK]` and `[PAD]`. | Full-attention accuracy was 27.2–27.7% for all three, ruling out the mask-token choice as the main cause. |
+| Damage-calibrated attention annealing with LoRA | Open future edges gradually through step 800, then train 200 steps at full attention. | Final CE/accuracy was 1.366/31.88%, versus source 1.051/50.63%. |
+| Predictor-row-only future attention | No training; only the shifted predictor row can attend to future keys. | CE/accuracy was 1.207/44.84%, versus causal 1.052/51.09%. |
+| Zero-initialized gated causal/full LoRA | Mix a frozen causal path with a trained full-attention path. | Final CE/accuracy was 1.058/51.25%; CE was confidence-supported worse than source, and the right-context gate failed. |
+| [BIdirectional Causal language model Optimization (BICO)](https://aclanthology.org/2024.emnlp-main.754/) reflected-RoPE LoRA | Map future-key RoPE offsets into the negative-offset range seen during causal pretraining; test `1e-5` and `5e-5`. | The two runs ended at 1.283/40.94% and 1.274/41.09%; both were below source 1.051/50.63%. |
+| Symmetric two-causal-pass control | Combine native causal forward and reverse-complement distributions without updating the model. | CE/accuracy reached 0.913/62.50%; it passed the nucleotide gate but violates the one-pass goal. |
+| Dual-mode VEP routing control | Combine the two-pass central conditional with the source full-sequence score residual. | Mendelian/complex/SGE AUPRC was 0.394/0.134/0.356 versus source 0.396/0.134/0.358; the route is not a converted single-pass model. |
+
+Corrected causal continuation served only as an optimizer control.
+Its five-component validation CE increased from 0.7690 to 0.7737 over 1,000 AdamW steps at `1e-5`.
+
+The final standard-rate BICO run used full reflected-RoPE attention, excluded masked keys, and trained a rank-16 LoRA adapter while keeping the source parameters frozen.
 
 | Readout | Four-way cross-entropy | Accuracy |
 |---|---:|---:|
@@ -45,8 +63,11 @@ Paired uncertainty used 2,000 seed-0 match-group bootstrap replicates over 16,10
 
 ## Limitations
 
-The standard-rate run used one seed, one source checkpoint, one 1,000-step schedule, and LoRA on one attention formulation.
-The nucleotide comparison intentionally favors BICO by giving it both sequence directions, so its deficit is a failed engineering gate rather than a matched-objective likelihood comparison.
+The approaches were sequential rather than a matched benchmark and differed in trainable parameters, optimizer settings, masking, and inference cost.
+The earlier transferred and scratch VEP models trained with a superseded loss normalization, so their scores describe those checkpoints without isolating the intended corrected objective.
+All trained candidates used one seed, one source checkpoint, and at most 1,000 steps.
+Same-position MLM, the full variable-time DiffuLLaMA objective, full-parameter BICO, causal infilling, and distillation were not tested.
+The nucleotide gates intentionally give each bidirectional candidate both sequence directions at the target, so the deficits are failed engineering gates rather than matched-objective likelihood comparisons.
 The Mendelian checkpoint intervals measure change within the BICO run; they do not compare direct masked-site scoring with the source CLM's different full-sequence VEP score.
 
 ## Related questions

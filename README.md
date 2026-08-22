@@ -15,13 +15,13 @@ These documents synthesize MarinDNA's current answers and help organize future e
 
 ### Current priorities
 
-- [Bidirectionality](docs/research/questions/bidirectional-models.md)
 - [Complex-trait VEP](docs/research/questions/complex-trait-vep.md)
 - [Genomic anchor projection](docs/research/questions/genomic-anchors.md)
 - [RAG](docs/research/questions/retrieval-augmented-models.md)
 
 ### Other active questions
 
+- [Bidirectionality](docs/research/questions/bidirectional-models.md)
 - [Context size](docs/research/questions/long-context.md)
 - [Data mixing](docs/research/questions/data-mixtures.md)
 - [Evolutionary timescales](docs/research/questions/evolutionary-timescale.md)
