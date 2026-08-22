@@ -2598,3 +2598,11 @@ cohort, assemblies, and downstream training recipe fixed.
 - The large uniform gaps in withdrawn CSP-083 disappear. The corrected terminal results are broadly similar and mixed across endpoints; no paired cross-arm uncertainty was computed in this canonical rerun, so this entry makes no claim about a validation-split effect on VEP.
 - Metric SHA-256 values are `5e8716bfbb8a9a91ef2beb3d4c0699db92c44c6d6b3e6570e89e68260b0cd9d8`, `7950e05589f69a8091f98def7ea3bd7f8e4d5c8a56b322ffa264d60abd1ccbff`, and `373c7cb409ece183d9ad3c8c263727963796a3600cc3e9318d5f2d86bb79e56a` for the chromosome-18 Mendelian, Complex-trait, and SGE files, and `b92c0d9ae003b4c21e2637a78cd4dd3dc97434ef79fdb4a18f1a3af8e8639121`, `7d29974373a2931a57edf9958dff93432a0a07bea405acdee57887828732cfdf`, and `554bde7fc9cc6fd01da9780ea5cf00c66f400de25854f796eb20bd8e182fe610` for their random-validation counterparts.
 - One preemptible AWS `g5.xlarge` in `us-east-2c` supplied one A10G at the displayed $0.36/hour spot rate. The cluster `exp473-evals-v2-rope-fix` no longer exists after automatic teardown.
+
+### 2026-08-22 14:32 UTC - CSP-086 damage-control delivery snapshot
+
+- Corrected result comment `5380875140` is posted and verified; issue #473 now marks the prior CDS interpretation as suspended and the disposition as `evaluation audit in progress`.
+- The isolated additive registry PR #502 was rebased onto `origin/main` at final head `8063d6d5fb1ab3114d32970a6b040dd457fb6730`.
+- PR #502 changes one file by 14 additive lines, passed the full `evals-v2` test job and all other required checks after rebase, and is ready for human review.
+- Independent review found one provenance-wording issue, which was corrected before the rebase; no unresolved finding remains.
+- Nothing was merged or closed, and the user-owned untracked ortholog-free issue draft was not modified.
