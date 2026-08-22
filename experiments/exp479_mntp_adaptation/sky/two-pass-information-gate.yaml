@@ -27,7 +27,7 @@ run: |
   uv run --locked pytest
   uv run --locked exp479 prepare-data \
     --output-dir "$artifact_root/data" \
-    --batch-size 1 \
+    --batch-size 64 \
     --seed 0
   timeout --signal=TERM 3600 uv run --locked exp479 two-pass-information-gate \
     --artifact-dir "$artifact_root" \

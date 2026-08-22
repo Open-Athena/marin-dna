@@ -411,6 +411,7 @@ def test_two_pass_gate_uses_one_a10g_wandb_and_no_model_updates() -> None:
     stage = Path("sky/two-pass-information-gate.yaml").read_text(encoding="utf-8")
     assert stage.count("uv run --locked exp479 two-pass-information-gate") == 1
     assert stage.count("uv run --locked pytest") == 1
+    assert "--batch-size 64" in stage
     assert "cloud: aws" in stage
     assert "region: us-east-2" in stage
     assert "accelerators: A10G:1" in stage
