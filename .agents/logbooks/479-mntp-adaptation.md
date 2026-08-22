@@ -1234,3 +1234,15 @@ The accepted [bidirectional-models research question](../../docs/research/questi
 - Compute: Use one self-terminating Lambda GH200 at `.29/hour`; the `3.3`-hour hard projection is `.696827 / ` from the current `.139827` cumulative estimate, while the runtime guard reserves ``.
 - Verification: Run the complete locked test suite remotely before preflight; local Ruff format, lint, and diff checks must pass before snapshotting.
 - Boundaries: Do not run VEP, nucleotide dependency, Hugging Face upload, checkpoint deletion, or research knowledge-base interpretation.
+
+
+### 2026-08-22 15:32 - Resolve public checkpoint ownership after storage-guidance rebase
+
+- Rebase: Rebase the permanent experiment branch cleanly onto `origin/main` before revising storage ownership.
+- Updated guidance: The current `manage-research-storage` skill assigns issue-scoped outputs to `s3://oa-bolinas/issues/479/...`, dense metrics to W&B, and requires one durable owner plus an explicit public-distribution decision.
+- User requirement: Every issue-479 output must be public, and the user permits the prescribed S3 location only if needed.
+- S3 check: `oa-bolinas` blocks public ACLs, ignores public ACLs, blocks public policies, restricts public buckets, and has no bucket policy, so it cannot satisfy the all-public requirement without a broad bucket-security change.
+- W&B check: An unauthenticated GraphQL request returns the `gonzalobenegas/marin` project, confirming anonymous project access.
+- Ownership decision: Use W&B as the single public durable owner for the standard-rate run checkpoints, optimizer state, metrics, tables, and figures; do not create a private S3 copy or duplicate Hugging Face copy.
+- Publication authorization: The user explicitly directed that nothing be private and all outputs be public.
+- Boundaries: Preserve the no-deletion rule and perform no VEP, nucleotide dependency, or knowledge-base interpretation.

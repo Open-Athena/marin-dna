@@ -237,6 +237,8 @@ Batch 94 is rerun for two exact optimizer steps at `5e-5` before training and mu
 
 The candidate is evaluated against the true causal source on the fixed 640-target panel at steps 0, 25, 50, 100, every 100 through 1,000, and the final checkpoint.
 All adapter milestones, the final optimizer-bearing checkpoint, preflight, stability trace, paired comparisons, and figures use a distinct `lr5e-5` W&B namespace.
+The coordinating user requires every output to be public, while the prescribed `oa-bolinas` S3 bucket blocks public ACLs and public bucket policies and has no public-read policy.
+W&B is therefore the single durable owner for this run: the `gonzalobenegas/marin` project is anonymously queryable, and no private S3 or duplicate Hugging Face copy is created.
 The stage performs no VEP, nucleotide-dependency analysis, Hugging Face upload, checkpoint deletion, or research knowledge-base interpretation.
 
 ```bash
