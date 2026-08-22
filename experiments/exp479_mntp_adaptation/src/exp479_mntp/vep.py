@@ -14,7 +14,6 @@ from typing import Any, Literal
 import numpy as np
 import pandas as pd
 import torch
-from datasets import load_dataset
 from huggingface_hub import HfApi, hf_hub_download, snapshot_download
 from pyfaidx import Fasta
 from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedModel
@@ -156,8 +155,13 @@ def assert_development_split(frame: pd.DataFrame, dataset_name: str) -> None:
 def load_variant_frame(spec: DatasetSpec) -> pd.DataFrame:
     """Load only the pinned public train split, which is odd autosomes plus X."""
 
-    dataset = load_dataset(spec.repo_id, split="train", revision=spec.revision)
-    frame = dataset.to_pandas()
+    train_path = hf_hub_download(
+        repo_id=spec.repo_id,
+        filename="train.parquet",
+        repo_type="dataset",
+        revision=spec.revision,
+    )
+    frame = pd.read_parquet(train_path)
     frame["chrom"] = frame["chrom"].astype(str)
     frame["ref"] = frame["ref"].str.upper()
     frame["alt"] = frame["alt"].str.upper()

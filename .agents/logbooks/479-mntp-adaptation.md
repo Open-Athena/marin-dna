@@ -1288,3 +1288,26 @@ The accepted [bidirectional-models research question](../../docs/research/questi
 - Retention: No optimizer training beyond the two preflight steps occurred, the versioned S3 checkpoint prefix remains empty, and no checkpoint was created, modified, uploaded, or deleted.
 - Relaunch gate: Rerun local focused checks and the complete remote suite, then require the same finite-gradient and 10% memory results plus the corrected budget projection below `$48` before training.
 - Boundaries: No VEP scoring, nucleotide dependency, held-out label access, Hugging Face upload, checkpoint deletion, or knowledge-base interpretation occurred.
+
+
+### 2026-08-22 16:36 - Stop non-streaming held-out split materialization
+
+- Snapshot: Commit `d4d8401c1c787005042fb84f05816d4809e7c7ed`, tag `exp479-bico-lora-standard-rate-prelaunch-v4`.
+- Verification: All 219 locked tests passed in `24.09` seconds.
+- Preflight: Finite loss and gradients and `10.464203%` memory headroom passed again.
+- Budget: The corrected sustained-runtime gate projected `$46.452958 / $50`, below the unchanged `$48` runtime-guard boundary.
+- Data identity: The 94,000-row training-plan SHA-256 was `79a7e73b3ca32a34d0f00c812502f1881bef4162054f8ec3b504540bd33b9261`; validation remained `35542611d71102479f3d07dc6565350120d1d89944e5a93f88efb641ece7e3ba`.
+- Boundary signal: Each call to `datasets.load_dataset(..., split="train")` returned the selected train frame but logged generation of both `train` and `test` splits.
+- Materialized rows: The builder generated 16,140/9,490 Mendelian train/test rows, 11,630/10,000 complex-trait train/test rows, and 23,853/14,888 SGE train/test rows.
+- Scope: No held-out frame was returned to exp479, no held-out variant was scored, and no held-out metric was computed or inspected.
+- Violation: Local generation still opened and cached held-out labels without explicit permission, which violates the repository development boundary.
+- Response: Cancel the Sky job during W&B run `xrk9l1n5` in its step-0 one-pass VEP pass, before any standard-rate optimizer update or adapter retention.
+- Teardown: Cancel Sky job 1 and terminate the `us-east-3` GH200 immediately.
+- Retention check: `s3://oa-bolinas/issues/479/bico-lora-standard-rate/v1` remains empty.
+- Loader correction: Download only `train.parquet` at each dataset revision with `hf_hub_download`, then read that local parquet directly.
+- Regression: Require the loader test to observe exactly one request with filename `train.parquet`, repo type `dataset`, and the pinned revision.
+- Shared scope: The corrected loader is used by the original VEP evaluator, two-pass VEP, checkpoint audits, inference rechecks, context diagnostics, MNTP long-run evaluation, and this BICO trajectory.
+- Mainline issue: No duplicate open issue was found; filing the agent-discovered reusable bug awaits user approval under the `file-issue` workflow.
+- Cost: Conservatively charge through the cancellation timestamp, adding `$0.396933` and moving the listed-price total to `$42.795834 / $50`.
+- Relaunch: Run local static checks, snapshot v5, rerun the complete remote suite and exact preflight, and require logs to show no held-out split generation before training.
+- Boundaries: Do not accept any VEP score from the canceled run, access held-out metrics, delete a checkpoint, upload to Hugging Face, run nucleotide dependency, or update the knowledge base.

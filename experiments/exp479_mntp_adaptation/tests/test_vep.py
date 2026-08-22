@@ -11,9 +11,11 @@ from pyfaidx import Fasta
 from transformers import Qwen3Config, Qwen3ForCausalLM
 
 from exp479_mntp.vep import (
+    DatasetSpec,
     LoadedArm,
     assert_development_split,
     attach_reference_windows,
+    load_variant_frame,
     reverse_complement,
     score_strand,
 )
@@ -65,6 +67,53 @@ def test_development_split_rejects_even_autosome() -> None:
     assert_development_split(pd.DataFrame({"chrom": ["1", "X"], "label": [0, 1]}), "ok")
     with pytest.raises(RuntimeError, match="held-out"):
         assert_development_split(pd.DataFrame({"chrom": ["2"], "label": [1]}), "bad")
+
+
+def test_load_variant_frame_downloads_only_pinned_train_parquet(
+    tmp_path: Path,
+    monkeypatch: object,
+) -> None:
+    train_path = tmp_path / "train.parquet"
+    pd.DataFrame(
+        {
+            "chrom": [1, 3],
+            "pos": [10, 20],
+            "ref": ["a", "c"],
+            "alt": ["g", "t"],
+            "label": [0, 1],
+        }
+    ).to_parquet(train_path, index=False)
+    requested: list[dict[str, str]] = []
+
+    def fake_download(**kwargs: str) -> str:
+        requested.append(kwargs)
+        return str(train_path)
+
+    monkeypatch.setattr(  # type: ignore[attr-defined]
+        "exp479_mntp.vep.hf_hub_download",
+        fake_download,
+    )
+    spec = DatasetSpec(
+        name="development",
+        repo_id="example/evaluation",
+        revision="a" * 40,
+        protocol="minus_llr",
+        evaluation="matched",
+    )
+
+    frame = load_variant_frame(spec)
+
+    assert requested == [
+        {
+            "repo_id": "example/evaluation",
+            "filename": "train.parquet",
+            "repo_type": "dataset",
+            "revision": "a" * 40,
+        }
+    ]
+    assert frame["chrom"].tolist() == ["1", "3"]
+    assert frame["ref"].tolist() == ["A", "C"]
+    assert frame["alt"].tolist() == ["G", "T"]
 
 
 def test_reverse_complement_preserves_unknowns_and_case() -> None:

@@ -240,6 +240,7 @@ The corrected budget gate uses that same-path sustained runtime plus a conservat
 
 The candidate is evaluated against the true causal source on the fixed 640-target panel at steps 0, 25, 50, 100, every 100 through 1,000, and the final checkpoint.
 It also measures one-pass BICO forward VEP AUPRC at steps 0 and every 100 through 1,000 on the same 16,140 Mendelian, 11,630 complex-trait, and 23,853 SGE development variants from odd-numbered autosomes and chromosome X.
+Each labeled dataset loader downloads only its pinned `train.parquet` file; it does not invoke a non-streaming dataset builder that can materialize held-out splits.
 The three exact point AUPRCs are the Mendelian consequence macro, complex-trait global, and SGE accession-consequence macro endpoints.
 Twenty bootstrap replicates provide descriptive trajectory error estimates only and are not used for a formal gate.
 The previously reproduced source CLM FWD+RC endpoints appear only as dashed reference lines; the VEP question is whether AUPRC moves with language-model quality within this run.
@@ -250,7 +251,7 @@ The stage performs no nucleotide-dependency analysis, Hugging Face upload, check
 ```bash
 uv run --locked python launch.py bico-lora-standard-rate \
   --commit "$(git rev-parse HEAD)" \
-  --prior-cost-usd 42.39890103020706 \
+  --prior-cost-usd 42.79583436354039 \
   --retry-until-up \
   --execute
 ```
