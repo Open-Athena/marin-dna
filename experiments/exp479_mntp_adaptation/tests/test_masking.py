@@ -3,7 +3,12 @@ from __future__ import annotations
 import torch
 
 from exp479_mntp.loss import per_sequence_weighted_loss
-from exp479_mntp.masking import IGNORE_INDEX, corrupt_for_mntp, corrupt_single_mask
+from exp479_mntp.masking import (
+    IGNORE_INDEX,
+    corrupt_fixed_rate_mntp,
+    corrupt_for_mntp,
+    corrupt_single_mask,
+)
 
 
 def _inputs() -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
@@ -70,6 +75,60 @@ def test_labels_are_shifted_and_selected_targets_are_removed() -> None:
             assert torch.isclose(
                 result.loss_weights[row, output_position], torch.tensor(expected_weight)
             )
+
+
+def test_fixed_rate_corruption_is_deterministic_and_always_removes_targets() -> None:
+    input_ids, lowercase, sample_ids = _inputs()
+    first = corrupt_fixed_rate_mntp(
+        input_ids,
+        lowercase,
+        sample_ids,
+        mask_token_id=1,
+        canonical_token_ids=(3, 4, 5, 6),
+        seed=0,
+        mask_probability=0.2,
+    )
+    second = corrupt_fixed_rate_mntp(
+        input_ids,
+        lowercase,
+        sample_ids,
+        mask_token_id=1,
+        canonical_token_ids=(3, 4, 5, 6),
+        seed=0,
+        mask_probability=0.2,
+    )
+
+    assert torch.equal(first.input_ids, second.input_ids)
+    assert torch.equal(first.labels, second.labels)
+    assert torch.equal(first.mask_probabilities, torch.full((2,), 0.2))
+    assert torch.all((first.labels != IGNORE_INDEX).sum(dim=1) >= 1)
+    assert torch.equal(first.input_ids[:, 0], input_ids[:, 0])
+    assert torch.equal(first.input_ids[:, 5:], input_ids[:, 5:])
+    for row in range(input_ids.shape[0]):
+        output_positions = (first.labels[row] != IGNORE_INDEX).nonzero(as_tuple=False).flatten()
+        assert torch.all(first.input_ids[row, output_positions + 1] == 1)
+        assert torch.equal(
+            first.labels[row, output_positions], input_ids[row, output_positions + 1]
+        )
+
+
+def test_fixed_rate_corruption_rejects_invalid_probability() -> None:
+    input_ids, lowercase, sample_ids = _inputs()
+    for probability in (0.0, 1.01):
+        try:
+            corrupt_fixed_rate_mntp(
+                input_ids,
+                lowercase,
+                sample_ids,
+                mask_token_id=1,
+                canonical_token_ids=(3, 4, 5, 6),
+                seed=0,
+                mask_probability=probability,
+            )
+        except ValueError as error:
+            assert "mask_probability" in str(error)
+        else:
+            raise AssertionError("expected invalid fixed mask probability to fail")
 
 
 def test_single_mask_selects_exactly_one_target() -> None:

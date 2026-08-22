@@ -5,6 +5,7 @@ from __future__ import annotations
 import gc
 import json
 import time
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -68,6 +69,7 @@ def evaluate_readout(
     readout: str,
     attention_mode: str,
     replacement_mask_token_id: int | None = None,
+    attention_mask_transform: Callable[[torch.Tensor, torch.Tensor], torch.Tensor] | None = None,
 ) -> pd.DataFrame:
     """Evaluate one model/readout on identical deterministic single-mask targets."""
 
@@ -101,6 +103,9 @@ def evaluate_readout(
             if replacement_mask_token_id is not None:
                 input_ids = input_ids.clone()
                 input_ids[batch_rows, output_positions + 1] = replacement_mask_token_id
+
+            if attention_mask_transform is not None:
+                attention_mask = attention_mask_transform(attention_mask, batch["sample_ids"])
 
             logits = model_logits(
                 model,

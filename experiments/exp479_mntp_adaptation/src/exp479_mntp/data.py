@@ -14,7 +14,11 @@ from transformers import PreTrainedTokenizerBase
 
 from exp479_mntp.config import DATA_COMPONENTS, NUCLEOTIDE_LENGTH, SEQUENCE_LENGTH
 from exp479_mntp.loss import causal_supervision
-from exp479_mntp.masking import corrupt_for_mntp, corrupt_single_mask
+from exp479_mntp.masking import (
+    corrupt_fixed_rate_mntp,
+    corrupt_for_mntp,
+    corrupt_single_mask,
+)
 
 Objective = Literal["mntp", "clm"]
 ValidationMode = Literal["diffusion", "single"]
@@ -77,6 +81,7 @@ class SequenceCollator:
         mask_token_id: int | None,
         seed: int,
         validation_mode: ValidationMode = "diffusion",
+        fixed_mask_probability: float | None = None,
     ) -> None:
         if objective == "mntp" and mask_token_id is None:
             raise ValueError("MNTP collation requires a mask token")
@@ -86,6 +91,7 @@ class SequenceCollator:
         self.mask_token_id = mask_token_id
         self.seed = seed
         self.validation_mode = validation_mode
+        self.fixed_mask_probability = fixed_mask_probability
 
     def __call__(self, rows: Sequence[dict[str, Any]]) -> dict[str, Any]:
         sequences = [str(row["sequence"]) for row in rows]
@@ -122,17 +128,28 @@ class SequenceCollator:
             return batch
 
         assert self.mask_token_id is not None
-        corruption_fn = (
-            corrupt_for_mntp if self.validation_mode == "diffusion" else corrupt_single_mask
-        )
-        corrupted = corruption_fn(
-            input_ids,
-            lowercase,
-            sample_ids,
-            mask_token_id=self.mask_token_id,
-            canonical_token_ids=self.canonical_token_ids,
-            seed=self.seed,
-        )
+        if self.validation_mode == "diffusion" and self.fixed_mask_probability is not None:
+            corrupted = corrupt_fixed_rate_mntp(
+                input_ids,
+                lowercase,
+                sample_ids,
+                mask_token_id=self.mask_token_id,
+                canonical_token_ids=self.canonical_token_ids,
+                seed=self.seed,
+                mask_probability=self.fixed_mask_probability,
+            )
+        else:
+            corruption_fn = (
+                corrupt_for_mntp if self.validation_mode == "diffusion" else corrupt_single_mask
+            )
+            corrupted = corruption_fn(
+                input_ids,
+                lowercase,
+                sample_ids,
+                mask_token_id=self.mask_token_id,
+                canonical_token_ids=self.canonical_token_ids,
+                seed=self.seed,
+            )
         batch.update(
             input_ids=corrupted.input_ids,
             labels=corrupted.labels,

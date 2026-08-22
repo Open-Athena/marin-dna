@@ -216,6 +216,29 @@ def _parser() -> argparse.ArgumentParser:
     paired_gate.add_argument("--batch-size", type=int, default=64)
     paired_gate.add_argument("--n-bootstrap", type=int, default=2_000)
 
+    attention_anneal = subparsers.add_parser(
+        "attention-anneal-diagnostic",
+        help="measure frozen-source nucleotide metrics while future attention opens",
+    )
+    attention_anneal.add_argument("--artifact-dir", type=Path, required=True)
+    attention_anneal.add_argument("--output-dir", type=Path, required=True)
+    attention_anneal.add_argument("--validation-plan", type=Path, required=True)
+    attention_anneal.add_argument("--batch-size", type=int, default=64)
+    attention_anneal.add_argument("--n-bootstrap", type=int, default=2_000)
+
+    lora_mntp = subparsers.add_parser(
+        "lora-mntp",
+        help="train one frozen-base rank-16 LoRA and apply the paired information gate",
+    )
+    lora_mntp.add_argument("--artifact-dir", type=Path, required=True)
+    lora_mntp.add_argument("--output-dir", type=Path, required=True)
+    lora_mntp.add_argument("--train-plan", type=Path, required=True)
+    lora_mntp.add_argument("--validation-plan", type=Path, required=True)
+    lora_mntp.add_argument("--seed", type=int, default=0)
+    lora_mntp.add_argument("--num-workers", type=int, default=4)
+    lora_mntp.add_argument("--evaluation-batch-size", type=int, default=64)
+    lora_mntp.add_argument("--n-bootstrap", type=int, default=2_000)
+
     normalization = subparsers.add_parser(
         "loss-normalization-audit",
         help="re-evaluate retained causal checkpoints with Marin-compatible loss",
@@ -464,6 +487,33 @@ def main() -> None:
             output_dir=args.output_dir,
             validation_plan=args.validation_plan,
             batch_size=args.batch_size,
+            n_bootstrap=args.n_bootstrap,
+        )
+        return
+    if args.command == "attention-anneal-diagnostic":
+        from exp479_mntp.attention_anneal_diagnostic import (
+            run_attention_anneal_diagnostic,
+        )
+
+        run_attention_anneal_diagnostic(
+            artifact_dir=args.artifact_dir,
+            output_dir=args.output_dir,
+            validation_plan=args.validation_plan,
+            batch_size=args.batch_size,
+            n_bootstrap=args.n_bootstrap,
+        )
+        return
+    if args.command == "lora-mntp":
+        from exp479_mntp.lora_mntp import run_lora_mntp
+
+        run_lora_mntp(
+            artifact_dir=args.artifact_dir,
+            output_dir=args.output_dir,
+            train_plan=args.train_plan,
+            validation_plan=args.validation_plan,
+            seed=args.seed,
+            num_workers=args.num_workers,
+            evaluation_batch_size=args.evaluation_batch_size,
             n_bootstrap=args.n_bootstrap,
         )
         return
