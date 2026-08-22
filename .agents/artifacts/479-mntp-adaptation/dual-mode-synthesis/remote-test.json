@@ -1,0 +1,20 @@
+{
+  "source_commit": "dec8bf8baceda53b9bfbd256107bd17caeefb0b2",
+  "cluster": "dna-exp479-dual-mode-tests",
+  "cloud": "aws",
+  "region": "us-east-2",
+  "instance": "g5.xlarge",
+  "accelerator": "A10G:1",
+  "listed_price_per_hour_usd": 1.006,
+  "conservative_start_unix": 1787396791,
+  "confirmed_absent_unix": 1787397018,
+  "conservative_duration_seconds": 227,
+  "conservative_cost_usd": 0.06343611111111111,
+  "prior_cost_usd": 40.29146270776608,
+  "cumulative_cost_usd": 40.354898818877195,
+  "locked_tests_collected": 189,
+  "locked_tests_passed": 189,
+  "pytest_seconds": 30.53,
+  "job_status": "SUCCEEDED",
+  "cluster_status": "absent"
+}

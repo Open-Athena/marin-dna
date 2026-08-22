@@ -1091,3 +1091,13 @@ The accepted [bidirectional-models research question](../../docs/research/questi
 - Evidence: Compact files and the rendered figure are in `.agents/artifacts/479-mntp-adaptation/dual-mode-synthesis/`.
 - Boundaries: No new inference, training, held-out label access, nucleotide dependency, knowledge-base update, Hugging Face upload, checkpoint deletion, or cloud resource occurred.
 - Next step: Snapshot the synthesis, update issue #479 with the current routing result and evidence figure, and let remote CI validate the new artifact-only code.
+
+### 2026-08-22 11:10 - Dual-mode synthesis remotely verified
+
+- Immutable source: The test-only job checked out commit `dec8bf8baceda53b9bfbd256107bd17caeefb0b2`, tagged `exp479-dual-mode-synthesis-result-v1`.
+- Verification: All `189` locked tests passed in `30.53` seconds, including all three new dual-mode synthesis tests.
+- Compute: The self-terminating AWS `g5.xlarge` A10G job conservatively occupied at most `227` seconds from the preceding dry-run timestamp through confirmed absence.
+- Cost: At `$1.006/hour`, the conservative addition is `$0.063436`, bringing the listed-price experiment total to `$40.354899 / $50`.
+- Teardown: `sky status -r dna-exp479-dual-mode-tests` reported the cluster autodowned and absent at Unix time `1787397018`.
+- Boundaries: The test-only job downloaded no model, accessed no sequence or label data, performed no inference or training, wrote no W&B or Hugging Face artifact, and deleted no checkpoint.
+- Next action: Publish the verified routing contract, figure, exact limitations, and stable evidence links to issue #479.
