@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from itertools import pairwise
 from types import SimpleNamespace
 
 import pandas as pd
@@ -9,6 +10,8 @@ from torch import nn
 
 from exp479_mntp.causal_longrun import LONGRUN_CHECKPOINT_STEPS
 from exp479_mntp.lora_mntp import (
+    LORA_ATTENTION_CALIBRATION_CE_DEGRADATION_FRACTIONS,
+    LORA_ATTENTION_CALIBRATION_PROBABILITIES,
     LORA_EFFECTIVE_BATCH_SIZE,
     LORA_TARGET_MODULES,
     LoraMntpConfig,
@@ -16,6 +19,7 @@ from exp479_mntp.lora_mntp import (
     annealed_attention_mask,
     assert_lora_trainables,
     attention_future_edge_probability,
+    damage_calibrated_future_edge_probability,
 )
 
 
@@ -41,7 +45,7 @@ def test_selected_lora_configuration_is_single_conservative_pilot() -> None:
     assert config.alpha == 16
     assert config.dropout == 0.05
     assert config.mask_probability == 0.2
-    assert config.attention_anneal_steps == 100
+    assert config.attention_anneal_steps == 800
     assert config.learning_rate == 1e-5
     assert config.warmup_steps == 100
     assert config.cooldown_start_step == 800
@@ -84,11 +88,36 @@ def test_lora_configuration_rejects_contract_changes(kwargs: dict[str, float | i
         LoraMntpConfig(**kwargs)
 
 
-def test_attention_annealing_probability_matches_released_linear_schedule() -> None:
-    assert attention_future_edge_probability(0, anneal_steps=100) == pytest.approx(0.01)
-    assert attention_future_edge_probability(49, anneal_steps=100) == pytest.approx(0.5)
-    assert attention_future_edge_probability(99, anneal_steps=100) == pytest.approx(1.0)
-    assert attention_future_edge_probability(999, anneal_steps=100) == pytest.approx(1.0)
+def test_damage_calibration_inverts_every_measured_knot() -> None:
+    for damage_fraction, probability in zip(
+        LORA_ATTENTION_CALIBRATION_CE_DEGRADATION_FRACTIONS,
+        LORA_ATTENTION_CALIBRATION_PROBABILITIES,
+        strict=True,
+    ):
+        assert damage_calibrated_future_edge_probability(damage_fraction) == pytest.approx(
+            probability
+        )
+
+
+@pytest.mark.parametrize("fraction", [-0.01, 1.01])
+def test_damage_calibration_rejects_invalid_fraction(fraction: float) -> None:
+    with pytest.raises(ValueError, match="CE-degradation fraction"):
+        damage_calibrated_future_edge_probability(fraction)
+
+
+def test_attention_annealing_is_monotone_and_leaves_200_full_attention_steps() -> None:
+    probabilities = [
+        attention_future_edge_probability(step, anneal_steps=800) for step in range(1_000)
+    ]
+    assert probabilities[0] == 0.0
+    assert all(left <= right for left, right in pairwise(probabilities))
+    assert sum(probability == 1.0 for probability in probabilities) == 200
+    assert probabilities[263] == pytest.approx(0.01, abs=2e-4)
+    assert probabilities[393] == pytest.approx(0.02, abs=2e-4)
+    assert probabilities[539] == pytest.approx(0.05, abs=2e-4)
+    assert probabilities[621] == pytest.approx(0.1, abs=1e-3)
+    assert probabilities[800] == 1.0
+    assert probabilities[999] == 1.0
 
 
 def test_annealed_attention_mask_has_exact_causal_and_full_endpoints() -> None:

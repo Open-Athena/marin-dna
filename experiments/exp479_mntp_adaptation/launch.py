@@ -119,7 +119,7 @@ def launch_command(
     prior_cost_usd: float = 0.0,
     retry_until_up: bool = False,
 ) -> list[str]:
-    """Build the self-terminating Lambda GH200 launch command."""
+    """Build a self-terminating, commit-pinned Sky launch command."""
 
     if stage == "attention-anneal-diagnostic":
         cluster_name = "dna-exp479-anneal-a10"
@@ -145,7 +145,7 @@ def launch_command(
         f"EXP479_INSTANCE_START_UNIX={instance_start_unix}",
     ]
     if stage in {"paired-nucleotide-gate", "attention-anneal-diagnostic", "lora-mntp"}:
-        price = "1.006" if stage == "attention-anneal-diagnostic" else "1.29"
+        price = "1.006" if stage in {"attention-anneal-diagnostic", "lora-mntp"} else "1.29"
         command.extend(["--env", f"EXP479_INSTANCE_PRICE_PER_HOUR_USD={price}"])
     if stage in {"pilot", "diagnostics", "audit", "stability", "dependency", "calibration"}:
         command.extend(
