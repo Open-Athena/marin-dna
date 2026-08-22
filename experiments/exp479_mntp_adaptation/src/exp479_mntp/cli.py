@@ -236,6 +236,41 @@ def _parser() -> argparse.ArgumentParser:
     localized_attention.add_argument("--batch-size", type=int, default=64)
     localized_attention.add_argument("--n-bootstrap", type=int, default=2_000)
 
+    bico_attention = subparsers.add_parser(
+        "bico-attention-diagnostic",
+        help="compare frozen standard and reflected-future-RoPE attention",
+    )
+    bico_attention.add_argument("--artifact-dir", type=Path, required=True)
+    bico_attention.add_argument("--output-dir", type=Path, required=True)
+    bico_attention.add_argument("--validation-plan", type=Path, required=True)
+    bico_attention.add_argument("--batch-size", type=int, default=64)
+    bico_attention.add_argument("--n-bootstrap", type=int, default=2_000)
+
+    bico_lora_preflight = subparsers.add_parser(
+        "bico-lora-preflight",
+        help="test one physical GH200 batch with two exact no-accumulation steps",
+    )
+    bico_lora_preflight.add_argument("--batch-size", type=int, required=True)
+    bico_lora_preflight.add_argument("--train-plan", type=Path, required=True)
+    bico_lora_preflight.add_argument("--validation-plan", type=Path, required=True)
+    bico_lora_preflight.add_argument("--output", type=Path, required=True)
+    bico_lora_preflight.add_argument("--seed", type=int, default=0)
+
+    bico_lora = subparsers.add_parser(
+        "bico-lora-mntp",
+        help="train rank-16 BICO LoRA at the selected physical GH200 batch",
+    )
+    bico_lora.add_argument("--artifact-dir", type=Path, required=True)
+    bico_lora.add_argument("--output-dir", type=Path, required=True)
+    bico_lora.add_argument("--train-plan", type=Path, required=True)
+    bico_lora.add_argument("--validation-plan", type=Path, required=True)
+    bico_lora.add_argument("--preflight-dir", type=Path, required=True)
+    bico_lora.add_argument("--batch-size", type=int, required=True)
+    bico_lora.add_argument("--seed", type=int, default=0)
+    bico_lora.add_argument("--num-workers", type=int, default=4)
+    bico_lora.add_argument("--evaluation-batch-size", type=int, default=64)
+    bico_lora.add_argument("--n-bootstrap", type=int, default=2_000)
+
     lora_mntp = subparsers.add_parser(
         "lora-mntp",
         help="train one frozen-base rank-16 LoRA and apply the paired information gate",
@@ -565,6 +600,47 @@ def main() -> None:
             output_dir=args.output_dir,
             validation_plan=args.validation_plan,
             batch_size=args.batch_size,
+            n_bootstrap=args.n_bootstrap,
+        )
+        return
+    if args.command == "bico-attention-diagnostic":
+        from exp479_mntp.bico_attention_diagnostic import run_bico_attention_diagnostic
+
+        run_bico_attention_diagnostic(
+            artifact_dir=args.artifact_dir,
+            output_dir=args.output_dir,
+            validation_plan=args.validation_plan,
+            batch_size=args.batch_size,
+            n_bootstrap=args.n_bootstrap,
+        )
+        return
+    if args.command == "bico-lora-preflight":
+        from exp479_mntp.bico_lora_mntp import run_bico_lora_preflight
+
+        result = run_bico_lora_preflight(
+            batch_size=args.batch_size,
+            train_plan=args.train_plan,
+            validation_plan=args.validation_plan,
+            output_path=args.output,
+            seed=args.seed,
+        )
+        print(json.dumps(result, indent=2))
+        if result["status"] != "passed":
+            raise SystemExit(1)
+        return
+    if args.command == "bico-lora-mntp":
+        from exp479_mntp.bico_lora_mntp import run_bico_lora_mntp
+
+        run_bico_lora_mntp(
+            artifact_dir=args.artifact_dir,
+            output_dir=args.output_dir,
+            train_plan=args.train_plan,
+            validation_plan=args.validation_plan,
+            preflight_dir=args.preflight_dir,
+            batch_size=args.batch_size,
+            seed=args.seed,
+            num_workers=args.num_workers,
+            evaluation_batch_size=args.evaluation_batch_size,
             n_bootstrap=args.n_bootstrap,
         )
         return

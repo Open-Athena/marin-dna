@@ -168,6 +168,50 @@ uv run --locked python launch.py source-validation \
   --execute
 ```
 
+## Frozen reflected-RoPE BICO diagnostic
+
+The `bico-attention-diagnostic` stage tests a positional-attention detail that every earlier full-attention arm omitted.
+[BICO](https://aclanthology.org/2024.emnlp-main.754/) observes that opening future keys in a RoPE causal decoder exposes positive relative positions absent from causal pretraining.
+For every future key, this diagnostic reflects the RoPE distance so both left and right keys use non-positive relative distances.
+It also tests BICO's `[PAD]` replacement with the selected masked token excluded as an attention key.
+
+The frozen source is evaluated on the same 640 deterministic single-mask targets under standard causal attention, standard full attention, reflected-RoPE full attention, `[UNK]`, attended `[PAD]`, and excluded `[PAD]` controls.
+The patched attention must reproduce standard eager causal predictions with zero nucleotide-prediction mismatches and at most `0.002` maximum CE difference.
+The mechanism contrast is reflected versus standard RoPE with the same excluded-`[PAD]` mask.
+The single-forward-pass gate compares reflected-RoPE full attention with excluded `[PAD]` directly against the causal source.
+The stage performs no training, VEP, nucleotide-dependency analysis, Hugging Face upload, or checkpoint deletion.
+It runs on one Lambda GH200, the same device class selected for a successful mechanism's no-accumulation LoRA follow-up.
+
+```bash
+uv run --locked python launch.py bico-attention-diagnostic \
+  --commit "$(git rev-parse HEAD)" \
+  --prior-cost-usd 40.354899 \
+  --retry-until-up \
+  --execute
+```
+
+## Reflected-RoPE BICO LoRA
+
+The `bico-lora-mntp` stage is the first trained follow-up to the BICO mechanism audit.
+It runs the frozen diagnostic first, then selects the largest physical batch on one Lambda GH200 by completing two exact optimizer steps in a fresh process for every candidate.
+The search brackets the feasible batch and binary-searches to the largest integer batch with finite loss and gradients, at least 10% CUDA memory headroom, and enough remaining issue budget for the projected run.
+It reruns the selected batch immediately before training and uses no gradient accumulation.
+
+The source weights remain frozen and rank-16 LoRA matrices are added to every registered attention and MLP projection.
+Training uses BICO reflected future RoPE, fixed 15% MNTP corruption with the existing `[PAD]` token, and exclusion of every selected masked position as an attention key in every layer.
+AdamW uses learning rate `1e-5`, 10% warmup, 70% constant rate, and 20% decay for 1,000 optimizer steps.
+The run reports physical batch size, sequences, model tokens, exact supervised masked targets, validation CE and accuracy trajectories, pre-clipping gradient norms, and the paired final information gate.
+Adapter checkpoints, final optimizer state, batch-selection preflights, and result tables are retained as W&B artifacts.
+The stage performs no VEP, nucleotide-dependency analysis, Hugging Face upload, or checkpoint deletion.
+
+```bash
+uv run --locked python launch.py bico-lora-mntp \
+  --commit "$(git rev-parse HEAD)" \
+  --prior-cost-usd 40.354899 \
+  --retry-until-up \
+  --execute
+```
+
 ## Causal-preserving gated LoRA follow-up
 
 The `gated-lora-mntp` stage is the sequential follow-up to the failed uniform-full LoRA and frozen localized-attention gates.

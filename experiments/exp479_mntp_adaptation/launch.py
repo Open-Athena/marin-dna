@@ -25,6 +25,8 @@ STAGE_CONFIGS = {
     "paired-nucleotide-gate": "sky/paired-nucleotide-gate.yaml",
     "attention-anneal-diagnostic": "sky/attention-anneal-diagnostic.yaml",
     "localized-attention-diagnostic": "sky/localized-attention-diagnostic.yaml",
+    "bico-attention-diagnostic": "sky/bico-attention-diagnostic.yaml",
+    "bico-lora-mntp": "sky/bico-lora-mntp.yaml",
     "lora-mntp": "sky/lora-mntp.yaml",
     "gated-lora-mntp": "sky/gated-lora-mntp.yaml",
     "two-pass-information-gate": "sky/two-pass-information-gate.yaml",
@@ -53,6 +55,8 @@ def execution_environment(stage: str) -> dict[str, str]:
         "paired-nucleotide-gate",
         "attention-anneal-diagnostic",
         "localized-attention-diagnostic",
+        "bico-attention-diagnostic",
+        "bico-lora-mntp",
         "lora-mntp",
         "gated-lora-mntp",
         "two-pass-information-gate",
@@ -78,6 +82,8 @@ def execution_environment(stage: str) -> dict[str, str]:
         "paired-nucleotide-gate",
         "attention-anneal-diagnostic",
         "localized-attention-diagnostic",
+        "bico-attention-diagnostic",
+        "bico-lora-mntp",
         "lora-mntp",
         "gated-lora-mntp",
         "two-pass-information-gate",
@@ -140,6 +146,10 @@ def launch_command(
         cluster_name = "dna-exp479-anneal-a10"
     elif stage == "localized-attention-diagnostic":
         cluster_name = "dna-exp479-localized-attention-a10"
+    elif stage == "bico-attention-diagnostic":
+        cluster_name = "dna-exp479-bico-attention-gh200"
+    elif stage == "bico-lora-mntp":
+        cluster_name = "dna-exp479-bico-lora-gh200"
     elif stage == "paired-nucleotide-gate":
         cluster_name = "dna-exp479-a10"
     elif stage == "lora-mntp":
@@ -173,6 +183,8 @@ def launch_command(
         "paired-nucleotide-gate",
         "attention-anneal-diagnostic",
         "localized-attention-diagnostic",
+        "bico-attention-diagnostic",
+        "bico-lora-mntp",
         "lora-mntp",
         "gated-lora-mntp",
         "two-pass-information-gate",
@@ -181,7 +193,7 @@ def launch_command(
     }:
         price = (
             "2.29"
-            if stage == "two-pass-vep"
+            if stage in {"two-pass-vep", "bico-attention-diagnostic", "bico-lora-mntp"}
             else "1.006"
             if stage
             in {
@@ -218,6 +230,8 @@ def launch_command(
         "paired-nucleotide-gate",
         "attention-anneal-diagnostic",
         "localized-attention-diagnostic",
+        "bico-attention-diagnostic",
+        "bico-lora-mntp",
         "lora-mntp",
         "gated-lora-mntp",
         "two-pass-information-gate",
