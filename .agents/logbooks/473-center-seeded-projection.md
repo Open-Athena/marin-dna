@@ -2447,3 +2447,82 @@ cohort, assemblies, and downstream training recipe fixed.
   experiment tests and file-scoped pre-commit checks passed.
 - Next action: launch and monitor the single 5,000-step random-validation CDS
   control. Do not launch VEP evaluation for this diagnostic.
+
+### 2026-08-22 07:34 UTC - CSP-081 row-random training launch stabilized
+
+- The final launcher snapshot is
+  `ccb91f11f7a55406eee9ef651e45ee1e38e1a2a3`. An initial launch failed
+  before graph creation because the coordinator lacked its W&B credential; a
+  second failed in child bootstrap before data or TPU work because the
+  tokenizer source could not be serialized into the worker. The snapshot
+  packages the vendored tokenizer through the worker-safe bootstrap path.
+- A preemptible `v5p-8`-only launch was stopped while queued, before training.
+  The retained token cache was then reused by the final flexible launch,
+  `/ubuntu/exp473-cds-fullwindow-random-val-v4`, which allowed preemptible
+  `v5p-8` or `v6e-4`; Iris assigned `v6e-4`.
+- The training child reported zero task failures and six preemptions. Levanter
+  resumed from temporary checkpoints after each interruption; the final retry
+  restored step 4,600, resumed at 4,601, and completed. Both the Iris root and
+  child jobs finalized as `succeeded` with exit 0.
+- Reproduction command from the experiment project, with the three W&B values
+  supplied through non-secret environment variables:
+
+  ```bash
+  WANDB_API_KEY="$WANDB_API_KEY" WANDB_ENTITY="$WANDB_ENTITY" \
+  WANDB_PROJECT=marin \
+  MARIN_PREFIX=gs://marin-us-east5/MarinDNA/exp473_center_seeded_projection \
+  EXP473_TPU_REGION=us-east5 \
+  EXP473_TPU_VARIANT=v5p-8,v6e-4 EXP473_TPU_RAM=56g \
+  EXP473_TPU_PREEMPTIBLE=true \
+  uv run --python /usr/bin/python3.12 --locked \
+    python -m exp473_center_seeded_projection.random_validation_control \
+    --version 2026.08.21 --run
+  ```
+
+### 2026-08-22 07:34 UTC - CSP-082 row-random native validation completed
+
+- The single 5,000-update CDS full-window control completed through Levanter's
+  terminal step 4,999. The public W&B run
+  `dna-exp473-0p25b-cds-fullwindow-random-val-v1` is `finished`; its ten
+  expected native validation points are present and strictly decreasing. A
+  duplicate step-2,000 history row introduced by resume is exactly identical
+  across loss, macro loss, training loss, and evaluation time and is counted
+  once below.
+
+| Step | Random-held-out loss | Chromosome-18-held-out loss | Random minus chr18 |
+| ---: | ---: | ---: | ---: |
+| 500 | 1.315218 | — | — |
+| 1,000 | 1.299528 | 1.305329 | -0.005800 |
+| 1,500 | 1.283347 | 1.328962 | -0.045615 |
+| 2,000 | 1.274472 | 1.290166 | -0.015694 |
+| 2,500 | 1.255598 | 1.293376 | -0.037779 |
+| 3,000 | 1.230535 | 1.291121 | -0.060586 |
+| 3,500 | 1.196692 | 1.305506 | -0.108813 |
+| 4,000 | 1.170356 | 1.301550 | -0.131194 |
+| 4,500 | 1.118952 | 1.294691 | -0.175739 |
+| 4,999 | 1.079890 | 1.295765 | -0.215875 |
+
+- The comparison uses the same CDS full-window projection and anchor recipe as
+  the issue #417 arm. The control changes the split: exactly 16,384 uniformly
+  sampled original-orientation rows were reserved before reverse-complement
+  augmentation, rather than holding out the chromosome-18 anchor groups. The
+  matched model, tokenizer, optimizer, batch, seed, and step schedule were
+  retained.
+- The result does not reproduce the high, non-monotonic chromosome-18 loss.
+  It isolates the validation/training split as a major contributor but does
+  not distinguish anchor-family overlap in the row-random split from
+  orthology or chromosome-specific distribution shift. This is one arm and
+  one random seed; no VEP evaluation was launched.
+- The terminal native checkpoint was committed to
+  `gs://marin-us-east5/MarinDNA/exp473_center_seeded_projection/checkpoints/dna-exp473-0p25b-cds-fullwindow-random-val-v1/2026.08.21/checkpoints/step-4999`.
+  The 1.02 GB HF-compatible export completed at the sibling
+  `hf/step-4999` path. After checkpoint, validation, export, and W&B finish,
+  the worker emitted a shutdown-time `SIGABRT`; Iris nevertheless recorded
+  the child and root as successful with exit 0. The abort occurred after all
+  experiment outputs were committed.
+- Durable inputs and evidence:
+  - public dataset revision
+    `marin-dna/vertebrate-v1-issue473-fullwindow-cds-random-val@7ef0bc9fcff17efc5792af92d8da34176617dd13`;
+  - source snapshot `ccb91f11f7a55406eee9ef651e45ee1e38e1a2a3`;
+  - Iris root `/ubuntu/exp473-cds-fullwindow-random-val-v4`;
+  - W&B run `gonzalobenegas/marin/dna-exp473-0p25b-cds-fullwindow-random-val-v1`.
