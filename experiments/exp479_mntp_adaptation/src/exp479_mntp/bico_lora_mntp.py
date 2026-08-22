@@ -23,6 +23,13 @@ from exp479_mntp.bico_attention_diagnostic import (
     excluded_selected_key_mask,
     install_reflected_future_rope,
 )
+from exp479_mntp.bico_vep import (
+    BICO_VEP_STEPS,
+    bico_vep_endpoint,
+    plot_bico_vep_trajectory,
+    prepare_bico_vep_frames,
+    score_bico_vep,
+)
 from exp479_mntp.callbacks import BudgetGuardCallback, RuntimeMetricsCallback
 from exp479_mntp.causal_longrun import (
     _artifact_record,
@@ -39,6 +46,7 @@ from exp479_mntp.config import (
 )
 from exp479_mntp.data import SequencePlanDataset, plan_sha256
 from exp479_mntp.datamodule import ExperimentDataModule
+from exp479_mntp.issue_storage import upload_issue_artifact, validate_issue_s3_prefix
 from exp479_mntp.lora_mntp import (
     LORA_ALPHA,
     LORA_DROPOUT,
@@ -57,6 +65,7 @@ from exp479_mntp.paired_nucleotide_gate import (
     evaluate_readout,
 )
 from exp479_mntp.publishing import assert_budget_reserve, write_cost_estimate
+from exp479_mntp.vep import DATASETS
 
 BICO_LORA_MASK_PROBABILITY = 0.15
 BICO_LORA_LEARNING_RATE = 1e-5
@@ -64,7 +73,7 @@ BICO_LORA_STANDARD_LEARNING_RATE = 5e-5
 BICO_LORA_MAX_INSTANCE_HOURS = 3.3
 BICO_LORA_MEMORY_HEADROOM = 0.10
 BICO_LORA_BUDGET_RESERVE_USD = 2.0
-BICO_LORA_EVALUATION_RESERVE_HOURS = 0.25
+BICO_LORA_EVALUATION_RESERVE_HOURS = 1.25
 BICO_LORA_RUN_NAME = "dna-exp479-bico-lora-r16-pad15-lr1e-5-wsd1000-seed0"
 BICO_LORA_WANDB_GROUP = "dna-exp479-bico-lora-information-gate"
 BICO_LORA_MODEL_PREFIX = "dna-exp479-bico-lora-r16-pad15"
@@ -257,11 +266,82 @@ def evaluate_bico_readout(
 
 
 class RetainedBicoLoraTrajectoryCallback(RetainedLoraTrajectoryCallback):
-    """Retain adapter milestones and evaluate the registered BICO readout."""
+    """Retain checkpoints and evaluate paired nucleotides plus within-run VEP."""
 
-    def __init__(self, *, model_prefix: str, **kwargs: Any) -> None:
+    def __init__(
+        self,
+        *,
+        model_prefix: str,
+        checkpoint_s3_prefix: str | None = None,
+        vep_frames: dict[str, pd.DataFrame] | None = None,
+        vep_batch_size: int = 512,
+        vep_bootstrap: int = 20,
+        **kwargs: Any,
+    ) -> None:
         super().__init__(**kwargs)
         self.model_prefix = model_prefix
+        self.checkpoint_s3_prefix = checkpoint_s3_prefix
+        self.vep_frames = vep_frames
+        self.vep_batch_size = vep_batch_size
+        self.vep_bootstrap = vep_bootstrap
+        self.vep_scores: dict[str, dict[str, np.ndarray]] = {spec.name: {} for spec in DATASETS}
+        self.vep_endpoint_rows: list[dict[str, object]] = []
+
+    def _evaluate_vep(self, step: int) -> None:
+        if self.vep_frames is None or step not in BICO_VEP_STEPS:
+            return
+        was_training = self.bundle.model.training
+        self.bundle.model.eval()
+        payload: dict[str, float | int] = {"bico_lora_vep/step": step}
+        try:
+            for dataset_spec in DATASETS:
+                frame = self.vep_frames[dataset_spec.name]
+                llr = score_bico_vep(
+                    self.bundle,
+                    frame,
+                    batch_size=self.vep_batch_size,
+                )
+                protocol_scores, endpoint = bico_vep_endpoint(
+                    dataset_spec,
+                    frame,
+                    llr,
+                    n_bootstrap=self.vep_bootstrap,
+                )
+                self.vep_scores[dataset_spec.name][f"step_{step:04d}"] = protocol_scores
+                endpoint["optimizer_step"] = step
+                self.vep_endpoint_rows.append(endpoint)
+                payload[f"bico_lora_vep/{dataset_spec.name}_auprc"] = float(endpoint["auprc"])
+        finally:
+            self.bundle.model.train(was_training)
+        self.run.log(payload)
+
+    def _retain_adapter(self, adapter_dir: Path, step: int) -> None:
+        if self.checkpoint_s3_prefix is not None:
+            records = upload_issue_artifact(
+                adapter_dir,
+                destination_prefix=self.checkpoint_s3_prefix,
+                relative_path=f"adapters/step-{step:04d}",
+            )
+            self.retained.extend(
+                {"kind": "peft_adapter", "step": step, **record} for record in records
+            )
+            return
+        artifact = wandb.Artifact(
+            f"{self.model_prefix}-step-{step:04d}",
+            type="model",
+            metadata={
+                "optimizer_step": step,
+                "format": "peft_adapter",
+                "base_model": MODEL_ID,
+                "base_revision": MODEL_REVISION,
+                "mask_token": "[PAD]",
+                "attention": "BICO reflected future RoPE",
+            },
+        )
+        artifact.add_dir(str(adapter_dir), name="adapter")
+        logged = self.run.log_artifact(artifact, aliases=[f"step-{step:04d}"])
+        logged.wait()
+        self.retained.append(_artifact_record(logged, kind="peft_adapter", step=step))
 
     def _evaluate_and_retain(self, step: int) -> None:
         if step in self.saved:
@@ -284,25 +364,41 @@ class RetainedBicoLoraTrajectoryCallback(RetainedLoraTrajectoryCallback):
                 ),
             }
         )
+        self._evaluate_vep(step)
         adapter_dir = self.output_dir / "adapters" / f"step-{step:04d}"
         self.bundle.model.save_pretrained(adapter_dir, safe_serialization=True)
-        artifact = wandb.Artifact(
-            f"{self.model_prefix}-step-{step:04d}",
-            type="model",
-            metadata={
-                "optimizer_step": step,
-                "format": "peft_adapter",
+        self._retain_adapter(adapter_dir, step)
+        self.saved.add(step)
+
+
+def _write_s3_retention_manifest(
+    output_path: Path,
+    records: list[dict[str, object]],
+    *,
+    destination_prefix: str,
+    config: BicoLoraConfig,
+    train_plan: Path,
+    validation_plan: Path,
+) -> None:
+    output_path.write_text(
+        json.dumps(
+            {
+                "backend": "s3",
+                "destination_prefix": destination_prefix,
+                "producing_commit": os.getenv("EXPERIMENT_COMMIT"),
                 "base_model": MODEL_ID,
                 "base_revision": MODEL_REVISION,
-                "mask_token": "[PAD]",
-                "attention": "BICO reflected future RoPE",
+                "configuration": config.to_dict(),
+                "train_plan_sha256": plan_sha256(train_plan),
+                "validation_plan_sha256": plan_sha256(validation_plan),
+                "deletion_performed": False,
+                "objects": records,
             },
+            indent=2,
         )
-        artifact.add_dir(str(adapter_dir), name="adapter")
-        logged = self.run.log_artifact(artifact, aliases=[f"step-{step:04d}"])
-        logged.wait()
-        self.retained.append(_artifact_record(logged, kind="peft_adapter", step=step))
-        self.saved.add(step)
+        + "\n",
+        encoding="utf-8",
+    )
 
 
 def _build_training_objects(
@@ -480,6 +576,10 @@ def run_bico_lora_mntp(
     run_name: str = BICO_LORA_RUN_NAME,
     model_prefix: str = BICO_LORA_MODEL_PREFIX,
     evaluation_artifact: str = BICO_LORA_EVALUATION_ARTIFACT,
+    checkpoint_s3_prefix: str | None = None,
+    enable_vep_trajectory: bool = False,
+    vep_batch_size: int = 512,
+    vep_bootstrap: int = 20,
 ) -> None:
     """Train the selected no-accumulation BICO LoRA and apply the paired gate."""
 
@@ -487,6 +587,10 @@ def run_bico_lora_mntp(
         raise RuntimeError("BICO LoRA training requires one CUDA GPU")
     if evaluation_batch_size <= 0 or n_bootstrap <= 0:
         raise ValueError("evaluation batch size and bootstrap count must be positive")
+    if vep_batch_size <= 0 or vep_bootstrap <= 1:
+        raise ValueError("VEP batch size must be positive and bootstrap count must exceed one")
+    if checkpoint_s3_prefix is not None:
+        validate_issue_s3_prefix(checkpoint_s3_prefix)
     _assert_training_plan(train_plan, validation_plan, batch_size)
     selected_preflight = preflight_dir / f"batch-{batch_size}.json"
     if not selected_preflight.exists():
@@ -520,6 +624,9 @@ def run_bico_lora_mntp(
         encoding="utf-8",
     )
 
+    vep_frames = (
+        prepare_bico_vep_frames(artifact_dir / "vep-data") if enable_vep_trajectory else None
+    )
     L.seed_everything(seed, workers=True)
     torch.set_float32_matmul_precision("high")
     config, bundle, trainable_count, module, data = _build_training_objects(
@@ -555,6 +662,10 @@ def run_bico_lora_mntp(
         output_dir=output_dir,
         run=run,
         model_prefix=model_prefix,
+        checkpoint_s3_prefix=checkpoint_s3_prefix,
+        vep_frames=vep_frames,
+        vep_batch_size=vep_batch_size,
+        vep_bootstrap=vep_bootstrap,
     )
     trainer = L.Trainer(
         accelerator="gpu",
@@ -668,28 +779,92 @@ def run_bico_lora_mntp(
             },
             checkpoint_path,
         )
-        checkpoint_artifact = wandb.Artifact(
-            f"{model_prefix}-step-1000-optimizer",
-            type="model",
-            metadata={
-                "optimizer_step": 1_000,
-                "format": "adapter_optimizer_rng",
-                "contains_optimizer_state": True,
-                "base_weights_included": False,
-            },
-        )
-        checkpoint_artifact.add_file(str(checkpoint_path))
-        logged_checkpoint = run.log_artifact(
-            checkpoint_artifact,
-            aliases=["step-1000-optimizer"],
-        )
-        logged_checkpoint.wait()
-        trajectory.retained.append(
-            _artifact_record(logged_checkpoint, kind="adapter_optimizer_checkpoint", step=1_000)
-        )
+        if checkpoint_s3_prefix is not None:
+            optimizer_records = upload_issue_artifact(
+                checkpoint_path,
+                destination_prefix=checkpoint_s3_prefix,
+                relative_path="checkpoints/step-1000-optimizer",
+            )
+            trajectory.retained.extend(
+                {"kind": "adapter_optimizer_checkpoint", "step": 1_000, **record}
+                for record in optimizer_records
+            )
+        else:
+            checkpoint_artifact = wandb.Artifact(
+                f"{model_prefix}-step-1000-optimizer",
+                type="model",
+                metadata={
+                    "optimizer_step": 1_000,
+                    "format": "adapter_optimizer_rng",
+                    "contains_optimizer_state": True,
+                    "base_weights_included": False,
+                },
+            )
+            checkpoint_artifact.add_file(str(checkpoint_path))
+            logged_checkpoint = run.log_artifact(
+                checkpoint_artifact,
+                aliases=["step-1000-optimizer"],
+            )
+            logged_checkpoint.wait()
+            trajectory.retained.append(
+                _artifact_record(
+                    logged_checkpoint,
+                    kind="adapter_optimizer_checkpoint",
+                    step=1_000,
+                )
+            )
         retention_path = output_dir / "retention-manifest.json"
-        _write_retention_manifest(retention_path, trajectory.retained)
+        if checkpoint_s3_prefix is None:
+            _write_retention_manifest(retention_path, trajectory.retained)
+        else:
+            _write_s3_retention_manifest(
+                retention_path,
+                trajectory.retained,
+                destination_prefix=checkpoint_s3_prefix,
+                config=config,
+                train_plan=train_plan,
+                validation_plan=validation_plan,
+            )
+            upload_issue_artifact(
+                retention_path,
+                destination_prefix=checkpoint_s3_prefix,
+                relative_path="manifests",
+            )
         cost_path = write_cost_estimate(artifact_dir=artifact_dir)
+
+        vep_paths: list[Path] = []
+        vep_endpoints = pd.DataFrame(trajectory.vep_endpoint_rows)
+        vep_figure: Path | None = None
+        if vep_frames is not None:
+            expected_steps = set(BICO_VEP_STEPS)
+            observed_steps = set(vep_endpoints["optimizer_step"].astype(int))
+            if observed_steps != expected_steps:
+                raise RuntimeError(f"BICO VEP trajectory steps differ: {sorted(observed_steps)}")
+            vep_dir = output_dir / "vep-trajectory"
+            vep_dir.mkdir(parents=True, exist_ok=True)
+            endpoint_path = vep_dir / "primary-endpoints.csv"
+            vep_endpoints.to_csv(endpoint_path, index=False)
+            vep_paths.append(endpoint_path)
+            for dataset_spec in DATASETS:
+                score_columns = trajectory.vep_scores[dataset_spec.name]
+                if {
+                    int(column.removeprefix("step_")) for column in score_columns
+                } != expected_steps:
+                    raise RuntimeError(f"BICO VEP scores omit a step for {dataset_spec.name}")
+                frame = vep_frames[dataset_spec.name]
+                public_columns = [column for column in frame.columns if column != "sequence"]
+                score_path = vep_dir / f"{dataset_spec.name}.scores.parquet"
+                pd.concat(
+                    [
+                        frame[public_columns].reset_index(drop=True),
+                        pd.DataFrame(score_columns),
+                    ],
+                    axis=1,
+                ).to_parquet(score_path, index=False)
+                vep_paths.append(score_path)
+            vep_figure = output_dir / "figures" / "vep-trajectory"
+            plot_bico_vep_trajectory(vep_endpoints, vep_figure)
+            vep_paths.append(vep_figure.with_suffix(".svg"))
         manifest = {
             "status": "completed",
             "run_name": run_name,
@@ -712,33 +887,63 @@ def run_bico_lora_mntp(
             "validation_plan_sha256": plan_sha256(validation_plan),
             "paired_target_count": 640,
             "gate": gate,
-            "checkpoint_retention": "adapter-only and optimizer-bearing W&B artifacts",
+            "checkpoint_retention": (
+                checkpoint_s3_prefix
+                if checkpoint_s3_prefix is not None
+                else "adapter-only and optimizer-bearing W&B artifacts"
+            ),
             "checkpoint_deletion": "not performed",
             "hugging_face_upload": "not performed",
-            "vep_evaluation": "not performed",
+            "vep_evaluation": (
+                {
+                    "split": "public train labels on odd-numbered autosomes and chromosome X",
+                    "orientation": "reference only",
+                    "optimizer_steps": list(BICO_VEP_STEPS),
+                    "batch_size": vep_batch_size,
+                    "trajectory_bootstrap_replicates": vep_bootstrap,
+                    "rows": {
+                        dataset_name: len(frame)
+                        for dataset_name, frame in (vep_frames or {}).items()
+                    },
+                }
+                if vep_frames is not None
+                else "not performed"
+            ),
             "nucleotide_dependency": "not performed",
             "knowledge_base_update": "not performed",
         }
         manifest_path = output_dir / "manifest.json"
         manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
-        run.log(
-            {
-                "bico_lora_gate/summary": wandb.Table(dataframe=summary),
-                "bico_lora_gate/comparisons": wandb.Table(dataframe=comparisons),
-                "bico_lora_gate/trajectory": wandb.Image(
-                    str(trajectory_figure.with_suffix(".png"))
-                ),
-                "bico_lora_gate/stability": wandb.Image(str(stability_figure.with_suffix(".png"))),
-            }
-        )
+        if checkpoint_s3_prefix is not None:
+            upload_issue_artifact(
+                manifest_path,
+                destination_prefix=checkpoint_s3_prefix,
+                relative_path="manifests",
+            )
+        log_payload: dict[str, Any] = {
+            "bico_lora_gate/summary": wandb.Table(dataframe=summary),
+            "bico_lora_gate/comparisons": wandb.Table(dataframe=comparisons),
+            "bico_lora_gate/trajectory": wandb.Image(str(trajectory_figure.with_suffix(".png"))),
+            "bico_lora_gate/stability": wandb.Image(str(stability_figure.with_suffix(".png"))),
+        }
+        if vep_figure is not None:
+            log_payload["bico_lora_vep/primary_endpoints"] = wandb.Table(dataframe=vep_endpoints)
+            log_payload["bico_lora_vep/trajectory"] = wandb.Image(
+                str(vep_figure.with_suffix(".png"))
+            )
+        run.log(log_payload)
         run.summary["bico_lora_gate/passed"] = bool(gate["passed"])
         run.summary["bico_lora_gate/source_causal_preserved"] = source_preserved
         run.summary["bico_lora_gate/physical_batch_size"] = batch_size
         run.summary["bico_lora_gate/model_tokens"] = manifest["model_tokens"]
         run.summary["bico_lora_gate/supervised_masked_targets"] = module.supervised_masked_targets
+        if vep_frames is not None:
+            final_vep = vep_endpoints[vep_endpoints["optimizer_step"] == config.train_steps]
+            for row in final_vep.itertuples(index=False):
+                run.summary[f"bico_lora_vep/{row.dataset}_final_auprc"] = float(row.auprc)
         result_artifact = wandb.Artifact(evaluation_artifact, type="evaluation")
         result_artifact.add_dir(str(preflight_dir), name="batch-preflights")
-        for path in (
+        result_paths = [
             scores_path,
             summary_path,
             comparisons_path,
@@ -751,7 +956,9 @@ def run_bico_lora_mntp(
             cost_path,
             trajectory_figure.with_suffix(".svg"),
             stability_figure.with_suffix(".svg"),
-        ):
+            *vep_paths,
+        ]
+        for path in result_paths:
             result_artifact.add_file(str(path))
         logged_result = run.log_artifact(
             result_artifact,

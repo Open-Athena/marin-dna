@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import netrc
 import os
 import subprocess
@@ -39,6 +40,11 @@ STAGE_CONFIGS = {
     "source-validation": "sky/source-validation.yaml",
 }
 HF_REPO_ID = "marin-dna/marin-dna-exp479-mntp-m5.1"
+AWS_CREDENTIAL_NAMES = (
+    "AWS_ACCESS_KEY_ID",
+    "AWS_SECRET_ACCESS_KEY",
+    "AWS_SESSION_TOKEN",
+)
 
 
 def execution_environment(stage: str) -> dict[str, str]:
@@ -81,6 +87,27 @@ def execution_environment(stage: str) -> dict[str, str]:
         authentication = netrc.netrc().authenticators("api.wandb.ai")
         if authentication is not None:
             environment["WANDB_API_KEY"] = authentication[2]
+    if stage == "bico-lora-standard-rate" and not all(
+        environment.get(name) for name in AWS_CREDENTIAL_NAMES
+    ):
+        exported = subprocess.run(
+            ["aws", "configure", "export-credentials", "--format", "process"],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        payload = json.loads(exported.stdout)
+        mapping = {
+            "AWS_ACCESS_KEY_ID": "AccessKeyId",
+            "AWS_SECRET_ACCESS_KEY": "SecretAccessKey",
+            "AWS_SESSION_TOKEN": "SessionToken",
+        }
+        try:
+            environment.update(
+                {environment_name: payload[field] for environment_name, field in mapping.items()}
+            )
+        except KeyError as error:
+            raise RuntimeError("AWS credential export omitted a required field") from error
     if stage in {
         "longrun",
         "mntp-longrun",
@@ -101,7 +128,11 @@ def execution_environment(stage: str) -> dict[str, str]:
         "loss-normalization",
         "source-validation",
     }:
-        required = ("WANDB_API_KEY",)
+        required = (
+            ("WANDB_API_KEY", *AWS_CREDENTIAL_NAMES)
+            if stage == "bico-lora-standard-rate"
+            else ("WANDB_API_KEY",)
+        )
     elif stage in wandb_stages:
         required = ("HF_TOKEN", "WANDB_API_KEY")
     else:
@@ -270,6 +301,9 @@ def launch_command(
         "source-validation",
     }:
         command.extend(["--secret", "WANDB_API_KEY"])
+    if stage == "bico-lora-standard-rate":
+        for name in AWS_CREDENTIAL_NAMES:
+            command.extend(["--secret", name])
     if prior_cost_usd:
         command.extend(["--env", f"EXP479_PRIOR_COST_USD={prior_cost_usd}"])
     if retry_until_up:

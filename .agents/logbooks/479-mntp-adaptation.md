@@ -1246,3 +1246,25 @@ The accepted [bidirectional-models research question](../../docs/research/questi
 - Ownership decision: Use W&B as the single public durable owner for the standard-rate run checkpoints, optimizer state, metrics, tables, and figures; do not create a private S3 copy or duplicate Hugging Face copy.
 - Publication authorization: The user explicitly directed that nothing be private and all outputs be public.
 - Boundaries: Preserve the no-deletion rule and perform no VEP, nucleotide dependency, or knowledge-base interpretation.
+
+
+### 2026-08-22 15:55 - Add within-run VEP and private S3 retention
+
+- Trigger: The user asked whether the latest candidate improves VEP within its own trajectory and clarified that matching the source CLM is not yet the expectation.
+- Interpretation boundary: Treat the reproduced source CLM FWD+RC endpoints as visual reference lines only; ask whether VEP AUPRC moves with paired nucleotide CE and accuracy within the standard-rate BICO LoRA run.
+- Cadence: Evaluate at optimizer steps 0 and every 100 through 1,000, yielding eleven paired LM/VEP checkpoints.
+- Dataset boundary: Use only the pinned public train splits on odd-numbered autosomes and chromosome X: 16,140 Mendelian, 11,630 complex-trait, and 23,853 SGE variants.
+- One-pass readout: In reference orientation, center each SNV at 0-based nucleotide index 127, tokenize to one BOS plus 255 nucleotide tokens, replace input position 128 with the existing `[PAD]`, exclude that selected key at every layer, and read logits at shifted output position 127 with full BICO attention.
+- Token and coordinate checks: Require shape `[batch, 256]`, exactly one BOS, no padding, exact central reference-token identity before masking, a fixed input-to-output shift of one, distinct canonical ref/alt alleles, and finite scores.
+- Primary endpoints: Report exact Mendelian consequence-macro, complex-trait global, and SGE accession-consequence-macro AUPRC at every checkpoint.
+- Uncertainty: Use 20 bootstrap replicates only for descriptive trajectory standard errors; do not treat them as a formal source-comparison gate.
+- Public evidence owner: Publish dense training metrics, paired nucleotide tables, per-variant odd/X VEP scores, compact endpoint tables, plots, preflight, stability trace, and the evaluation manifest to the anonymously readable `gonzalobenegas/marin` W&B project.
+- Checkpoint owner: After the user explicitly allowed private S3, store adapter milestones and the final optimizer-bearing checkpoint once under `s3://oa-bolinas/issues/479/bico-lora-standard-rate/v1`.
+- S3 integrity: Reject unversioned or out-of-issue paths, attach SHA-256 metadata, verify every uploaded object by `HEAD`, reuse byte-identical retry objects, and reject a differing object at an existing key.
+- No duplication: Do not upload checkpoints to W&B or Hugging Face.
+- Canceled provisioning: The earlier public-W&B-only launch request was canceled and its cluster terminated before setup or training after the storage decision changed.
+- Compute: The prior all-dataset two-pass inference measured 262.61 GPU-seconds, so eleven one-pass BICO evaluations are expected to add about 24 GPU-minutes before metric aggregation.
+- Budget: Retain the existing `$42.139827 / $50` conservative starting estimate, `$2.29/hour` GH200 price, `3.3`-hour maximum projection, and `$2` runtime reserve.
+- Verification: Run focused local lint and lightweight tests, then the complete locked test suite remotely before preflight and training.
+- Reload: After completion, start a fresh process from the private final adapter and require exact paired-score parity before concluding the run.
+- Boundaries: Perform no nucleotide-dependency analysis, Hugging Face upload, checkpoint deletion, held-out even-autosome/Y label access, or research knowledge-base interpretation.

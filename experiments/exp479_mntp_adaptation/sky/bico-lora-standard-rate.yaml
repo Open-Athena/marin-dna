@@ -19,6 +19,9 @@ run: |
   test -n "${EXP479_INSTANCE_START_UNIX:-}"
   test -n "${EXP479_PRIOR_COST_USD:-}"
   test -n "${WANDB_API_KEY:-}"
+  test -n "${AWS_ACCESS_KEY_ID:-}"
+  test -n "${AWS_SECRET_ACCESS_KEY:-}"
+  test -n "${AWS_SESSION_TOKEN:-}"
   artifact_root="$HOME/exp479-bico-lora-standard-rate-artifacts"
   preflight_dir="$artifact_root/batch-preflights"
   output_dir="$artifact_root/training/bico-lora-lr5e-5"
@@ -57,4 +60,8 @@ run: |
     --learning-rate 5e-5 \
     --run-name dna-exp479-bico-lora-r16-pad15-lr5e-5-wsd1000-seed0 \
     --model-prefix dna-exp479-bico-lora-r16-pad15-lr5e-5 \
-    --evaluation-artifact dna-exp479-bico-lora-r16-lr5e-5-information-gate
+    --evaluation-artifact dna-exp479-bico-lora-r16-lr5e-5-information-gate \
+    --checkpoint-s3-prefix s3://oa-bolinas/issues/479/bico-lora-standard-rate/v1 \
+    --enable-vep-trajectory \
+    --vep-batch-size 512 \
+    --vep-bootstrap 20

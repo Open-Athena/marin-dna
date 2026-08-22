@@ -404,8 +404,11 @@ def test_bico_lora_standard_rate_reuses_maximal_no_accumulation_batch() -> None:
         "sky/bico-lora-standard-rate.yaml",
     ]
     assert "EXP479_INSTANCE_PRICE_PER_HOUR_USD=2.29" in command
-    assert command.count("--secret") == 1
+    assert command.count("--secret") == 4
     assert "WANDB_API_KEY" in command
+    assert "AWS_ACCESS_KEY_ID" in command
+    assert "AWS_SECRET_ACCESS_KEY" in command
+    assert "AWS_SESSION_TOKEN" in command
     assert "HF_TOKEN" not in command
 
     stage = Path("sky/bico-lora-standard-rate.yaml").read_text(encoding="utf-8")
@@ -418,8 +421,36 @@ def test_bico_lora_standard_rate_reuses_maximal_no_accumulation_batch() -> None:
     assert "cloud: lambda" in stage
     assert "accelerators: GH200:1" in stage
     assert "HF_TOKEN" not in stage
-    assert "vep" not in stage.lower()
+    assert "--checkpoint-s3-prefix s3://oa-bolinas/issues/479/" in stage
+    assert "--enable-vep-trajectory" in stage
+    assert "--vep-batch-size 512" in stage
+    assert "--vep-bootstrap 20" in stage
     assert "nuc-dep" not in stage
+
+
+def test_bico_lora_standard_rate_loads_temporary_aws_credentials(
+    monkeypatch: object,
+) -> None:
+    monkeypatch.setenv("WANDB_API_KEY", "wandb-test")  # type: ignore[attr-defined]
+    for name in ("AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN"):
+        monkeypatch.delenv(name, raising=False)  # type: ignore[attr-defined]
+
+    class _Exported:
+        stdout = '{"AccessKeyId": "access", "SecretAccessKey": "secret", "SessionToken": "session"}'
+
+    def fake_run(command: list[str], **kwargs: object) -> _Exported:
+        assert command == ["aws", "configure", "export-credentials", "--format", "process"]
+        assert kwargs == {"check": True, "capture_output": True, "text": True}
+        return _Exported()
+
+    monkeypatch.setattr("launch.subprocess.run", fake_run)  # type: ignore[attr-defined]
+
+    environment = execution_environment("bico-lora-standard-rate")
+
+    assert environment["WANDB_API_KEY"] == "wandb-test"
+    assert environment["AWS_ACCESS_KEY_ID"] == "access"
+    assert environment["AWS_SECRET_ACCESS_KEY"] == "secret"
+    assert environment["AWS_SESSION_TOKEN"] == "session"
 
 
 def test_lora_mntp_uses_one_a10_wandb_and_no_downstream_evaluation() -> None:

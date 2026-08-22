@@ -236,14 +236,17 @@ It uses the measured maximum physical GH200 batch 94 with gradient accumulation 
 Batch 94 is rerun for two exact optimizer steps at `5e-5` before training and must retain at least 10% peak-reserved-memory headroom with finite loss and gradients.
 
 The candidate is evaluated against the true causal source on the fixed 640-target panel at steps 0, 25, 50, 100, every 100 through 1,000, and the final checkpoint.
-All adapter milestones, the final optimizer-bearing checkpoint, preflight, stability trace, paired comparisons, and figures use a distinct `lr5e-5` W&B namespace.
-The coordinating user requires every output to be public, while the prescribed `oa-bolinas` S3 bucket blocks public ACLs and public bucket policies and has no public-read policy.
-W&B is therefore the single durable owner for this run: the `gonzalobenegas/marin` project is anonymously queryable, and no private S3 or duplicate Hugging Face copy is created.
-The stage performs no VEP, nucleotide-dependency analysis, Hugging Face upload, checkpoint deletion, or research knowledge-base interpretation.
+It also measures one-pass BICO forward VEP AUPRC at steps 0 and every 100 through 1,000 on the same 16,140 Mendelian, 11,630 complex-trait, and 23,853 SGE development variants from odd-numbered autosomes and chromosome X.
+The three exact point AUPRCs are the Mendelian consequence macro, complex-trait global, and SGE accession-consequence macro endpoints.
+Twenty bootstrap replicates provide descriptive trajectory error estimates only and are not used for a formal gate.
+The previously reproduced source CLM FWD+RC endpoints appear only as dashed reference lines; the VEP question is whether AUPRC moves with language-model quality within this run.
+All adapter milestones and the final optimizer-bearing checkpoint are stored once under the immutable private prefix `s3://oa-bolinas/issues/479/bico-lora-standard-rate/v1`, with per-object sizes and SHA-256 checksums in a retention manifest.
+The public `gonzalobenegas/marin` W&B namespace owns the dense training metrics, paired nucleotide tables, VEP scores, figures, preflight, stability trace, and evaluation manifest.
+The stage performs no nucleotide-dependency analysis, Hugging Face upload, checkpoint deletion, or research knowledge-base interpretation.
 
 ```bash
 uv run --locked python launch.py bico-lora-standard-rate \
-  --commit "1000 4 24 27 30 105 1000git rev-parse HEAD)" \
+  --commit "$(git rev-parse HEAD)" \
   --prior-cost-usd 42.139827271281725 \
   --retry-until-up \
   --execute

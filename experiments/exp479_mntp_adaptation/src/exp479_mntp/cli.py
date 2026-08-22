@@ -281,6 +281,10 @@ def _parser() -> argparse.ArgumentParser:
         "--evaluation-artifact",
         default="dna-exp479-bico-lora-r16-information-gate",
     )
+    bico_lora.add_argument("--checkpoint-s3-prefix")
+    bico_lora.add_argument("--enable-vep-trajectory", action="store_true")
+    bico_lora.add_argument("--vep-batch-size", type=int, default=512)
+    bico_lora.add_argument("--vep-bootstrap", type=int, default=20)
 
     bico_lora_gate_audit = subparsers.add_parser(
         "bico-lora-gate-audit",
@@ -668,6 +672,10 @@ def main() -> None:
             run_name=args.run_name,
             model_prefix=args.model_prefix,
             evaluation_artifact=args.evaluation_artifact,
+            checkpoint_s3_prefix=args.checkpoint_s3_prefix,
+            enable_vep_trajectory=args.enable_vep_trajectory,
+            vep_batch_size=args.vep_batch_size,
+            vep_bootstrap=args.vep_bootstrap,
         )
         return
     if args.command == "bico-lora-gate-audit":
