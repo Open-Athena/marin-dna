@@ -224,6 +224,29 @@ uv run --locked python launch.py bico-lora-resume \
   --execute
 ```
 
+## Standard-rate BICO LoRA follow-up
+
+The corrected causal comparison shows that the conservative BICO LoRA run learned smoothly but remained worse than the causal source at every retained checkpoint.
+Step 1,000 reached CE and accuracy `1.282991/0.409375` versus the corrected causal `1.051000/0.509375`, with confidence-supported harm on both metrics.
+The finite, unclipped trajectory makes insufficient adaptation at the deliberately conservative `1e-5` peak rate the next isolated hypothesis.
+
+The `bico-lora-standard-rate` stage changes only the peak learning rate to `5e-5`, the current [Transformers `TrainingArguments` default](https://github.com/huggingface/transformers/blob/main/src/transformers/training_args.py) and masked-language-model example default.
+It retains rank-16 LoRA, fixed 15% `[PAD]` corruption, reflected future RoPE, the corrected causal hook, seed 0, the same training and validation plan construction, 100 warmup steps, a constant rate through step 800, and decay through step 1,000.
+It uses the measured maximum physical GH200 batch 94 with gradient accumulation fixed at 1.
+Batch 94 is rerun for two exact optimizer steps at `5e-5` before training and must retain at least 10% peak-reserved-memory headroom with finite loss and gradients.
+
+The candidate is evaluated against the true causal source on the fixed 640-target panel at steps 0, 25, 50, 100, every 100 through 1,000, and the final checkpoint.
+All adapter milestones, the final optimizer-bearing checkpoint, preflight, stability trace, paired comparisons, and figures use a distinct `lr5e-5` W&B namespace.
+The stage performs no VEP, nucleotide-dependency analysis, Hugging Face upload, checkpoint deletion, or research knowledge-base interpretation.
+
+```bash
+uv run --locked python launch.py bico-lora-standard-rate \
+  --commit "1000 4 24 27 30 105 1000git rev-parse HEAD)" \
+  --prior-cost-usd 42.139827271281725 \
+  --retry-until-up \
+  --execute
+```
+
 ## Causal-preserving gated LoRA follow-up
 
 The `gated-lora-mntp` stage is the sequential follow-up to the failed uniform-full LoRA and frozen localized-attention gates.

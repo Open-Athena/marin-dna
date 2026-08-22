@@ -3,7 +3,11 @@ from __future__ import annotations
 import pytest
 import torch
 
-from exp479_mntp.bico_lora_mntp import BicoLoraConfig, excluded_mntp_key_mask
+from exp479_mntp.bico_lora_mntp import (
+    BICO_LORA_STANDARD_LEARNING_RATE,
+    BicoLoraConfig,
+    excluded_mntp_key_mask,
+)
 
 
 def test_bico_lora_config_uses_one_maximal_physical_batch_without_accumulation() -> None:
@@ -16,6 +20,19 @@ def test_bico_lora_config_uses_one_maximal_physical_batch_without_accumulation()
     assert config.warmup_steps == 100
     assert config.cooldown_start_step == 800
     assert config.train_steps == 1_000
+
+
+def test_bico_lora_standard_rate_changes_only_the_registered_peak_rate() -> None:
+    conservative = BicoLoraConfig(batch_size=94)
+    standard = BicoLoraConfig(batch_size=94, learning_rate=BICO_LORA_STANDARD_LEARNING_RATE)
+    conservative_payload = conservative.to_dict()
+    standard_payload = standard.to_dict()
+    assert standard.learning_rate == 5e-5
+    assert standard.accumulation_steps == 1
+    assert standard.batch_size == 94
+    assert {
+        key: value for key, value in conservative_payload.items() if key != "learning_rate"
+    } == {key: value for key, value in standard_payload.items() if key != "learning_rate"}
 
 
 def test_excluded_mntp_key_mask_excludes_every_shifted_pad_target() -> None:

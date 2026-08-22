@@ -388,6 +388,40 @@ def test_bico_lora_resume_rechecks_only_selected_batch_before_training() -> None
     assert "nuc-dep" not in stage
 
 
+def test_bico_lora_standard_rate_reuses_maximal_no_accumulation_batch() -> None:
+    command = launch_command(
+        "bico-lora-standard-rate",
+        "a" * 40,
+        1234,
+        prior_cost_usd=42.139827271281725,
+        retry_until_up=True,
+    )
+    assert command[:5] == [
+        "sky",
+        "launch",
+        "-c",
+        "dna-exp479-bico-lora-standard-rate-gh200",
+        "sky/bico-lora-standard-rate.yaml",
+    ]
+    assert "EXP479_INSTANCE_PRICE_PER_HOUR_USD=2.29" in command
+    assert command.count("--secret") == 1
+    assert "WANDB_API_KEY" in command
+    assert "HF_TOKEN" not in command
+
+    stage = Path("sky/bico-lora-standard-rate.yaml").read_text(encoding="utf-8")
+    assert stage.count("uv run --locked pytest") == 1
+    assert stage.count("uv run --locked exp479 bico-lora-preflight") == 1
+    assert stage.count("uv run --locked exp479 bico-lora-mntp") == 1
+    assert stage.count("--batch-size 94") == 3
+    assert stage.count("--learning-rate 5e-5") == 2
+    assert "accumulate" not in stage.lower()
+    assert "cloud: lambda" in stage
+    assert "accelerators: GH200:1" in stage
+    assert "HF_TOKEN" not in stage
+    assert "vep" not in stage.lower()
+    assert "nuc-dep" not in stage
+
+
 def test_lora_mntp_uses_one_a10_wandb_and_no_downstream_evaluation() -> None:
     command = launch_command(
         "lora-mntp",

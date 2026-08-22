@@ -28,6 +28,7 @@ STAGE_CONFIGS = {
     "bico-attention-diagnostic": "sky/bico-attention-diagnostic.yaml",
     "bico-lora-mntp": "sky/bico-lora-mntp.yaml",
     "bico-lora-resume": "sky/bico-lora-resume.yaml",
+    "bico-lora-standard-rate": "sky/bico-lora-standard-rate.yaml",
     "bico-lora-gate-audit": "sky/bico-lora-gate-audit.yaml",
     "lora-mntp": "sky/lora-mntp.yaml",
     "gated-lora-mntp": "sky/gated-lora-mntp.yaml",
@@ -60,6 +61,7 @@ def execution_environment(stage: str) -> dict[str, str]:
         "bico-attention-diagnostic",
         "bico-lora-mntp",
         "bico-lora-resume",
+        "bico-lora-standard-rate",
         "bico-lora-gate-audit",
         "lora-mntp",
         "gated-lora-mntp",
@@ -89,6 +91,7 @@ def execution_environment(stage: str) -> dict[str, str]:
         "bico-attention-diagnostic",
         "bico-lora-mntp",
         "bico-lora-resume",
+        "bico-lora-standard-rate",
         "bico-lora-gate-audit",
         "lora-mntp",
         "gated-lora-mntp",
@@ -158,6 +161,8 @@ def launch_command(
         cluster_name = "dna-exp479-bico-lora-gh200"
     elif stage == "bico-lora-resume":
         cluster_name = "dna-exp479-bico-lora-resume-gh200"
+    elif stage == "bico-lora-standard-rate":
+        cluster_name = "dna-exp479-bico-lora-standard-rate-gh200"
     elif stage == "bico-lora-gate-audit":
         cluster_name = "dna-exp479-bico-lora-gate-audit-a10"
     elif stage == "paired-nucleotide-gate":
@@ -196,6 +201,7 @@ def launch_command(
         "bico-attention-diagnostic",
         "bico-lora-mntp",
         "bico-lora-resume",
+        "bico-lora-standard-rate",
         "bico-lora-gate-audit",
         "lora-mntp",
         "gated-lora-mntp",
@@ -211,6 +217,7 @@ def launch_command(
                 "bico-attention-diagnostic",
                 "bico-lora-mntp",
                 "bico-lora-resume",
+                "bico-lora-standard-rate",
             }
             else "1.006"
             if stage
@@ -252,6 +259,7 @@ def launch_command(
         "bico-attention-diagnostic",
         "bico-lora-mntp",
         "bico-lora-resume",
+        "bico-lora-standard-rate",
         "bico-lora-gate-audit",
         "lora-mntp",
         "gated-lora-mntp",

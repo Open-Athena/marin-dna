@@ -60,6 +60,7 @@ from exp479_mntp.publishing import assert_budget_reserve, write_cost_estimate
 
 BICO_LORA_MASK_PROBABILITY = 0.15
 BICO_LORA_LEARNING_RATE = 1e-5
+BICO_LORA_STANDARD_LEARNING_RATE = 5e-5
 BICO_LORA_MAX_INSTANCE_HOURS = 3.3
 BICO_LORA_MEMORY_HEADROOM = 0.10
 BICO_LORA_BUDGET_RESERVE_USD = 2.0
@@ -68,6 +69,9 @@ BICO_LORA_RUN_NAME = "dna-exp479-bico-lora-r16-pad15-lr1e-5-wsd1000-seed0"
 BICO_LORA_WANDB_GROUP = "dna-exp479-bico-lora-information-gate"
 BICO_LORA_MODEL_PREFIX = "dna-exp479-bico-lora-r16-pad15"
 BICO_LORA_EVALUATION_ARTIFACT = "dna-exp479-bico-lora-r16-information-gate"
+BICO_LORA_STANDARD_RUN_NAME = "dna-exp479-bico-lora-r16-pad15-lr5e-5-wsd1000-seed0"
+BICO_LORA_STANDARD_MODEL_PREFIX = "dna-exp479-bico-lora-r16-pad15-lr5e-5"
+BICO_LORA_STANDARD_EVALUATION_ARTIFACT = "dna-exp479-bico-lora-r16-lr5e-5-information-gate"
 
 
 @dataclass(frozen=True)
@@ -255,6 +259,10 @@ def evaluate_bico_readout(
 class RetainedBicoLoraTrajectoryCallback(RetainedLoraTrajectoryCallback):
     """Retain adapter milestones and evaluate the registered BICO readout."""
 
+    def __init__(self, *, model_prefix: str, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+        self.model_prefix = model_prefix
+
     def _evaluate_and_retain(self, step: int) -> None:
         if step in self.saved:
             return
@@ -279,7 +287,7 @@ class RetainedBicoLoraTrajectoryCallback(RetainedLoraTrajectoryCallback):
         adapter_dir = self.output_dir / "adapters" / f"step-{step:04d}"
         self.bundle.model.save_pretrained(adapter_dir, safe_serialization=True)
         artifact = wandb.Artifact(
-            f"{BICO_LORA_MODEL_PREFIX}-step-{step:04d}",
+            f"{self.model_prefix}-step-{step:04d}",
             type="model",
             metadata={
                 "optimizer_step": step,
@@ -304,8 +312,9 @@ def _build_training_objects(
     validation_plan: Path,
     seed: int,
     num_workers: int,
+    learning_rate: float = BICO_LORA_LEARNING_RATE,
 ) -> tuple[BicoLoraConfig, ModelBundle, int, BicoLoraModule, ExperimentDataModule]:
-    config = BicoLoraConfig(batch_size=batch_size)
+    config = BicoLoraConfig(batch_size=batch_size, learning_rate=learning_rate)
     bundle, trainable_count = build_bico_lora_bundle(config)
     if not isinstance(bundle.model, PeftModel):
         raise TypeError("BICO LoRA builder did not return a PEFT model")
@@ -337,6 +346,7 @@ def run_bico_lora_preflight(
     validation_plan: Path,
     output_path: Path,
     seed: int,
+    learning_rate: float = BICO_LORA_LEARNING_RATE,
 ) -> dict[str, object]:
     """Exercise two exact optimizer steps and enforce memory and budget headroom."""
 
@@ -349,7 +359,11 @@ def run_bico_lora_preflight(
         raise ValueError("preflight plan lacks two complete candidate batches")
     output_path.parent.mkdir(parents=True, exist_ok=True)
     started = time.time()
-    payload: dict[str, object] = {"batch_size": batch_size, "accumulation_steps": 1}
+    payload: dict[str, object] = {
+        "batch_size": batch_size,
+        "accumulation_steps": 1,
+        "learning_rate": learning_rate,
+    }
     trainer: L.Trainer | None = None
     data: ExperimentDataModule | None = None
     module: BicoLoraModule | None = None
@@ -363,6 +377,7 @@ def run_bico_lora_preflight(
             validation_plan=validation_plan,
             seed=seed,
             num_workers=0,
+            learning_rate=learning_rate,
         )
         torch.cuda.reset_peak_memory_stats()
         trainer = L.Trainer(
@@ -461,6 +476,10 @@ def run_bico_lora_mntp(
     num_workers: int,
     evaluation_batch_size: int,
     n_bootstrap: int,
+    learning_rate: float = BICO_LORA_LEARNING_RATE,
+    run_name: str = BICO_LORA_RUN_NAME,
+    model_prefix: str = BICO_LORA_MODEL_PREFIX,
+    evaluation_artifact: str = BICO_LORA_EVALUATION_ARTIFACT,
 ) -> None:
     """Train the selected no-accumulation BICO LoRA and apply the paired gate."""
 
@@ -477,6 +496,8 @@ def run_bico_lora_mntp(
         raise RuntimeError("selected BICO LoRA batch did not pass preflight")
     if int(preflight_payload.get("batch_size", -1)) != batch_size:
         raise RuntimeError("selected BICO LoRA preflight records a different batch")
+    if float(preflight_payload.get("learning_rate", float("nan"))) != learning_rate:
+        raise RuntimeError("selected BICO LoRA preflight records a different learning rate")
     price = float(os.getenv("EXP479_INSTANCE_PRICE_PER_HOUR_USD", "2.29"))
     prior_cost = float(os.getenv("EXP479_PRIOR_COST_USD", "0"))
     if prior_cost + BICO_LORA_MAX_INSTANCE_HOURS * price >= BUDGET_USD:
@@ -507,11 +528,12 @@ def run_bico_lora_mntp(
         validation_plan=validation_plan,
         seed=seed,
         num_workers=num_workers,
+        learning_rate=learning_rate,
     )
     logger = WandbLogger(
         project=WANDB_PROJECT,
         group=BICO_LORA_WANDB_GROUP,
-        name=BICO_LORA_RUN_NAME,
+        name=run_name,
         tags=[*EXPERIMENT_TAGS, "lora", "rank-16", "bico", "pad-mask", "no-accumulation"],
         save_dir=str(output_dir),
         log_model=False,
@@ -532,6 +554,7 @@ def run_bico_lora_mntp(
         evaluation_batch_size=evaluation_batch_size,
         output_dir=output_dir,
         run=run,
+        model_prefix=model_prefix,
     )
     trainer = L.Trainer(
         accelerator="gpu",
@@ -646,7 +669,7 @@ def run_bico_lora_mntp(
             checkpoint_path,
         )
         checkpoint_artifact = wandb.Artifact(
-            f"{BICO_LORA_MODEL_PREFIX}-step-1000-optimizer",
+            f"{model_prefix}-step-1000-optimizer",
             type="model",
             metadata={
                 "optimizer_step": 1_000,
@@ -669,7 +692,7 @@ def run_bico_lora_mntp(
         cost_path = write_cost_estimate(artifact_dir=artifact_dir)
         manifest = {
             "status": "completed",
-            "run_name": BICO_LORA_RUN_NAME,
+            "run_name": run_name,
             "wandb_url": run.get_url(),
             "base_model": MODEL_ID,
             "base_revision": MODEL_REVISION,
@@ -713,7 +736,7 @@ def run_bico_lora_mntp(
         run.summary["bico_lora_gate/physical_batch_size"] = batch_size
         run.summary["bico_lora_gate/model_tokens"] = manifest["model_tokens"]
         run.summary["bico_lora_gate/supervised_masked_targets"] = module.supervised_masked_targets
-        result_artifact = wandb.Artifact(BICO_LORA_EVALUATION_ARTIFACT, type="evaluation")
+        result_artifact = wandb.Artifact(evaluation_artifact, type="evaluation")
         result_artifact.add_dir(str(preflight_dir), name="batch-preflights")
         for path in (
             scores_path,
