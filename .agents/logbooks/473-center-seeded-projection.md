@@ -2574,3 +2574,27 @@ cohort, assemblies, and downstream training recipe fixed.
 - The user clarified that downloading the test file is permitted as long as only development rows are evaluated; the standard rule passes only the 16,140/11,630/23,853-row train frames to inference for Mendelian, Complex Traits, and SGE.
 - A replacement 13-job canonical run is active on one preemptible AWS `g5.xlarge` in `us-east-2c`; it forces six score cells and recomputes their six metric cells after one new checkpoint download.
 - No corrected terminal VEP number is available yet, and no interpretation from CSP-083 remains valid.
+
+### 2026-08-22 14:20 UTC - CSP-085 corrected canonical terminal VEP comparison completed
+
+- The replacement standard `evals_v2` run completed all 13 jobs and the spot cluster shut down automatically.
+- PR #502 registers the two stable model IDs used by the run at execution commit `e321ee656decb7046f86a1a14bd3d3f6976d5012`; its comment-only provenance correction is at `b7d4bcb2`.
+- Both checkpoints were loaded by the maintained compatibility loader, which restores the intended issue #417 RoPE metadata before model construction.
+- Hugging Face materialized both dataset files, but inference and metrics used only `split="train"`: 16,140 Mendelian, 11,630 Complex-trait, and 23,853 SGE development rows per model.
+- The six score cells and six metric cells are durable under the canonical model-keyed `results/scores/` and `results/metrics/` prefixes for `exp417-cds-combined-vertebrates-step-4999` and `exp473-cds-full-window-random-val-step-4999`.
+- The terminal AUPRC comparison below uses the actual canonical metric values and reports random-validation minus chromosome-18-validation deltas.
+
+| Benchmark | Subset | Chr18-validation AUPRC | Random-validation AUPRC | Random minus chr18 |
+| --- | --- | ---: | ---: | ---: |
+| Mendelian | Missense | 0.343935 | 0.323911 | -0.020023 |
+| Mendelian | Splicing | 0.391574 | 0.366397 | -0.025177 |
+| Mendelian | Synonymous | 0.346457 | 0.344881 | -0.001576 |
+| Complex traits | Missense | 0.173681 | 0.175864 | +0.002183 |
+| SGE | Missense | 0.264513 | 0.262421 | -0.002091 |
+| SGE | Splicing | 0.472945 | 0.500905 | +0.027961 |
+
+- The secondary Group SMD values are also mixed: random minus chr18 is +0.015610 for Mendelian missense, -0.027771 for Mendelian splicing, +0.099642 for Mendelian synonymous, and +0.021123 for Complex-trait missense.
+- The corrected issue #417 SGE endpoints are nearly identical to the pre-existing canonical artifacts audited before overwrite: 0.264513 versus 0.264535 for missense and 0.472945 versus 0.473347 for splicing.
+- The large uniform gaps in withdrawn CSP-083 disappear. The corrected terminal results are broadly similar and mixed across endpoints; no paired cross-arm uncertainty was computed in this canonical rerun, so this entry makes no claim about a validation-split effect on VEP.
+- Metric SHA-256 values are `5e8716bfbb8a9a91ef2beb3d4c0699db92c44c6d6b3e6570e89e68260b0cd9d8`, `7950e05589f69a8091f98def7ea3bd7f8e4d5c8a56b322ffa264d60abd1ccbff`, and `373c7cb409ece183d9ad3c8c263727963796a3600cc3e9318d5f2d86bb79e56a` for the chromosome-18 Mendelian, Complex-trait, and SGE files, and `b92c0d9ae003b4c21e2637a78cd4dd3dc97434ef79fdb4a18f1a3af8e8639121`, `7d29974373a2931a57edf9958dff93432a0a07bea405acdee57887828732cfdf`, and `554bde7fc9cc6fd01da9780ea5cf00c66f400de25854f796eb20bd8e182fe610` for their random-validation counterparts.
+- One preemptible AWS `g5.xlarge` in `us-east-2c` supplied one A10G at the displayed $0.36/hour spot rate. The cluster `exp473-evals-v2-rope-fix` no longer exists after automatic teardown.
