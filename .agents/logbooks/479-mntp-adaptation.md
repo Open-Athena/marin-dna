@@ -821,3 +821,12 @@ The accepted [bidirectional-models research question](../../docs/research/questi
 - Stability: All 809 W&B optimizer rows observed through step 808 were finite; overall loss median/max was `1.337762/1.589207`, latest-20 mean was `1.339518`, and the attention trace reached exactly 1.0 without a loss spike.
 - Gate context: The checkpoint remained far behind released source causal `1.051060/0.5078125`; final interpretation remains deferred to step 1,000 and the paired intervals.
 - Issue record: Posted the full-attention boundary milestone at https://github.com/Open-Athena/marin-dna/issues/479#issuecomment-5377714520.
+
+### 2026-08-22 04:08 - LoRA step-900 milestone
+
+- Exact paired readout: Step 900 full-attention four-way CE was `1.3684129107` and accuracy was `0.3109375`, improving CE by `0.0572646779` and gaining 25 correct targets relative to step 0.
+- Full-attention phase: Relative to step 800, the first 100 exactly full-attention updates improved CE by `0.0116154695` and gained eight correct targets.
+- Stability: All 902 W&B optimizer rows observed through step 901 were finite; the 102 rows at or after step 800 had mean/min/max loss `1.338354/1.300498/1.374053`.
+- Gate context: Step 900 had 199/640 correct targets versus 325/640 for the released causal source, so the trajectory was healthy but the final source-matching gate was overwhelmingly unlikely to pass in the remaining 100 cooldown updates.
+- Interpretation boundary: Complete the preregistered final checkpoint, bootstrap intervals, source preservation check, artifact publication, and independent reload audit before selecting the next sequential run.
+- Issue record: Posted the milestone at https://github.com/Open-Athena/marin-dna/issues/479#issuecomment-5377753096.
