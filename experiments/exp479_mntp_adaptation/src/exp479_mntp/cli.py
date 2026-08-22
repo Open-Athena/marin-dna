@@ -239,6 +239,15 @@ def _parser() -> argparse.ArgumentParser:
     lora_mntp.add_argument("--evaluation-batch-size", type=int, default=64)
     lora_mntp.add_argument("--n-bootstrap", type=int, default=2_000)
 
+    lora_reload = subparsers.add_parser(
+        "lora-reload-audit",
+        help="reload the final LoRA adapter and audit paired-score parity",
+    )
+    lora_reload.add_argument("--artifact-dir", type=Path, required=True)
+    lora_reload.add_argument("--output-dir", type=Path, required=True)
+    lora_reload.add_argument("--validation-plan", type=Path, required=True)
+    lora_reload.add_argument("--batch-size", type=int, default=64)
+
     normalization = subparsers.add_parser(
         "loss-normalization-audit",
         help="re-evaluate retained causal checkpoints with Marin-compatible loss",
@@ -515,6 +524,16 @@ def main() -> None:
             num_workers=args.num_workers,
             evaluation_batch_size=args.evaluation_batch_size,
             n_bootstrap=args.n_bootstrap,
+        )
+        return
+    if args.command == "lora-reload-audit":
+        from exp479_mntp.lora_reload_audit import run_lora_reload_audit
+
+        run_lora_reload_audit(
+            artifact_dir=args.artifact_dir,
+            output_dir=args.output_dir,
+            validation_plan=args.validation_plan,
+            batch_size=args.batch_size,
         )
         return
     if args.command == "loss-normalization-audit":

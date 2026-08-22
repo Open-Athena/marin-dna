@@ -25,6 +25,7 @@ STAGE_CONFIGS = {
     "paired-nucleotide-gate": "sky/paired-nucleotide-gate.yaml",
     "attention-anneal-diagnostic": "sky/attention-anneal-diagnostic.yaml",
     "lora-mntp": "sky/lora-mntp.yaml",
+    "lora-reload-audit": "sky/lora-reload-audit.yaml",
     "loss-normalization": "sky/loss-normalization.yaml",
     "source-validation": "sky/source-validation.yaml",
 }
@@ -48,6 +49,7 @@ def execution_environment(stage: str) -> dict[str, str]:
         "paired-nucleotide-gate",
         "attention-anneal-diagnostic",
         "lora-mntp",
+        "lora-reload-audit",
         "loss-normalization",
         "source-validation",
     }
@@ -68,6 +70,7 @@ def execution_environment(stage: str) -> dict[str, str]:
         "paired-nucleotide-gate",
         "attention-anneal-diagnostic",
         "lora-mntp",
+        "lora-reload-audit",
         "loss-normalization",
         "source-validation",
     }:
@@ -127,6 +130,8 @@ def launch_command(
         cluster_name = "dna-exp479-a10"
     elif stage == "lora-mntp":
         cluster_name = "dna-exp479-lora-a10"
+    elif stage == "lora-reload-audit":
+        cluster_name = "dna-exp479-lora-reload-a10"
     else:
         cluster_name = CLUSTER_NAME
     command = [
@@ -144,8 +149,22 @@ def launch_command(
         "--env",
         f"EXP479_INSTANCE_START_UNIX={instance_start_unix}",
     ]
-    if stage in {"paired-nucleotide-gate", "attention-anneal-diagnostic", "lora-mntp"}:
-        price = "1.006" if stage in {"attention-anneal-diagnostic", "lora-mntp"} else "1.29"
+    if stage in {
+        "paired-nucleotide-gate",
+        "attention-anneal-diagnostic",
+        "lora-mntp",
+        "lora-reload-audit",
+    }:
+        price = (
+            "1.006"
+            if stage
+            in {
+                "attention-anneal-diagnostic",
+                "lora-mntp",
+                "lora-reload-audit",
+            }
+            else "1.29"
+        )
         command.extend(["--env", f"EXP479_INSTANCE_PRICE_PER_HOUR_USD={price}"])
     if stage in {"pilot", "diagnostics", "audit", "stability", "dependency", "calibration"}:
         command.extend(
@@ -171,6 +190,7 @@ def launch_command(
         "attention-anneal-diagnostic",
         "lora-mntp",
         "loss-normalization",
+        "lora-reload-audit",
         "source-validation",
     }:
         command.extend(["--secret", "WANDB_API_KEY"])
