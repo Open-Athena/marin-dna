@@ -1,0 +1,118 @@
+{
+  "backend": "wandb",
+  "deletion_performed": false,
+  "artifacts": [
+    {
+      "kind": "peft_adapter",
+      "step": 0,
+      "artifact_id": "QXJ0aWZhY3Q6MzM3MTY1OTU5MQ==",
+      "artifact_name": "dna-exp479-lora-r16-mntp-unk-step-0000:v1",
+      "artifact_version": "v1",
+      "qualified_name": "gonzalobenegas/marin/dna-exp479-lora-r16-mntp-unk-step-0000:v1"
+    },
+    {
+      "kind": "peft_adapter",
+      "step": 25,
+      "artifact_id": "QXJ0aWZhY3Q6MzM3MTY4ODI0Mg==",
+      "artifact_name": "dna-exp479-lora-r16-mntp-unk-step-0025:v1",
+      "artifact_version": "v1",
+      "qualified_name": "gonzalobenegas/marin/dna-exp479-lora-r16-mntp-unk-step-0025:v1"
+    },
+    {
+      "kind": "peft_adapter",
+      "step": 50,
+      "artifact_id": "QXJ0aWZhY3Q6MzM3MTcxNTA2Mw==",
+      "artifact_name": "dna-exp479-lora-r16-mntp-unk-step-0050:v1",
+      "artifact_version": "v1",
+      "qualified_name": "gonzalobenegas/marin/dna-exp479-lora-r16-mntp-unk-step-0050:v1"
+    },
+    {
+      "kind": "peft_adapter",
+      "step": 100,
+      "artifact_id": "QXJ0aWZhY3Q6MzM3MTc2NTUwMA==",
+      "artifact_name": "dna-exp479-lora-r16-mntp-unk-step-0100:v1",
+      "artifact_version": "v1",
+      "qualified_name": "gonzalobenegas/marin/dna-exp479-lora-r16-mntp-unk-step-0100:v1"
+    },
+    {
+      "kind": "peft_adapter",
+      "step": 200,
+      "artifact_id": "QXJ0aWZhY3Q6MzM3MTg1OTA5NQ==",
+      "artifact_name": "dna-exp479-lora-r16-mntp-unk-step-0200:v1",
+      "artifact_version": "v1",
+      "qualified_name": "gonzalobenegas/marin/dna-exp479-lora-r16-mntp-unk-step-0200:v1"
+    },
+    {
+      "kind": "peft_adapter",
+      "step": 300,
+      "artifact_id": "QXJ0aWZhY3Q6MzM3MTk0OTAzNg==",
+      "artifact_name": "dna-exp479-lora-r16-mntp-unk-step-0300:v1",
+      "artifact_version": "v1",
+      "qualified_name": "gonzalobenegas/marin/dna-exp479-lora-r16-mntp-unk-step-0300:v1"
+    },
+    {
+      "kind": "peft_adapter",
+      "step": 400,
+      "artifact_id": "QXJ0aWZhY3Q6MzM3MjA0MjM3MA==",
+      "artifact_name": "dna-exp479-lora-r16-mntp-unk-step-0400:v1",
+      "artifact_version": "v1",
+      "qualified_name": "gonzalobenegas/marin/dna-exp479-lora-r16-mntp-unk-step-0400:v1"
+    },
+    {
+      "kind": "peft_adapter",
+      "step": 500,
+      "artifact_id": "QXJ0aWZhY3Q6MzM3MjEzNzU1Nw==",
+      "artifact_name": "dna-exp479-lora-r16-mntp-unk-step-0500:v1",
+      "artifact_version": "v1",
+      "qualified_name": "gonzalobenegas/marin/dna-exp479-lora-r16-mntp-unk-step-0500:v1"
+    },
+    {
+      "kind": "peft_adapter",
+      "step": 600,
+      "artifact_id": "QXJ0aWZhY3Q6MzM3MjIyOTA5Mg==",
+      "artifact_name": "dna-exp479-lora-r16-mntp-unk-step-0600:v1",
+      "artifact_version": "v1",
+      "qualified_name": "gonzalobenegas/marin/dna-exp479-lora-r16-mntp-unk-step-0600:v1"
+    },
+    {
+      "kind": "peft_adapter",
+      "step": 700,
+      "artifact_id": "QXJ0aWZhY3Q6MzM3MjMyMTcwMg==",
+      "artifact_name": "dna-exp479-lora-r16-mntp-unk-step-0700:v1",
+      "artifact_version": "v1",
+      "qualified_name": "gonzalobenegas/marin/dna-exp479-lora-r16-mntp-unk-step-0700:v1"
+    },
+    {
+      "kind": "peft_adapter",
+      "step": 800,
+      "artifact_id": "QXJ0aWZhY3Q6MzM3MjQyMTYzMQ==",
+      "artifact_name": "dna-exp479-lora-r16-mntp-unk-step-0800:v1",
+      "artifact_version": "v1",
+      "qualified_name": "gonzalobenegas/marin/dna-exp479-lora-r16-mntp-unk-step-0800:v1"
+    },
+    {
+      "kind": "peft_adapter",
+      "step": 900,
+      "artifact_id": "QXJ0aWZhY3Q6MzM3MjUyMzMzMw==",
+      "artifact_name": "dna-exp479-lora-r16-mntp-unk-step-0900:v1",
+      "artifact_version": "v1",
+      "qualified_name": "gonzalobenegas/marin/dna-exp479-lora-r16-mntp-unk-step-0900:v1"
+    },
+    {
+      "kind": "peft_adapter",
+      "step": 1000,
+      "artifact_id": "QXJ0aWZhY3Q6MzM3MjYzMDc1OA==",
+      "artifact_name": "dna-exp479-lora-r16-mntp-unk-step-1000:v1",
+      "artifact_version": "v1",
+      "qualified_name": "gonzalobenegas/marin/dna-exp479-lora-r16-mntp-unk-step-1000:v1"
+    },
+    {
+      "kind": "adapter_optimizer_checkpoint",
+      "step": 1000,
+      "artifact_id": "QXJ0aWZhY3Q6MzM3MjYzNTU2Mw==",
+      "artifact_name": "dna-exp479-lora-r16-mntp-unk-step-1000-optimizer:v0",
+      "artifact_version": "v0",
+      "qualified_name": "gonzalobenegas/marin/dna-exp479-lora-r16-mntp-unk-step-1000-optimizer:v0"
+    }
+  ]
+}

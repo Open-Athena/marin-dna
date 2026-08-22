@@ -886,3 +886,22 @@ The accepted [bidirectional-models research question](../../docs/research/questi
 - Ranked fallback: If the paired gate and localized zero-training control fail, prefer a zero-initialized gated right-attention residual with LoRA on the new path over another abrupt uniform-full transition.
 - Boundary: Do not implement or launch the fallback until the running replay, reload audit, and localized frozen-source diagnostic resolve.
 - Issue record: Posted the cited research synthesis at https://github.com/Open-Athena/marin-dna/issues/479#issuecomment-5378188024.
+
+### 2026-08-22 06:07 - Corrected damage-calibrated LoRA replay completed and failed the paired gate
+
+- Completion: W&B run `tnkdn3v3` completed all 1,000 optimizer steps and finalized the paired evaluation, gradient trace, retention manifest, adapter-plus-optimizer checkpoint, and result artifact.
+- Determinism: Every retained paired checkpoint from step 0 through step 1,000 exactly matches the first attempt's preliminary trajectory.
+- Source baseline: The disabled-adapter causal readout was four-way CE `1.0507945247` and accuracy `0.50625` on the exact 640 targets.
+- Final readout: The step-1,000 full-attention LoRA readout was CE `1.3655851085` and accuracy `0.31875`.
+- Paired CE gate: Candidate-minus-source CE was `+0.3147905837` with 95% sequence-bootstrap interval `[+0.2675381738, +0.3648440462]`.
+- Paired accuracy gate: Candidate-minus-source accuracy was `-0.1875` with 95% interval `[-0.2359375, -0.1421875]`.
+- Decision: Both point-estimate and confidence-supported information gates failed decisively.
+- Source preservation: Disabling the adapter after step 1,000 reproduced the step-0 causal source scores bit-exactly.
+- Stability: Exactly 1,000 trace rows cover steps 0 through 999; every loss and norm is finite, pre-clipping norm median/p95/maximum is `0.075796/0.485920/0.694055`, and zero steps clipped.
+- Schedule audit: Future-edge probability is monotone from exactly zero to exactly one, reaches one at step 800, and remains there through step 999; learning rate follows the registered 100-step warmup, plateau through step 800, and cooldown.
+- Retention: Thirteen corrected adapter artifacts plus the final adapter/optimizer/RNG artifact are retained; the final adapter is W&B artifact ID `QXJ0aWZhY3Q6MzM3MjYzMDc1OA==`, and the optimizer checkpoint is `QXJ0aWZhY3Q6MzM3MjYzNTU2Mw==`.
+- Runtime: Training and registered evaluation took `6114.68` seconds at `2679.45` model tokens/second, with peak allocated/reserved CUDA memory `7.28/7.57` GB.
+- Cost: The final pre-autodown listed-price estimate is `$36.803058 / $50` cumulative, and the AWS cluster was confirmed absent.
+- Evidence: Compact files are in `.agents/artifacts/479-mntp-adaptation/lora-mntp/`; the W&B evaluation artifact ID is `QXJ0aWZhY3Q6MzM3MjYzNjYyMw==`.
+- Boundaries: No VEP, nucleotide dependency, Hugging Face upload, checkpoint deletion, or knowledge-base update occurred.
+- Next step: Run the preregistered fresh-process final-adapter reload parity audit, then the frozen localized predictor-row diagnostic.
