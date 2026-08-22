@@ -830,3 +830,15 @@ The accepted [bidirectional-models research question](../../docs/research/questi
 - Gate context: Step 900 had 199/640 correct targets versus 325/640 for the released causal source, so the trajectory was healthy but the final source-matching gate was overwhelmingly unlikely to pass in the remaining 100 cooldown updates.
 - Interpretation boundary: Complete the preregistered final checkpoint, bootstrap intervals, source preservation check, artifact publication, and independent reload audit before selecting the next sequential run.
 - Issue record: Posted the milestone at https://github.com/Open-Athena/marin-dna/issues/479#issuecomment-5377753096.
+
+### 2026-08-22 04:13 - First LoRA attempt failed during post-training finalization
+
+- Training completion: All 1,000 optimizer updates completed, and the retained step-1,000 adapter recorded preliminary full-attention CE `1.3655851085` and accuracy `0.31875` on the paired panel.
+- Failure point: After `Trainer.fit` returned, Lightning teardown had moved the model to CPU; the subsequent disabled-adapter source check passed CUDA inputs to the CPU embedding and raised a device-mismatch error.
+- Impact boundary: Training, intermediate readouts, and the step-1,000 adapter artifact completed; the failure occurred before source-preservation verification, paired bootstrap/gate publication, gradient-trace export, optimizer-checkpoint publication, retention manifest, and evaluation artifact.
+- Retention: The failed-attempt step-1,000 adapter remains W&B artifact `dna-exp479-lora-r16-mntp-unk-step-1000:v0` with artifact ID `QXJ0aWZhY3Q6MzM3MTUyMDg5MQ==`; no deletion occurred.
+- Fix: Move the bundle explicitly to the requested evaluation device inside every paired evaluation helper call, preserve train/eval mode, add focused regression coverage, and stream pre-clipping norm, clipping indicator, and learning rate to W&B so a late finalizer failure cannot erase the stability trace again.
+- Relaunch rule: Treat this as a failed attempt and repeat the identical deterministic 1,000-step run only after the full locked remote suite passes; do not use the preliminary endpoint as the registered gate result.
+- Cost: The failed attempt added `$1.803845571`, bringing cumulative listed cost to `$34.995182571 / $50`.
+- Teardown: The AWS cluster automatically terminated after failure.
+- Issue record: Posted the failure, impact boundary, retained artifact, fix, and relaunch plan at https://github.com/Open-Athena/marin-dna/issues/479#issuecomment-5377826904.

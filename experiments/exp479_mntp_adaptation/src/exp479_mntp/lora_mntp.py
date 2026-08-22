@@ -393,6 +393,27 @@ class LoraMntpModule(AdaptationModule):
                 ),
             }
         )
+        self.log(
+            "train/pre_clip_gradient_norm",
+            norm,
+            on_step=True,
+            on_epoch=False,
+            batch_size=self.batch_size,
+        )
+        self.log(
+            "train/gradient_was_clipped",
+            float(norm > self.lora_config.max_grad_norm),
+            on_step=True,
+            on_epoch=False,
+            batch_size=self.batch_size,
+        )
+        self.log(
+            "train/learning_rate",
+            learning_rates[0],
+            on_step=True,
+            on_epoch=False,
+            batch_size=self.batch_size,
+        )
 
 
 def _evaluate_preserving_mode(
@@ -402,7 +423,9 @@ def _evaluate_preserving_mode(
     batch_size: int,
     readout: str,
     attention_mode: str,
+    evaluation_device: str | torch.device = "cuda",
 ) -> pd.DataFrame:
+    bundle.model.to(device=evaluation_device)
     was_training = bundle.model.training
     scores = evaluate_readout(
         bundle,
