@@ -560,3 +560,18 @@ The accepted [bidirectional-models research question](../../docs/research/questi
 - Publication: Retain only the compact matrix, summary, invariant record, manifest, and SVG in W&B; do not upload to Hugging Face or update the research knowledge base.
 - Compute: Use one self-terminating Lambda GH200, carry forward the conservative `$32.289179 / $50` cost, and run the complete locked suite before model loading.
 - Next action: Commit and push the rebased implementation, dry-run the exact snapshot, launch the evaluation, inspect the rendered LDLR plot, and replace the tRNA example in the factual evidence.
+
+### 2026-08-21 23:45 - Paired nucleotide information gate preregistered
+
+- Trigger: The user made coherent nucleotide prediction from both flanks a prerequisite and paused VEP interpretation until that prerequisite passes.
+- Existing-checkpoint panel: Evaluate the released causal model, released weights under full attention with the added MASK row, released weights under full attention with existing UNK as the mask, and the corrected step-1,000 MNTP checkpoint under both causal and full attention.
+- Pairing: Use the exact registered validation plan hash `35542611d71102479f3d07dc6565350120d1d89944e5a93f88efb641ece7e3ba` and the same one deterministic A/C/G/T target in each of its 640 sequences for every readout.
+- Primary metrics: Report unweighted four-way A/C/G/T-renormalized cross-entropy and top-1 accuracy so the added output row and repeat weights cannot alter the comparison.
+- Secondary metrics: Retain full-vocabulary cross-entropy and accuracy as a training-contract audit.
+- Gate: The adapted full-attention readout must have no higher paired mean four-way CE and no lower paired top-1 accuracy than the released causal readout, with both directions supported by paired 95% sequence-bootstrap intervals.
+- Localization: Also compare step-0 full attention against source causal, existing UNK against the added MASK row, and adapted full against adapted causal; plot overall macros and position-binned trajectories.
+- Compute: Use one Lambda A10 rather than GH200, download only the retained 4.28 GB model artifact plus the public source model, and query the five pinned validation datasets remotely without downloading a reference genome.
+- Boundaries: Do not evaluate VEP, update the research knowledge base, upload to Hugging Face, delete a checkpoint, or run nucleotide-dependency analysis.
+- LoRA next step: If the existing checkpoint fails, freeze the released base and test a rank-16 MNTP adapter against this identical paired gate before any VEP evaluation.
+- Canceled LDLR attempt: The earlier Lambda GH200 dependency job was canceled and the cluster torn down after the user requested cheaper compute; it produced no replacement map and did not modify or delete the retained checkpoint.
+- Next action: Commit and push the exact evaluator, dry-run the A10 launch, run the complete locked suite remotely, and inspect the paired figure before specifying the LoRA pilot.
