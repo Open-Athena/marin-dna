@@ -1,7 +1,7 @@
 # How should genomic anchors be selected and projected across species?
 
 > [!NOTE]
-> **TL;DR:** Center-seeded projection is preferred for CDS anchors but not enhancer-centered cCRE anchors. It improved CDS recovery and matched downstream coding results, while it reduced enhancer recovery and distal Mendelian performance. Projection semantics should therefore be selected by genomic region; confidence is moderate because the downstream comparison used one training seed.
+> **TL;DR:** Center-1-bp projection is the default for new multispecies training datasets because it is simpler than full-window projection, increased aggregate species–anchor recovery, and produced broadly similar one-seed development AUPRC trajectories for CDS and enhancer specialists; existing full-window artifacts remain valid historical controls.
 
 ## Question
 
@@ -11,23 +11,23 @@ Projection yield and clade recovery are intermediate measurements; downstream mo
 
 ## Current answer
 
-The full-window projection baseline is operational and well specified, but it is not optimal for every region.
+The full-window projection baseline is operational and well specified.
 It starts from conservation-filtered 255 bp human anchors, projects the full interval, requires all compatible fragments to map to one target chromosome and strand without overlap, takes their outer span, accepts spans from 128 to 512 bp, and resizes around the span midpoint to 255 bp.
 The final target window can therefore contain unaligned flanking sequence.
 
 [Experiment #473](../experiments/473-center-seeded-projection.md) compared that contract with center-1 projection, which projects the central nucleotide, requires a unique target locus, and extracts a fixed 255 bp target-genome window around it.
-On fixed anchors, center-1 increased CDS recovery by 2.679 percentage points but decreased enhancer-centered cCRE recovery by 0.892 points.
-The sampled reverse-trace audit found no general loss of aligned anchor coverage or increase in external flank.
+Across five regions, center-1 recovered 82.28% of requested species–anchor pairs, compared with 79.60% for full-window projection.
+The difference was region-specific: CDS recovery increased by 2.679 percentage points, while enhancer-centered cCRE recovery decreased by 0.892 points.
+The sampled reverse-trace audit found no general increase in external flank.
 
-At matched tokens, CDS center-1 improved final Mendelian AUPRC by 0.249 for missense, 0.237 for splicing, and 0.185 for synonymous variants.
-Its Complex and SGE point estimates were higher for missense and splicing, without paired policy-difference intervals.
-For enhancer-centered cCREs, center-1 reduced distal Mendelian AUPRC by 0.056.
-Distal Complex AUPRC point estimates differed by +0.0015 center-minus-full, compared with official SEs of 0.0084 and 0.0086; no paired policy-difference interval or equivalence test was available.
-Shared-row projection loss favored CDS center-1 at every checkpoint but had no stable enhancer ordering.
+At matched tokens, the corrected one-seed development AUPRC trajectories showed no consistent policy advantage across the region-relevant CDS and enhancer benchmarks.
+All three terminal CDS Mendelian paired intervals included zero.
+The terminal enhancer Mendelian result favored full-window projection by 0.056 with a paired interval excluding zero, but distal Complex-trait AUPRC was nearly identical and no additional seed tested replication.
 
-The current answer is therefore region-specific: use center-1 for CDS and retain full window for enhancer-centered cCREs.
-Projection yield alone remains insufficient, and this result should not be generalized to regions without matched downstream training.
-Confidence is moderate because the projection audit is extensive but the training comparison has one seed.
+Center-1 is the operational default for new projection datasets because its projection contract is simpler, aggregate recovery is higher, and the downstream trajectories are broadly similar.
+This choice does not establish statistical equivalence.
+Existing full-window rules and artifacts remain available for reproducibility and historical comparisons.
+Projection yield alone remains insufficient for future policy decisions, especially in regions without matched downstream training.
 Tiny fragments, duplicated loci, midpoint definition, span thresholds, multiple landmarks, and fragment-selection policies remain open choices for other region classes.
 
 <details>
@@ -81,8 +81,8 @@ Tiny fragments, duplicated loci, midpoint definition, span thresholds, multiple 
   Centering was suggestively better for distal VEP but unequal epoch counts prevented attribution to anchor geometry.
 - [#353](https://github.com/Open-Athena/marin-dna/issues/353) compared human-anchored nucleotide CDS projection with native per-species annotation at vertebrate and animal scales.
   Projection produced useful data but lost distant species and did not dominate every evaluation, directly exposing the recovery-versus-construction tradeoff.
-- [Experiment #473](../experiments/473-center-seeded-projection.md) compared full-window and center-1 projection on fixed anchors with recovery, reverse-trace QC, matched-token training, paired Mendelian uncertainty, Complex, SGE, and shared-row loss.
-  Its one-seed development result supports center-1 for CDS and full window for enhancer-centered cCREs for the tested training recipe.
+- [Experiment #473](../experiments/473-center-seeded-projection.md) compared full-window and center-1 projection on fixed anchors with recovery, reverse-trace QC, matched-token training, paired Mendelian uncertainty, Complex traits, and SGE.
+  Its corrected one-seed development trajectories are broadly similar, supporting center-1 as the simpler default while retaining full-window artifacts as historical controls.
 
 </details>
 
