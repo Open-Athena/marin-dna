@@ -986,3 +986,21 @@ The accepted [bidirectional-models research question](../../docs/research/questi
 - Evidence: Compact files are in `.agents/artifacts/479-mntp-adaptation/gated-lora/`; the W&B evaluation artifact ID is `QXJ0aWZhY3Q6MzM3NDQxOTQ0NQ==`.
 - Boundaries: No VEP, nucleotide dependency, Hugging Face upload, checkpoint deletion, or knowledge-base update occurred.
 - Next step: Preregister and run one zero-training two-causal-pass information gate that combines unchanged forward and reverse-complement causal distributions after fitting one scalar on a disjoint training-plan calibration slice.
+
+### 2026-08-22 09:34 - Frozen two-causal-pass information gate preregistered
+
+- Trigger: The gated full-attention LoRA path preserved the causal source algebraically but failed both the source and right-context gates because full attention added confidence-supported CE harm.
+- Question: Test whether the unchanged source model nevertheless contains complementary right-context information when both directions are expressed through its native causal computation.
+- Model updates: Perform exactly zero parameter or optimizer updates.
+- Left readout: Use the released source causally on the registered `[UNK]`-masked sequence and read nucleotide `i` from output position `i - 1`.
+- Right readout: Reverse-complement the same tokenized body, retain `[UNK]`, map original target index `i` to `254 - i`, run the unchanged source causally, and realign A/C/G/T columns with permutation `[3, 2, 1, 0]`.
+- Off-by-one controls: Require the forward mask at output position plus one, the reverse mask at mapped output position plus one, and bit-exact recovery of the full input after applying the reverse-complement token transform twice.
+- Source control: Require the alpha-zero left readout to match the canonical paired causal evaluator bit-exactly on all 640 validation targets under matched deterministic math SDPA.
+- Calibration split: Use only the first 640 rows of the registered training plan to choose the combiner; the registered 640-row validation plan remains untouched until the final gate.
+- Prior: Estimate one A/C/G/T calibration prior with Jeffreys pseudocount `0.5` per nucleotide.
+- Combiner: Evaluate the fixed grid `alpha = 0, 0.001, ..., 1` for `left_logp + alpha * (right_logp - log_prior)` and select the smallest alpha attaining minimum calibration four-way CE.
+- Validation outputs: Publish left-only, right-only, and calibrated two-pass CE and accuracy, raw directional log probabilities, the calibration curve, paired comparisons, and one figure.
+- Decision gate: Require selected alpha greater than zero, confidence-supported paired CE no higher and accuracy no lower than left causal, and strict 95%-supported improvement in at least one metric.
+- Plan integrity: Require both registered plan hashes and identical sample/target identities across every validation readout.
+- Compute: Use one self-terminating AWS `g5.xlarge` A10G with a one-hour hard timeout at `$1.006/hour`, projecting at most `$40.281873 / $50` from the conservative `$39.275873` cumulative estimate.
+- Boundaries: Perform no VEP, nucleotide dependency, Hugging Face upload, checkpoint deletion, or knowledge-base update in this diagnostic.
