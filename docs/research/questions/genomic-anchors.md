@@ -11,24 +11,16 @@ Projection yield and clade recovery are intermediate measurements; downstream mo
 
 ## Current answer
 
-The full-window projection baseline is operational and well specified.
-It starts from conservation-filtered 255 bp human anchors, projects the full interval, requires all compatible fragments to map to one target chromosome and strand without overlap, takes their outer span, accepts spans from 128 to 512 bp, and resizes around the span midpoint to 255 bp.
-The final target window can therefore contain unaligned flanking sequence.
+Full-window projection is operational and well specified, but it must reconcile compatible fragments, apply a target-span gate, and choose a span midpoint before extracting a fixed target window.
+Center-1 instead projects one central nucleotide to a unique target locus and extracts a fixed window around it.
 
-[Experiment #473](../experiments/473-center-seeded-projection.md) compared that contract with center-1 projection, which projects the central nucleotide, requires a unique target locus, and extracts a fixed 255 bp target-genome window around it.
-Across five regions, center-1 recovered 82.28% of requested species–anchor pairs, compared with 79.60% for full-window projection.
-The difference was region-specific: CDS recovery increased by 2.679 percentage points, while enhancer-centered cCRE recovery decreased by 0.892 points.
-The sampled reverse-trace audit found no general increase in external flank.
+[Experiment #473](../experiments/473-center-seeded-projection.md) found that center-1 increased aggregate species–anchor recovery across five regions without a general increase in sampled external flank.
+Corrected one-seed development AUPRC trajectories showed no consistent policy advantage across the region-relevant CDS and enhancer benchmarks, although one terminal enhancer endpoint favored full-window projection and was not replicated across seeds.
 
-At matched tokens, the corrected one-seed development AUPRC trajectories showed no consistent policy advantage across the region-relevant CDS and enhancer benchmarks.
-All three terminal CDS Mendelian paired intervals included zero.
-The terminal enhancer Mendelian result favored full-window projection by 0.056 with a paired interval excluding zero, but distal Complex-trait AUPRC was nearly identical and no additional seed tested replication.
-
-Center-1 is the operational default for new projection datasets because its projection contract is simpler, aggregate recovery is higher, and the downstream trajectories are broadly similar.
-This choice does not establish statistical equivalence.
-Existing full-window rules and artifacts remain available for reproducibility and historical comparisons.
-Projection yield alone remains insufficient for future policy decisions, especially in regions without matched downstream training.
-Tiny fragments, duplicated loci, midpoint definition, span thresholds, multiple landmarks, and fragment-selection policies remain open choices for other region classes.
+Center-1 is the operational default for new projection datasets because its contract is simpler, aggregate recovery is higher, and the downstream trajectories are broadly similar.
+This choice does not establish statistical equivalence, and existing full-window rules and artifacts remain available for reproducibility and historical comparisons.
+Projection yield remains insufficient for future policy decisions, especially in regions without matched downstream training.
+Multiple landmarks and alternative fragment-selection policies remain open choices for other region classes.
 
 <details>
 <summary>Related work</summary>
