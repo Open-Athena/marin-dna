@@ -1,0 +1,85 @@
+genome_url: https://ftp.ensembl.org/pub/release-115/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna_sm.toplevel.fa.gz
+
+sat_mut_mpra_promoter:
+  - F9
+  - GP1BA
+  - HBB
+  - HBG1
+  - HNF4A
+  - LDLR
+  - MSMB
+  - PKLR
+  - TERT
+
+# PromoterAI benchmark datasets from GitHub
+promoterai_benchmarks:
+  promoterai_gtex_outlier: GTEx_outlier.tsv
+  promoterai_cagi5_saturation: CAGI5_saturation.tsv
+  promoterai_mpra_saturation: MPRA_saturation.tsv
+  promoterai_gtex_eqtl: GTEx_eQTL.tsv
+  promoterai_mpra_eqtl: MPRA_eQTL.tsv
+  promoterai_ukbb_proteome: UKBB_proteome.tsv
+  promoterai_gel_rna: GEL_RNA.tsv
+
+# Combined dataset groups for efficient batch inference
+combined_dataset_groups:
+  promoterai_combined:
+    datasets:
+      - promoterai_gtex_outlier
+      - promoterai_cagi5_saturation
+      - promoterai_mpra_saturation
+      - promoterai_gtex_eqtl
+      - promoterai_mpra_eqtl
+      - promoterai_ukbb_proteome
+      - promoterai_gel_rna
+  sat_mut_mpra_combined:
+    datasets:
+      - sat_mut_mpra_promoter_F9
+      - sat_mut_mpra_promoter_GP1BA
+      - sat_mut_mpra_promoter_HBB
+      - sat_mut_mpra_promoter_HBG1
+      - sat_mut_mpra_promoter_HNF4A
+      - sat_mut_mpra_promoter_LDLR
+      - sat_mut_mpra_promoter_MSMB
+      - sat_mut_mpra_promoter_PKLR
+      - sat_mut_mpra_promoter_TERT
+
+context_size: 512
+per_device_batch_size: 512
+torch_compile: True # consider if overhead is worth it for small datasets and fast models
+
+# first part run for 370k steps, second part run for 130k steps
+models:
+  "10000": results/model/checkpoints_first_part/checkpoint-10000
+  "20000": results/model/checkpoints_first_part/checkpoint-20000
+  "50000": results/model/checkpoints_first_part/checkpoint-50000
+  "100000": results/model/checkpoints_first_part/checkpoint-100000
+  "200000": results/model/checkpoints_first_part/checkpoint-200000
+  "300000": results/model/checkpoints_first_part/checkpoint-300000
+  "400000": results/model/checkpoints_second_part/checkpoint-30000
+  "500000": results/model/checkpoints_second_part/checkpoint-130000
+
+# Dataset evaluation configurations
+# Each dataset specifies which metrics and scoring functions to compute
+dataset_configs:
+  traitgym_mendelian_promoter:
+    metrics: [AUPRC]
+    scorings: [LLR.minus.score, absLLR.plus.score, L2.plus.score]
+
+  traitgym_complex_promoter:
+    metrics: [AUPRC]
+    scorings: [LLR.minus.score, absLLR.plus.score, L2.plus.score]
+
+  gnomad_promoter:
+    metrics: [AUROC]
+    scorings: [LLR.minus.score, absLLR.plus.score, L2.plus.score]
+
+  sat_mut_mpra_promoter:
+    # This applies to all promoter-specific datasets
+    metrics: [Spearman]
+    scorings: [LLR.minus.score, absLLR.plus.score, L2.plus.score]
+
+  promoterai_benchmark:
+    # This applies to all PromoterAI benchmark datasets
+    metrics: [AUPRC]
+    scorings: [LLR.minus.score, absLLR.plus.score, L2.plus.score]

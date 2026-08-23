@@ -1,0 +1,20 @@
+defaults:
+  - default
+
+batch_size: 2048 # Total effective batch size
+per_device_batch_size: 128 # Batch size per device (adjust based on GPU memory)
+num_workers: 8
+
+# Evaluation datasets
+evals:
+  - name: traitgym_mendelian_promoter
+    dataset_name: songlab/TraitGym
+    dataset_config: mendelian_traits
+    split: test # Dataset split to load (default: "test")
+    genome_url: https://ftp.ensembl.org/pub/release-115/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna_sm.toplevel.fa.gz
+    filter_name: traitgym_promoter
+    window_size: 512
+    batch_size: 128
+    label_column: label # Column to preserve as labels (default: "label")
+    transform: minus # Transform to apply to raw LLR: minus, identity, abs (default: identity)
+    metrics: [auprc] # Metrics to compute: auprc, auroc, spearman, pearson (default: [auprc])

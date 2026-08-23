@@ -1,0 +1,44 @@
+# @package _global_
+
+# Experiment: CLM Transformer with Constant Sliding Window Attention
+#
+# This experiment uses constant local sliding window attention (32) for all layers.
+# Unlike alternating global/local, all layers use the same window size.
+#
+# To execute this experiment run:
+# python glm_experiments/train.py experiment=clm_transformer_base_sliding_window_constant
+
+defaults:
+  - override /data: gpn_animal_promoter
+  - override /model: clm_transformer_base
+  - override /trainer: gpn_animal_promoter
+
+logger:
+  wandb:
+    name: experiment-clm-transformer-base-sliding-window-constant
+    tags: ["experiment", "clm", "transformer", "base", "sliding-window", "constant"]
+
+data:
+  _target_: glm_experiments.data.lm_datamodule.CLMDataModule
+  per_device_batch_size: 256
+
+model:
+  net:
+    encoder:
+      # Use constant sliding window attention for all layers
+      sliding_window:
+        _target_: glm_experiments.models.utils.attention_patterns.all_local
+        n_layers: ${..n_layers} # Reference n_layers from encoder (12)
+        window_size: 32 # Constant local attention window size
+
+  scheduler:
+    _target_: transformers.get_cosine_with_min_lr_schedule_with_warmup
+    _partial_: true
+    num_warmup_steps: 2000
+    num_training_steps: ${trainer.max_steps}
+    min_lr_rate: 0.1 # Decay to 10% of max lr
+
+trainer:
+  max_steps: 20000
+  log_every_n_steps: 1000
+  val_check_interval: 1000

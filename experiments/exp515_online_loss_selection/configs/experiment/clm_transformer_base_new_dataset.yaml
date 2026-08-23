@@ -1,0 +1,33 @@
+# @package _global_
+
+# to execute this experiment run:
+# python glm_experiments/train.py experiment=clm_transformer_base_new_dataset
+
+defaults:
+  - override /data: gpn_animal_promoter
+  - override /model: clm_transformer_base
+  - override /trainer: gpn_animal_promoter
+
+logger:
+  wandb:
+    name: experiment-clm-transformer-base-new-dataset
+    tags: ["experiment", "clm", "transformer", "base", "new-dataset"]
+
+data:
+  _target_: glm_experiments.data.lm_datamodule.CLMDataModule
+  dataset_name: data/gonzalobenegas/genomes-v2-genome_set-animals-intervals-v1_512_256
+  per_device_batch_size: 256
+  data_augmentation: false
+
+model:
+  scheduler:
+    _target_: transformers.get_cosine_with_min_lr_schedule_with_warmup
+    _partial_: true
+    num_warmup_steps: 2000
+    num_training_steps: ${trainer.max_steps}
+    min_lr_rate: 0.1 # Decay to 10% of max lr
+
+trainer:
+  max_steps: 20000
+  log_every_n_steps: 1000
+  val_check_interval: 1000

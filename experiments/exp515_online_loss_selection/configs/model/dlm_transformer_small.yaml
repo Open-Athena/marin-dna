@@ -1,0 +1,39 @@
+_target_: glm_experiments.models.lm_lit_module.DLMLitModule
+
+soft_masked_weight: ${data.soft_masked_weight}
+evals: ${data.evals}
+
+net:
+  _target_: glm_experiments.models.components.lm.DLM
+  embedder:
+    _target_: glm_experiments.models.components.transformer.Embedding
+    vocab_size: 7
+    d_model: 128
+  encoder:
+    _target_: glm_experiments.models.components.transformer.Transformer
+    hidden_size: ${..embedder.d_model} # 128
+    n_layers: 6 # Fewer layers for fast iteration
+    num_heads: 8 # 8 heads → d_head = 16
+    # d_ff: auto-computed as floor(128 * 8/3 / 64) * 64 = 320
+    rope_theta: 10000.0
+    is_causal: false # Bidirectional for DLM (like MLM)
+  layer_norm:
+    _target_: torch.nn.RMSNorm # Use RMSNorm to match Transformer
+    normalized_shape: ${..embedder.d_model}
+  decoder:
+    _target_: glm_experiments.models.components.transformer.Linear
+    d_in: ${..embedder.d_model}
+    d_out: ${..embedder.vocab_size}
+
+optimizer:
+  _target_: torch.optim.AdamW
+  _partial_: true
+  lr: 0.001 # CS336 default
+  weight_decay: 0.1 # CS336 default
+  betas: [0.9, 0.98] # CS336 default (beta1, beta2)
+  eps: 1.0e-9 # CS336 default
+
+scheduler:
+  _target_: transformers.get_constant_schedule_with_warmup
+  _partial_: true
+  num_warmup_steps: 100

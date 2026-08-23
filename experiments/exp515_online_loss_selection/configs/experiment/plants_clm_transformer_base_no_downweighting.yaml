@@ -1,0 +1,32 @@
+# @package _global_
+
+# to execute this experiment run:
+# python glm_experiments/train.py experiment=transformer_base
+
+defaults:
+  - override /data: plants
+  - override /model: clm_transformer_base
+  - override /trainer: gpn_animal_promoter
+
+logger:
+  wandb:
+    name: experiment-plants-clm-transformer-base-no-downweighting
+    tags: ["experiment", "plants", "clm", "transformer", "base", "no-downweighting"]
+
+data:
+  _target_: glm_experiments.data.lm_datamodule.CLMDataModule
+  per_device_batch_size: 256
+  soft_masked_weight: 1.0
+
+model:
+  scheduler:
+    _target_: transformers.get_cosine_with_min_lr_schedule_with_warmup
+    _partial_: true
+    num_warmup_steps: 2000
+    num_training_steps: ${trainer.max_steps}
+    min_lr_rate: 0.1 # Decay to 10% of max lr
+
+trainer:
+  max_steps: 20000
+  log_every_n_steps: 1000
+  val_check_interval: 1000

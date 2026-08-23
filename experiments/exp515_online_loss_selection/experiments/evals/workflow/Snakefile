@@ -1,0 +1,98 @@
+configfile: "config/config.yaml"
+
+
+def get_all_datasets():
+    """Get list of all dataset names that have metrics computed (individual benchmarks only)."""
+    datasets = []
+    for dataset in config["dataset_configs"].keys():
+        if dataset == "sat_mut_mpra_promoter":
+            # Expand for each promoter
+            for promoter in config["sat_mut_mpra_promoter"]:
+                datasets.append(f"sat_mut_mpra_promoter_{promoter}")
+        elif dataset == "promoterai_benchmark":
+            # Expand for each PromoterAI benchmark
+            for benchmark in config["promoterai_benchmarks"].keys():
+                datasets.append(benchmark)
+        else:
+            datasets.append(dataset)
+    return datasets
+
+
+def get_all_datasets_including_combined():
+    """Get all datasets including combined groups for intermediate processing."""
+    datasets = get_all_datasets()
+    # Add combined dataset groups
+    for group_name in config.get("combined_dataset_groups", {}).keys():
+        datasets.append(group_name)
+    return datasets
+
+
+def get_all_metric_files():
+    """Generate list of all metric files based on dataset_configs."""
+    files = []
+
+    for dataset, cfg in config["dataset_configs"].items():
+        # Handle sat_mut_mpra_promoter specially - expand for each promoter
+        if dataset == "sat_mut_mpra_promoter":
+            for promoter in config["sat_mut_mpra_promoter"]:
+                dataset_name = f"sat_mut_mpra_promoter_{promoter}"
+                for metric in cfg["metrics"]:
+                    for model in config["models"].keys():
+                        for scoring in cfg["scorings"]:
+                            files.append(
+                                f"results/metrics/{dataset_name}/{metric}/{model}_{scoring}.tsv"
+                            )
+        elif dataset == "promoterai_benchmark":
+            # Handle promoterai_benchmark - expand for each benchmark
+            for benchmark in config["promoterai_benchmarks"].keys():
+                for metric in cfg["metrics"]:
+                    for model in config["models"].keys():
+                        for scoring in cfg["scorings"]:
+                            files.append(
+                                f"results/metrics/{benchmark}/{metric}/{model}_{scoring}.tsv"
+                            )
+        else:
+            # Regular datasets
+            for metric in cfg["metrics"]:
+                for model in config["models"].keys():
+                    for scoring in cfg["scorings"]:
+                        files.append(
+                            f"results/metrics/{dataset}/{metric}/{model}_{scoring}.tsv"
+                        )
+
+    return files
+
+
+def get_all_correlation_files():
+    """Generate list of all correlation analysis output files."""
+    return [
+        "results/correlations/metrics_wide.parquet",
+        "results/correlations/metrics_long.parquet",
+        "results/correlations/pearson.tsv",
+        "results/correlations/spearman.tsv",
+        "results/correlations/pearson_heatmap.png",
+        "results/correlations/pearson_heatmap.pdf",
+        "results/correlations/spearman_heatmap.png",
+        "results/correlations/spearman_heatmap.pdf",
+        "results/correlations/metrics_vs_step.png",
+        "results/correlations/metrics_vs_step.pdf",
+        "results/correlations/metric_pairs.png",
+        "results/correlations/metric_pairs.pdf",
+        "results/correlations/scorings_vs_step.png",
+        "results/correlations/scorings_vs_step.pdf",
+    ]
+
+
+include: "rules/common.smk"
+include: "rules/gnomad.smk"
+include: "rules/metrics.smk"
+include: "rules/model.smk"
+include: "rules/promoterai_benchmarks.smk"
+include: "rules/sat_mut_mpra.smk"
+include: "rules/traitgym.smk"
+
+
+rule all:
+    input:
+        # get_all_metric_files(),
+        get_all_correlation_files(),

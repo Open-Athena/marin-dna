@@ -1,0 +1,2 @@
+step_progress_bar:
+  _target_: glm_experiments.utils.callbacks.StepProgressBar

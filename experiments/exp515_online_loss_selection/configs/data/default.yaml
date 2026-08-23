@@ -1,0 +1,40 @@
+_target_: glm_experiments.data.lm_datamodule.MLMDataModule
+
+# Dataset and tokenizer (override in specific configs)
+dataset_name: data/gpn-animal-promoter-dataset
+tokenizer_name: gonzalobenegas/tokenizer-dna-mlm
+
+# Batch size configuration
+batch_size: 32 # Total effective batch size (for gradient accumulation calculation)
+per_device_batch_size: 32 # Batch size per device (what fits in GPU memory)
+num_workers: 4
+pin_memory: true
+
+# Soft masking for genomic soft-masked regions (lowercase nucleotides)
+soft_masked_weight: 0.01 # Loss weight for soft-masked regions in main training loss
+
+# Data augmentation
+data_augmentation: true # Reverse complement augmentation (training only)
+
+# Validation dataset size (LM only, not TraitGym)
+max_val_lm_samples: null # Maximum number of samples for LM validation (null = unlimited)
+
+# Reproducibility
+seed: 42
+
+# Evaluation datasets (optional)
+# Set evals: null to disable all evals, or configure specific evals in dataset-specific configs
+# Example structure:
+# evals:
+#   - name: eval_name
+#     dataset_name: songlab/TraitGym
+#     dataset_config: mendelian_traits
+#     split: test # Dataset split to load (default: "test")
+#     genome_url: https://ftp.ensembl.org/...
+#     filter_name: traitgym_promoter # Filter from EVAL_FILTERS registry (default: "none")
+#     window_size: 512
+#     batch_size: 128
+#     label_column: label # Column to preserve as labels (default: "label")
+#     transform: minus # Transform to apply to raw LLR: minus, identity, abs (default: identity)
+#     metrics: [auprc] # Metrics to compute: auprc, auroc, spearman, pearson (default: [auprc])
+evals: null

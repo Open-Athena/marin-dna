@@ -1,0 +1,42 @@
+_target_: glm_experiments.models.lm_lit_module.MLMLitModule
+
+soft_masked_weight: ${data.soft_masked_weight}
+evals: ${data.evals}
+
+net:
+  _target_: glm_experiments.models.components.lm.MLM
+  embedder:
+    _target_: torch.nn.Embedding
+    num_embeddings: 7
+    embedding_dim: 1024
+    padding_idx: 0
+  encoder:
+    _target_: glm_experiments.models.components.bytenet.ByteNet
+    hidden_size: ${..embedder.embedding_dim}
+    n_layers: 64
+    slim: true
+    dilation_base: 2
+    dilation_cycle: 8
+    first_kernel_size: 9
+    rest_kernel_size: 5
+    bias: false
+  layer_norm:
+    _target_: torch.nn.LayerNorm
+    normalized_shape: ${..embedder.embedding_dim}
+    bias: false
+  decoder:
+    _target_: torch.nn.Linear
+    in_features: ${..embedder.embedding_dim}
+    out_features: ${..embedder.num_embeddings}
+    bias: false
+
+optimizer:
+  _target_: torch.optim.AdamW
+  _partial_: true
+  lr: 0.001
+  weight_decay: 0.01
+
+scheduler:
+  _target_: transformers.get_constant_schedule_with_warmup
+  _partial_: true
+  num_warmup_steps: 1000

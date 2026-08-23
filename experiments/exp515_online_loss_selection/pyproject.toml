@@ -1,0 +1,104 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "glm-experiments"
+version = "0.0.1"
+description = "gLM experiments"
+readme = "README.md"
+requires-python = ">=3.12,<3.14"
+license = {text = "MIT"}
+authors = [
+    {name = "Gonzalo Benegas", email = "gonzalo.benegas@openathena.ai"},
+]
+keywords = ["pytorch", "lightning", "hydra", "machine-learning"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+dependencies = [
+    "torch==2.11.0",
+    "lightning==2.6.5",
+    "torchmetrics>=0.11.4",
+    "hydra-core>=1.3.0,<2.0.0",
+    "hydra-colorlog>=1.2.0",
+    "hydra-optuna-sweeper>=1.2.0",
+    "rootutils",
+    "rich>=13.0.0",
+    "datasets==5.0.1",
+    "transformers==4.57.6",
+    "biopython>=1.81",
+    "zstandard>=0.18.0",
+    "wandb>=0.24.0,<0.25",
+    "einops>=0.7.0",
+    "einx>=0.3.0",
+    "jaxtyping>=0.2.0",
+    "biofoundation @ git+https://github.com/Open-Athena/biofoundation.git@d3865288bbb4b5ab814df85599381f206e375fe6",
+    "boto3>=1.40,<2",
+    "pyarrow>=25,<26",
+    "pyfaidx>=0.9,<1",
+    "torchdata==0.11.0",
+    "zstandard>=0.23,<1",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4,<9",
+    "ruff>=0.12.11",
+]
+
+[project.scripts]
+train_command = "glm_experiments.train:main"
+eval_command = "glm_experiments.eval:main"
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatchling.build]
+packages = ["src/glm_experiments"]
+
+[tool.uv]
+environments = ["sys_platform == \'linux\'"]
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cu128" }
+
+[tool.pytest.ini_options]
+addopts = [
+  "--color=yes",
+  "--durations=0",
+  "--strict-markers",
+  "--doctest-modules",
+]
+filterwarnings = [
+  "ignore::DeprecationWarning",
+  "ignore::UserWarning",
+]
+log_cli = "True"
+markers = [
+  "slow: slow tests",
+]
+minversion = "6.0"
+testpaths = "tests/"
+pythonpath = ["src"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: nocover",
+    "raise NotImplementedError",
+    "raise NotImplementedError()",
+    "if __name__ == .__main__.:",
+]

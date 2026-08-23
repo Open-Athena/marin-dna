@@ -1,0 +1,13 @@
+# @package _global_
+
+# to execute this experiment run:
+# python glm_experiments/train.py experiment=gpn_animal_promoter
+
+defaults:
+  - override /data: gpn_animal_promoter
+  - override /model: gpn_animal_promoter
+  - override /trainer: gpn_animal_promoter
+
+logger:
+  wandb:
+    name: experiment-gpn-animal-promoter

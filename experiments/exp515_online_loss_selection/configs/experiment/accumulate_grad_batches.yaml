@@ -1,0 +1,31 @@
+# @package _global_
+
+logger:
+  wandb:
+    name: debug-accumulate-grad-batches
+    tags: ["debug", "accumulate-grad-batches"]
+
+trainer:
+  max_steps: 100
+  log_every_n_steps: 10
+  val_check_interval: 10
+  limit_val_batches: 2
+  check_val_every_n_epoch: null
+
+model:
+  net:
+    embedder:
+      embedding_dim: 32
+    encoder:
+      n_layers: 2
+  scheduler:
+    _target_: transformers.get_cosine_schedule_with_warmup
+    _partial_: true
+    num_warmup_steps: 10
+    num_training_steps: ${trainer.max_steps}
+
+data:
+  batch_size: 8
+  per_device_batch_size: 4
+
+compile: false

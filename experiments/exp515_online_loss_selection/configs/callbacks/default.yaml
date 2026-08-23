@@ -1,0 +1,20 @@
+defaults:
+  - model_summary
+  - step_progress_bar
+  - lr_monitor
+  - model_checkpoint
+  - _self_
+
+model_checkpoint:
+  dirpath: ${paths.output_dir}/checkpoints
+  filename: "{step}"
+  monitor: null
+  save_last: false # prefer the explicit step-based checkpointing
+  save_top_k: -1
+  auto_insert_metric_name: false
+  every_n_epochs: 0
+  verbose: true
+  every_n_train_steps: ${trainer.max_steps}
+
+model_summary:
+  max_depth: 1

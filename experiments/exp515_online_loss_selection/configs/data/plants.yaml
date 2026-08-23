@@ -1,0 +1,24 @@
+defaults:
+  - default
+
+# Training dataset: Angiosperm 16 genomes
+dataset_name: data/gonzalobenegas/Angiosperm_16_genomes_sharded
+
+# Batch size configuration
+batch_size: 2048 # Total effective batch size
+per_device_batch_size: 128 # Batch size per device (adjust based on GPU memory)
+num_workers: 8
+
+# Evaluation datasets
+evals:
+  - name: maize_af
+    dataset_name: plantcad/maize-allele-frequency
+    dataset_config: null
+    split: validation
+    genome_url: https://ftp.ensemblgenomes.ebi.ac.uk/pub/plants/release-62/fasta/zea_mays/dna/Zea_mays.Zm-B73-REFERENCE-NAM-5.0.dna_sm.toplevel.fa.gz
+    filter_name: none
+    window_size: 512
+    batch_size: 128
+    label_column: AF # Allele frequency column
+    transform: identity # No transform for regression (default: identity)
+    metrics: [pearson, spearman] # Correlation metrics for regression task

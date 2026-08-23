@@ -1,0 +1,46 @@
+# @package _global_
+
+# Experiment: CLM Transformer with Alternating Global/Local Sliding Window Attention
+#
+# This experiment adds alternating global and local attention to the CLM transformer.
+# Pattern: Global → Local (32) → Global → Local (32) → ...
+# Starting with global attention in layer 0, then alternating with local sliding window.
+#
+# To execute this experiment run:
+# python glm_experiments/train.py experiment=clm_transformer_base_sliding_window
+
+defaults:
+  - override /data: gpn_animal_promoter
+  - override /model: clm_transformer_base
+  - override /trainer: gpn_animal_promoter
+
+logger:
+  wandb:
+    name: experiment-clm-transformer-base-sliding-window
+    tags: ["experiment", "clm", "transformer", "base", "sliding-window"]
+
+data:
+  _target_: glm_experiments.data.lm_datamodule.CLMDataModule
+  per_device_batch_size: 256
+
+model:
+  net:
+    encoder:
+      # Add sliding window attention with alternating global/local pattern
+      sliding_window:
+        _target_: glm_experiments.models.utils.attention_patterns.alternating_global_local
+        n_layers: ${..n_layers} # Reference n_layers from encoder (12)
+        window_size: 32 # Local attention window size
+        start_with_global: true # First layer is global
+
+  scheduler:
+    _target_: transformers.get_cosine_with_min_lr_schedule_with_warmup
+    _partial_: true
+    num_warmup_steps: 2000
+    num_training_steps: ${trainer.max_steps}
+    min_lr_rate: 0.1 # Decay to 10% of max lr
+
+trainer:
+  max_steps: 20000
+  log_every_n_steps: 1000
+  val_check_interval: 1000

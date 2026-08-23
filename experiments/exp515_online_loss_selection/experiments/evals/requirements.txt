@@ -1,0 +1,6 @@
+biofoundation[gpn] @ git+https://github.com/Open-Athena/biofoundation.git
+huggingface_hub
+pandas
+seaborn
+snakemake
+torch
