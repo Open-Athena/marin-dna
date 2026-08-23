@@ -10,7 +10,11 @@ Treat research documents on `main` as MarinDNA's current accepted knowledge:
 - `docs/research/questions/` synthesizes the current answer across internal experiments and external work.
 - `docs/research/experiments/` records the accepted interpretation of a stable empirical investigation.
 
-Keep chronology, progress, commands, superseded paths, and dense results in experiment issues, comments, logbooks, research branches, W&B, and source ledgers.
+Treat the knowledge base as a concise synthesis layer; issues and artifacts own the detailed record.
+Include a statement only when it changes the accepted answer, supplies evidence needed to evaluate a claim, defines its scope, records material uncertainty, or identifies a promising direction.
+Prefer rewriting and consolidating existing prose over appending new summaries.
+Avoid repeating supporting details across TL;DRs, findings, evidence, related entries, and question pages; link to the canonical record instead.
+Keep chronology, progress, commands, superseded paths, run-by-run results, operational details, exhaustive metrics, and caveats that do not change interpretation or scope in experiment issues, comments, logbooks, research branches, W&B, and source ledgers.
 Rewrite knowledge-base pages when understanding changes; Git history preserves earlier accepted versions.
 
 ## Respect Human Decisions
@@ -122,6 +126,7 @@ Use this structure:
 Write the page as current knowledge, not as a chronology or an exhaustive report.
 Do not add the original question, status, progress, iteration history, decision logs, operational failures, or a chronological next-action list.
 Include enough quantitative evidence and setup to review the findings.
+Use the smallest set of results and methodological details that makes the accepted interpretation reviewable; link the canonical issue for the full result matrix and minor details.
 Treat inferential scope as part of the findings and limitations.
 Use progressive disclosure: lead with the TL;DR and findings, then provide the evidence needed to inspect them, followed by limitations, related questions, and the research record.
 Place each figure at the point in the evidence where it supports the narrative.
