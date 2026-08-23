@@ -1,4 +1,4 @@
-"""mRNA-TSS proximity band for the v2 subset of the zoonomia projection dataset."""
+"""mRNA-TSS proximity bands for projected vertebrate anchors."""
 
 from pathlib import Path
 

@@ -1,4 +1,4 @@
-"""Per-anchor region-type annotation for the zoonomia projection dataset.
+"""Per-anchor region-type annotation for the vertebrate projection dataset.
 
 Labels every conservation-filtered human anchor (255 bp) with exactly one of:
 
