@@ -140,9 +140,6 @@ The grouping used no region or conservation labels.
 Rows report validation-region composition within each trajectory group and sum to 100% before rounding.
 Trajectory curve intervals used 2,000 bootstrap replicates over region-specific 10 Mb genomic blocks with seed 489.
 
-The pilot, full GPU sweep, and CPU analysis cost an estimated $1.79 in SkyPilot: $0.51 for the pilot, $1.07 for full scoring, and $0.21 for analysis.
-The complete reducer ran in 3m34s with 5.46 GiB maximum resident memory on an AWS r7i.2xlarge.
-
 ## Limitations
 
 - The first observed checkpoint is already at 21.0B tokens.
@@ -152,9 +149,7 @@ The complete reducer ran in 3m34s with 5.46 GiB maximum resident memory on an AW
 - Validation casing defines the conservation label and is an incomplete proxy for function.
   Lineage-specific, weakly conserved, or unaligned functional sequence can be labeled negative.
 - Global conservation prevalence and AUPRC pool the 241-way phyloP >= 2.27 and Zoonomia 447-mammal phyloP >= 2.2162 definitions.
-  The global values are mixed-definition aggregates, so region-specific values are the appropriate basis for comparisons that depend on a consistent target.
-- Exact training-corpus exposure and homology density were unavailable.
-  Memorization or phylogenetic redundancy may explain part of the association.
+  The cutoffs are quantile-matched, but the tracks use different alignments, so region-specific values are the appropriate basis for consistent-target comparisons.
 - ncRNA and enhancer use the blog's clean Zoonomia validation recipes on the canonical Ensembl release 115 GRCh38 reference, while CDS, upstream, and downstream use validation-matched RefSeq `GCF_000001405.40` probes.
   The region comparison is not a matched causal contrast.
 - The trajectory groups use fitted loss endpoints relative to global means and are descriptive.
@@ -171,4 +166,3 @@ The complete reducer ran in 3m34s with 5.46 GiB maximum resident memory on an AW
 ## Research record
 
 - [Experiment issue #489](https://github.com/Open-Athena/marin-dna/issues/489)
-- [Commit-pinned artifacts and producing scripts](https://github.com/Open-Athena/marin-dna/tree/e1ed10b368918146fec8b720940ec8db259879c0/.agents/artifacts/issue-489-likelihood-dynamics)
