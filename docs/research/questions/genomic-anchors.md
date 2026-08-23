@@ -1,7 +1,7 @@
 # How should genomic anchors be selected and projected across species?
 
 > [!NOTE]
-> **TL;DR:** Center-1-bp projection is the default for new multispecies training datasets because it is simpler than full-window projection, increased aggregate species–anchor recovery, and produced broadly similar one-seed development AUPRC trajectories for CDS and enhancer specialists; existing full-window artifacts remain valid historical controls.
+> **TL;DR:** Center-1-bp projection is the default for new multispecies training datasets after higher recovery and broadly similar one-seed development AUPRC trajectories; anchor selection remains open because experiment #473 held anchors fixed.
 
 ## Question
 
@@ -16,6 +16,7 @@ Center-1 instead projects one central nucleotide to a unique target locus and ex
 
 [Experiment #473](../experiments/473-center-seeded-projection.md) found that center-1 increased aggregate species–anchor recovery across five regions without a general increase in sampled external flank.
 Corrected one-seed development AUPRC trajectories showed no consistent policy advantage across the region-relevant CDS and enhancer benchmarks, although one terminal enhancer endpoint favored full-window projection and was not replicated across seeds.
+The experiment held anchors fixed, so it does not resolve anchor-selection policy.
 
 Center-1 is the operational default for new projection datasets because its contract is simpler, aggregate recovery is higher, and the downstream trajectories are broadly similar.
 This choice does not establish statistical equivalence, and existing full-window rules and artifacts remain available for reproducibility and historical comparisons.
@@ -68,7 +69,6 @@ Multiple landmarks and alternative fragment-selection policies remain open choic
 <details>
 <summary>Possible directions</summary>
 
-- For regions beyond CDS and enhancer-centered cCREs, which projection semantics best balance species recovery with confidence that the extracted target window is homologous to the human anchor: full-window projection, center-seeded projection, multiple projected landmarks, or fragment/locus-based alternatives?
 - Within full-window projection, should tiny fragments be removed before locus checks, should one fragment be selected as canonical, or should all compatible fragments define the target span?
   How should same-chromosome/strand requirements, span-length cutoffs, midpoint choice, and permitted unaligned flank vary?
 - How do phyloP and GPN-Star inclusion criteria, the evolutionary timescale of the score, the base-level cutoff, and the required within-window selected fraction change genome-wide anchor composition and the percentage of primates, mammals, and vertebrates recovered?

@@ -75,7 +75,6 @@ The Complex-trait distal difference was +0.0015 for center-1, and no additional 
 - The arms were matched on presented sequences and tokens, not effective epochs, because the policies produced different row counts.
 - Recovery and sampled external-flank measurements do not establish locus-level homology.
 - CDS and enhancer-centered cCREs have matched downstream training comparisons; three other regions have projection QC only.
-- Held-out even-autosome and chromosome-Y VEP data remain untouched, so the interpretation is development-only.
 
 ## Related questions
 
