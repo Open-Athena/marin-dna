@@ -4,10 +4,6 @@ from pathlib import Path
 
 import polars as pl
 
-from marin_dna_vertebrate_projection.projection.requests import (
-    PRE_RESIZE_MAX_LENGTH,
-    PRE_RESIZE_MIN_LENGTH,
-)
 from marin_dna_vertebrate_projection.manifest import (
     read_species_manifest,
 )
@@ -26,6 +22,7 @@ from marin_dna_vertebrate_projection.sequence_sources import (
 )
 
 PIPELINE_VERSION = str(config["pipeline_version"])
+HF_REPO_PREFIX = f"vertebrate-{PIPELINE_VERSION}"
 TIER = str(config["tier"])
 assert TIER in {"smoke", "full"}
 PIPELINE_COMMIT = resolve_pipeline_commit()
@@ -36,11 +33,7 @@ RESULTS = (
 PRODUCER_MANIFEST = f"{RESULTS}/metadata/producer.json"
 
 WINDOW_SIZE = int(config["window_size"])
-TARGET_LENGTH = int(config["target_length"])
-PRE_RESIZE_MIN = PRE_RESIZE_MIN_LENGTH
-PRE_RESIZE_MAX = PRE_RESIZE_MAX_LENGTH
-assert WINDOW_SIZE == TARGET_LENGTH == 255
-assert (PRE_RESIZE_MIN, PRE_RESIZE_MAX) == (1, 2)
+assert WINDOW_SIZE == 255
 
 SPECIES_CANDIDATES = str(config["species_candidates"])
 SPECIES_SELECTED = str(config["species_selected"])

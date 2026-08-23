@@ -10,6 +10,7 @@ import polars as pl
 import pyarrow as pa
 import pyarrow.parquet as pq
 
+from marin_dna_vertebrate_projection.contract import TARGET_LENGTH
 from marin_dna_vertebrate_projection.maf import (
     FRAGMENT_SCHEMA,
     iter_projected_anchor_fragments,
@@ -21,11 +22,8 @@ from marin_dna_vertebrate_projection.projection.requests import (
 )
 
 
-def read_projection_requests(
-    path: str | Path, *, target_length: int = 255
-) -> pl.DataFrame:
+def read_projection_requests(path: str | Path) -> pl.DataFrame:
     """Read center-1 requests and validate both coordinate roles."""
-    assert target_length == 255
     request_path = Path(path)
     frame = (
         pl.read_parquet(request_path)
@@ -37,7 +35,7 @@ def read_projection_requests(
     assert frame["query_name"].n_unique() == frame.height
     assert frame["source_chrom"].str.starts_with("chr").all()
     assert (frame["source_start"] >= 0).all()
-    assert (frame["source_end"] - frame["source_start"] == target_length).all()
+    assert (frame["source_end"] - frame["source_start"] == TARGET_LENGTH).all()
     assert frame["projection_policy"].n_unique() == 1
     assert frame["projection_policy"].unique().to_list() == ["center_1"]
     assert frame["landmark_width"].unique().to_list() == [1]

@@ -36,12 +36,11 @@ def _fixture(tmp_path: Path) -> tuple[Path, Path, Path]:
     config_path.write_text(
         "region_cohorts: [all]\n"
         "hf_owner: marin-dna\n"
-        "hf_repo_prefix: vertebrate-v2\n"
+        "pipeline_version: v2\n"
         "publication_train_shards: 2\n"
         "publication_smoke_train_shards: 1\n"
         "publication_validation_shards: 1\n"
         "validation_chrom: chr18\n"
-        "target_length: 255\n"
     )
     train = _frame("chr1", 5)
     validation = _frame("chr18", 2)

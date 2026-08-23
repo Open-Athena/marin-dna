@@ -12,7 +12,7 @@ configs:
     path: data/validation/*.jsonl.zst
 ---
 
-# `marin-dna/vertebrate-v2-<region>`
+# `marin-dna/vertebrate-<pipeline_version>-<region>`
 
 Review status: **draft; do not upload until generated values are checked**.
 

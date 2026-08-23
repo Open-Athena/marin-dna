@@ -17,6 +17,7 @@ from marin_dna_vertebrate_projection.adapters import (
 from marin_dna_vertebrate_projection.contract import (
     ACCEPTED_SCHEMA,
     REJECTION_SCHEMA,
+    TARGET_LENGTH,
     apply_projection_contract,
 )
 from marin_dna_vertebrate_projection.inspection import (
@@ -90,7 +91,7 @@ def write_filtered_anchor_bed(
         compressed_path.replace(output)
 
 
-def read_anchor_catalog(path: str | Path, *, target_length: int = 255) -> pl.DataFrame:
+def read_anchor_catalog(path: str | Path) -> pl.DataFrame:
     """Read a TSV/Parquet anchor catalog and assert 0-based half-open invariants."""
     anchor_path = Path(path)
     frame = (
@@ -110,7 +111,7 @@ def read_anchor_catalog(path: str | Path, *, target_length: int = 255) -> pl.Dat
     assert frame["query_name"].n_unique() == frame.height
     assert frame["source_chrom"].str.starts_with("chr").all()
     assert (frame["source_start"] >= 0).all()
-    assert (frame["source_end"] - frame["source_start"] == target_length).all()
+    assert (frame["source_end"] - frame["source_start"] == TARGET_LENGTH).all()
     return frame.select(sorted(required)).sort(
         "source_chrom", "source_start", "query_name"
     )
@@ -131,22 +132,13 @@ def write_contract_outputs(
     fragments_path: str | Path,
     accepted_path: str | Path,
     rejected_path: str | Path,
-    *,
-    target_length: int,
-    pre_resize_min_length: int,
-    pre_resize_max_length: int,
 ) -> None:
-    """Apply the vectorized/fragmented contract in one read of the Parquet."""
+    """Apply the center-projection contract in one read of the Parquet."""
     schema = pl.read_parquet_schema(fragments_path)
     missing = set(FRAGMENT_SCHEMA) - set(schema)
     assert not missing, f"projection fragments missing columns: {sorted(missing)}"
     fragments = pl.read_parquet(fragments_path)
-    result = apply_projection_contract(
-        fragments,
-        target_length=target_length,
-        pre_resize_min_length=pre_resize_min_length,
-        pre_resize_max_length=pre_resize_max_length,
-    )
+    result = apply_projection_contract(fragments)
 
     accepted_output = Path(accepted_path)
     rejected_output = Path(rejected_path)
@@ -161,10 +153,6 @@ def write_contract_outputs_for_alignment(
     alignment_name: str,
     accepted_path: str | Path,
     rejected_path: str | Path,
-    *,
-    target_length: int,
-    pre_resize_min_length: int,
-    pre_resize_max_length: int,
 ) -> None:
     """Apply the shared contract to one species from clustered MAF fragments."""
     fragments = (
@@ -172,12 +160,7 @@ def write_contract_outputs_for_alignment(
         .filter(pl.col("alignment_name") == alignment_name)
         .collect(engine="streaming")
     )
-    result = apply_projection_contract(
-        fragments,
-        target_length=target_length,
-        pre_resize_min_length=pre_resize_min_length,
-        pre_resize_max_length=pre_resize_max_length,
-    )
+    result = apply_projection_contract(fragments)
     Path(accepted_path).parent.mkdir(parents=True, exist_ok=True)
     Path(rejected_path).parent.mkdir(parents=True, exist_ok=True)
     result.accepted.write_parquet(accepted_path)
@@ -201,8 +184,6 @@ def write_twobit_sequences(
     two_bit_path: str | Path,
     sequence_path: str | Path,
     rejected_path: str | Path,
-    *,
-    target_length: int = 255,
 ) -> None:
     """Extract one genome's accepted rows in a single compiled twoBitToFa call."""
     accepted = Path(accepted_path)
@@ -247,7 +228,7 @@ def write_twobit_sequences(
             accepted,
             sequences,
             sequence_output,
-            target_len=target_length,
+            target_len=TARGET_LENGTH,
         )
         assert written == row_count
 
@@ -262,10 +243,8 @@ def write_human_reference_sequences(
     two_bit_path: str | Path,
     chrom_sizes_path: str | Path,
     output_path: str | Path,
-    *,
-    target_length: int = 255,
 ) -> None:
-    anchors = read_anchor_catalog(anchors_path, target_length=target_length)
+    anchors = read_anchor_catalog(anchors_path)
     sizes = pl.read_csv(
         chrom_sizes_path,
         separator="\t",
@@ -292,7 +271,7 @@ def write_human_reference_sequences(
             pl.col("source_start").alias("pre_resize_t_start"),
             pl.col("source_end").alias("pre_resize_t_end"),
             pl.lit(1, dtype=pl.Int64).alias("fragment_count"),
-            pl.lit(target_length, dtype=pl.Int64).alias("aligned_bases"),
+            pl.lit(TARGET_LENGTH, dtype=pl.Int64).alias("aligned_bases"),
         )
         .select(ACCEPTED_SCHEMA.names())
         .cast(ACCEPTED_SCHEMA)
@@ -312,7 +291,6 @@ def write_human_reference_sequences(
             two_bit_path,
             output,
             rejected_path,
-            target_length=target_length,
         )
         assert pl.read_parquet(rejected_path).is_empty()
 

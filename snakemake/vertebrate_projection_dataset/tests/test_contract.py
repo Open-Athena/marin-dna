@@ -4,12 +4,7 @@ from pathlib import Path
 
 import polars as pl
 import pytest
-from marin_dna_vertebrate_projection.contract import (
-    _apply_projection_contract_reference,
-    apply_projection_contract,
-    extract_oriented_sequences,
-    reverse_complement_preserving_case,
-)
+from marin_dna_vertebrate_projection.contract import apply_projection_contract
 from marin_dna_vertebrate_projection.maf import FRAGMENT_SCHEMA
 from marin_dna_vertebrate_projection.pipeline_io import (
     write_contract_outputs,
@@ -21,10 +16,10 @@ def _fragment(**updates: object) -> dict[str, object]:
         "query_name": "a1",
         "source_chrom": "chr1",
         "source_start": 100,
-        "source_end": 104,
+        "source_end": 355,
         "region_label": "cds",
-        "source_fragment_start": 100,
-        "source_fragment_end": 104,
+        "source_fragment_start": 227,
+        "source_fragment_end": 228,
         "species": "Gallus gallus",
         "alignment_name": "galGal4",
         "assembly": "Gallus_gallus-4.0",
@@ -35,12 +30,12 @@ def _fragment(**updates: object) -> dict[str, object]:
         "alignment_source": "ucsc_multiz100way",
         "t_chrom": "chr2",
         "t_start": 200,
-        "t_end": 204,
+        "t_end": 201,
         "t_strand": "+",
         "t_src_size": 1000,
         "mapping_id": "m1",
         "fragment_id": "f1",
-        "aligned_bases": 4,
+        "aligned_bases": 1,
     }
     row.update(updates)
     return row
@@ -63,18 +58,16 @@ def test_contract_rejects_conflicting_or_invalid_fragments(
 ) -> None:
     second_updates: dict[str, object] = {
         "fragment_id": "f2",
-        "source_fragment_start": 102,
-        "source_fragment_end": 104,
-        "t_start": 202,
+        "source_fragment_start": 228,
+        "source_fragment_end": 229,
+        "t_start": 201,
+        "t_end": 202,
     }
     second_updates.update(updates)
     second = _fragment(**second_updates)
-    first = _fragment(source_fragment_end=102, t_end=202)
+    first = _fragment()
     result = apply_projection_contract(
         _frame(first, second),
-        target_length=4,
-        pre_resize_min_length=1,
-        pre_resize_max_length=10,
     )
     assert result.accepted.is_empty()
     assert result.rejected["rejection_reason"].to_list() == [reason]
@@ -83,28 +76,24 @@ def test_contract_rejects_conflicting_or_invalid_fragments(
 def test_contract_rejects_overlapping_source_as_duplicate() -> None:
     result = apply_projection_contract(
         _frame(
-            _fragment(source_fragment_end=103, t_end=203),
+            _fragment(source_fragment_end=229),
             _fragment(
                 fragment_id="f2",
-                source_fragment_start=102,
-                t_start=203,
+                source_fragment_start=228,
+                source_fragment_end=230,
+                t_start=201,
+                t_end=202,
             ),
         ),
-        target_length=4,
-        pre_resize_min_length=1,
-        pre_resize_max_length=10,
     )
     assert result.rejected["rejection_reason"].to_list() == ["duplicated_mapping"]
 
 
 def test_contract_rejects_pre_resize_length_outside_bounds() -> None:
     result = apply_projection_contract(
-        _frame(_fragment(t_end=220)),
-        target_length=4,
-        pre_resize_min_length=2,
-        pre_resize_max_length=10,
+        _frame(_fragment(t_end=203)),
     )
-    assert result.rejected["rejection_reason"].to_list() == ["span_too_long"]
+    assert result.rejected["rejection_reason"].to_list() == ["invalid_projected_span"]
 
 
 @pytest.mark.parametrize(("start", "end"), [(0, 1), (999, 1_000)])
@@ -113,38 +102,29 @@ def test_contract_rejects_target_locus_without_centering_flank(
 ) -> None:
     fragments = _frame(_fragment(t_start=start, t_end=end, aligned_bases=end - start))
 
-    for contract in [apply_projection_contract, _apply_projection_contract_reference]:
-        result = contract(
-            fragments,
-            target_length=4,
-            pre_resize_min_length=1,
-            pre_resize_max_length=10,
-        )
-        assert result.accepted.is_empty()
-        assert result.rejected["rejection_reason"].to_list() == [
-            "target_window_out_of_bounds"
-        ]
+    result = apply_projection_contract(fragments)
+    assert result.accepted.is_empty()
+    assert result.rejected["rejection_reason"].to_list() == [
+        "target_window_out_of_bounds"
+    ]
 
 
-def test_vectorized_writer_matches_reference_contract(tmp_path: Path) -> None:
+def test_writer_matches_contract(tmp_path: Path) -> None:
     fragments = _frame(
-        _fragment(query_name="a3", t_start=300, t_end=304),
-        _fragment(query_name="a2", source_fragment_end=102, t_end=202),
+        _fragment(query_name="a3", t_start=300, t_end=301),
+        _fragment(query_name="a2"),
         _fragment(query_name="a1"),
         _fragment(
             query_name="a2",
             fragment_id="f2",
-            source_fragment_start=102,
+            source_fragment_start=228,
+            source_fragment_end=229,
             t_chrom="chr3",
-            t_start=202,
+            t_start=201,
+            t_end=202,
         ),
     )
-    expected = _apply_projection_contract_reference(
-        fragments,
-        target_length=4,
-        pre_resize_min_length=1,
-        pre_resize_max_length=10,
-    )
+    expected = apply_projection_contract(fragments)
     fragments_path = tmp_path / "fragments.parquet"
     accepted_path = tmp_path / "accepted.parquet"
     rejected_path = tmp_path / "rejected.parquet"
@@ -154,48 +134,7 @@ def test_vectorized_writer_matches_reference_contract(tmp_path: Path) -> None:
         fragments_path,
         accepted_path,
         rejected_path,
-        target_length=4,
-        pre_resize_min_length=1,
-        pre_resize_max_length=10,
     )
 
     assert pl.read_parquet(accepted_path).equals(expected.accepted)
     assert pl.read_parquet(rejected_path).equals(expected.rejected)
-
-
-def test_sequence_orientation_preserves_source_case_and_ignores_conservation() -> None:
-    contract = apply_projection_contract(
-        _frame(_fragment(t_strand="-")),
-        target_length=4,
-        pre_resize_min_length=1,
-        pre_resize_max_length=10,
-    )
-    low_score = contract.accepted.with_columns(pl.lit(-100.0).alias("conservation"))
-    high_score = contract.accepted.with_columns(pl.lit(100.0).alias("conservation"))
-
-    def fetcher(_assembly: str, _chrom: str, _start: int, _end: int) -> str:
-        return "aCgT"
-
-    low = extract_oriented_sequences(low_score, fetcher, target_length=4).accepted
-    high = extract_oriented_sequences(high_score, fetcher, target_length=4).accepted
-    assert low["sequence"].to_list() == ["AcGt"]
-    assert high["sequence"].to_list() == ["AcGt"]
-    assert reverse_complement_preserving_case("aCgT") == "AcGt"
-
-
-def test_sequence_extraction_rejects_short_fetch() -> None:
-    contract = apply_projection_contract(
-        _frame(_fragment()),
-        target_length=4,
-        pre_resize_min_length=1,
-        pre_resize_max_length=10,
-    )
-    result = extract_oriented_sequences(
-        contract.accepted,
-        lambda _assembly, _chrom, _start, _end: "ACG",
-        target_length=4,
-    )
-    assert result.accepted.is_empty()
-    assert result.rejected["rejection_reason"].to_list() == [
-        "insufficient_target_sequence"
-    ]

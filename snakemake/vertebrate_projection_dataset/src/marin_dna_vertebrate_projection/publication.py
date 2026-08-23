@@ -17,6 +17,8 @@ from huggingface_hub import HfApi, hf_hub_download
 from huggingface_hub.errors import RepositoryNotFoundError
 from huggingface_hub.hf_api import DatasetInfo
 
+from marin_dna_vertebrate_projection.contract import TARGET_LENGTH
+
 
 @dataclass(frozen=True)
 class ShardResult:
@@ -36,12 +38,11 @@ def _validate_record(
     expected_columns: frozenset[str],
     split: str,
     validation_chrom: str,
-    target_length: int,
 ) -> None:
     record = json.loads(raw)
     assert set(record) == expected_columns
     assert isinstance(record["sequence"], str)
-    assert len(record["sequence"]) == target_length
+    assert len(record["sequence"]) == TARGET_LENGTH
     assert record["augmentation"] in {"+", "-"}
     if split == "train":
         assert record["source_chrom"] != validation_chrom
@@ -51,9 +52,9 @@ def _validate_record(
 
 
 def _validate_shard(
-    task: tuple[Path, str, str, int, frozenset[str], str, int],
+    task: tuple[Path, str, str, int, frozenset[str], str],
 ) -> ShardResult:
-    path, cohort, split, index, columns, validation_chrom, target_length = task
+    path, cohort, split, index, columns, validation_chrom = task
     digest = hashlib.sha256()
     decompressor = zstd.ZstdDecompressor().decompressobj()
     first_line: bytes | None = None
@@ -89,7 +90,6 @@ def _validate_shard(
             expected_columns=columns,
             split=split,
             validation_chrom=validation_chrom,
-            target_length=target_length,
         )
     return ShardResult(
         cohort=cohort,
@@ -120,7 +120,7 @@ def validate_artifacts(
     assert len(pipeline_commit) == 40 and workers > 0
     assert len(config_sha256) == 64
     config = yaml.safe_load(Path(config_path).read_text())
-    repo_prefix = f"{config['hf_owner']}/{config['hf_repo_prefix']}"
+    repo_prefix = f"{config['hf_owner']}/vertebrate-{config['pipeline_version']}"
     assert tier in {None, "smoke", "full"}
     cohorts = (
         ["all", "cds", "ccre_non_promoter", "background"]
@@ -136,12 +136,11 @@ def validate_artifacts(
     )
     validation_shards = int(config["publication_validation_shards"])
     validation_chrom = str(config["validation_chrom"])
-    target_length = int(config["target_length"])
     assert len(cohorts) == len(set(cohorts))
     assert train_shards > 0 and validation_shards > 0
 
     expected_files: set[Path] = set()
-    tasks: list[tuple[Path, str, str, int, frozenset[str], str, int]] = []
+    tasks: list[tuple[Path, str, str, int, frozenset[str], str]] = []
     cohort_metadata: dict[str, dict[str, object]] = {}
     forbidden_card_text = [
         "bolinas-dna",
@@ -201,7 +200,6 @@ def validate_artifacts(
                         index,
                         columns,
                         validation_chrom,
-                        target_length,
                     )
                 )
 
@@ -250,7 +248,7 @@ def validate_artifacts(
         "config_sha256": config_sha256,
         "artifact_format": "JSONL.zst",
         "validation_chrom": validation_chrom,
-        "target_length": target_length,
+        "target_length": TARGET_LENGTH,
         "cohorts": manifest_cohorts,
     }
     output = Path(output_path)

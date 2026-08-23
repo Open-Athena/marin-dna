@@ -5,7 +5,6 @@ window_size: 255
 step_size: 128
 phyloP_447m_threshold: 2.2162
 min_proportion_conserved: 0.20
-target_length: 255
 
 ensembl_release: 115
 ccre_url: https://downloads.wenglab.org/Registry-V4/GRCh38-cCREs.bed
@@ -45,7 +44,6 @@ region_cohorts:
    ccre_non_promoter, background]
 
 hf_owner: marin-dna
-hf_repo_prefix: vertebrate-v2
 hf_upload_workers: 1
 
 # v4 region labeling from issue #227, pinned independently here.

@@ -3,9 +3,6 @@ from __future__ import annotations
 from pathlib import Path
 
 import polars as pl
-from marin_dna_vertebrate_projection.contract import (
-    apply_projection_contract,
-)
 from marin_dna_vertebrate_projection.maf import (
     MafSequence,
     iter_maf_blocks,
@@ -55,17 +52,8 @@ def test_maf_gap_and_reverse_strand_projection(tmp_path: Path) -> None:
     frog = fragments.filter(pl.col("alignment_name") == "xenTro7")
     assert frog.select("t_start", "t_end", "t_strand").row(0) == (890, 900, "-")
 
-    result = apply_projection_contract(
-        fragments,
-        target_length=8,
-        pre_resize_min_length=1,
-        pre_resize_max_length=20,
-    )
-    assert result.accepted.height == 2
-    assert result.rejected.is_empty()
 
-
-def test_anchor_split_across_maf_blocks_is_accepted(tmp_path: Path) -> None:
+def test_anchor_split_across_maf_blocks_is_parsed(tmp_path: Path) -> None:
     maf = tmp_path / "fragmented.maf"
     maf.write_text(
         "##maf version=1\n\n"
@@ -79,11 +67,3 @@ def test_anchor_split_across_maf_blocks_is_accepted(tmp_path: Path) -> None:
     fragments = project_anchors_from_maf(maf, _anchors(), species_manifest())
     chicken = fragments.filter(pl.col("alignment_name") == "galGal4")
     assert chicken.height == 2
-    result = apply_projection_contract(
-        chicken,
-        target_length=10,
-        pre_resize_min_length=1,
-        pre_resize_max_length=20,
-    )
-    assert result.accepted.height == 1
-    assert result.accepted.select("t_start", "t_end").row(0) == (200, 210)

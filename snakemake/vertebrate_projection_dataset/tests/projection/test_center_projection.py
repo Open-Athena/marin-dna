@@ -87,9 +87,6 @@ def test_center_one_maf_projection_retains_anchor_and_resizes_target(
 
     result = apply_projection_contract(
         fragments,
-        target_length=255,
-        pre_resize_min_length=1,
-        pre_resize_max_length=2,
     )
     assert result.accepted.height == 2
     assert (
@@ -141,9 +138,6 @@ def test_streaming_maf_and_contract_writers_use_policy_landmark(
         "galGal4",
         accepted_path,
         rejected_path,
-        target_length=255,
-        pre_resize_min_length=1,
-        pre_resize_max_length=2,
     )
     assert pl.read_parquet(accepted_path).height == 1
     assert pl.read_parquet(rejected_path).is_empty()

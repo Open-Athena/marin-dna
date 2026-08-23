@@ -2,14 +2,8 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
-
 import polars as pl
 
-from marin_dna_vertebrate_projection.contract import (
-    ACCEPTED_SCHEMA,
-    SequenceFetcher,
-)
 from marin_dna_vertebrate_projection.maf import FRAGMENT_SCHEMA
 from marin_dna_vertebrate_projection.manifest import (
     validate_species_manifest,
@@ -107,71 +101,3 @@ def hal_records_to_fragments(
         (pl.col("t_end") - pl.col("t_start")).alias("aligned_bases"),
     )
     return result.cast(FRAGMENT_SCHEMA).sort("query_name", "species", "fragment_id")
-
-
-def build_human_reference_rows(
-    anchors: pl.DataFrame,
-    chromosome_sizes: Mapping[str, int],
-    fetch_sequence: SequenceFetcher,
-    *,
-    assembly: str = "hg38",
-    taxonomy_id: int = 9606,
-    target_length: int = 255,
-) -> pl.DataFrame:
-    """Build one source-orientation human reference row per anchor."""
-    required = {
-        "query_name",
-        "source_chrom",
-        "source_start",
-        "source_end",
-        "region_label",
-    }
-    missing = required - set(anchors.columns)
-    assert not missing, f"anchors missing columns: {sorted(missing)}"
-    assert anchors["query_name"].n_unique() == anchors.height
-
-    rows: list[dict[str, object]] = []
-    for anchor in anchors.to_dicts():
-        chrom = str(anchor["source_chrom"])
-        start = int(anchor["source_start"])
-        end = int(anchor["source_end"])
-        assert end - start == target_length
-        assert chrom in chromosome_sizes
-        chrom_size = int(chromosome_sizes[chrom])
-        assert 0 <= start < end <= chrom_size
-        sequence = fetch_sequence(assembly, chrom, start, end)
-        assert sequence is not None, f"missing human sequence for {chrom}:{start}-{end}"
-        assert len(sequence) == target_length
-        rows.append(
-            {
-                "query_name": str(anchor["query_name"]),
-                "source_chrom": chrom,
-                "source_start": start,
-                "source_end": end,
-                "region_label": str(anchor["region_label"]),
-                "species": "Homo sapiens",
-                "alignment_name": assembly,
-                "assembly": assembly,
-                "taxonomy_id": taxonomy_id,
-                "family": "Hominidae",
-                "clade": "mammals",
-                "phylogenetic_rank": 0,
-                "alignment_source": "human_reference",
-                "t_chrom": chrom,
-                "t_start": start,
-                "t_end": end,
-                "t_strand": "+",
-                "t_src_size": chrom_size,
-                "pre_resize_t_start": start,
-                "pre_resize_t_end": end,
-                "fragment_count": 1,
-                "aligned_bases": target_length,
-                "sequence": sequence,
-            }
-        )
-
-    schema = pl.Schema([*ACCEPTED_SCHEMA.items(), ("sequence", pl.String)])
-    result = pl.DataFrame(rows, schema=schema) if rows else pl.DataFrame(schema=schema)
-    assert result["query_name"].n_unique() == result.height
-    assert (result["sequence"].str.len_bytes() == target_length).all()
-    return result.sort("query_name")

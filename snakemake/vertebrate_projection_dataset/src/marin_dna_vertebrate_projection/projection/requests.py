@@ -30,8 +30,6 @@ PROJECTION_REQUEST_COLUMNS = (
 
 PROJECTION_POLICY = "center_1"
 LANDMARK_WIDTH = 1
-PRE_RESIZE_MIN_LENGTH = 1
-PRE_RESIZE_MAX_LENGTH = 2
 
 
 def build_projection_requests(anchors: pl.DataFrame) -> pl.DataFrame:

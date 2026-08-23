@@ -158,9 +158,6 @@ rule hal_contract:
             input[0],
             output.accepted,
             output.rejected,
-            target_length=TARGET_LENGTH,
-            pre_resize_min_length=PRE_RESIZE_MIN,
-            pre_resize_max_length=PRE_RESIZE_MAX,
         )
 
 
@@ -249,9 +246,6 @@ rule multiz_contract:
             wildcards.species,
             output.accepted,
             output.rejected,
-            target_length=TARGET_LENGTH,
-            pre_resize_min_length=PRE_RESIZE_MIN,
-            pre_resize_max_length=PRE_RESIZE_MAX,
         )
 
 
