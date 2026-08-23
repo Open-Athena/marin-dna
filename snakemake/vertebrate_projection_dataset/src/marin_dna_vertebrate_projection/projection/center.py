@@ -1,7 +1,5 @@
 """Center-1-bp projection adapters."""
 
-from __future__ import annotations
-
 from collections.abc import Iterator
 from pathlib import Path
 from tempfile import TemporaryDirectory

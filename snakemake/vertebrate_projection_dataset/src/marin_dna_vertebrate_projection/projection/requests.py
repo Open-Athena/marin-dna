@@ -7,8 +7,6 @@ backend. Keeping those coordinate roles separate prevents a center-seeded
 request from silently changing the source-anchor contract.
 """
 
-from __future__ import annotations
-
 import polars as pl
 
 ANCHOR_COLUMNS = (

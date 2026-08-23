@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import polars as pl
 from marin_dna_vertebrate_projection.projection.requests import (
     LANDMARK_WIDTH,
