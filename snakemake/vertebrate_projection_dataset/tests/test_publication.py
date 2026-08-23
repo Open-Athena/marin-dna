@@ -8,18 +8,25 @@ import polars as pl
 import pytest
 import zstandard as zstd
 from marin_dna_vertebrate_projection import publication
+from marin_dna_vertebrate_projection.pipeline_io import write_dataset_split_files
 
 PIPELINE_COMMIT = "a" * 40
 CONFIG_SHA256 = "b" * 64
 
 
-def _frame(source_chrom: str, rows: int) -> pl.DataFrame:
+def _frame(rows: int) -> pl.DataFrame:
     return pl.DataFrame(
         {
             "query_name": [f"anchor_{index}" for index in range(rows)],
-            "source_chrom": [source_chrom] * rows,
+            "source_chrom": [
+                "chr1" if index % 2 == 0 else "chr18" for index in range(rows)
+            ],
+            "source_start": [index * 255 for index in range(rows)],
+            "source_end": [(index + 1) * 255 for index in range(rows)],
+            "species": ["Homo sapiens"] * rows,
+            "alignment_source": ["human_reference"] * rows,
+            "region_label": ["cds"] * rows,
             "sequence": ["ACgt" + "A" * 251] * rows,
-            "augmentation": ["+"] * rows,
         }
     )
 
@@ -40,13 +47,28 @@ def _fixture(tmp_path: Path) -> tuple[Path, Path, Path]:
         "publication_train_shards: 2\n"
         "publication_smoke_train_shards: 1\n"
         "publication_validation_shards: 1\n"
-        "validation_chrom: chr18\n"
+        "validation_rows: 2\n"
+        "smoke_validation_rows: 1\n"
+        "validation_seed: 42\n"
+        "add_rc: false\n"
     )
-    train = _frame("chr1", 5)
-    validation = _frame("chr18", 2)
     (source_dir / "all").mkdir(parents=True)
-    train.write_parquet(source_dir / "all/train.parquet")
-    validation.write_parquet(source_dir / "all/validation.parquet")
+    combined = source_dir / "combined.parquet"
+    _frame(7).write_parquet(combined)
+    write_dataset_split_files(
+        combined,
+        source_dir / "all/train.parquet",
+        source_dir / "all/validation.parquet",
+        source_dir / "all/validation_selection.tsv",
+        source_dir / "all/validation_composition.tsv",
+        source_dir / "all/split_summary.json",
+        region_label="all",
+        add_rc=False,
+        validation_rows=2,
+        seed=42,
+    )
+    train = pl.read_parquet(source_dir / "all/train.parquet")
+    validation = pl.read_parquet(source_dir / "all/validation.parquet")
     card = artifact_dir / "all/README.md"
     card.parent.mkdir(parents=True)
     card.write_text(
@@ -90,6 +112,53 @@ def test_validate_artifacts_reconciles_rows_and_rejects_sidecars(
             artifact_dir,
             source_dir,
             output,
+            config_path=config_path,
+            pipeline_commit=PIPELINE_COMMIT,
+            config_sha256=CONFIG_SHA256,
+            workers=1,
+        )
+
+
+def test_validate_artifacts_rejects_tampered_composition(tmp_path: Path) -> None:
+    artifact_dir, source_dir, config_path = _fixture(tmp_path)
+    composition_path = source_dir / "all/validation_composition.tsv"
+    composition = pl.read_csv(composition_path, separator="\t")
+    rows = composition.to_dicts()
+    chrom_indices = [
+        index for index, row in enumerate(rows) if row["dimension"] == "source_chrom"
+    ]
+    assert len(chrom_indices) == 2
+    first, second = chrom_indices
+    rows[first]["eligible_rows"] = int(rows[first]["eligible_rows"]) + 1
+    rows[second]["eligible_rows"] = int(rows[second]["eligible_rows"]) - 1
+    pl.DataFrame(rows, schema=composition.schema).write_csv(
+        composition_path, separator="\t"
+    )
+    with pytest.raises(AssertionError):
+        publication.validate_artifacts(
+            artifact_dir,
+            source_dir,
+            tmp_path / "manifest.json",
+            config_path=config_path,
+            pipeline_commit=PIPELINE_COMMIT,
+            config_sha256=CONFIG_SHA256,
+            workers=1,
+        )
+
+
+def test_validate_artifacts_rejects_tampered_realized_token_count(
+    tmp_path: Path,
+) -> None:
+    artifact_dir, source_dir, config_path = _fixture(tmp_path)
+    summary_path = source_dir / "all/split_summary.json"
+    summary = json.loads(summary_path.read_text())
+    summary["realized_token_count"] = int(summary["realized_token_count"]) + 1
+    summary_path.write_text(json.dumps(summary))
+    with pytest.raises(AssertionError):
+        publication.validate_artifacts(
+            artifact_dir,
+            source_dir,
+            tmp_path / "manifest.json",
             config_path=config_path,
             pipeline_commit=PIPELINE_COMMIT,
             config_sha256=CONFIG_SHA256,

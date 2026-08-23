@@ -73,7 +73,7 @@ Target-genome sequence extraction retains the v1 UCSC human and `gbdb` 2bit sour
 
 ## Projection contract
 
-The request table retains each original 255 bp human anchor for identity and splitting, and stores `[source_start + 127, source_start + 128)` as the only interval submitted to HAL or MAF.
+The request table retains each original 255 bp human anchor for identity and downstream row-random selection, and stores `[source_start + 127, source_start + 128)` as the only interval submitted to HAL or MAF.
 HAL receives all active anchors in one BED and runs one `halLiftover` job per mammal species.
 MultiZ reads each configured chromosome MAF once and emits candidates for all active non-mammal species.
 
@@ -96,19 +96,13 @@ Each HAL species contract reads one fragment Parquet and derives consistency, bo
 An assertion requires exactly one accepted or rejected row per input group.
 HAL contract rules reserve 10 GB to preserve worker memory headroom.
 
-Human, HAL, and MultiZ sequence extraction all use one compiled
-`twoBitToFa -bed` call per genome. BED6 strand is honored by `twoBitToFa`, and
-soft-masked case from the 2bit source is preserved. Sequence rules reserve 4 GB. Sequence
-combination, non-chromosome-18 training writes, QC aggregation, and inspection
-candidate selection use lazy streaming scans.
-Publication sharding retains the established deterministic eager shuffle for
-inputs of at most 100 million post-augmentation rows. Larger inputs use a
-deterministic hash sort and balanced partitioned NDJSON sink in Polars'
-streaming engine, allowing the sort to spill rather than materializing the
-entire publication cohort in RAM.
-The conservation-filtered anchor BED is compressed through a temporary plain
-file, fully decompressed to verify its row count, and atomically installed only
-after the gzip stream passes its CRC check.
+Human, HAL, and MultiZ sequence extraction all use one compiled `twoBitToFa -bed` call per genome.
+BED6 strand is honored by `twoBitToFa`, and soft-masked case from the 2bit source is preserved.
+Sequence rules reserve 4 GB.
+Sequence combination, row-random dataset split writes, QC aggregation, and inspection candidate selection use lazy streaming scans.
+Publication sharding retains the established deterministic eager shuffle for inputs of at most 100 million post-augmentation rows.
+Larger inputs use a deterministic hash sort and balanced partitioned NDJSON sink in Polars' streaming engine, allowing the sort to spill rather than materializing the entire publication cohort in RAM.
+The conservation-filtered anchor BED is compressed through a temporary plain file, fully decompressed to verify its row count, and atomically installed only after the gzip stream passes its CRC check.
 
 ## Runbook
 
@@ -201,31 +195,31 @@ Every HAL projection/extraction path also depends on the tier-specific local `me
 
 ## Splits and output datasets
 
-Each configured region cohort first gets internal `train.parquet` and
-`validation.parquet` files. Parquet is the efficient projection, split, and
-card-count intermediate; it is not the published training format.
+Each configured region cohort first gets internal `train.parquet` and `validation.parquet` files.
+Parquet is the efficient projection, split, and card-count intermediate; it is not the published training format.
 
-- training contains only non-chromosome-18 human source anchors and includes
-  the configured reverse-complement augmentation;
-- validation candidates are original-orientation rows from chromosome-18 human
-  source anchors;
-- the deterministic SHA-256 sampler first represents every eligible species,
-  then water-fills quotas as evenly as availability permits, up to 16,384 rows;
-  and
-- unsampled chromosome-18 rows and all chromosome-18 reverse complements are
-  discarded, never returned to training.
+For each cohort, validation selection considers only original-orientation rows after cohort filters and before reverse-complement augmentation.
+The selector hashes each stable biological row identity with the configured seed and a stable region/species-scope cohort salt in Polars, so nested cohorts receive independent rankings.
+It takes exactly `validation_rows` lowest ranks without replacement: 16,384 rows in the full tier and one row in the smoke tier.
+Stable identity tie-breaks make membership independent of input row order.
+Selection is row-level and does not stratify by chromosome, species, alignment backend, or human anchor.
+Chromosome 18 is an ordinary eligible chromosome.
+Different species projections from the same human anchor may occur on opposite sides of the split.
+Every unselected original row remains in training.
+When reverse-complement augmentation is enabled, it applies only to those training originals; validation stays in original orientation and the reverse complement of every selected validation row is excluded from training.
 
-Each cohort also writes `validation_selection.tsv`,
-`validation_species_counts.tsv`, and `split_summary.json`, including the seed,
-stable row IDs, per-species eligible/selected counts, and realized token count.
-At 16,384 rows, validation has exactly 4,194,304 tokens including BOS. These QC
-sidecars remain in the pipeline results and are never copied into the Hugging
-Face artifact directory.
+Each cohort writes three audit sidecars in addition to its Parquets.
+`validation_selection.tsv` records stable identities, selection ranks, the seed, cohort salt, and selection digests.
+`validation_composition.tsv` reconciles eligible and selected counts by chromosome, species, and alignment backend.
+`split_summary.json` records the strategy, seed, cohort salt, source/train/validation counts, augmentation setting, and realized token count.
+At 16,384 rows, validation has exactly 4,194,304 tokens including BOS.
+These audit sidecars remain in the pipeline results and are never copied into the Hugging Face artifact directory.
 
-The full tier additionally writes `datasets/cds_mammals_only/`, which applies
-the CDS label after the complete shared projection/acceptance pass and then
-retains only `human_reference` and `zoonomia_cactus` rows. The regular
-`datasets/cds/` cohort retains those identical training rows plus `ucsc_multiz100way`. Projection, acceptance, augmentation, and sampling algorithms are identical, and the mammals-only training rows are an exact subset of the combined arm. Validation is sampled independently within each cohort because their eligible species sets differ, so the realized validation rows, and therefore validation-loss levels, must not be compared between arms.
+The full tier additionally writes `datasets/cds_mammals_only/`, which applies the CDS label after the complete shared projection/acceptance pass and then retains only `human_reference` and `zoonomia_cactus` rows.
+The regular `datasets/cds/` cohort uses the same pre-split mammal rows and also includes `ucsc_multiz100way`.
+Before splitting, the mammals-only eligible rows are an exact subset of the combined arm.
+Each cohort selects validation independently because its eligible species set differs, so finalized training and validation rows are not guaranteed to preserve that subset relationship.
+The realized validation rows, and therefore validation-loss levels, must not be compared directly between arms.
 
 For Hugging Face, `all_hf_files` deterministically prepares the v2 center-1 datasets: shuffle each split, write 64 full-tier train shards (four in smoke) and one validation shard as JSONL, then zstd-compress them. On a dedicated HF worker, an explicitly supplied `PIPELINE_COMMIT_SHA` selects the matching producer/config namespace; the worker restores its producer manifest, source split Parquets, and active-species manifest through default Snakemake S3 storage. Local JSONL.zst artifacts are rebuilt on that worker and are never recovered through a separate issue-specific snapshot path.
 Each isolated `hf/<cohort>/` directory contains only:
@@ -253,12 +247,10 @@ The published encoding and layout are JSONL.zst; internal Parquet and every QC T
 
 The default DAG writes:
 
-- `qc/per_anchor.parquet`: mammal/non-mammal/total recovery, requested fraction,
-  recovered clades, deepest clade, and no-mapping count per anchor;
+- `qc/per_anchor.parquet`: mammal/non-mammal/total recovery, requested fraction, recovered clades, deepest clade, and no-mapping count per anchor;
 - `qc/per_anchor_scope.parquet`: recovery by anchor, backend, and clade;
 - `qc/rejection_counts.parquet`: explicit reasons including `no_mapping`;
-- `qc/aggregates.parquet`: region/split/backend/clade counts, median, q10/q25/
-  q75/q90, mean fraction, and fraction of anchors reaching the clade; and
+- `qc/aggregates.parquet`: region/backend/clade counts, median, q10/q25/q75/q90, mean fraction, and fraction of anchors reaching the clade; and
 - `qc/manual_inspection.md` plus accepted/rejected TSV samples.
 
 The full-dataset inspection sample deterministically includes several CDS and
@@ -275,10 +267,7 @@ broader CDS recovery is a biological expectation, not a per-anchor invariant.
 
 ## Tests
 
-Focused tests cover the exact center-base request, MAF gaps, fragmented blocks, reverse strands, coordinate
-conversion, duplicate and ambiguous mappings, bounds, case-preserving sequence
-orientation, manifest decisions, split allocation, mirroring checks, QC, and
-inspection sampling:
+Focused tests cover the exact center-base request, MAF gaps, fragmented blocks, reverse strands, coordinate conversion, duplicate and ambiguous mappings, bounds, case-preserving sequence orientation, manifest decisions, row-random split selection, mirroring checks, QC, and inspection sampling:
 
 ```bash
 uv run --locked --group dev pytest

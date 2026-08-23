@@ -113,6 +113,13 @@ def test_hf_only_dag_closes_from_clean_storage_backed_workdir(tmp_path: Path) ->
             source = storage / base / f"datasets/{cohort}/{split}.parquet"
             source.parent.mkdir(parents=True, exist_ok=True)
             source.write_bytes(b"fixture")
+        for audit_name in [
+            "validation_selection.tsv",
+            "validation_composition.tsv",
+            "split_summary.json",
+        ]:
+            audit_path = storage / base / f"datasets/{cohort}/{audit_name}"
+            audit_path.write_text("fixture\n")
 
     output = _run_snakemake(
         workdir,

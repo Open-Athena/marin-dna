@@ -25,6 +25,10 @@ PIPELINE_VERSION = str(config["pipeline_version"])
 HF_REPO_PREFIX = f"vertebrate-{PIPELINE_VERSION}"
 TIER = str(config["tier"])
 assert TIER in {"smoke", "full"}
+VALIDATION_ROWS = int(
+    config["smoke_validation_rows"] if TIER == "smoke" else config["validation_rows"]
+)
+assert VALIDATION_ROWS > 0
 PIPELINE_COMMIT = resolve_pipeline_commit()
 PIPELINE_CONFIG_SHA256 = hash_pipeline_config(config)
 RESULTS = (

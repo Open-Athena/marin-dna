@@ -49,7 +49,6 @@ def build_projection_qc_tables(
         "source_start",
         "source_end",
         "region_label",
-        "split",
     }
     missing = required_anchors - set(anchors.columns)
     assert not missing, f"QC anchors missing columns: {sorted(missing)}"
@@ -134,7 +133,6 @@ def build_projection_qc_tables(
                 {
                     "query_name": query_name,
                     "region_label": str(anchor["region_label"]),
-                    "split": str(anchor["split"]),
                     "rejection_reason": reason,
                     "count": count,
                 }
@@ -152,7 +150,6 @@ def build_projection_qc_tables(
                 {
                     "query_name": query_name,
                     "region_label": str(anchor["region_label"]),
-                    "split": str(anchor["split"]),
                     "backend": backend,
                     "clade": clade,
                     "requested_species": requested,
@@ -167,7 +164,6 @@ def build_projection_qc_tables(
     rejection_schema = {
         "query_name": pl.String,
         "region_label": pl.String,
-        "split": pl.String,
         "rejection_reason": pl.String,
         "count": pl.Int64,
     }
@@ -177,7 +173,7 @@ def build_projection_qc_tables(
         else pl.DataFrame(schema=rejection_schema)
     )
     aggregates = (
-        per_anchor_scope.group_by("region_label", "split", "backend", "clade")
+        per_anchor_scope.group_by("region_label", "backend", "clade")
         .agg(
             n_anchors=pl.len(),
             mean_recovered_species=pl.col("recovered_species").mean(),
@@ -189,7 +185,7 @@ def build_projection_qc_tables(
             mean_recovered_fraction=pl.col("recovered_fraction").mean(),
             fraction_anchors_reaching_clade=pl.col("reached_clade").mean(),
         )
-        .sort("region_label", "split", "backend", "clade")
+        .sort("region_label", "backend", "clade")
     )
     return ProjectionQcTables(
         per_anchor=per_anchor,
@@ -221,7 +217,6 @@ def write_projection_qc_tables_streaming(
         "source_start",
         "source_end",
         "region_label",
-        "split",
     ]
     missing = set(required_anchors) - set(anchors.columns)
     assert not missing, f"QC anchors missing columns: {sorted(missing)}"
@@ -321,7 +316,7 @@ def write_projection_qc_tables_streaming(
     Path(per_anchor_path).parent.mkdir(parents=True, exist_ok=True)
     per_anchor.sink_parquet(per_anchor_path)
 
-    anchor_scope_base = anchors.select("query_name", "region_label", "split").lazy()
+    anchor_scope_base = anchors.select("query_name", "region_label").lazy()
     scopes = targets.group_by("backend", "clade").len(name="requested_species")
     scope_frames: list[pl.LazyFrame] = []
     for scope in scopes.sort("backend", "clade").to_dicts():
@@ -357,7 +352,7 @@ def write_projection_qc_tables_streaming(
     Path(per_scope_path).parent.mkdir(parents=True, exist_ok=True)
     per_scope.sink_parquet(per_scope_path)
 
-    anchor_labels = anchors.select("query_name", "region_label", "split").lazy()
+    anchor_labels = anchors.select("query_name", "region_label").lazy()
     explicit_rejections = (
         rejected.group_by("query_name", "rejection_reason")
         .agg(pl.len().cast(pl.Int64).alias("count"))
@@ -365,7 +360,6 @@ def write_projection_qc_tables_streaming(
         .select(
             "query_name",
             "region_label",
-            "split",
             "rejection_reason",
             "count",
         )
@@ -376,7 +370,6 @@ def write_projection_qc_tables_streaming(
         .select(
             "query_name",
             "region_label",
-            "split",
             pl.lit("no_mapping").alias("rejection_reason"),
             pl.col("no_mapping_count").alias("count"),
         )
@@ -389,7 +382,7 @@ def write_projection_qc_tables_streaming(
     Path(aggregates_path).parent.mkdir(parents=True, exist_ok=True)
     (
         pl.scan_parquet(per_scope_path)
-        .group_by("region_label", "split", "backend", "clade")
+        .group_by("region_label", "backend", "clade")
         .agg(
             n_anchors=pl.len(),
             mean_recovered_species=pl.col("recovered_species").mean(),
@@ -401,6 +394,6 @@ def write_projection_qc_tables_streaming(
             mean_recovered_fraction=pl.col("recovered_fraction").mean(),
             fraction_anchors_reaching_clade=pl.col("reached_clade").mean(),
         )
-        .sort("region_label", "split", "backend", "clade")
+        .sort("region_label", "backend", "clade")
         .sink_parquet(aggregates_path)
     )
