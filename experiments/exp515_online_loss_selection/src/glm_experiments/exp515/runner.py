@@ -22,6 +22,7 @@ from lightning.pytorch.loggers import CSVLogger
 from torch.utils.data import DataLoader
 from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedTokenizerBase
 
+from glm_experiments.data.lm_datamodule import has_eligible_target
 from glm_experiments.exp515.config import (
     ALL_IN_CAP_USD,
     ARMS,
@@ -53,6 +54,10 @@ from glm_experiments.exp515.evaluation import (
 from glm_experiments.exp515.module import Exp515Module, checkpoint_next_sample_id
 from glm_experiments.exp515.storage import upload_issue_artifact
 from glm_experiments.models.components.lm import HFCLM
+from glm_experiments.models.components.selection import (
+    TokenSelector,
+    select_token_mask,
+)
 
 
 def _write_json(path: Path, payload: dict[str, Any]) -> None:
@@ -302,6 +307,79 @@ def run_training_phase(
     return module, checkpoint, metadata
 
 
+def _selector_device_smoke(device: torch.device) -> dict[str, Any]:
+    """Exercise every selector contract on the paid run's actual device."""
+
+    losses = torch.tensor(
+        [
+            [1.0, 1.0, 3.0, 2.0, 4.0, 0.0],
+            [9.0, 4.0, 1.0, 3.0, 2.0, 8.0],
+            [1.0, 2.0, 3.0, 4.0, 5.0, 6.0],
+        ],
+        device=device,
+    )
+    eligible = torch.tensor(
+        [
+            [True, True, True, True, True, False],
+            [False, True, True, True, True, False],
+            [False, False, False, False, False, False],
+        ],
+        device=device,
+    )
+    expected = {
+        "student_low": torch.tensor(
+            [
+                [True, True, False, False, False, False],
+                [False, False, True, False, True, False],
+                [False, False, False, False, False, False],
+            ],
+            device=device,
+        ),
+        "student_middle": torch.tensor(
+            [
+                [False, True, False, True, False, False],
+                [False, False, False, True, True, False],
+                [False, False, False, False, False, False],
+            ],
+            device=device,
+        ),
+        "student_high": torch.tensor(
+            [
+                [False, False, True, False, True, False],
+                [False, True, False, True, False, False],
+                [False, False, False, False, False, False],
+            ],
+            device=device,
+        ),
+    }
+    ranked_passed = all(
+        torch.equal(
+            select_token_mask(losses, eligible, mode=mode, ratio=0.5),
+            expected_mask,
+        )
+        for mode, expected_mask in expected.items()
+    )
+    random_selector = TokenSelector(mode="random", ratio=0.5, seed=515)
+    random_selector(losses, eligible)
+    state = random_selector.state_dict()
+    expected_random = random_selector(losses, eligible)
+    resumed = TokenSelector(mode="random", ratio=0.5, seed=515)
+    resumed.load_state_dict(state)
+    random_resume_passed = torch.equal(resumed(losses, eligible), expected_random)
+    payload = {
+        "device": str(device),
+        "ranked_masks_passed": ranked_passed,
+        "random_resume_passed": random_resume_passed,
+        "empty_row_passed": not bool(expected_random[2].any()),
+    }
+    payload["passed"] = all(
+        bool(value) for key, value in payload.items() if key != "device"
+    )
+    if not payload["passed"]:
+        raise RuntimeError(f"selector device smoke test failed: {payload}")
+    return payload
+
+
 def smoke_test(
     source_dir: Path,
     tokenizer: PreTrainedTokenizerBase,
@@ -312,6 +390,19 @@ def smoke_test(
 
     dataset = SequencePlanDataset(plan_dir, start=0, rows=2)
     batch = SequenceCollator(tokenizer)([dataset[0], dataset[1]])
+    selector_checks = _selector_device_smoke(torch.device("cuda"))
+    synthetic_sequence = "A" + "c" + "A" * 253
+    synthetic_batch = SequenceCollator(tokenizer)(
+        [{"sample_id": 0, "sequence": synthetic_sequence, "species": "synthetic"}]
+    )
+    bos_repeat_alignment_passed = bool(
+        not synthetic_batch["soft_masked"][0, 0]
+        and not synthetic_batch["soft_masked"][0, 1]
+        and synthetic_batch["soft_masked"][0, 2]
+    )
+    all_lowercase_filter_passed = not has_eligible_target(
+        "a" * 255
+    ) and has_eligible_target(synthetic_sequence)
     device_batch = {
         key: value.cuda() if isinstance(value, torch.Tensor) else value
         for key, value in batch.items()
@@ -368,7 +459,14 @@ def smoke_test(
         "uniform_disabled_loss_absolute_error": loss_error,
         "eligible_count": int(selected["eligible_count"]),
         "selected_count": int(selected["selected_count"]),
-        "passed": max_logit_error == 0.0 and loss_error <= 1e-6,
+        "selector_device": selector_checks,
+        "bos_repeat_alignment_passed": bos_repeat_alignment_passed,
+        "all_lowercase_filter_passed": all_lowercase_filter_passed,
+        "passed": max_logit_error == 0.0
+        and loss_error <= 1e-6
+        and selector_checks["passed"]
+        and bos_repeat_alignment_passed
+        and all_lowercase_filter_passed,
     }
     _write_json(output_path, payload)
     if not payload["passed"]:

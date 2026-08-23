@@ -22,7 +22,10 @@ from glm_experiments.exp515.data import (
 )
 from glm_experiments.exp515.diagnostics import selector_composition_counts
 from glm_experiments.exp515.module import learning_rate_factor
-from glm_experiments.exp515.runner import _retain_for_publication
+from glm_experiments.exp515.runner import (
+    _retain_for_publication,
+    _selector_device_smoke,
+)
 from glm_experiments.exp515.storage import validate_issue_s3_prefix
 from glm_experiments.models.components.lm import CLM
 from glm_experiments.models.components.selection import TokenSelector
@@ -250,6 +253,14 @@ def test_publication_retains_evidence_but_excludes_reproducible_caches() -> None
     assert _retain_for_publication(Path("sequence-plan/manifest.json"))
     assert _retain_for_publication(Path("bridge/step-100.ckpt"))
     assert _retain_for_publication(Path("evaluations/bridge.csv"))
+
+
+def test_selector_device_smoke_contracts_on_cpu() -> None:
+    result = _selector_device_smoke(torch.device("cpu"))
+    assert result["passed"] is True
+    assert result["ranked_masks_passed"] is True
+    assert result["random_resume_passed"] is True
+    assert result["empty_row_passed"] is True
 
 
 def test_global_rng_round_trip_reference() -> None:
