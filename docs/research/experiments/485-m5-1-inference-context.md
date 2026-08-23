@@ -3,13 +3,6 @@
 > [!NOTE]
 > **TL;DR:** For the 255 bp-trained m5.1 checkpoint, cropping inference below 255 bp reduced Mendelian development macro AUPRC, extending to 511 bp produced a small zero-shot gain but no probe gain, and extending to 1023 bp sharply degraded both protocols.
 
-![Nine consequence panels showing zero-shot Mendelian AUPRC from 31 through 1023 bp inference contexts](figures/485/zero-shot-context.svg)
-
-_Zero-shot matched-pair AUPRC for the fixed m5.1 checkpoint; error bars are ±1 SE, each panel has an independent y-axis, and 511 and 1023 bp are inference-only extensions beyond the 255 bp training context._
-
-![Nine consequence panels showing frozen-probe Mendelian AUPRC from 31 through 1023 bp inference contexts](figures/485/probe-context.svg)
-
-_Frozen-probe per-chromosome-weighted AUPRC when a new probe is trained at each context; error bars are ±1 SE and each panel has an independent y-axis._
 
 ## Findings
 
@@ -26,6 +19,14 @@ Both paired intervals excluded zero, and every zero-shot consequence subset decl
 Inference-only extension to four times the checkpoint's training context is therefore unreliable for this checkpoint and task.
 
 ## Evidence
+
+![Nine consequence panels showing zero-shot Mendelian AUPRC from 31 through 1023 bp inference contexts](figures/485/zero-shot-context.svg)
+
+_Zero-shot matched-pair AUPRC for the fixed m5.1 checkpoint; error bars are ±1 SE, each panel has an independent y-axis, and 511 and 1023 bp are inference-only extensions beyond the 255 bp training context._
+
+![Nine consequence panels showing frozen-probe Mendelian AUPRC from 31 through 1023 bp inference contexts](figures/485/probe-context.svg)
+
+_Frozen-probe per-chromosome-weighted AUPRC when a new probe is trained at each context; error bars are ±1 SE and each panel has an independent y-axis._
 
 The experiment used `mix-v0.9-p1B-i24-exp135-m5.1-step-59158`, a causal 1B-parameter model trained with 255 DNA bases plus a BOS token.
 The six inference windows were 31, 63, 127, 255, 511, and 1023 DNA bases, centered on the same SNV.

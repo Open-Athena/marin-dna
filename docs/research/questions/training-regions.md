@@ -54,9 +54,6 @@ It should retain a background arm so gains on functional VEP can be weighed agai
   In genomic data, repeats, local composition, and phylogenetic redundancy may all produce high predictability without functional constraint.
 - [Self-paced learning](https://papers.nips.cc/paper_files/paper/2010/hash/e57c6b956a6521b28495f2886ca0977a-Abstract.html) introduces current small-loss examples first and anneals toward the full dataset, while [Selective Backprop](https://arxiv.org/abs/1910.00762) prioritizes current high-loss examples because low-loss gradients tend to be small.
   A permanent hard mask on the student's lowest-loss tokens changes the target distribution and can reinforce already-learned tokens; it is distinct from self-distillation and reducible-loss selection.
-- Conservation is a proxy for purifying constraint rather than a complete definition of function.
-  It misses lineage-specific and hard-to-align elements, while annotations miss unknown constrained sequence.
-  A useful observable is the joint coverage of evaluation loci, annotated classes, conservation tiers, and repeats under each proposed footprint.
 
 </details>
 
@@ -93,104 +90,11 @@ It should retain a background arm so gains on functional VEP can be weighed agai
 <details>
 <summary>Possible directions</summary>
 
-- Test whether annotation-free pretraining can recover functional sequence from likelihood.
-  Train 46M, 76M, and 128M models for matched token budgets on the complete nonrepeat sequence of about 20 animal genomes sampled broadly across orders, with no annotation-based locus filtering.
-  Use annotations and conservation only after training to label evaluation positions, measuring functional-versus-matched-background loss gaps and AUPRC from one-orientation loss and entropy, globally and for CDS, upstream, downstream, ncRNA, and enhancer.
-  Composition and local-predictability controls are needed to interpret the loss gaps.
-
-### What outcome are we optimizing?
-
-- Is there one corpus that transfers well across VEP, functional-region representations, sequence generation, genome annotation, and phylogenetic inference, or should MarinDNA maintain task-specific mixtures?
-- For VEP, should the primary decision metric be zero-shot AUPRC, frozen-embedding probes, functional/non-functional likelihood gaps, or a combination?
-  Improvements should be reported separately for Mendelian, complex-trait, coding, regulatory, conserved, and weakly conserved variants.
-- What evaluation would expose the cost of removing neutral sequence?
-  Candidate outcomes include phylogeny/species inference, mutation-spectrum prediction, regional composition, and held-out whole-genome likelihood, but these should not silently displace functional VEP as the primary task.
-
-### What should count as functional training sequence?
-
-- **Direct annotation:** genes, UTRs, ncRNAs, cCREs, experimentally measured regulatory elements.
-  How should incomplete, tissue-specific, and species-biased annotations be combined without letting well-annotated organisms dominate?
-- **Evolutionary constraint:** phyloP, phastCons, GERP, alignment depth, or a learned evolutionary-rate score.
-  Which phylogenetic timescale and window statistic best match each downstream task?
-  How much low-conservation sequence must remain to cover recent or rapidly evolving function?
-- **Cheap local alignment:** can `mmseqs2` hits be converted into robust local statistics—hit depth, taxonomic breadth, identity/coverage profiles, or deviations from a neutral model—that select functional windows without a precomputed WGA?
-  How should paralogs, synteny loss, fragmented hits, and repeats be handled?
-- **Learned single-sequence selection:** once a strong model exists, can a classifier or probe trained on annotations and/or evolutionary labels identify functional windows in a new genome from sequence alone?
-  What orthogonal evaluation prevents the selector from merely reproducing conservation or annotation bias?
-- **Frozen likelihood-derived selection:** can per-base loss or entropy from a small frozen model identify useful training tokens without annotations?
-  When a target or high-quality reference corpus exists, can a Rho-1-style reference model trained on that distribution provide a useful reducible-loss score?
-  Separately, can loss reduction between two same-corpus frozen model sizes identify tokens with high scale-dependent learnability?
-  Treat absolute predictability, target-distribution reducible loss, and same-corpus improvement with model scale as distinct signals.
-  Repeat status, GC content, local k-mer predictability, taxon, and homology density are necessary controls because each can create predictable sequence without implying functional constraint.
-- Should these sources be used as a union, an intersection, separate sampling strata, or continuous weights?
-
-### Filter, sample, or weight?
-
-- At equal training FLOPs, how do hard filtering, score-proportional sampling, per-base loss weighting, and a curriculum from enriched to whole-genome data compare?
-- For likelihood-derived selection experiments, keep repeat downweighting fixed across every arm and compute selection thresholds only among nonrepeat tokens.
-  This comparison tests how gradient mass is allocated within nonrepeat sequence, leaving repeat handling outside its scope.
-- Can the whole genome remain in the corpus while constrained/annotated bases receive most of the gradient?
-  Does this retain rare functional classes and useful neutral context without letting background dominate?
-- Should a window be selected because it contains some functional sequence, while the loss is applied only or preferentially to the functional bases?
-  How much flanking sequence is beneficial context rather than wasted loss?
-- Does causal next-token prediction, masked modeling, or another objective change the optimal sampling/weighting policy?
-
-### How do scale and data quantity change the answer?
-
-- Does the benefit of enrichment shrink with parameter count, token budget, or context length?
-- Run a small fixed-compute causal experiment comparing uniform nonrepeat loss, terminal-checkpoint loss or entropy as a soft weight, excess loss against a frozen target-distribution reference, and a scale-differential weight from frozen checkpoints.
-  Add direct conservation weighting on human sequence as an oracle positive control.
-  Keep repeat downweighting identical in every arm.
-  Match training compute and record the offline scoring cost separately.
-  Treat same-corpus improvement as a learnability heuristic rather than a direct Rho-1 analogue.
-  Teacher nucleotide probabilities would define a separate self-distillation objective and should not be conflated with loss-based token selection.
-  Use deterministic FWD scoring first and add an averaged-score sensitivity only if downstream outcomes justify the second inference pass.
-- Add compatible training-corpus exposure and homology-density covariates when they become available.
-  Test whether either explains the apparent association between likelihood-derived scores and conservation.
-- When a filtered corpus is smaller, are gains caused by better loci or simply by seeing the same loci for more epochs?
-  Both compute-matched and exposure/epoch-matched comparisons are needed.
-- Is there a curriculum in which constrained sequence is best early, but adding progressively broader genome sequence later improves generalization or prevents overfitting?
-- What is the minimum useful amount of low-conservation/background data at each scale?
-
-### How should repetitive elements be handled?
-
-- At several matched FLOP budgets, compare uniform loss with the current 100-fold repeat downweighting while holding footprint and sampling fixed.
-  This should measure whether repeat downweighting helps and how its effect changes with scale.
-- If uniform loss preserves language-modeling and downstream performance, remove repeat-specific loss weights.
-- Compare exclusion, deduplication, soft masking, family/age-aware sampling, and per-base loss downweighting rather than treating “repeat filtering” as one intervention.
-- Which repeat classes mostly create redundant or ambiguous alignment signal, and which carry regulatory, structural, or lineage-specific information?
-- Do repeats help species/phylogeny tasks while hurting functional VEP, and does that tradeoff change with scale?
-- Are repeat effects actually about biology, or about duplicated windows, assembly/masking heterogeneity, and train/test similarity leakage?
-
-### Candidate experiment ladder
-
-1. **Small controlled baseline.**
-   At one small MarinDNA scale and fixed context, compare:
-   - uniform whole-genome sampling with uniform loss;
-   - the current conservation-filtered footprint;
-   - whole-genome sampling with conservation/annotation-aware loss weights; and
-   - a matched mixture of annotated functional classes plus background.
-
-   Hold architecture, optimizer, number of training tokens, splits, and evaluation fixed.
-   Report unique loci, effective epochs, repeat content, region composition, and gradient/loss mass by stratum.
-
-2. **Disentangle selection from repetition.**
-   Add a data-size-matched whole-genome subset and an epoch/exposure-matched rerun of the enriched arm.
-   This separates “better sequence” from “more passes over less sequence.”
-
-3. **Task-stratified readout.**
-   Evaluate Mendelian and complex-trait VEP by consequence and conservation stratum, region-matched likelihood gaps, frozen-embedding probes, and at least one outcome expected to benefit from neutral/background sequence.
-
-4. **Scale and repeat-weighting interaction.**
-   Compare uniform loss with the current repeat downweighting at several model/token budgets while holding footprint, sampling, and objective fixed.
-   If uniform loss preserves likelihood and downstream performance, remove repeat-specific weighting.
-   [#87](https://github.com/Open-Athena/marin-dna/issues/87) first scoped this ablation.
-
-5. **Acquisition-method comparison.**
-   Once the target training distribution is clearer, compare WGA/conservation selection against direct annotation, `mmseqs2`-derived local evolutionary statistics, and a learned single-sequence selector on the same genomes and matched window budget.
-
-6. **Mixture frontier.**
-   Sweep the fraction of constrained/annotated, weakly conserved, neutral/background, and repetitive sequence rather than comparing only the endpoints.
-   The useful output is a task-by-scale Pareto frontier and a reproducible default mixture, not a universal declaration that one class of sequence “matters.”
+- Compare whole-genome, conservation-filtered, annotation-enriched, and functional-plus-background corpora at matched architecture, tokens, and evaluation, reporting unique loci and realized repetitions.
+- Separate locus selection, exposure frequency, and per-base loss weighting, including data-size- and epoch-matched controls.
+- Test terminal loss or entropy, target-distribution reducible loss, and same-corpus scale-differential loss as distinct selectors; control for repeats, GC, local predictability, training exposure, and homology density.
+- Measure the footprint tradeoff across Mendelian and complex-trait VEP, region-matched likelihood gaps, frozen probes, and at least one outcome expected to benefit from neutral sequence.
+- Ablate the current 100-fold repeat downweighting across model and token scales while holding footprint and sampling fixed.
+- Compare conservation or whole-genome alignment with direct annotation, cheap local alignment, and learned single-sequence selection only after the target distribution and leakage contract are fixed.
 
 </details>

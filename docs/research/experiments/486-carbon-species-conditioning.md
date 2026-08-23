@@ -13,14 +13,8 @@ _Bars report Pearson correlation over all retained variants in each category; th
 
 No-tag scores had pooled Pearson correlations of 0.970 with correct-mammalian scores and 0.981 with far-wrong-fungal scores.
 Agreement was lower for promoter variants at 0.669 and 0.659 and for distal variants at 0.672 and 0.715.
-Promoter and distal also had the smallest no-tag score scale: mean absolute scores of 0.00169 and 0.00174 nats per DNA target token, with standard deviations of 0.00244 and 0.00242.
-Missense and splicing had mean absolute scores of 0.00786 and 0.00534, with standard deviations of 0.01330 and 0.01520.
-The ratio `SD(tagged − no tag) / SD(no tag)` was therefore 0.75–0.83 for promoter and distal variants, compared with 0.16–0.24 for missense and splicing variants.
-Across the eight subsets, this ratio was inversely rank-correlated with Pearson agreement (Spearman ρ = -1.00 for both tags), while no-tag AUPRC and Pearson agreement were positively associated (Pearson r = 0.81 for both tags).
-The most likely explanation for the lower agreement is limited, near-neutral LLR dynamic range in regions where Carbon weakly separates deleterious variants: the prompt-induced change is nearly as large as the baseline score spread.
-An offset toward zero alone cannot lower Pearson correlation, and the analysis provides no evidence for a regional evolutionary-rate explanation.
-The relative-change ratio is algebraically related to Pearson correlation and does not establish that the prompt-induced change is random noise.
-Pearson correlation measures linear agreement rather than rank preservation, so these comparisons do not establish reranking.
+Prompt-induced changes were largest relative to the no-tag score spread in these near-neutral subsets.
+This supports prompt sensitivity without establishing useful or biological reranking; Pearson correlation does not measure rank preservation.
 
 ### AUPRC by consequence subset
 

@@ -43,9 +43,6 @@ The next useful biological tiers are UTR, promoter/TSS-proximal, and annotated n
 <details>
 <summary>Related work</summary>
 
-- [Inside a genomic language model](https://marindna-latent-feature-atlas.gsbenegas.chatgpt.site) is the current visual synthesis of the project’s methods, layer organization, positive findings, negative results, and claim boundaries.
-  The [commit-pinned source](https://github.com/Open-Athena/marin-dna/blob/234f3073121d8de1f51a5e16e8637ac1986152e2/experiments/issue288_latent_feature_atlas/index.html) preserves the reviewed version.
-  It is a summary artifact, not independent evidence.
 - [Korsakova and Kelley, Learning monosemantic features in multitask DNA regulatory sequence models via sparse autoencoder decomposition](https://openreview.net/forum?id=AlLZnZX01x) trained TopK SAEs on early Borzoi layers and annotated features with repeats, motifs, and regulatory elements.
   Motifs specialized by depth, orientation, and flanking context, and larger dictionaries split concepts.
   This motivates layer panels, normalized activations, FWD/RC inspection, and context-aware interpretation.
@@ -55,9 +52,6 @@ The next useful biological tiers are UTR, promoter/TSS-proximal, and annotated n
 - [Language Modeling Materializes a World Model of Protein Biology](https://www.biorxiv.org/content/10.1101/2024.12.18.629098v1) reports concept splitting, decoder neighborhoods, and feature combinations in protein models.
   It motivates analyzing feature families and co-activation systems alongside individual IDs.
   The open question is whether the same organizational principles hold for genomic sequence and across reverse-complement views.
-- The fixed methodology treats biological labels and automated descriptions as discovery aids.
-  A strong interpretation requires corrected association evidence, sequence localization, paired or designed perturbations, orientation analysis, and independent contexts when the claim warrants it.
-  Causal intervention on the base model remains a higher bar than activation response alone.
 
 </details>
 
@@ -100,110 +94,11 @@ The next useful biological tiers are UTR, promoter/TSS-proximal, and annotated n
 <details>
 <summary>Possible directions</summary>
 
-### 1. Paired-variant protocol: current answer and extensions
-
-Reference and alternate sequences are a matched counterfactual pair, not two independent examples.
-This paired response is the default scientific unit for this question; single-sequence enrichment is supporting interpretation.
-[#424](https://github.com/Open-Athena/marin-dna/issues/424) established the current protocol:
-
-- retain reference activation, alternate activation, signed Δ, |Δ|, and inactive→active / active→inactive states for each orientation;
-- use signed Δ as the primary variant-effect quantity because threshold crossings miss graded splice effects and magnitude-only views erase informative direction for dense features such as the stop-codon feature;
-- use all eligible variants, outcome-independent feature-support requirements, complete-family BH correction, and effect-size reporting for association discovery; reserve genomic holdouts and block-bootstrap uncertainty for targeted robustness or causal follow-up;
-- preserve absolute activations so a background-locus feature can be distinguished from a variant-induced feature change.
-
-Still open:
-
-- [#429](https://github.com/Open-Athena/marin-dna/issues/429) has now frozen and tested the first spatial extension: reverse RC positions into genomic coordinates; preserve focal scoring; choose focal, ±15 bp local maximum, or local sum on validation blocks only; and report held-out profiles.
-  Local maximum decisively improves acceptor and stop-gain features, while donor-fifth-base and synonymous remain focal;
-- how to condition or stratify on substitution type, local annotation, repeat family, and labels when needed without turning the program into a general baseline bake-off;
-- the direct missense-versus-synonymous task is heavily phase-confounded: a discovery-fit codon-position score reaches held-out AUROC 0.927.
-  [#428](https://github.com/Open-Athena/marin-dna/issues/428) now replicates the three frozen SAE scores after matching within codon position and transcript-oriented substitution, but at conditional AUROC 0.590–0.603 rather than the pilot's 0.825–0.853; a fixed 31-bp local-sequence model reaches 0.760.
-  Treat these as stable but modest codon-context features.
-  CDS and splice variants remain the first substantive biological tier as well as the protocol proving ground; broaden beyond missense-versus-synonymous and do not spend the whole program trying to force an amino-acid interpretation.
-
-### 2. Bidirectionality and reverse complementation
-
-FWD and RC remain primary, separately reported views.
-[#424](https://github.com/Open-Athena/marin-dna/issues/424) found that same-ID rowwise invariance is uncommon: on held-out variants only 3.86% of adequately supported features had `|r| ≥ 0.05`.
-Nevertheless, signed same-ID mean won the global validation comparison and transferred best to held-out blocks because useful features can cover complementary strand contexts.
-
-Current decision:
-
-- use `(ΔFWD + ΔRC) / 2` as the primary aggregate for broad consequence-family screens, retain both component views, and report `max(|ΔFWD|, |ΔRC|)` as a sensitivity analysis; [#426](https://github.com/Open-Athena/marin-dna/issues/426) shows that max absolute may become the better endpoint for a narrower binary mutation-response question, but this must be declared per analysis rather than selected post hoc;
-- explicit coding-strand alignment is not a better reducer for the three selected coding IDs: aligned versus anti-aligned AUROC is 0.643/0.656 for f12658 and 0.632/0.629 for f13637, both below signed mean; f11064 coding-aligned absolute is 0.734 versus 0.806 for max absolute.
-  These features are not currently strict transcript-orientation features;
-- do not enforce same-ID RC consistency in the first SAE sweep;
-- begin with RC-balanced SAE training examples under the ordinary objective;
-- treat brute-force cross-ID matching as exploratory.
-  Stable pairs exist, but 13–14 of 70 discovery winners became constant on validation/test, demonstrating winner's curse.
-
-Still open:
-
-- whether mutual-nearest, support-stable cross-ID pairs preserve biological semantics across datasets;
-- whether set-level consistency is more appropriate than feature-index consistency;
-- when strand-specific biology should intentionally remain unaggregated.
-
-### 3. SAE quality and scaling
-
-Experiment [#426](https://github.com/Open-Athena/marin-dna/issues/426) completed the first coarse budget × layer comparison.
-It rejects two convenient shortcuts: the final layer is not globally best, and longer training / better reconstruction do not imply greater biological feature yield.
-Blocks 10/16 are the best starting points for broad consequence discovery, while block 19 remains valuable for narrower coding contrasts.
-The 25M arm is not an upper bound: later runs may scale up to eight billion activations when a biological endpoint, feature stability, or model-relevant reconstruction—not MSE alone—justifies the cost and the run receives its own compute authorization.
-
-[#431](https://github.com/Open-Athena/marin-dna/issues/431) adds a sharper failure mode: the [#426](https://github.com/Open-Athena/marin-dna/issues/426) and fresh 5M normalized exports both have negative FVE and JumpReLU L0 around 1,700, while the existing block-10/25M export reaches FVE 0.809 and L0 242.8.
-[#432](https://github.com/Open-Athena/marin-dna/issues/432) then showed that the healthier 25M checkpoint preserves the robust splice/stop features and exposes a narrow leucine codon-family response, but does not recover a broad or decoder-aligned synonymous feature.
-Reconstruction health appears useful for resolving specificity, yet still does not substitute for biological association and targeted causal evidence.
-
-SAE improvements should be evaluated by rerunning the fixed first/middle/final biological panels; the layer hypothesis does not prescribe a particular SAE recipe.
-
-1. Treat [#426](https://github.com/Open-Athena/marin-dna/issues/426)'s block-4/10/16/19 sweep as evidence that layer effects are task-specific, while using the fixed first/middle/final panel for general association mapping; do not infer a globally best layer from one outcome.
-2. Vary dictionary expansion, K/L0 or threshold sparsity, BatchTopK versus related architectures, and random seed, comparing FDR-controlled biological association yield and feature stability rather than reconstruction alone.
-3. Diagnose the 25M block-19 concentration (inactive fraction 0.568; top-1% activation share 0.748) before scaling that recipe; use larger activation budgets up to eight billion only when a measured bottleneck justifies them.
-4. Test whether RC-balanced SAE training or an explicit orientation objective changes invariant-feature yield.
-5. Retain reconstructed-model CE/KL degradation alongside FVE, cosine, L0, dead-feature, activation-concentration, and compute diagnostics; [#426](https://github.com/Open-Athena/marin-dna/issues/426) shows that even these health metrics are supporting evidence rather than the scientific endpoint.
-6. Normalize feature activations against a fixed human-reference corpus before comparing activation magnitudes or ranking features with different dynamic ranges and prevalence.
-7. Compare decoder-space neighborhoods and direction alignment across dictionaries, checkpoints, and seeds; measure biological yield for feature families as well as individual IDs.
-8. After robust individual features emerge, test whether co-activation modules capture higher-order motif or region grammar.
-
-The decisive research metrics are FDR-controlled biological association yield, feature and feature-family stability across seeds/checkpoints, motif/context coherence, FWD/RC behavior, and causal validation.
-Reuse fixed datasets and analysis definitions when comparing SAE recipes; preserve untouched contexts only for targeted robustness, transfer, or causal claims that require them.
-
-### 4. Biological follow-up
-
-The literature suggests the following prioritized **variant-response** inventory for short-context m5.1 analysis.
-Reference-sequence scans are useful both for naming and localizing Δ features and as a distinct annotation/segmentation application:
-
-- **Sequence and composition responses:** how substitutions perturb nucleotide, GC/CpG, homopolymer, low-complexity, and local compositional features.
-- **Repeats and mobile sequence:** variant responses stratified by repeat class, family, subfamily, and divergence/age—including endogenous retroviral/LTR, LINE/SINE, satellite, and simple-repeat sequence.
-  Audit both Δ-responsive feature IDs and their share of nonzero Δ slots and total |Δ| mass; reference activation capacity is a secondary diagnostic.
-- **Local regulatory variant grammar:** perturbations in 5′ and 3′ UTRs, TF and RBP motifs, motif orientation/flanking context, promoters/TSS, cCRE categories, and local motif combinations or spacing.
-- **Gene architecture and RNA variants:** splice donors/acceptors, polypyrimidine tracts, exon/intron boundaries, polyadenylation signals, ORF/intergenic sequence, and annotated tRNA, rRNA, miRNA, snoRNA, lncRNA, and other ncRNA classes.
-- **Coding variant effects:** codon phase/frame, start and stop signals, synonymous versus missense changes, frameshifts, premature stops, and amino-acid or protein-secondary-structure signals recoverable from coding DNA.
-- **Feature organization:** FWD/RC feature pairs or sets, broad-to-specific feature hierarchies, context-specialized members of one motif family, decoder-space neighborhoods, and compositional feature programs.
-
-The practical paired-variant ladder is: **CDS and splicing variants as the first biological step and substantive tier** → 5′/3′ UTR variants → promoter/TSS-proximal and annotated ncRNA variants → enhancer/cCRE variants.
-Enhancers are the hardest tier because their local sequence vocabulary is heterogeneous and cell-state dependent; claims about distal enhancer–promoter relationships remain out of scope for a 255 bp model.
-
-Applied follow-ups:
-
-- **Reference-sequence segmentation and gene annotation ([#440](https://github.com/Open-Athena/marin-dna/issues/440)):** Scan the human reference at base-pair resolution for features whose activation identifies local genomic states or sharply marks boundaries—for example exon versus intron, CDS versus 5′/3′ UTR, splice boundaries, promoter/TSS, intergenic sequence, and cCRE classes.
-  Evaluate both pointwise class association and boundary localization, keeping FWD/RC separate initially.
-  This is a standalone application of the learned feature inventory rather than a variant-effect endpoint; for the 255 bp m5.1 system it concerns local sequence annotation, not long-range regulatory interactions.
-- **CDS and splicing variants:** This is the first biological step, because known splice and genetic-code grammar provides unusually strong falsification tests while remaining central to variant effect prediction.
-  [#429](https://github.com/Open-Athena/marin-dna/issues/429) has held-out donor/acceptor/stop/synonymous leads, matched discovery-context perturbations, and a prospective hash-sampled test-context panel on which all five original-dictionary causal contrasts clear zero.
-  [#431](https://github.com/Open-Athena/marin-dna/issues/431) then showed that acceptor, donor, and stop semantics survive two independent dictionaries even when IDs permute, while synonymous/codon degeneracy does not survive either 5M dictionary or either exhaustive search.
-  [#432](https://github.com/Open-Athena/marin-dna/issues/432) confirmed the three robust semantics at 25M and found only a narrower leucine codon-family/local-degeneracy feature under exhaustive search, not general synonymous semantics.
-  Broader missense, start/stop-loss, splice-subclass, and real frameshift/indel panels remain separate follow-ups.
-  This tier remains scientifically important after the protocol is validated.
-- **Local regulatory variant ladder:** Find Δ features for 5′/3′ UTR variants first, then strand-aware promoter/TSS-proximal and annotated ncRNA variants, before the harder enhancer/cCRE tier.
-  Use FDR-controlled paired associations, spatial localization around the edit, motif/context inspection, and targeted mutagenesis at every stage; add independent-context replication when advancing a stronger mechanistic claim.
-- **Repeat response capacity:** At each tier, quantify repeat class/family/subfamily associations and the share of Δ-responsive feature IDs, nonzero Δ slots, total |Δ| mass, and decoder neighborhoods devoted to repeat-overlapping variants.
-  Reference-sequence capacity is supporting context.
-- **Regulatory interpretation:** [#421](https://github.com/Open-Athena/marin-dna/issues/421) now characterizes block-19 feature 219 and block-10 feature 11137 as broad, strand-reproducible, GC/CpG-conditioned accessibility/promoter-effect magnitude features.
-  Feature 11928's AlphaGenome association is tail-driven, but its Mendelian-label association is strand-consistent and should be compared with [#436](https://github.com/Open-Athena/marin-dna/issues/436)'s final-layer inventory.
-  Next resolve track-composition robustness, then use targeted perturbation for mechanism and review the signed/default-scorer phase.
-- **Curriculum and generalization:** Which features appeared or sharpened during the three-way to five-way continuation, and do they generalize across held-out human loci and homologous mammalian loci?
-- **Causality:** For a small preregistered set of robust features, do in-distribution ablation or clamping change downstream predictions in the biologically expected direction?
-- **Efficiency:** What is the cheapest correctness-equivalent extraction and SAE training recipe that preserves the scientific conclusions?
+- Extend the paired-variant inventory from CDS and splice variants to UTR, promoter/TSS-proximal, annotated ncRNA, and later enhancer/cCRE variants.
+- Keep reference, alternate, signed change, magnitude, and FWD/RC views; predeclare any aggregate and correct over the complete eligible feature family.
+- Test whether feature-family or set-level correspondence is more stable across orientations, SAE seeds, dictionaries, and checkpoints than same-ID matching.
+- Compare SAE recipes by corrected biological yield, feature-family stability, and reconstructed-model degradation rather than reconstruction alone.
+- Qualify reference-sequence annotation and boundary features against composition, repeat, and local-sequence controls.
+- Test causal interventions only for preregistered features that survive independent contexts and dictionaries.
 
 </details>

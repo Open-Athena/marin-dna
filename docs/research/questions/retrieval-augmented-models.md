@@ -64,8 +64,6 @@ Online retrieval and index-cost work must then establish whether the approach is
 - [Protriever](https://proceedings.mlr.press/v267/weitzman25a.html) jointly trains a protein retriever and autoregressive reader and reports approximately 4.6 ms retrieval with a 12.6 GB compressed UniRef50 index.
   This is evidence that learned dense retrieval can be practical in proteins.
   Genomes are larger, repetitive non-coding sequence is common, and local orthology can be ambiguous, so the speed and index size do not transfer directly.
-- The practical observables are retrieval recall for true orthologs, sensitivity to paralogs and repeats, accuracy versus homolog count and context length, per-query latency, index memory, preprocessing cost, and degradation under stale or incomplete corpora.
-  None has been measured for MarinDNA.
 
 </details>
 
@@ -82,45 +80,11 @@ Online retrieval and index-cost work must then establish whether the approach is
 <details>
 <summary>Possible directions</summary>
 
-- **Scale the demonstrated recipe.**
-  The highest-priority axis is expanding the context beyond the current seven-species mammalian subset to more mammals and non-mammalian vertebrates.
-  Longer optimization and readers larger than 104M parameters are separate candidate axes because the current validation losses were still falling and the tested readers were small.
-  Measure each axis separately because one seed at each current size does not establish a scaling law.
-
-- **Target and architecture.**
-  Should the model directly generate a sequence of unaligned homologous sequences, as in PoET and EnhancAR, encode retrieved homologs separately and condition an autoregressive reader, or retrofit a strong pretrained single-sequence model with cross-attention, as in RAG-ESM?
-  How should it represent species identity, phylogenetic distance, arbitrary homolog order, variable sequence length, and reverse complements?
-
-- **What counts as useful retrieval?**
-  Does the reader need strict orthologs, or can paralogs and more remote functional analogs help?
-  How should we distinguish true evolutionary signal from repeats, low-complexity matches, assembly artifacts, and reference leakage?
-
-- **Retrieval backend.**
-  What is the best accuracy–cost tradeoff among direct lookup in a precomputed WGA, local sequence alignment against a genome corpus, dense embedding search, and a hybrid dense-retrieval-plus-alignment/reranking system?
-  Can a retriever be trained jointly with the gLM, as in Protriever, and does task-aware retrieval outperform generic homology?
-
-- **Embedding retrieval.**
-  What training objective and segment granularity would make a DNA embedding index recover local orthology across substitutions, indels, rearrangements, and large evolutionary distances?
-  How much recall against trusted WGA/orthology sets is required before dense retrieval improves the downstream reader?
-
-- **VEP.**
-  Does retrieval improve zero-shot performance on the existing Mendelian, complex-trait, saturation-genome-editing, and other SNV evaluations?
-  More importantly, can full-sequence autoregressive likelihoods produce calibrated and length-robust scores for insertions and deletions that alignment-column models cannot naturally score?
-
-- **Representations.**
-  Do retrieval-conditioned embeddings improve functional-element separation, frozen-embedding linear probes, and other sequence-function tasks, as the protein results from E1, RAG-ESM, and PoET-2 suggest, or does retrieval mainly improve likelihood-based VEP in DNA?
-  Which representation should be exported when the query is conditioned on a variable set of homologs, and is a causal objective sufficient or is a masked/dual objective needed?
-
-- **Deployment unit.**
-  Is retrieval performed online per query window, amortized and cached per locus, or entirely offline for a fixed reference genome?
-  The practical answer may differ for genome-wide precomputed VEP scores, interactive annotation of variants on a known reference, and scoring or generating arbitrary sequences.
-
-- **Practicality criteria.**
-  What index-build time, index size, memory footprint, p50/p95 retrieval latency, end-to-end throughput, cache hit rate, and dollar cost are acceptable?
-  Retrieval and reader inference should be profiled separately, with WGA lookup, local alignment, and dense retrieval compared at matched downstream accuracy.
-
-- **Evaluation hygiene.**
-  How should genomes, loci, homolog families, and retrieval corpora be split to prevent near-duplicate or allele leakage?
-  Comparisons intended to estimate the incremental retrieval effect should include a no-retrieval ablation, matched reader capacity, fixed corpus versions, retrieval traces, and performance stratified by alignment depth, genomic region, repeat content, evolutionary distance, and indel length.
+- Expand the fixed recipe beyond seven mammals, train longer, and test readers above 104M parameters as separate axes with repeated seeds.
+- Add matched no-retrieval, wrong-context, and order-ablation arms to estimate the incremental benefit and distinguish orthology from extra tokens.
+- Evaluate SNVs and indels across retrieval depth, evolutionary distance, region, repeat content, and reader size.
+- Compare precomputed whole-genome-alignment lookup, local alignment, dense retrieval, and hybrid reranking at matched downstream accuracy.
+- Measure retrieval recall, index build and memory cost, p50/p95 latency, reader throughput, and caching for fixed-reference and arbitrary-sequence use cases.
+- Split loci, genomes, and homolog families to prevent near-duplicate, allele, and reference leakage.
 
 </details>
