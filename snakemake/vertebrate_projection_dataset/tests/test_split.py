@@ -39,16 +39,42 @@ def _rows() -> pl.DataFrame:
 
 def test_uniform_selection_is_reproducible_under_row_reordering() -> None:
     rows = _rows()
-    forward = select_uniform_validation_rows(rows, validation_rows=8, seed=42)
+    forward = select_uniform_validation_rows(
+        rows,
+        validation_rows=8,
+        seed=42,
+        selection_salt="region=cds|species_scope=all",
+    )
     reverse = select_uniform_validation_rows(
         rows.reverse(),
         validation_rows=8,
         seed=42,
+        selection_salt="region=cds|species_scope=all",
     )
     assert forward.equals(reverse)
     assert forward.height == 8
     assert forward["row_id"].n_unique() == 8
     assert forward["selection_rank"].to_list() == list(range(1, 9))
+
+
+def test_cohort_salt_decouples_nested_cohort_samples() -> None:
+    rows = _rows()
+    combined = select_uniform_validation_rows(
+        rows,
+        validation_rows=8,
+        seed=42,
+        selection_salt="region=cds|species_scope=all",
+    )
+    mammals_only = select_uniform_validation_rows(
+        rows,
+        validation_rows=8,
+        seed=42,
+        selection_salt="region=cds|species_scope=mammals_only",
+    )
+    assert set(combined["row_id"]) != set(mammals_only["row_id"])
+    assert (
+        combined["selection_hash"].to_list() != mammals_only["selection_hash"].to_list()
+    )
 
 
 def test_uniform_selection_precedes_augmentation() -> None:
@@ -57,6 +83,7 @@ def test_uniform_selection_precedes_augmentation() -> None:
             _rows().with_columns(pl.lit("+").alias("augmentation")),
             validation_rows=8,
             seed=42,
+            selection_salt="region=cds|species_scope=all",
         )
 
 
@@ -92,6 +119,7 @@ def test_streaming_split_writes_random_schema_matched_outputs(tmp_path: Path) ->
     assert set(validation["augmentation"]) == {"+"}
     assert "row_id" not in validation.columns
     assert selection.height == 8
+    assert set(selection["selection_salt"]) == {"region=cds|species_scope=all"}
 
     selected_keys = set(selection.select(*VALIDATION_IDENTITY_COLUMNS).iter_rows())
     train_keys = set(train.select(*VALIDATION_IDENTITY_COLUMNS).iter_rows())
@@ -117,6 +145,7 @@ def test_streaming_split_writes_random_schema_matched_outputs(tmp_path: Path) ->
         "realized_token_count": 8 * 256,
         "region_label": "cds",
         "seed": 42,
+        "selection_salt": "region=cds|species_scope=all",
         "source_rows": 30,
         "species_scope": "all",
         "split_strategy": "uniform_row_random_before_reverse_complement",

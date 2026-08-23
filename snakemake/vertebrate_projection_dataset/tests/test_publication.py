@@ -119,6 +119,33 @@ def test_validate_artifacts_reconciles_rows_and_rejects_sidecars(
         )
 
 
+def test_validate_artifacts_rejects_tampered_composition(tmp_path: Path) -> None:
+    artifact_dir, source_dir, config_path = _fixture(tmp_path)
+    composition_path = source_dir / "all/validation_composition.tsv"
+    composition = pl.read_csv(composition_path, separator="\t")
+    rows = composition.to_dicts()
+    chrom_indices = [
+        index for index, row in enumerate(rows) if row["dimension"] == "source_chrom"
+    ]
+    assert len(chrom_indices) == 2
+    first, second = chrom_indices
+    rows[first]["eligible_rows"] = int(rows[first]["eligible_rows"]) + 1
+    rows[second]["eligible_rows"] = int(rows[second]["eligible_rows"]) - 1
+    pl.DataFrame(rows, schema=composition.schema).write_csv(
+        composition_path, separator="\t"
+    )
+    with pytest.raises(AssertionError):
+        publication.validate_artifacts(
+            artifact_dir,
+            source_dir,
+            tmp_path / "manifest.json",
+            config_path=config_path,
+            pipeline_commit=PIPELINE_COMMIT,
+            config_sha256=CONFIG_SHA256,
+            workers=1,
+        )
+
+
 def test_upload_rejects_unexpected_remote_file_before_subprocess(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

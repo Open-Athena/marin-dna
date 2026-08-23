@@ -43,6 +43,7 @@ from marin_dna_vertebrate_projection.qc import (
 )
 from marin_dna_vertebrate_projection.split import (
     VALIDATION_IDENTITY_COLUMNS,
+    build_validation_composition,
     select_uniform_validation_rows,
 )
 
@@ -369,10 +370,12 @@ def write_dataset_split_files(
         f"region={region_label}, scope={species_scope}, source_rows={source_rows}"
     )
 
+    selection_salt = f"region={region_label}|species_scope={species_scope}"
     selection = select_uniform_validation_rows(
         original,
         validation_rows=validation_rows,
         seed=seed,
+        selection_salt=selection_salt,
     )
     selected_keys = selection.select(*VALIDATION_IDENTITY_COLUMNS)
     train_original = original.join(
@@ -422,24 +425,7 @@ def write_dataset_split_files(
     validation.write_parquet(validation_path)
     selection.write_csv(selection_path, separator="\t")
 
-    composition_frames: list[pl.DataFrame] = []
-    for dimension in ["source_chrom", "species", "alignment_source"]:
-        eligible = (
-            original.group_by(dimension)
-            .len(name="eligible_rows")
-            .collect(engine="streaming")
-        )
-        selected = validation.group_by(dimension).len(name="selected_rows")
-        composition_frames.append(
-            eligible.join(selected, on=dimension, how="left")
-            .with_columns(
-                pl.col("selected_rows").fill_null(0),
-                pl.lit(dimension).alias("dimension"),
-                pl.col(dimension).cast(pl.String).alias("value"),
-            )
-            .select("dimension", "value", "eligible_rows", "selected_rows")
-        )
-    pl.concat(composition_frames).sort("dimension", "value").write_csv(
+    build_validation_composition(original, validation).write_csv(
         composition_path,
         separator="\t",
     )
@@ -471,6 +457,7 @@ def write_dataset_split_files(
                 "realized_token_count": validation_rows * (TARGET_LENGTH + 1),
                 "region_label": region_label,
                 "seed": seed,
+                "selection_salt": selection_salt,
                 "source_rows": source_rows,
                 "species_scope": species_scope,
                 "split_strategy": "uniform_row_random_before_reverse_complement",

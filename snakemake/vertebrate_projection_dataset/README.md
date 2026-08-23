@@ -199,7 +199,7 @@ Each configured region cohort first gets internal `train.parquet` and `validatio
 Parquet is the efficient projection, split, and card-count intermediate; it is not the published training format.
 
 For each cohort, validation selection considers only original-orientation rows after cohort filters and before reverse-complement augmentation.
-The selector hashes each stable biological row identity with the configured seed in Polars.
+The selector hashes each stable biological row identity with the configured seed and a stable region/species-scope cohort salt in Polars, so nested cohorts receive independent rankings.
 It takes exactly `validation_rows` lowest ranks without replacement: 16,384 rows in the full tier and one row in the smoke tier.
 Stable identity tie-breaks make membership independent of input row order.
 Selection is row-level and does not stratify by chromosome, species, alignment backend, or human anchor.
@@ -209,9 +209,9 @@ Every unselected original row remains in training.
 When reverse-complement augmentation is enabled, it applies only to those training originals; validation stays in original orientation and the reverse complement of every selected validation row is excluded from training.
 
 Each cohort writes three audit sidecars in addition to its Parquets.
-`validation_selection.tsv` records stable identities, selection ranks, the seed, and selection digests.
+`validation_selection.tsv` records stable identities, selection ranks, the seed, cohort salt, and selection digests.
 `validation_composition.tsv` reconciles eligible and selected counts by chromosome, species, and alignment backend.
-`split_summary.json` records the strategy, seed, source/train/validation counts, augmentation setting, and realized token count.
+`split_summary.json` records the strategy, seed, cohort salt, source/train/validation counts, augmentation setting, and realized token count.
 At 16,384 rows, validation has exactly 4,194,304 tokens including BOS.
 These audit sidecars remain in the pipeline results and are never copied into the Hugging Face artifact directory.
 

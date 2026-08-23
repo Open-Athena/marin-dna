@@ -20,6 +20,7 @@ from huggingface_hub.hf_api import DatasetInfo
 from marin_dna_vertebrate_projection.contract import TARGET_LENGTH
 from marin_dna_vertebrate_projection.split import (
     VALIDATION_IDENTITY_COLUMNS,
+    build_validation_composition,
     select_uniform_validation_rows,
 )
 
@@ -195,6 +196,16 @@ def validate_artifacts(
             "uniform_row_random_before_reverse_complement"
         )
         assert int(summary["seed"]) == validation_seed
+        expected_region_label = "cds" if cohort == "cds_mammals_only" else cohort
+        expected_species_scope = (
+            "mammals_only" if cohort == "cds_mammals_only" else "all"
+        )
+        assert summary["region_label"] == expected_region_label
+        assert summary["species_scope"] == expected_species_scope
+        selection_salt = (
+            f"region={expected_region_label}|species_scope={expected_species_scope}"
+        )
+        assert summary["selection_salt"] == selection_salt
         assert int(summary["validation_rows"]) == validation_rows
         assert int(summary["train_rows"]) == source_rows["train"]
         assert int(summary["train_original_rows"]) + validation_rows == int(
@@ -221,6 +232,7 @@ def validate_artifacts(
             reconstructed_originals,
             validation_rows=validation_rows,
             seed=validation_seed,
+            selection_salt=selection_salt,
         )
         assert selection.columns == expected_selection.columns
         assert selection.to_dicts() == expected_selection.to_dicts()
@@ -277,14 +289,12 @@ def validate_artifacts(
             cohort_root / "validation_composition.tsv",
             separator="\t",
         )
-        assert set(composition["dimension"].to_list()) == {
-            "alignment_source",
-            "source_chrom",
-            "species",
-        }
-        for _dimension, group in composition.group_by("dimension"):
-            assert int(group["eligible_rows"].sum()) == int(summary["source_rows"])
-            assert int(group["selected_rows"].sum()) == validation_rows
+        expected_composition = build_validation_composition(
+            reconstructed_originals,
+            pl.scan_parquet(validation_source),
+        )
+        assert composition.columns == expected_composition.columns
+        assert composition.to_dicts() == expected_composition.to_dicts()
 
         cohort_metadata[cohort] = {
             "source_rows": source_rows,
