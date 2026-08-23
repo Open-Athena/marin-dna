@@ -70,6 +70,37 @@ def test_centered_selection_matches_registered_odd_and_even_ranks() -> None:
     )
 
 
+def test_ranked_selectors_handle_variable_and_empty_rows() -> None:
+    losses = torch.tensor(
+        [
+            [7.0, 6.0, 5.0, 4.0, 3.0, 2.0],
+            [3.0, 1.0, 2.0, 9.0, 8.0, 7.0],
+            [1.0, 6.0, 2.0, 5.0, 3.0, 4.0],
+        ]
+    )
+    eligible = torch.tensor(
+        [
+            [False, False, False, False, False, False],
+            [False, True, False, False, False, False],
+            [True, True, True, True, True, False],
+        ]
+    )
+    for mode in ("student_low", "student_middle", "student_high"):
+        selected = select_token_mask(losses, eligible, mode=mode, ratio=0.5)
+        assert torch.equal(selected.sum(dim=1), torch.tensor([0, 1, 2]))
+        assert not (selected & ~eligible).any()
+
+    middle = select_token_mask(
+        losses,
+        eligible,
+        mode="student_middle",
+        ratio=0.5,
+    )
+    assert torch.equal(
+        middle[2], torch.tensor([False, False, True, False, True, False])
+    )
+
+
 def test_random_selector_state_round_trips_through_state_dict() -> None:
     losses = torch.arange(16, dtype=torch.float32).reshape(2, 8)
     eligible = torch.ones_like(losses, dtype=torch.bool)

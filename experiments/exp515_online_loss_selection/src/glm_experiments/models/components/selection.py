@@ -60,42 +60,44 @@ def select_token_mask(
         raise TypeError("eligible must be a boolean tensor")
     if mode not in VALID_SELECTOR_MODES:
         raise ValueError(f"unknown selector mode {mode!r}")
-    selected = torch.zeros_like(eligible)
-    detached = losses.detach()
+    selected_count(1, ratio)
+    if mode == "uniform":
+        return eligible.clone()
 
-    for row in range(losses.shape[0]):
-        positions = torch.nonzero(eligible[row], as_tuple=False).flatten()
-        count = int(positions.numel())
-        k = selected_count(count, ratio)
-        if k == 0:
-            continue
-        if mode == "uniform":
-            chosen = positions
-        elif mode == "random":
-            if random_generator is None:
-                raise ValueError("random selection requires a separate generator")
-            random_scores = torch.rand(
-                count,
-                generator=random_generator,
-                device="cpu",
-            ).to(device=positions.device)
-            order = torch.argsort(random_scores, stable=True)
-            chosen = positions[order[:k]]
-        else:
-            scores = detached[row, positions]
-            if mode == "student_low":
-                order = torch.argsort(scores, descending=False, stable=True)
-                chosen = positions[order[:k]]
-            elif mode == "student_high":
-                order = torch.argsort(scores, descending=True, stable=True)
-                chosen = positions[order[:k]]
-            else:
-                order = torch.argsort(scores, descending=False, stable=True)
-                start = (count - k) // 2
-                chosen = positions[order[start : start + k]]
-        selected[row, chosen] = True
-
-    return selected
+    counts = eligible.sum(dim=1)
+    selected_counts = torch.floor(counts * ratio).long()
+    selected_counts = torch.where(
+        counts > 0,
+        selected_counts.clamp_min(1),
+        torch.zeros_like(selected_counts),
+    )
+    if mode == "random":
+        if random_generator is None:
+            raise ValueError("random selection requires a separate generator")
+        ranking_scores = torch.rand(
+            losses.shape,
+            generator=random_generator,
+            device="cpu",
+        ).to(device=losses.device)
+    elif mode == "student_high":
+        ranking_scores = -losses.detach()
+    else:
+        ranking_scores = losses.detach()
+    ranking_scores = ranking_scores.masked_fill(~eligible, float("inf"))
+    order = torch.argsort(ranking_scores, dim=1, stable=True)
+    ranks = torch.empty_like(order)
+    ordinal = torch.arange(order.shape[1], device=order.device).expand_as(order)
+    ranks.scatter_(1, order, ordinal)
+    starts = (
+        (counts - selected_counts) // 2
+        if mode == "student_middle"
+        else torch.zeros_like(counts)
+    )
+    return (
+        eligible
+        & (ranks >= starts.unsqueeze(1))
+        & (ranks < (starts + selected_counts).unsqueeze(1))
+    )
 
 
 class TokenSelector(nn.Module):

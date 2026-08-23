@@ -14,10 +14,8 @@ from glm_experiments.models.components.selection import SelectorMode, TokenSelec
 def _masked_mean(values: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
     """Return a mean over mask entries or a differentiable zero."""
 
-    count = mask.sum()
-    if int(count.detach().cpu()) == 0:
-        return values.sum() * 0.0
-    return values.masked_select(mask).mean()
+    denominator = mask.sum().clamp_min(1)
+    return values.masked_select(mask).sum() / denominator
 
 
 class LM(nn.Module):
@@ -231,11 +229,12 @@ class CLM(LM):
         if self.selector.mode in {"uniform", "random"}:
             return bounds
         detached = losses.detach()
-        for row in range(losses.shape[0]):
-            values = detached[row].masked_select(selected[row] & eligible[row])
-            if values.numel() > 0:
-                bounds[row, 0] = values.min()
-                bounds[row, 1] = values.max()
+        selected_losses = detached.masked_fill(~(selected & eligible), float("inf"))
+        bounds[:, 0] = selected_losses.amin(dim=1)
+        bounds[:, 1] = detached.masked_fill(~(selected & eligible), float("-inf")).amax(
+            dim=1
+        )
+        bounds.masked_fill_(~selected.any(dim=1, keepdim=True), torch.nan)
         return bounds
 
     def forward(
