@@ -1,48 +1,31 @@
 # How should genomic anchors be selected and projected across species?
 
 > [!NOTE]
-> **TL;DR:** The current full-window projection contract supports viable training datasets, but its anchor criterion, fragment semantics, and homology-versus-yield tradeoff remain unsettled; confidence is high in the baseline behavior and low in its optimality, with a matched downstream comparison still needed.
+> **TL;DR:** Center-1-bp projection is the default for new multispecies training datasets after higher recovery and broadly similar one-seed development AUPRC trajectories; anchor selection remains open because experiment #473 held anchors fixed.
 
 ## Question
 
 How do human anchor-inclusion and cross-species alignment-projection choices change which genomic regions and species are represented in multispecies DNA language-model training data, and how do those choices affect downstream model quality?
-We want to understand the genome-wide trade-off among evolutionary breadth, confidence that an extracted target window is homologous to its human anchor, and usefulness for model training.
+We want to understand the trade-off across genomic-region classes among evolutionary breadth, confidence that an extracted target window is homologous to its human anchor, and usefulness for model training.
 Projection yield and clade recovery are intermediate measurements; downstream model performance is the final criterion.
 
 ## Current answer
 
-The full-window projection baseline is operational and well specified, but its optimality is unknown.
-It starts from conservation-filtered 255 bp human anchors, projects the full interval, requires all compatible fragments to map to one target chromosome and strand without overlap, takes their outer span, accepts spans from 128 to 512 bp, and resizes around the span midpoint to 255 bp.
-The final target window can therefore contain unaligned flanking sequence.
+Full-window projection is operational and well specified, but it must reconcile compatible fragments, apply a target-span gate, and choose a span midpoint before extracting a fixed target window.
+Center-1 instead projects one central nucleotide to a unique target locus and extracts a fixed window around it.
 
-This contract has produced viable mammalian and vertebrate training data and supports backend-uniform rejection accounting.
-It does not establish that full-window projection selects the best homologous locus or balances homology confidence and species recovery optimally.
-Tiny fragments, duplicated loci, midpoint definition, span thresholds, and allowed unaligned flank remain policy choices.
+[Experiment #473](../experiments/473-center-seeded-projection.md) found that center-1 increased aggregate species–anchor recovery across five regions without a general increase in sampled external flank.
+Corrected one-seed development AUPRC trajectories showed no consistent policy advantage across the region-relevant CDS and enhancer benchmarks, although one terminal enhancer endpoint favored full-window projection and was not replicated across seeds.
+The experiment held anchors fixed, so it does not resolve anchor-selection policy.
 
-A center-seeded alternative would project one central landmark, require a unique target locus, and extract a fixed target-genome window around it.
-This could increase distant-species recovery while weakening evidence that the surrounding bases are homologous.
-Multiple landmarks or fragment-selection policies occupy intermediate points.
-
-Confidence is high in the documented behavior of the baseline and low in its optimality.
-The next decision gate is a matched policy comparison on fixed anchors with per-species and per-region recovery, mapping ambiguity, aligned coverage, unaligned flank, and downstream training at matched tokens.
-Projection yield alone is insufficient.
+Center-1 is the operational default for new projection datasets because its contract is simpler, aggregate recovery is higher, and the downstream trajectories are broadly similar.
+This choice does not establish statistical equivalence, and existing full-window rules and artifacts remain available for reproducibility and historical comparisons.
+Projection yield remains insufficient for future policy decisions, especially in regions without matched downstream training.
+Multiple landmarks and alternative fragment-selection policies remain open choices for other region classes.
 
 <details>
 <summary>Related work</summary>
 
-- [#121](https://github.com/Open-Athena/marin-dna/issues/121) developed the early Zoonomia HAL enhancer-projection path.
-  It established operational feasibility for human-anchored mammalian data but was limited to an enhancer-oriented pipeline.
-- [#149](https://github.com/Open-Athena/marin-dna/issues/149) generalized human-anchored projection into a genome-wide mammalian training program.
-  It established the reusable data concept; projection semantics were inherited rather than experimentally optimized.
-- [#153](https://github.com/Open-Athena/marin-dna/issues/153) compared MAF streaming with halLiftover using no-duplicate mappings and selected HAL for speed and operational simplicity.
-  It also established the single-locus, 128–512 bp outer-span, midpoint-resize baseline.
-  The comparison chose a backend, not the best biological projection policy.
-- [#227](https://github.com/Open-Athena/marin-dna/issues/227) fixed the v4 base-pair and window-labeling contract used after projection.
-  It separates annotation semantics from projection semantics but does not measure homolog quality.
-- [#230](https://github.com/Open-Athena/marin-dna/issues/230) and [#233](https://github.com/Open-Athena/marin-dna/issues/233) added rank-based species subsetting and built the 19-order cohort.
-  They make recovery-versus-species-density experiments possible; they do not choose anchor or projection policy.
-- [#417](https://github.com/Open-Athena/marin-dna/issues/417) applies one projection contract across Zoonomia HAL and UCSC MultiZ sources and records backend-uniform rejection reasons.
-  It improves comparability and accounting while leaving the contract itself unvalidated.
 - [Ye et al., Predicting functional constraints across evolutionary timescales with phylogeny-informed genomic language models](https://pmc.ncbi.nlm.nih.gov/articles/PMC12458161/) shows that GPN-Star calibrated entropy can outperform classical phyloP or PhastCons for constraint and variant prioritization and that primate, mammal, and vertebrate timescales differ by endpoint.
   This motivates alternative anchor-inclusion scores.
   It does not determine the best projection semantics.
@@ -78,13 +61,14 @@ Projection yield alone is insufficient.
   Centering was suggestively better for distal VEP but unequal epoch counts prevented attribution to anchor geometry.
 - [#353](https://github.com/Open-Athena/marin-dna/issues/353) compared human-anchored nucleotide CDS projection with native per-species annotation at vertebrate and animal scales.
   Projection produced useful data but lost distant species and did not dominate every evaluation, directly exposing the recovery-versus-construction tradeoff.
+- [Experiment #473](../experiments/473-center-seeded-projection.md) compared full-window and center-1 projection on fixed anchors with recovery, reverse-trace QC, matched-token training, paired Mendelian uncertainty, Complex traits, and SGE.
+  Its corrected one-seed development trajectories are broadly similar, supporting center-1 as the simpler default while retaining full-window artifacts as historical controls.
 
 </details>
 
 <details>
 <summary>Possible directions</summary>
 
-- Which projection semantics best balance species recovery with confidence that the extracted target window is homologous to the human anchor: full-window projection, center-seeded projection, multiple projected landmarks, or fragment/locus-based alternatives?
 - Within full-window projection, should tiny fragments be removed before locus checks, should one fragment be selected as canonical, or should all compatible fragments define the target span?
   How should same-chromosome/strand requirements, span-length cutoffs, midpoint choice, and permitted unaligned flank vary?
 - How do phyloP and GPN-Star inclusion criteria, the evolutionary timescale of the score, the base-level cutoff, and the required within-window selected fraction change genome-wide anchor composition and the percentage of primates, mammals, and vertebrates recovered?
