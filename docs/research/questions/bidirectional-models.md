@@ -13,20 +13,16 @@ Training the best possible MLM from scratch, preserving autoregressive generatio
 
 ## Current answer
 
-The [m5.1 MNTP adaptation experiment](../experiments/479-mntp-adaptation.md) tested ordinary full-attention MNTP, three mask-token choices, damage-calibrated attention annealing with LoRA, predictor-row-only future attention, a zero-initialized gated causal/full LoRA route, and two learning rates for [BIdirectional Causal language model Optimization (BICO)](https://aclanthology.org/2024.emnlp-main.754/)-style LoRA.
-None produced a source-matching single-forward-pass candidate.
-The gated two-path route came closest at CE/accuracy 1.058/51.25%, but its cross-entropy was confidence-supported worse than the causal source at 1.051/50.63%.
-A symmetric two-causal-pass control reached 0.913/62.5%, confirming complementary directional information while remaining outside the single-pass goal.
+The [m5.1 MNTP adaptation experiment](../experiments/479-mntp-adaptation.md) tested full-parameter and LoRA conversion routes under budgets of at most 1,000 steps.
+None matched the causal source in a single forward pass.
+The best one-pass candidate had cross-entropy 1.058 versus 1.0508 for the source, while a symmetric two-causal-pass control reached 0.9134 and confirmed that the two directions contain complementary information.
 
-The earlier full-parameter transferred and scratch MNTP models reached Mendelian macro AUPRC 0.1151 and 0.1112, compared with 0.3951 for the source CLM.
-The final standard-rate reflected-RoPE LoRA run stayed between 0.1048 and 0.1113 across checkpoints, close to the 0.10 random-ranking baseline from one-positive/nine-negative match groups.
-It did not establish better-than-random VEP, and all paired checkpoint intervals versus step 0 included zero.
-Gonzalo Benegas interprets this near-random VEP result as evidence that the adapted representations are poor for the intended use.
+Evaluated MNTP models remained close to the Mendelian VEP random-ranking baseline and far below the source CLM.
+No checkpoint improvement was established within the final run.
 
-Cheap causal-to-bidirectional conversion remains unproven for MarinDNA.
-We now have low confidence that a useful one-pass model can be obtained through a similarly cheap adaptation.
+Cheap causal-to-bidirectional conversion remains unproven for MarinDNA, and we have low confidence that a useful one-pass model can be obtained through a similarly cheap adaptation.
 Other objectives, attention parameterizations, and larger budgets remain untested.
-The tested recipes should not receive longer budgets without a new mechanism, and downstream VEP evaluation should wait until a one-pass candidate at least matches the causal source on paired nucleotide prediction.
+Downstream evaluation should wait until a one-pass candidate at least matches the causal source on paired nucleotide prediction.
 
 <details>
 <summary>Related work</summary>
@@ -43,7 +39,7 @@ The tested recipes should not receive longer budgets without a new mechanism, an
 <details>
 <summary>Related experiments</summary>
 
-- The [m5.1 MNTP adaptation experiment](../experiments/479-mntp-adaptation.md) tested ordinary full attention, mask-token controls, attention annealing, localized future attention, gated causal/full LoRA, and reflected-RoPE LoRA; none produced a source-matching single-pass model, and Mendelian VEP stayed near its random-ranking baseline.
+- The [m5.1 MNTP adaptation experiment](../experiments/479-mntp-adaptation.md) tested full-parameter and LoRA conversion routes; none matched the causal source in one pass, while a two-pass information control succeeded outside the target constraint.
 - [#3](https://github.com/Open-Athena/marin-dna/issues/3) compared causal, masked, and diffusion objectives during early promoter training and proposed a causal-to-masked curriculum, but did not convert a mature checkpoint under a small budget.
 - [#314](https://github.com/Open-Athena/marin-dna/issues/314) provides causal embedding and VEP baselines without testing jointly bidirectional states.
 
