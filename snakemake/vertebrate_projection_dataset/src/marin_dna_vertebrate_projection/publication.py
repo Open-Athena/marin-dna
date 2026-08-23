@@ -207,6 +207,9 @@ def validate_artifacts(
         )
         assert summary["selection_salt"] == selection_salt
         assert int(summary["validation_rows"]) == validation_rows
+        assert int(summary["realized_token_count"]) == validation_rows * (
+            TARGET_LENGTH + 1
+        )
         assert int(summary["train_rows"]) == source_rows["train"]
         assert int(summary["train_original_rows"]) + validation_rows == int(
             summary["source_rows"]

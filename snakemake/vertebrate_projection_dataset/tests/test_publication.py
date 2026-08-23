@@ -146,6 +146,26 @@ def test_validate_artifacts_rejects_tampered_composition(tmp_path: Path) -> None
         )
 
 
+def test_validate_artifacts_rejects_tampered_realized_token_count(
+    tmp_path: Path,
+) -> None:
+    artifact_dir, source_dir, config_path = _fixture(tmp_path)
+    summary_path = source_dir / "all/split_summary.json"
+    summary = json.loads(summary_path.read_text())
+    summary["realized_token_count"] = int(summary["realized_token_count"]) + 1
+    summary_path.write_text(json.dumps(summary))
+    with pytest.raises(AssertionError):
+        publication.validate_artifacts(
+            artifact_dir,
+            source_dir,
+            tmp_path / "manifest.json",
+            config_path=config_path,
+            pipeline_commit=PIPELINE_COMMIT,
+            config_sha256=CONFIG_SHA256,
+            workers=1,
+        )
+
+
 def test_upload_rejects_unexpected_remote_file_before_subprocess(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
