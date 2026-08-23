@@ -30,11 +30,8 @@ The [conservation and repeat predictability experiment](../experiments/478-conse
 Controlled scale-dependent loss reduction remained associated with conservation, but it is distinct from target-distribution reducible loss.
 One orientation preserved the aggregate classification result at half the inference compute without preserving the exact per-base ranking.
 The inference-only audit did not test whether any score improves training and could not separate training exposure or homology effects.
-The [likelihood-dynamics experiment](../experiments/489-likelihood-dynamics.md) followed the fixed 1B m1-to-m1.3 lineage through five cumulative-token checkpoints on CDS, upstream, downstream, ncRNA, and enhancer probes.
-Conservation ranking was already present by 21B tokens and strengthened in four of five regions through the terminal checkpoint.
-Terminal loss ranked conservation better than the negative five-checkpoint loss slope globally and in every region.
-Fitted loss-trajectory groups differed in conservation prevalence and functional-region composition, but the same losses define the descriptive groups and their trajectories.
-These observations make absolute checkpoint loss a stronger conservation proxy than simple loss slope within this inference-only design, while leaving downstream training benefit untested.
+The [likelihood-dynamics experiment](../experiments/489-likelihood-dynamics.md) found conservation ranking by 21B tokens and terminal loss outperforming the five-checkpoint loss slope in every region.
+Its trajectory groups remain descriptive, and neither score was tested as a training selector.
 
 The leading hypothesis is that increasing the density of constrained or correctly annotated sequence improves functional-VEP sample efficiency at fixed compute.
 Whole-genome data may become more useful at larger scale, under weighting that prevents easy background from dominating, or for mutation-process, repeat, phylogeny, and regional-context tasks.
@@ -121,7 +118,6 @@ It should retain a background arm so gains on functional VEP can be weighed agai
 - **Learned single-sequence selection:** once a strong model exists, can a classifier or probe trained on annotations and/or evolutionary labels identify functional windows in a new genome from sequence alone?
   What orthogonal evaluation prevents the selector from merely reproducing conservation or annotation bias?
 - **Frozen likelihood-derived selection:** can per-base loss or entropy from a small frozen model identify useful training tokens without annotations?
-  The likelihood-dynamics result found terminal checkpoint loss ranked conservation better than a five-checkpoint loss slope, but did not test either as a training selector.
   When a target or high-quality reference corpus exists, can a Rho-1-style reference model trained on that distribution provide a useful reducible-loss score?
   Separately, can loss reduction between two same-corpus frozen model sizes identify tokens with high scale-dependent learnability?
   Treat absolute predictability, target-distribution reducible loss, and same-corpus improvement with model scale as distinct signals.
