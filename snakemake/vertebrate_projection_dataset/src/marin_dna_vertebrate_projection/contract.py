@@ -286,6 +286,19 @@ def _apply_fragmented_projection_contract(
             )
             continue
 
+        target_midpoint = (pre_resize_start + pre_resize_end) // 2
+        centered_start = target_midpoint - target_length // 2
+        centered_end = centered_start + target_length
+        if centered_start < 0 or centered_end > target_size:
+            rejected_rows.append(
+                _rejection(
+                    group,
+                    "target_window_out_of_bounds",
+                    f"centered=[{centered_start}, {centered_end}); t_src_size={target_size}",
+                )
+            )
+            continue
+
         resized_start, resized_end = resize_to_length(
             pre_resize_start, pre_resize_end, target_length, target_size
         )
@@ -330,6 +343,10 @@ def _apply_fragmented_projection_contract(
     assert (accepted["t_end"] - accepted["t_start"] == target_length).all()
     assert (accepted["t_start"] >= 0).all()
     assert (accepted["t_end"] <= accepted["t_src_size"]).all()
+    accepted_midpoints = (
+        accepted["pre_resize_t_start"] + accepted["pre_resize_t_end"]
+    ) // 2
+    assert (accepted_midpoints - accepted["t_start"] == target_length // 2).all()
     return ProjectionContractResult(
         accepted=accepted.sort("query_name", "species"),
         rejected=rejected.sort("query_name", "species"),
@@ -370,6 +387,12 @@ def _apply_single_fragment_contract(
     span_too_short = span_length < pre_resize_min_length
     span_too_long = span_length > pre_resize_max_length
     target_too_short = pl.col("t_src_size") < target_length
+    target_midpoint = (pl.col("t_start") + pl.col("t_end")) // 2
+    centered_start = target_midpoint - target_length // 2
+    centered_end = centered_start + target_length
+    target_window_out_of_bounds = (centered_start < 0) | (
+        centered_end > pl.col("t_src_size")
+    )
 
     rejection_reason = (
         pl.when(invalid_source)
@@ -382,6 +405,8 @@ def _apply_single_fragment_contract(
         .then(pl.lit("span_too_long"))
         .when(target_too_short)
         .then(pl.lit("target_chromosome_too_short"))
+        .when(target_window_out_of_bounds)
+        .then(pl.lit("target_window_out_of_bounds"))
         .otherwise(pl.lit(None, dtype=pl.String))
     )
     rejection_detail = (
@@ -413,6 +438,17 @@ def _apply_single_fragment_contract(
                 pl.lit("t_src_size="),
                 pl.col("t_src_size").cast(pl.String),
                 pl.lit(f"; target_length={target_length}"),
+            )
+        )
+        .when(target_window_out_of_bounds)
+        .then(
+            pl.concat_str(
+                pl.lit("centered=["),
+                centered_start.cast(pl.String),
+                pl.lit(", "),
+                centered_end.cast(pl.String),
+                pl.lit("); t_src_size="),
+                pl.col("t_src_size").cast(pl.String),
             )
         )
         .otherwise(pl.lit(None, dtype=pl.String))
@@ -447,6 +483,10 @@ def _apply_single_fragment_contract(
         "aligned_bases",
     )
     accepted = resize_dataframe(accepted, target_length).cast(ACCEPTED_SCHEMA)
+    accepted_midpoints = (
+        accepted["pre_resize_t_start"] + accepted["pre_resize_t_end"]
+    ) // 2
+    assert (accepted_midpoints - accepted["t_start"] == target_length // 2).all()
     rejected = (
         classified.filter(pl.col("_rejection_reason").is_not_null())
         .select(
@@ -649,6 +689,12 @@ def apply_projection_contract(
         ignore_nulls=True,
     )
     pre_resize_length = pl.col("pre_resize_t_end") - pl.col("pre_resize_t_start")
+    target_midpoint = (pl.col("pre_resize_t_start") + pl.col("pre_resize_t_end")) // 2
+    centered_start = target_midpoint - target_length // 2
+    centered_end = centered_start + target_length
+    target_window_out_of_bounds = (centered_start < 0) | (
+        centered_end > pl.col("t_src_size")
+    )
     duplicated_fragment_id = pl.col("_n_fragment_id") != pl.col("fragment_count")
     rejection_reason = (
         pl.when(inconsistent_metadata)
@@ -673,6 +719,8 @@ def apply_projection_contract(
         .then(pl.lit("span_too_long"))
         .when(pl.col("t_src_size") < target_length)
         .then(pl.lit("target_chromosome_too_short"))
+        .when(target_window_out_of_bounds)
+        .then(pl.lit("target_window_out_of_bounds"))
         .otherwise(pl.lit(None, dtype=pl.String))
     )
     rejection_detail = (
@@ -720,6 +768,17 @@ def apply_projection_contract(
                 pl.lit(f"; target_length={target_length}"),
             )
         )
+        .when(target_window_out_of_bounds)
+        .then(
+            pl.concat_str(
+                pl.lit("centered=["),
+                centered_start.cast(pl.String),
+                pl.lit(", "),
+                centered_end.cast(pl.String),
+                pl.lit("); t_src_size="),
+                pl.col("t_src_size").cast(pl.String),
+            )
+        )
         .otherwise(pl.lit(None, dtype=pl.String))
     )
     classified = summary.with_columns(
@@ -732,6 +791,10 @@ def apply_projection_contract(
         *ACCEPTED_SCHEMA.names()
     )
     accepted = resize_dataframe(accepted, target_length).cast(ACCEPTED_SCHEMA)
+    accepted_midpoints = (
+        accepted["pre_resize_t_start"] + accepted["pre_resize_t_end"]
+    ) // 2
+    assert (accepted_midpoints - accepted["t_start"] == target_length // 2).all()
     rejected = (
         classified.filter(pl.col("_rejection_reason").is_not_null())
         .select(

@@ -107,6 +107,25 @@ def test_contract_rejects_pre_resize_length_outside_bounds() -> None:
     assert result.rejected["rejection_reason"].to_list() == ["span_too_long"]
 
 
+@pytest.mark.parametrize(("start", "end"), [(0, 1), (999, 1_000)])
+def test_contract_rejects_target_locus_without_centering_flank(
+    start: int, end: int
+) -> None:
+    fragments = _frame(_fragment(t_start=start, t_end=end, aligned_bases=end - start))
+
+    for contract in [apply_projection_contract, _apply_projection_contract_reference]:
+        result = contract(
+            fragments,
+            target_length=4,
+            pre_resize_min_length=1,
+            pre_resize_max_length=10,
+        )
+        assert result.accepted.is_empty()
+        assert result.rejected["rejection_reason"].to_list() == [
+            "target_window_out_of_bounds"
+        ]
+
+
 def test_vectorized_writer_matches_reference_contract(tmp_path: Path) -> None:
     fragments = _frame(
         _fragment(query_name="a3", t_start=300, t_end=304),

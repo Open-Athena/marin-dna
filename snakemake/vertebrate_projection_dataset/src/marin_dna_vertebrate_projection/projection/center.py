@@ -25,6 +25,7 @@ def read_projection_requests(
     path: str | Path, *, target_length: int = 255
 ) -> pl.DataFrame:
     """Read center-1 requests and validate both coordinate roles."""
+    assert target_length == 255
     request_path = Path(path)
     frame = (
         pl.read_parquet(request_path)
@@ -47,6 +48,9 @@ def read_projection_requests(
     assert (
         frame["projection_end"] - frame["projection_start"] == frame["landmark_width"]
     ).all()
+    expected_center = frame["source_start"] + 127
+    assert (frame["projection_start"] == expected_center).all()
+    assert (frame["projection_end"] == expected_center + 1).all()
     return frame.select(PROJECTION_REQUEST_COLUMNS).sort(
         "source_chrom", "source_start", "query_name"
     )

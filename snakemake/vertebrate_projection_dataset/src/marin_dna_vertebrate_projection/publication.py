@@ -330,6 +330,12 @@ def upload_validated_dataset(
     api = HfApi()
     before = _remote_info_or_none(api, repo_id)
     if before is not None:
+        assert before.private is False, (
+            f"Hugging Face dataset must be public: {repo_id}"
+        )
+        assert before.gated is False, (
+            f"Hugging Face dataset must not be gated: {repo_id}"
+        )
         observed = {item.rfilename for item in before.siblings}
         unexpected = observed - expected_remote
         assert not unexpected, {"repo": repo_id, "unexpected": sorted(unexpected)}
@@ -341,6 +347,7 @@ def upload_validated_dataset(
             repo_id,
             "--repo-type",
             "dataset",
+            "--no-private",
             "--num-workers",
             str(workers),
             str(cohort_dir),
@@ -363,7 +370,15 @@ def upload_validated_dataset(
     )
 
     after = api.dataset_info(repo_id, files_metadata=True)
+    assert after.private is False, f"Hugging Face dataset must be public: {repo_id}"
+    assert after.gated is False, f"Hugging Face dataset must not be gated: {repo_id}"
     assert after.sha is not None and len(after.sha) == 40
+    public_after = HfApi(token=False).dataset_info(
+        repo_id, revision=after.sha, files_metadata=True
+    )
+    assert public_after.private is False
+    assert public_after.gated is False
+    assert public_after.sha == after.sha
     observed = {item.rfilename: item for item in after.siblings}
     assert set(observed) == expected_remote, {
         "repo": repo_id,
@@ -382,7 +397,13 @@ def upload_validated_dataset(
             assert remote.lfs is not None
             assert remote.lfs.sha256 == shard["sha256"]
     remote_card = Path(
-        hf_hub_download(repo_id, "README.md", repo_type="dataset", revision=after.sha)
+        hf_hub_download(
+            repo_id,
+            "README.md",
+            repo_type="dataset",
+            revision=after.sha,
+            token=False,
+        )
     ).read_bytes()
     assert hashlib.sha256(remote_card).hexdigest() == cohort_manifest["card_sha256"]
     output = Path(output_path)

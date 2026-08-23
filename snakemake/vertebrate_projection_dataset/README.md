@@ -86,6 +86,7 @@ The shared contract then:
 4. extracts source-case-preserving IUPAC DNA from the target assembly and reverse-complements negative-strand mappings.
 
 Every accepted target sequence is 255 bp and places the mapped center nucleotide at index 127 in human-anchor orientation.
+Target loci without enough flanking sequence to preserve that position are rejected as `target_window_out_of_bounds`.
 Every rejection has one explicit machine-countable reason.
 Every accepted row retains the original human anchor, region, species, assembly, taxonomy, backend, target interval, strand, target-source size, fragment count, aligned-base count, and sequence.
 
