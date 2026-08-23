@@ -96,7 +96,7 @@ The per-species source-case audit passed without invoking the RefSeq fallback.
 ### 2026-08-23 02:00 - Prologue and source verification
 
 - Hypothesis: The issue can use the standalone Lightning/SkyPilot pattern from issue #479 while preserving the pinned glm-experiments model and evaluation interfaces.
-- Commit Hash: Pending the first implementation snapshot.
+- Commit Hash: `4c59ba060b575afd313b7df604da6ffbde1f3ca1`.
 - Command: gh issue view 515; gcloud storage ls gs://marin-us-east5/checkpoints/.../hf/step-2000/**; sky check lambda; sky show-gpus --cloud lambda GH200.
 - Config: Lambda GH200 at the listed $2.29/hour rate; source checkpoint and required local GCS, Hugging Face, and W&B credentials are present.
 - Result: The checkpoint contains model config, safetensors, tokenizer, and special-token metadata; Lambda is enabled; no issue #515 cluster is running.
@@ -106,7 +106,7 @@ The per-species source-case audit passed without invoking the RefSeq fallback.
 ### 2026-08-23 22:12 - Source-case audit and endpoint verification
 
 - Hypothesis: Source-assembly case is intact enough across all represented species to use the same-data Zoonomia continuation without invoking the preregistered RefSeq fallback.
-- Commit Hash: Pending the implementation snapshot.
+- Commit Hash: `4c59ba060b575afd313b7df604da6ffbde1f3ca1`.
 - Command: `uv run --locked exp515-audit --output ../../.agents/artifacts/515-online-loss-selection/case-distribution-audit.json`.
 - Config: Seed 1,515; 128 sequences per species; 108 expected species; pinned Zoonomia revision `80b44bf6129d6ec7988f8cf1b706e4b1464ec9dc`.
 - Result: The audit covered all 108 species after 19,842 streamed rows, flagged no species, and set `fallback_required=false`.
@@ -118,7 +118,7 @@ The per-species source-case audit passed without invoking the RefSeq fallback.
 ### 2026-08-23 22:14 - Local validation boundary
 
 - Hypothesis: The issue-specific selection, coordinate, storage, resume, and publication contracts pass independently of unrelated vendored test debt.
-- Commit Hash: Pending the implementation snapshot.
+- Commit Hash: `4c59ba060b575afd313b7df604da6ffbde1f3ca1`.
 - Command: `uv run --locked pytest tests/test_selection.py tests/test_exp515.py`.
 - Result: All 17 issue-specific tests passed.
 - Command: `uv run --locked pytest`.
