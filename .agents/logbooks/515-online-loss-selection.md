@@ -125,3 +125,21 @@ The per-species source-case audit passed without invoking the RefSeq fallback.
 - Result: The full vendored suite reported 145 passed, 17 failed, and 4 skipped.
 - Interpretation: Remaining failures are outside the paid path: four CPU FlexAttention-backward tests unsupported by Torch, tests requiring the absent local `data/gpn-animal-promoter-dataset` fixture, Lightning-version configuration assertions, one stale default-evaluation assertion, and one internally contradictory stochastic weighted-loss assertion.
 - Next action: Run the clean-commit launch preflight and remote issue-specific tests before the GPU canary.
+
+### 2026-08-23 22:28 - First Lambda capacity attempt
+
+- Hypothesis: The clean commit-pinned task can acquire one Lambda GH200 and begin the remote canary.
+- Commit Hash: `b79b86375d30150112315d3cb6dafc0bf78bec10`.
+- Command: `uv run --locked python launch.py --commit b79b86375d30150112315d3cb6dafc0bf78bec10 --run-id b79b86375d30-20260823t2229z --execute --retry-until-up`.
+- Result: Three allocation attempts returned `insufficient-capacity`; no Lambda instance was created, the asynchronous request was canceled, and the terminated `INIT` record was removed.
+- Interpretation: Estimated GPU spend remains $0, and later checks should use Lambda's read-only instance catalog at a multi-minute cadence.
+- Next action: Launch the same experimental plan after `gpu_1x_gh200` advertises capacity.
+
+### 2026-08-23 22:40 - Selector hot-path optimization
+
+- Hypothesis: Vectorizing per-sequence ranking and threshold summaries preserves the registered masks while avoiding a host synchronization for every sequence.
+- Commit Hash: `b076518b49035ea93dd7b00b29583ca86e256c39`.
+- Command: `uv run --locked pytest tests/test_selection.py tests/test_exp515.py`; bounded 100-call CPU benchmark on 256 by 255 tensors.
+- Result: All 18 issue-specific tests passed, Ruff check and format passed, and 100 full middle-rank microbatches took 0.305 seconds on CPU.
+- Interpretation: Stable per-sequence ranking, lower-position tie breaks, empty rows, random-stream resume, and differentiable empty loss are preserved without the millions of per-row GPU synchronization points implied by the first implementation.
+- Next action: Publish the optimization snapshot and restart the sparse capacity watcher on the new clean commit.
