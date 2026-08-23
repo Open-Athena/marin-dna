@@ -1,111 +1,72 @@
-from __future__ import annotations
-
 import json
 from pathlib import Path
 
 import polars as pl
+import pytest
 from marin_dna_vertebrate_projection.pipeline_io import (
     write_dataset_split_files,
 )
 from marin_dna_vertebrate_projection.split import (
-    add_stable_row_ids,
-    assign_train_validation_splits,
+    VALIDATION_IDENTITY_COLUMNS,
+    select_uniform_validation_rows,
 )
 
 
 def _rows() -> pl.DataFrame:
     rows: list[dict[str, object]] = []
-    for species in ["Homo sapiens", "Mus musculus", "Gallus gallus"]:
-        for index in range(3):
+    species_sources = [
+        ("Homo sapiens", "human_reference"),
+        ("Mus musculus", "zoonomia_cactus"),
+        ("Gallus gallus", "ucsc_multiz100way"),
+    ]
+    chromosomes = ["chr1", "chr18", "chr2"]
+    for index in range(10):
+        for species, alignment_source in species_sources:
             rows.append(
                 {
-                    "query_name": f"chr18_{index}",
-                    "source_chrom": "chr18",
+                    "query_name": f"anchor_{index}",
+                    "source_chrom": chromosomes[index % len(chromosomes)],
                     "source_start": index * 255,
                     "source_end": (index + 1) * 255,
                     "species": species,
-                    "alignment_source": "human_reference"
-                    if species == "Homo sapiens"
-                    else "zoonomia_cactus",
-                    "augmentation": "+",
+                    "alignment_source": alignment_source,
+                    "region_label": "cds",
                     "sequence": "A" * 255,
                 }
             )
-        rows.append(
-            {
-                "query_name": "chr18_0",
-                "source_chrom": "chr18",
-                "source_start": 0,
-                "source_end": 255,
-                "species": species,
-                "alignment_source": "human_reference"
-                if species == "Homo sapiens"
-                else "zoonomia_cactus",
-                "augmentation": "-",
-                "sequence": "T" * 255,
-            }
-        )
-        rows.append(
-            {
-                "query_name": "chr1_0",
-                "source_chrom": "chr1",
-                "source_start": 0,
-                "source_end": 255,
-                "species": species,
-                "alignment_source": "human_reference"
-                if species == "Homo sapiens"
-                else "zoonomia_cactus",
-                "augmentation": "+",
-                "sequence": "C" * 255,
-            }
-        )
     return pl.DataFrame(rows)
 
 
-def test_chr18_split_is_species_stratified_and_drops_rc_candidates() -> None:
-    result = assign_train_validation_splits(_rows(), max_validation_rows=5, seed=7)
-    assert result.train.height == 3
-    assert result.validation.height == 5
-    assert set(result.validation["species"].to_list()) == {
-        "Homo sapiens",
-        "Mus musculus",
-        "Gallus gallus",
-    }
-    assert set(result.validation["augmentation"].to_list()) == {"+"}
-    assert result.species_counts["selected_rows"].sort().to_list() == [1, 2, 2]
-    assert result.realized_token_count == 5 * 256
-    assert result.selection_manifest.height == result.validation.height
-
-
-def test_split_selection_is_reproducible_under_row_reordering() -> None:
-    rows = add_stable_row_ids(_rows())
-    forward = assign_train_validation_splits(rows, max_validation_rows=5, seed=11)
-    reverse = assign_train_validation_splits(
-        rows.reverse(), max_validation_rows=5, seed=11
+def test_uniform_selection_is_reproducible_under_row_reordering() -> None:
+    rows = _rows()
+    forward = select_uniform_validation_rows(rows, validation_rows=8, seed=42)
+    reverse = select_uniform_validation_rows(
+        rows.reverse(),
+        validation_rows=8,
+        seed=42,
     )
-    assert forward.selection_manifest.equals(reverse.selection_manifest)
+    assert forward.equals(reverse)
+    assert forward.height == 8
+    assert forward["row_id"].n_unique() == 8
+    assert forward["selection_rank"].to_list() == list(range(1, 9))
 
 
-def test_all_chr18_original_rows_are_retained_when_below_cap() -> None:
-    rows = _rows().filter(pl.col("augmentation") == "+")
-    result = assign_train_validation_splits(rows, max_validation_rows=20, seed=42)
-    assert result.validation.height == 9
-    assert result.realized_token_count == 9 * 256
+def test_uniform_selection_precedes_augmentation() -> None:
+    with pytest.raises(AssertionError, match="must precede"):
+        select_uniform_validation_rows(
+            _rows().with_columns(pl.lit("+").alias("augmentation")),
+            validation_rows=8,
+            seed=42,
+        )
 
 
-def test_streaming_split_writes_schema_matched_outputs(tmp_path: Path) -> None:
-    combined = (
-        _rows()
-        .filter(pl.col("augmentation") == "+")
-        .drop("augmentation")
-        .with_columns(pl.lit("cds").alias("region_label"))
-    )
+def test_streaming_split_writes_random_schema_matched_outputs(tmp_path: Path) -> None:
     combined_path = tmp_path / "combined.parquet"
-    combined.write_parquet(combined_path)
+    _rows().write_parquet(combined_path)
     train_path = tmp_path / "train.parquet"
     validation_path = tmp_path / "validation.parquet"
     selection_path = tmp_path / "selection.tsv"
-    counts_path = tmp_path / "counts.tsv"
+    composition_path = tmp_path / "composition.tsv"
     summary_path = tmp_path / "summary.json"
 
     write_dataset_split_files(
@@ -113,45 +74,63 @@ def test_streaming_split_writes_schema_matched_outputs(tmp_path: Path) -> None:
         train_path,
         validation_path,
         selection_path,
-        counts_path,
+        composition_path,
         summary_path,
         region_label="cds",
         add_rc=True,
-        validation_chrom="chr18",
-        max_validation_rows=5,
-        seed=7,
+        validation_rows=8,
+        seed=42,
     )
 
     train = pl.read_parquet(train_path)
     validation = pl.read_parquet(validation_path)
+    selection = pl.read_csv(selection_path, separator="\t")
     assert train.schema == validation.schema
-    assert train.height == 6
+    assert train.height == 44
     assert set(train["augmentation"]) == {"+", "-"}
-    assert validation.height == 5
+    assert validation.height == 8
     assert set(validation["augmentation"]) == {"+"}
     assert "row_id" not in validation.columns
-    assert pl.read_csv(selection_path, separator="\t").height == 5
-    assert pl.read_csv(counts_path, separator="\t").height == 3
-    assert json.loads(summary_path.read_text())["train_rows"] == 6
+    assert selection.height == 8
+
+    selected_keys = set(selection.select(*VALIDATION_IDENTITY_COLUMNS).iter_rows())
+    train_keys = set(train.select(*VALIDATION_IDENTITY_COLUMNS).iter_rows())
+    validation_keys = set(validation.select(*VALIDATION_IDENTITY_COLUMNS).iter_rows())
+    assert validation_keys == selected_keys
+    assert train_keys.isdisjoint(selected_keys)
+    assert set(train["source_chrom"]) & set(validation["source_chrom"])
+    assert set(train["query_name"]) & set(validation["query_name"])
+
+    composition = pl.read_csv(composition_path, separator="\t")
+    assert set(composition["dimension"]) == {
+        "alignment_source",
+        "source_chrom",
+        "species",
+    }
+    for _dimension, group in composition.group_by("dimension"):
+        assert group["eligible_rows"].sum() == 30
+        assert group["selected_rows"].sum() == 8
+
+    summary = json.loads(summary_path.read_text())
+    assert summary == {
+        "add_reverse_complements": True,
+        "realized_token_count": 8 * 256,
+        "region_label": "cds",
+        "seed": 42,
+        "source_rows": 30,
+        "species_scope": "all",
+        "split_strategy": "uniform_row_random_before_reverse_complement",
+        "train_original_rows": 22,
+        "train_rows": 44,
+        "validation_rows": 8,
+    }
 
 
-def test_mammals_only_scope_filters_multiz_after_region_selection(
+def test_mammals_only_scope_filters_multiz_before_random_selection(
     tmp_path: Path,
 ) -> None:
-    combined = (
-        _rows()
-        .filter(pl.col("augmentation") == "+")
-        .drop("augmentation")
-        .with_columns(
-            pl.lit("cds").alias("region_label"),
-            pl.when(pl.col("species") == "Gallus gallus")
-            .then(pl.lit("ucsc_multiz100way"))
-            .otherwise(pl.col("alignment_source"))
-            .alias("alignment_source"),
-        )
-    )
     combined_path = tmp_path / "combined.parquet"
-    combined.write_parquet(combined_path)
+    _rows().write_parquet(combined_path)
     train_path = tmp_path / "train.parquet"
     validation_path = tmp_path / "validation.parquet"
     summary_path = tmp_path / "summary.json"
@@ -161,21 +140,40 @@ def test_mammals_only_scope_filters_multiz_after_region_selection(
         train_path,
         validation_path,
         tmp_path / "selection.tsv",
-        tmp_path / "counts.tsv",
+        tmp_path / "composition.tsv",
         summary_path,
         region_label="cds",
         species_scope="mammals_only",
         add_rc=True,
-        validation_chrom="chr18",
-        max_validation_rows=4,
+        validation_rows=4,
         seed=7,
     )
 
     train = pl.read_parquet(train_path)
     validation = pl.read_parquet(validation_path)
     assert set(train["species"]) == {"Homo sapiens", "Mus musculus"}
-    assert set(validation["species"]) == {"Homo sapiens", "Mus musculus"}
+    assert set(validation["species"]) <= {"Homo sapiens", "Mus musculus"}
     assert "ucsc_multiz100way" not in set(train["alignment_source"])
     summary = json.loads(summary_path.read_text())
     assert summary["region_label"] == "cds"
     assert summary["species_scope"] == "mammals_only"
+    assert summary["source_rows"] == 20
+    assert summary["train_original_rows"] == 16
+
+
+def test_split_requires_training_rows_after_validation(tmp_path: Path) -> None:
+    combined_path = tmp_path / "combined.parquet"
+    _rows().head(3).write_parquet(combined_path)
+    with pytest.raises(AssertionError, match="nonempty training"):
+        write_dataset_split_files(
+            combined_path,
+            tmp_path / "train.parquet",
+            tmp_path / "validation.parquet",
+            tmp_path / "selection.tsv",
+            tmp_path / "composition.tsv",
+            tmp_path / "summary.json",
+            region_label="cds",
+            add_rc=True,
+            validation_rows=3,
+            seed=42,
+        )

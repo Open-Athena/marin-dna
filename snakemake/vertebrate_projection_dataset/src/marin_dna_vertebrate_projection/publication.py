@@ -18,6 +18,10 @@ from huggingface_hub.errors import RepositoryNotFoundError
 from huggingface_hub.hf_api import DatasetInfo
 
 from marin_dna_vertebrate_projection.contract import TARGET_LENGTH
+from marin_dna_vertebrate_projection.split import (
+    VALIDATION_IDENTITY_COLUMNS,
+    select_uniform_validation_rows,
+)
 
 
 @dataclass(frozen=True)
@@ -37,24 +41,20 @@ def _validate_record(
     *,
     expected_columns: frozenset[str],
     split: str,
-    validation_chrom: str,
 ) -> None:
     record = json.loads(raw)
     assert set(record) == expected_columns
     assert isinstance(record["sequence"], str)
     assert len(record["sequence"]) == TARGET_LENGTH
     assert record["augmentation"] in {"+", "-"}
-    if split == "train":
-        assert record["source_chrom"] != validation_chrom
-    else:
-        assert record["source_chrom"] == validation_chrom
+    if split == "validation":
         assert record["augmentation"] == "+"
 
 
 def _validate_shard(
-    task: tuple[Path, str, str, int, frozenset[str], str],
+    task: tuple[Path, str, str, int, frozenset[str]],
 ) -> ShardResult:
-    path, cohort, split, index, columns, validation_chrom = task
+    path, cohort, split, index, columns = task
     digest = hashlib.sha256()
     decompressor = zstd.ZstdDecompressor().decompressobj()
     first_line: bytes | None = None
@@ -89,7 +89,6 @@ def _validate_shard(
             record,
             expected_columns=columns,
             split=split,
-            validation_chrom=validation_chrom,
         )
     return ShardResult(
         cohort=cohort,
@@ -135,12 +134,18 @@ def validate_artifacts(
         ]
     )
     validation_shards = int(config["publication_validation_shards"])
-    validation_chrom = str(config["validation_chrom"])
+    validation_rows = int(
+        config["smoke_validation_rows"]
+        if tier == "smoke"
+        else config["validation_rows"]
+    )
+    validation_seed = int(config["validation_seed"])
+    add_reverse_complements = bool(config["add_rc"])
     assert len(cohorts) == len(set(cohorts))
     assert train_shards > 0 and validation_shards > 0
 
     expected_files: set[Path] = set()
-    tasks: list[tuple[Path, str, str, int, frozenset[str], str]] = []
+    tasks: list[tuple[Path, str, str, int, frozenset[str]]] = []
     cohort_metadata: dict[str, dict[str, object]] = {}
     forbidden_card_text = [
         "bolinas-dna",
@@ -148,6 +153,7 @@ def validate_artifacts(
         "0.01",
         "train.parquet",
         "validation.parquet",
+        "chromosome-18",
     ]
     for cohort in cohorts:
         card = artifact_root / cohort / "README.md"
@@ -161,27 +167,131 @@ def validate_artifacts(
         for forbidden in forbidden_card_text:
             assert forbidden not in card_text
 
-        train_source = source_root / cohort / "train.parquet"
-        validation_source = source_root / cohort / "validation.parquet"
+        cohort_root = source_root / cohort
+        train_source = cohort_root / "train.parquet"
+        validation_source = cohort_root / "validation.parquet"
         train_schema = pl.read_parquet_schema(train_source)
         assert train_schema == pl.read_parquet_schema(validation_source)
-        assert {"sequence", "augmentation", "source_chrom"} <= set(train_schema)
+        assert {
+            "sequence",
+            "augmentation",
+            *VALIDATION_IDENTITY_COLUMNS,
+        } <= set(train_schema)
         columns = frozenset(train_schema)
         source_rows = {
             split: int(
-                pl.scan_parquet(source_root / cohort / f"{split}.parquet")
+                pl.scan_parquet(cohort_root / f"{split}.parquet")
                 .select(pl.len())
                 .collect(engine="streaming")
                 .item()
             )
             for split in ["train", "validation"]
         }
-        assert source_rows["train"] > 0 and source_rows["validation"] > 0
+        assert source_rows["train"] > 0
+        assert source_rows["validation"] == validation_rows
+
+        summary = json.loads((cohort_root / "split_summary.json").read_text())
+        assert summary["split_strategy"] == (
+            "uniform_row_random_before_reverse_complement"
+        )
+        assert int(summary["seed"]) == validation_seed
+        assert int(summary["validation_rows"]) == validation_rows
+        assert int(summary["train_rows"]) == source_rows["train"]
+        assert int(summary["train_original_rows"]) + validation_rows == int(
+            summary["source_rows"]
+        )
+        assert bool(summary["add_reverse_complements"]) == add_reverse_complements
+
+        selection = pl.read_csv(
+            cohort_root / "validation_selection.tsv",
+            separator="\t",
+        )
+        assert selection.height == validation_rows
+        assert selection["row_id"].n_unique() == validation_rows
+        reconstructed_originals = pl.concat(
+            [
+                pl.scan_parquet(train_source)
+                .filter(pl.col("augmentation") == "+")
+                .drop("augmentation"),
+                pl.scan_parquet(validation_source).drop("augmentation"),
+            ],
+            how="vertical",
+        )
+        expected_selection = select_uniform_validation_rows(
+            reconstructed_originals,
+            validation_rows=validation_rows,
+            seed=validation_seed,
+        )
+        assert selection.columns == expected_selection.columns
+        assert selection.to_dicts() == expected_selection.to_dicts()
+        selected_keys = selection.select(*VALIDATION_IDENTITY_COLUMNS).lazy()
+        validation_matches = int(
+            pl.scan_parquet(validation_source)
+            .join(
+                selected_keys,
+                on=list(VALIDATION_IDENTITY_COLUMNS),
+                how="semi",
+            )
+            .select(pl.len())
+            .collect(engine="streaming")
+            .item()
+        )
+        train_matches = int(
+            pl.scan_parquet(train_source)
+            .join(
+                selected_keys,
+                on=list(VALIDATION_IDENTITY_COLUMNS),
+                how="semi",
+            )
+            .select(pl.len())
+            .collect(engine="streaming")
+            .item()
+        )
+        assert validation_matches == validation_rows
+        assert train_matches == 0
+
+        validation_augmentations = set(
+            pl.scan_parquet(validation_source)
+            .select("augmentation")
+            .unique()
+            .collect(engine="streaming")["augmentation"]
+            .to_list()
+        )
+        assert validation_augmentations == {"+"}
+        train_augmentation_counts = dict(
+            pl.scan_parquet(train_source)
+            .group_by("augmentation")
+            .len()
+            .collect(engine="streaming")
+            .iter_rows()
+        )
+        train_original_rows = int(summary["train_original_rows"])
+        expected_augmentation_counts = (
+            {"+": train_original_rows, "-": train_original_rows}
+            if add_reverse_complements
+            else {"+": train_original_rows}
+        )
+        assert train_augmentation_counts == expected_augmentation_counts
+
+        composition = pl.read_csv(
+            cohort_root / "validation_composition.tsv",
+            separator="\t",
+        )
+        assert set(composition["dimension"].to_list()) == {
+            "alignment_source",
+            "source_chrom",
+            "species",
+        }
+        for _dimension, group in composition.group_by("dimension"):
+            assert int(group["eligible_rows"].sum()) == int(summary["source_rows"])
+            assert int(group["selected_rows"].sum()) == validation_rows
+
         cohort_metadata[cohort] = {
             "source_rows": source_rows,
             "schema": {name: str(dtype) for name, dtype in train_schema.items()},
             "card_bytes": len(card_bytes),
             "card_sha256": hashlib.sha256(card_bytes).hexdigest(),
+            "split_summary": summary,
         }
         for split, count in [
             ("train", train_shards),
@@ -199,7 +309,6 @@ def validate_artifacts(
                         split,
                         index,
                         columns,
-                        validation_chrom,
                     )
                 )
 
@@ -241,13 +350,16 @@ def validate_artifacts(
             "schema": metadata["schema"],
             "card_bytes": metadata["card_bytes"],
             "card_sha256": metadata["card_sha256"],
+            "split_summary": metadata["split_summary"],
             "splits": split_manifests,
         }
     manifest: dict[str, object] = {
         "pipeline_commit": pipeline_commit,
         "config_sha256": config_sha256,
         "artifact_format": "JSONL.zst",
-        "validation_chrom": validation_chrom,
+        "split_strategy": "uniform_row_random_before_reverse_complement",
+        "validation_rows": validation_rows,
+        "validation_seed": validation_seed,
         "target_length": TARGET_LENGTH,
         "cohorts": manifest_cohorts,
     }

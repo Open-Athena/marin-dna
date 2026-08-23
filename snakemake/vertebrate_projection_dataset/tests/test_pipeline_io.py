@@ -241,6 +241,7 @@ def test_dataset_card_distinguishes_anchor_filter_from_repeat_mask_case(
         hf_repo="marin-dna/vertebrate-v1-cds",
         region_label="cds",
         species_scope="all",
+        validation_seed=42,
     )
 
     text = " ".join(card.read_text().split())
@@ -257,4 +258,7 @@ def test_dataset_card_distinguishes_anchor_filter_from_repeat_mask_case(
     assert "Sequence case is independent of that filter" in text
     assert "project only the central human nucleotide" in text
     assert "conservation scores never rewrite emitted characters or case" in text
+    assert "sampled uniformly without replacement with seed 42" in text
+    assert "does not stratify by chromosome, species, or human anchor" in text
+    assert "reverse complement of a selected validation row is excluded" in text
     assert "loss weight" not in text

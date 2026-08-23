@@ -1,4 +1,4 @@
-"""QC tables, chromosome-18 splits, cards, and opt-in HF upload targets."""
+"""QC tables, row-random splits, cards, and opt-in HF upload targets."""
 
 from marin_dna_vertebrate_projection.pipeline_io import (
     write_dataset_card,
@@ -58,7 +58,6 @@ rule projection_qc:
             output.per_scope,
             output.rejections,
             output.aggregates,
-            validation_chrom=str(config["validation_chrom"]),
         )
 
 
@@ -97,7 +96,7 @@ rule dataset_splits:
         train=f"{RESULTS}/datasets/{{region}}/train.parquet",
         validation=f"{RESULTS}/datasets/{{region}}/validation.parquet",
         selection=f"{RESULTS}/datasets/{{region}}/validation_selection.tsv",
-        counts=f"{RESULTS}/datasets/{{region}}/validation_species_counts.tsv",
+        composition=f"{RESULTS}/datasets/{{region}}/validation_composition.tsv",
         summary=f"{RESULTS}/datasets/{{region}}/split_summary.json",
     wildcard_constraints:
         region=COHORT_RE,
@@ -110,13 +109,12 @@ rule dataset_splits:
             output.train,
             output.validation,
             output.selection,
-            output.counts,
+            output.composition,
             output.summary,
             region_label=dataset_region_label(wildcards.region),
             species_scope=dataset_species_scope(wildcards.region),
             add_rc=bool(config["add_rc"]),
-            validation_chrom=str(config["validation_chrom"]),
-            max_validation_rows=int(config["validation_max_rows"]),
+            validation_rows=VALIDATION_ROWS,
             seed=int(config["validation_seed"]),
         )
 
@@ -226,6 +224,7 @@ rule dataset_card:
             hf_repo=params.repo,
             region_label=params.region,
             species_scope=params.scope,
+            validation_seed=int(config["validation_seed"]),
         )
 
 
@@ -238,6 +237,15 @@ rule hf_artifact_manifest:
         ),
         validation_source=expand(
             f"{RESULTS}/datasets/{{region}}/validation.parquet", region=COHORTS
+        ),
+        split_selection=expand(
+            f"{RESULTS}/datasets/{{region}}/validation_selection.tsv", region=COHORTS
+        ),
+        split_composition=expand(
+            f"{RESULTS}/datasets/{{region}}/validation_composition.tsv", region=COHORTS
+        ),
+        split_summary=expand(
+            f"{RESULTS}/datasets/{{region}}/split_summary.json", region=COHORTS
         ),
         train=local(
             expand(

@@ -42,7 +42,8 @@ from marin_dna_vertebrate_projection.qc import (
     write_projection_qc_tables_streaming,
 )
 from marin_dna_vertebrate_projection.split import (
-    assign_train_validation_splits,
+    VALIDATION_IDENTITY_COLUMNS,
+    select_uniform_validation_rows,
 )
 
 
@@ -342,16 +343,16 @@ def write_dataset_split_files(
     train_path: str | Path,
     validation_path: str | Path,
     selection_path: str | Path,
-    species_counts_path: str | Path,
+    composition_path: str | Path,
     summary_path: str | Path,
     *,
     region_label: str,
     species_scope: str = "all",
     add_rc: bool,
-    validation_chrom: str,
-    max_validation_rows: int,
+    validation_rows: int,
     seed: int,
 ) -> None:
+    """Write a uniform row-random split before reverse-complement augmentation."""
     assert species_scope in {"all", "mammals_only"}
     original = pl.scan_parquet(combined_path)
     if region_label != "all":
@@ -360,12 +361,41 @@ def write_dataset_split_files(
         original = original.filter(
             pl.col("alignment_source").is_in(["human_reference", "zoonomia_cactus"])
         )
-    original_rows = original.select(pl.len()).collect(engine="streaming").item()
-    assert original_rows > 0, (
-        f"empty dataset cohort: region={region_label}, scope={species_scope}"
+    schema = original.collect_schema()
+    assert "augmentation" not in schema
+    source_rows = int(original.select(pl.len()).collect(engine="streaming").item())
+    assert source_rows > validation_rows, (
+        f"validation requires {validation_rows} rows plus nonempty training data; "
+        f"region={region_label}, scope={species_scope}, source_rows={source_rows}"
     )
 
-    train_original = original.filter(pl.col("source_chrom") != validation_chrom)
+    selection = select_uniform_validation_rows(
+        original,
+        validation_rows=validation_rows,
+        seed=seed,
+    )
+    selected_keys = selection.select(*VALIDATION_IDENTITY_COLUMNS)
+    train_original = original.join(
+        selected_keys.lazy(),
+        on=list(VALIDATION_IDENTITY_COLUMNS),
+        how="anti",
+    )
+    validation = (
+        original.join(
+            selection.select(
+                *VALIDATION_IDENTITY_COLUMNS,
+                "selection_rank",
+            ).lazy(),
+            on=list(VALIDATION_IDENTITY_COLUMNS),
+            how="inner",
+        )
+        .sort("selection_rank")
+        .drop("selection_rank")
+        .with_columns(pl.lit("+").alias("augmentation"))
+        .collect(engine="streaming")
+    )
+    assert validation.height == validation_rows
+
     if add_rc:
         train = pl.concat(
             [
@@ -380,41 +410,76 @@ def write_dataset_split_files(
     else:
         train = train_original.with_columns(pl.lit("+").alias("augmentation"))
 
-    for path in [train_path, validation_path, selection_path, species_counts_path]:
+    for path in [
+        train_path,
+        validation_path,
+        selection_path,
+        composition_path,
+        summary_path,
+    ]:
         Path(path).parent.mkdir(parents=True, exist_ok=True)
     train.sink_parquet(train_path)
+    validation.write_parquet(validation_path)
+    selection.write_csv(selection_path, separator="\t")
 
-    candidates = (
-        original.filter(pl.col("source_chrom") == validation_chrom)
-        .collect(engine="streaming")
-        .with_columns(pl.lit("+").alias("augmentation"))
+    composition_frames: list[pl.DataFrame] = []
+    for dimension in ["source_chrom", "species", "alignment_source"]:
+        eligible = (
+            original.group_by(dimension)
+            .len(name="eligible_rows")
+            .collect(engine="streaming")
+        )
+        selected = validation.group_by(dimension).len(name="selected_rows")
+        composition_frames.append(
+            eligible.join(selected, on=dimension, how="left")
+            .with_columns(
+                pl.col("selected_rows").fill_null(0),
+                pl.lit(dimension).alias("dimension"),
+                pl.col(dimension).cast(pl.String).alias("value"),
+            )
+            .select("dimension", "value", "eligible_rows", "selected_rows")
+        )
+    pl.concat(composition_frames).sort("dimension", "value").write_csv(
+        composition_path,
+        separator="\t",
     )
-    result = assign_train_validation_splits(
-        candidates,
-        validation_chrom=validation_chrom,
-        max_validation_rows=max_validation_rows,
-        seed=seed,
-    )
-    assert result.train.is_empty()
-    result.validation.drop("row_id").write_parquet(validation_path)
-    result.selection_manifest.write_csv(selection_path, separator="\t")
-    result.species_counts.write_csv(species_counts_path, separator="\t")
-    train_rows = (
+
+    train_rows = int(
         pl.scan_parquet(train_path).select(pl.len()).collect(engine="streaming").item()
     )
+    train_original_rows = source_rows - validation_rows
+    expected_train_rows = train_original_rows * (2 if add_rc else 1)
+    assert train_rows == expected_train_rows
+    assert pl.read_parquet_schema(train_path) == pl.read_parquet_schema(validation_path)
+    assert set(validation["augmentation"].to_list()) == {"+"}
+    selected_train_rows = int(
+        pl.scan_parquet(train_path)
+        .join(
+            selected_keys.lazy(),
+            on=list(VALIDATION_IDENTITY_COLUMNS),
+            how="semi",
+        )
+        .select(pl.len())
+        .collect(engine="streaming")
+        .item()
+    )
+    assert selected_train_rows == 0
     Path(summary_path).write_text(
         json.dumps(
             {
+                "add_reverse_complements": add_rc,
+                "realized_token_count": validation_rows * (TARGET_LENGTH + 1),
                 "region_label": region_label,
-                "species_scope": species_scope,
                 "seed": seed,
-                "validation_chrom": validation_chrom,
+                "source_rows": source_rows,
+                "species_scope": species_scope,
+                "split_strategy": "uniform_row_random_before_reverse_complement",
+                "train_original_rows": train_original_rows,
                 "train_rows": train_rows,
-                "eligible_validation_rows": candidates.height,
-                "validation_rows": result.validation.height,
-                "realized_token_count": result.realized_token_count,
+                "validation_rows": validation_rows,
             },
             indent=2,
+            sort_keys=True,
         )
         + "\n"
     )
@@ -429,17 +494,9 @@ def write_qc_files(
     per_scope_path: str | Path,
     rejections_path: str | Path,
     aggregates_path: str | Path,
-    *,
-    validation_chrom: str,
 ) -> None:
-    anchors = read_anchor_catalog(anchors_path).with_columns(
-        pl.when(pl.col("source_chrom") == validation_chrom)
-        .then(pl.lit("validation"))
-        .otherwise(pl.lit("train"))
-        .alias("split")
-    )
     write_projection_qc_tables_streaming(
-        anchors,
+        read_anchor_catalog(anchors_path),
         accepted_path,
         rejected_paths,
         read_species_manifest(str(manifest_path)),
@@ -594,6 +651,7 @@ def write_dataset_card(
     hf_repo: str,
     region_label: str,
     species_scope: str,
+    validation_seed: int,
 ) -> None:
     """Write the reviewable HF README required before any upload."""
     assert len(pipeline_commit) == 40, "dataset cards require a commit-pinned SHA"
@@ -652,28 +710,26 @@ configs:
 
 # `{hf_repo}`
 
-Human-anchored 255 bp vertebrate sequences from {source_description}. This
-draft covers the `{region_label}` region cohort with `{species_scope}` species
-scope and preserves source FASTA/2bit letter case.
+Human-anchored 255 bp vertebrate sequences from {source_description}.
+This draft covers the `{region_label}` region cohort with `{species_scope}` species scope and preserves source FASTA/2bit letter case.
 
-Non-human rows project only the central human nucleotide and extract the 255 bp
-target window centered on its unique mapped locus.
+Non-human rows project only the central human nucleotide and extract the 255 bp target window centered on its unique mapped locus.
 
 Anchor eligibility uses the pipeline's pinned phyloP conservation filter.
-Sequence case is independent of that filter: lowercase bases preserve source
-repeat masking, uppercase bases preserve source non-repeat-masked sequence, and
-conservation scores never rewrite emitted characters or case.
+Sequence case is independent of that filter: lowercase bases preserve source repeat masking, uppercase bases preserve source non-repeat-masked sequence, and conservation scores never rewrite emitted characters or case.
 
 Produced by the [commit-pinned vertebrate projection pipeline]({pipeline_url}).
 
 ## Splits
 
-- `train`: {train_rows:,} rows; no chromosome-18 source anchors.
-- `validation`: {validation_rows:,} original-orientation chromosome-18 rows
-  ({validation_rows * 256:,} tokens including BOS).
+- `train`: {train_rows:,} rows after removing the validation sample and applying the configured reverse-complement augmentation.
+- `validation`: {validation_rows:,} original-orientation rows sampled uniformly without replacement with seed {validation_seed} before augmentation ({validation_rows * 256:,} tokens including BOS).
 
-The selected target manifest contains {selected.height:,} family-deduplicated
-projection targets; human reference rows are added separately once per anchor.
+The split is row-level and does not stratify by chromosome, species, or human anchor.
+Different species projections from one human anchor may occur on opposite sides of the split.
+The reverse complement of a selected validation row is excluded from training.
+
+The selected target manifest contains {selected.height:,} family-deduplicated projection targets; human reference rows are added separately once per anchor.
 
 | Projection backend | Clade | Selected species |
 |---|---|---:|

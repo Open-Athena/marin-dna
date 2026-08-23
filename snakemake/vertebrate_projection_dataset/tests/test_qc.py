@@ -61,7 +61,6 @@ def test_qc_reports_recovery_breadth_and_missing_reasons() -> None:
             "source_start": [0, 0],
             "source_end": [255, 255],
             "region_label": ["cds", "enhancer"],
-            "split": ["train", "validation"],
         }
     )
     accepted = pl.DataFrame(
@@ -121,7 +120,6 @@ def test_streaming_qc_matches_recovery_contract(tmp_path: Path) -> None:
             "source_start": [0, 0],
             "source_end": [255, 255],
             "region_label": ["cds", "enhancer"],
-            "split": ["train", "validation"],
         }
     )
     accepted = pl.DataFrame(

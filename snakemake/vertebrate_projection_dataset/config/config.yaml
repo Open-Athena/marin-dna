@@ -27,8 +27,8 @@ smoke_chroms: [chr7, chr18]
 smoke_mammals: [Mus_musculus, Loxodonta_africana]
 smoke_non_mammals: [galGal4, allMis1, xenTro7, danRer10, petMar2]
 
-validation_chrom: chr18
-validation_max_rows: 16384
+validation_rows: 16384
+smoke_validation_rows: 1
 validation_seed: 42
 add_rc: true
 publication_train_shards: 64
