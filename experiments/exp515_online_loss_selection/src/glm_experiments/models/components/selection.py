@@ -141,10 +141,13 @@ class TokenSelector(nn.Module):
         }
 
     def set_extra_state(self, state: dict[str, object]) -> None:
-        """Restore and validate selector state."""
+        """Restore an arm resume, or reset the RNG when forking the bridge."""
 
         if state["mode"] != self.mode or float(state["ratio"]) != self.ratio:
-            raise RuntimeError("checkpoint selector configuration does not match")
+            # Every arm loads the uniform bridge's model/optimizer/scheduler state.
+            # The arm configuration is authoritative at that one fork boundary.
+            self._generator.manual_seed(self.seed)
+            return
         generator_state = state["generator_state"]
         if not isinstance(generator_state, torch.Tensor):
             raise TypeError("checkpoint selector generator state is not a tensor")

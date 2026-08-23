@@ -36,7 +36,6 @@ dependencies = [
     "datasets==5.0.1",
     "transformers==4.57.6",
     "biopython>=1.81",
-    "zstandard>=0.18.0",
     "wandb>=0.24.0,<0.25",
     "einops>=0.7.0",
     "einx>=0.3.0",
@@ -47,6 +46,11 @@ dependencies = [
     "pyfaidx>=0.9,<1",
     "torchdata==0.11.0",
     "zstandard>=0.23,<1",
+    "gcsfs>=2026.5,<2027",
+    "huggingface-hub>=0.36,<1",
+    "numpy>=2.0,<3",
+    "pandas>=2.3,<4",
+    "scikit-learn>=1.7,<2",
 ]
 
 [dependency-groups]
@@ -58,6 +62,8 @@ dev = [
 [project.scripts]
 train_command = "glm_experiments.train:main"
 eval_command = "glm_experiments.eval:main"
+exp515 = "glm_experiments.exp515.runner:main"
+exp515-audit = "glm_experiments.exp515.audit:main"
 
 [tool.hatch.metadata]
 allow-direct-references = true
@@ -66,7 +72,7 @@ allow-direct-references = true
 packages = ["src/glm_experiments"]
 
 [tool.uv]
-environments = ["sys_platform == \'linux\'"]
+environments = ["sys_platform == 'linux'"]
 
 [[tool.uv.index]]
 name = "pytorch-cu128"

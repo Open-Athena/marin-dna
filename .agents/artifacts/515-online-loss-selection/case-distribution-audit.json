@@ -1,0 +1,2387 @@
+{
+  "dataset": "marin-dna/zoonomia-v1-v4_tss_region_and_utr5",
+  "revision": "80b44bf6129d6ec7988f8cf1b706e4b1464ec9dc",
+  "seed": 1515,
+  "samples_per_species": 128,
+  "expected_species": 108,
+  "scanned_rows": 19842,
+  "fallback_required": false,
+  "species": [
+    {
+      "species": "Ailurus_fulgens",
+      "samples": 128,
+      "lowercase_base_fraction": 0.1704044117647059,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 165.0,
+        "p50": 221.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 14.0,
+        "p50": 26.0,
+        "p90": 54.0
+      },
+      "uppercase_run_length": {
+        "p10": 9.0,
+        "p50": 89.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Allactaga_bullata",
+      "samples": 128,
+      "lowercase_base_fraction": 0.012377450980392156,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 45.0,
+        "p50": 50.0,
+        "p90": 69.0
+      },
+      "uppercase_run_length": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Anoura_caudifer",
+      "samples": 128,
+      "lowercase_base_fraction": 0.009987745098039215,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 21.0,
+        "p50": 62.0,
+        "p90": 111.0
+      },
+      "uppercase_run_length": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Antilocapra_americana",
+      "samples": 128,
+      "lowercase_base_fraction": 0.01755514705882353,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 4.0,
+        "p50": 58.0,
+        "p90": 169.0
+      },
+      "uppercase_run_length": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Aotus_nancymaae",
+      "samples": 128,
+      "lowercase_base_fraction": 0.10600490196078431,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 186.0,
+        "p50": 234.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 12.0,
+        "p50": 23.0,
+        "p90": 48.0
+      },
+      "uppercase_run_length": {
+        "p10": 19.0,
+        "p50": 121.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Aplodontia_rufa",
+      "samples": 128,
+      "lowercase_base_fraction": 0.021783088235294117,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 54.0,
+        "p50": 73.0,
+        "p90": 116.0
+      },
+      "uppercase_run_length": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Ateles_geoffroyi_a",
+      "samples": 128,
+      "lowercase_base_fraction": 0.034987745098039216,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 248.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 16.0,
+        "p50": 69.0,
+        "p90": 143.0
+      },
+      "uppercase_run_length": {
+        "p10": 174.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Balaenoptera_acutorostrata",
+      "samples": 128,
+      "lowercase_base_fraction": 0.13823529411764707,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 176.0,
+        "p50": 229.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 10.0,
+        "p50": 24.0,
+        "p90": 50.0
+      },
+      "uppercase_run_length": {
+        "p10": 17.0,
+        "p50": 101.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Bos_taurus",
+      "samples": 128,
+      "lowercase_base_fraction": 0.1450980392156863,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 164.0,
+        "p50": 231.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 14.0,
+        "p50": 25.0,
+        "p90": 55.0
+      },
+      "uppercase_run_length": {
+        "p10": 19.0,
+        "p50": 98.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Callithrix_jacchus",
+      "samples": 128,
+      "lowercase_base_fraction": 0.026348039215686275,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 253.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 25.0,
+        "p50": 44.0,
+        "p90": 113.0
+      },
+      "uppercase_run_length": {
+        "p10": 181.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Capromys_pilorides",
+      "samples": 128,
+      "lowercase_base_fraction": 0.02542892156862745,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 11.0,
+        "p50": 79.0,
+        "p90": 108.0
+      },
+      "uppercase_run_length": {
+        "p10": 249.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Carlito_syrichta",
+      "samples": 128,
+      "lowercase_base_fraction": 0.12089460784313726,
+      "all_lowercase_sequence_fraction": 0.046875,
+      "eligible_targets": {
+        "p10": 180.0,
+        "p50": 243.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 14.0,
+        "p50": 23.0,
+        "p90": 56.0
+      },
+      "uppercase_run_length": {
+        "p10": 22.0,
+        "p50": 169.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Castor_canadensis",
+      "samples": 128,
+      "lowercase_base_fraction": 0.013848039215686274,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 27.0,
+        "p50": 32.0,
+        "p90": 75.0
+      },
+      "uppercase_run_length": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Catagonus_wagneri",
+      "samples": 128,
+      "lowercase_base_fraction": 0.020067401960784315,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 40.0,
+        "p50": 75.0,
+        "p90": 112.0
+      },
+      "uppercase_run_length": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Cavia_porcellus",
+      "samples": 128,
+      "lowercase_base_fraction": 0.11960784313725491,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 174.0,
+        "p50": 233.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 19.0,
+        "p50": 27.0,
+        "p90": 58.0
+      },
+      "uppercase_run_length": {
+        "p10": 22.0,
+        "p50": 120.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Ceratotherium_simum",
+      "samples": 128,
+      "lowercase_base_fraction": 0.14981617647058823,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 157.0,
+        "p50": 232.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 13.0,
+        "p50": 25.0,
+        "p90": 53.0
+      },
+      "uppercase_run_length": {
+        "p10": 13.0,
+        "p50": 97.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Chinchilla_lanigera",
+      "samples": 128,
+      "lowercase_base_fraction": 0.12794117647058822,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 175.0,
+        "p50": 231.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 16.0,
+        "p50": 26.0,
+        "p90": 63.0
+      },
+      "uppercase_run_length": {
+        "p10": 20.0,
+        "p50": 124.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Choloepus_hoffmanni",
+      "samples": 128,
+      "lowercase_base_fraction": 0.13722426470588237,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 172.0,
+        "p50": 228.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 15.0,
+        "p50": 27.0,
+        "p90": 59.0
+      },
+      "uppercase_run_length": {
+        "p10": 19.0,
+        "p50": 107.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Chrysochloris_asiatica",
+      "samples": 128,
+      "lowercase_base_fraction": 0.015778186274509803,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 46.0,
+        "p50": 64.0,
+        "p90": 114.0
+      },
+      "uppercase_run_length": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Craseonycteris_thonglongyai",
+      "samples": 128,
+      "lowercase_base_fraction": 0.018198529411764707,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 10.0,
+        "p50": 62.0,
+        "p90": 113.0
+      },
+      "uppercase_run_length": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Cricetomys_gambianus",
+      "samples": 128,
+      "lowercase_base_fraction": 0.010998774509803922,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 6.0,
+        "p50": 106.0,
+        "p90": 111.0
+      },
+      "uppercase_run_length": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Crocidura_indochinensis",
+      "samples": 128,
+      "lowercase_base_fraction": 0.02340686274509804,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 21.0,
+        "p50": 86.0,
+        "p90": 141.0
+      },
+      "uppercase_run_length": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Cryptoprocta_ferox",
+      "samples": 128,
+      "lowercase_base_fraction": 0.02772671568627451,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 35.0,
+        "p50": 71.0,
+        "p90": 130.0
+      },
+      "uppercase_run_length": {
+        "p10": 212.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Ctenodactylus_gundi",
+      "samples": 128,
+      "lowercase_base_fraction": 0.02349877450980392,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 30.0,
+        "p50": 71.0,
+        "p90": 115.0
+      },
+      "uppercase_run_length": {
+        "p10": 225.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Ctenomys_sociabilis",
+      "samples": 128,
+      "lowercase_base_fraction": 0.03232230392156863,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 44.0,
+        "p50": 79.0,
+        "p90": 140.0
+      },
+      "uppercase_run_length": {
+        "p10": 173.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Cuniculus_paca",
+      "samples": 128,
+      "lowercase_base_fraction": 0.009375,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 11.0,
+        "p50": 19.0,
+        "p90": 65.0
+      },
+      "uppercase_run_length": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Dasyprocta_punctata",
+      "samples": 128,
+      "lowercase_base_fraction": 0.021752450980392156,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 40.0,
+        "p50": 93.0,
+        "p90": 108.0
+      },
+      "uppercase_run_length": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Dasypus_novemcinctus",
+      "samples": 128,
+      "lowercase_base_fraction": 0.14522058823529413,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 162.0,
+        "p50": 231.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 13.0,
+        "p50": 24.0,
+        "p90": 67.0
+      },
+      "uppercase_run_length": {
+        "p10": 12.0,
+        "p50": 103.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Daubentonia_madagascariensis",
+      "samples": 128,
+      "lowercase_base_fraction": 0.0305453431372549,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 236.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 19.0,
+        "p50": 56.0,
+        "p90": 141.0
+      },
+      "uppercase_run_length": {
+        "p10": 191.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Dinomys_branickii",
+      "samples": 128,
+      "lowercase_base_fraction": 0.038388480392156865,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 33.0,
+        "p50": 137.0,
+        "p90": 182.0
+      },
+      "uppercase_run_length": {
+        "p10": 201.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Dipodomys_ordii",
+      "samples": 128,
+      "lowercase_base_fraction": 0.19724264705882352,
+      "all_lowercase_sequence_fraction": 0.0078125,
+      "eligible_targets": {
+        "p10": 143.0,
+        "p50": 214.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 20.0,
+        "p50": 28.0,
+        "p90": 60.0
+      },
+      "uppercase_run_length": {
+        "p10": 12.0,
+        "p50": 73.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Elephantulus_edwardii",
+      "samples": 128,
+      "lowercase_base_fraction": 0.12377450980392157,
+      "all_lowercase_sequence_fraction": 0.0078125,
+      "eligible_targets": {
+        "p10": 177.0,
+        "p50": 233.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 19.0,
+        "p50": 25.0,
+        "p90": 68.0
+      },
+      "uppercase_run_length": {
+        "p10": 20.0,
+        "p50": 116.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Enhydra_lutris",
+      "samples": 128,
+      "lowercase_base_fraction": 0.17144607843137255,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 159.0,
+        "p50": 219.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 17.0,
+        "p50": 25.0,
+        "p90": 52.0
+      },
+      "uppercase_run_length": {
+        "p10": 12.0,
+        "p50": 79.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Equus_caballus",
+      "samples": 128,
+      "lowercase_base_fraction": 0.14200367647058823,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 165.0,
+        "p50": 231.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 13.0,
+        "p50": 26.0,
+        "p90": 67.0
+      },
+      "uppercase_run_length": {
+        "p10": 17.0,
+        "p50": 115.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Erinaceus_europaeus",
+      "samples": 128,
+      "lowercase_base_fraction": 0.14307598039215685,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 171.0,
+        "p50": 226.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 12.0,
+        "p50": 26.0,
+        "p90": 50.0
+      },
+      "uppercase_run_length": {
+        "p10": 17.0,
+        "p50": 86.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Eschrichtius_robustus",
+      "samples": 128,
+      "lowercase_base_fraction": 0.011029411764705883,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 31.0,
+        "p50": 76.0,
+        "p90": 122.0
+      },
+      "uppercase_run_length": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Eubalaena_japonica",
+      "samples": 128,
+      "lowercase_base_fraction": 0.02545955882352941,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 21.0,
+        "p50": 79.0,
+        "p90": 162.0
+      },
+      "uppercase_run_length": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Galeopterus_variegatus",
+      "samples": 128,
+      "lowercase_base_fraction": 0.018627450980392157,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 48.0,
+        "p50": 68.0,
+        "p90": 100.0
+      },
+      "uppercase_run_length": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Giraffa_tippelskirchi",
+      "samples": 128,
+      "lowercase_base_fraction": 0.13848039215686275,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 186.0,
+        "p50": 226.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 13.0,
+        "p50": 25.0,
+        "p90": 53.0
+      },
+      "uppercase_run_length": {
+        "p10": 18.0,
+        "p50": 100.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Heterocephalus_glaber",
+      "samples": 128,
+      "lowercase_base_fraction": 0.13186274509803922,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 172.0,
+        "p50": 229.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 11.0,
+        "p50": 25.0,
+        "p90": 59.0
+      },
+      "uppercase_run_length": {
+        "p10": 18.0,
+        "p50": 102.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Heterohyrax_brucei",
+      "samples": 128,
+      "lowercase_base_fraction": 0.009099264705882354,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 3.0,
+        "p50": 46.0,
+        "p90": 122.0
+      },
+      "uppercase_run_length": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Hippopotamus_amphibius",
+      "samples": 128,
+      "lowercase_base_fraction": 0.009466911764705882,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 15.0,
+        "p50": 44.0,
+        "p90": 81.0
+      },
+      "uppercase_run_length": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Hipposideros_armiger",
+      "samples": 128,
+      "lowercase_base_fraction": 0.14543504901960785,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 165.0,
+        "p50": 231.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 15.0,
+        "p50": 26.0,
+        "p90": 74.0
+      },
+      "uppercase_run_length": {
+        "p10": 17.0,
+        "p50": 116.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Homo_sapiens",
+      "samples": 128,
+      "lowercase_base_fraction": 0.012224264705882353,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 4.0,
+        "p50": 104.0,
+        "p90": 106.0
+      },
+      "uppercase_run_length": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Hyaena_hyaena",
+      "samples": 128,
+      "lowercase_base_fraction": 0.024417892156862745,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 25.0,
+        "p50": 59.0,
+        "p90": 127.0
+      },
+      "uppercase_run_length": {
+        "p10": 227.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Hydrochoerus_hydrochaeris",
+      "samples": 128,
+      "lowercase_base_fraction": 0.017861519607843136,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 41.0,
+        "p50": 70.0,
+        "p90": 75.0
+      },
+      "uppercase_run_length": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Hystrix_cristata",
+      "samples": 128,
+      "lowercase_base_fraction": 0.010018382352941177,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 16.0,
+        "p50": 43.0,
+        "p90": 160.0
+      },
+      "uppercase_run_length": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Indri_indri",
+      "samples": 128,
+      "lowercase_base_fraction": 0.036366421568627454,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 218.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 20.0,
+        "p50": 53.0,
+        "p90": 97.0
+      },
+      "uppercase_run_length": {
+        "p10": 104.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Inia_geoffrensis",
+      "samples": 128,
+      "lowercase_base_fraction": 0.03011642156862745,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 22.0,
+        "p50": 67.0,
+        "p90": 151.0
+      },
+      "uppercase_run_length": {
+        "p10": 251.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Kogia_breviceps",
+      "samples": 128,
+      "lowercase_base_fraction": 0.013572303921568628,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 62.0,
+        "p50": 116.0,
+        "p90": 185.0
+      },
+      "uppercase_run_length": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Lemur_catta",
+      "samples": 128,
+      "lowercase_base_fraction": 0.07208946078431372,
+      "all_lowercase_sequence_fraction": 0.0546875,
+      "eligible_targets": {
+        "p10": 224.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 22.0,
+        "p50": 58.0,
+        "p90": 255.0
+      },
+      "uppercase_run_length": {
+        "p10": 216.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Lepilemur_ruficaudatus",
+      "samples": 128,
+      "lowercase_base_fraction": 0.0234375,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 24.0,
+        "p50": 52.0,
+        "p90": 99.0
+      },
+      "uppercase_run_length": {
+        "p10": 199.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Lipotes_vexillifer",
+      "samples": 128,
+      "lowercase_base_fraction": 0.15995710784313724,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 156.0,
+        "p50": 228.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 17.0,
+        "p50": 26.0,
+        "p90": 58.0
+      },
+      "uppercase_run_length": {
+        "p10": 11.0,
+        "p50": 80.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Loxodonta_africana",
+      "samples": 128,
+      "lowercase_base_fraction": 0.12552083333333333,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 179.0,
+        "p50": 233.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 20.0,
+        "p50": 28.0,
+        "p90": 73.0
+      },
+      "uppercase_run_length": {
+        "p10": 16.0,
+        "p50": 130.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Lycaon_pictus",
+      "samples": 128,
+      "lowercase_base_fraction": 0.18511029411764707,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 142.0,
+        "p50": 221.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 11.0,
+        "p50": 28.0,
+        "p90": 70.0
+      },
+      "uppercase_run_length": {
+        "p10": 14.0,
+        "p50": 106.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Macroglossus_sobrinus",
+      "samples": 128,
+      "lowercase_base_fraction": 0.014491421568627452,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 23.0,
+        "p50": 87.0,
+        "p90": 97.0
+      },
+      "uppercase_run_length": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Manis_javanica",
+      "samples": 128,
+      "lowercase_base_fraction": 0.11596200980392157,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 181.0,
+        "p50": 233.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 12.0,
+        "p50": 23.0,
+        "p90": 53.0
+      },
+      "uppercase_run_length": {
+        "p10": 15.0,
+        "p50": 112.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Megaderma_lyra",
+      "samples": 128,
+      "lowercase_base_fraction": 0.01011029411764706,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 13.0,
+        "p50": 72.0,
+        "p90": 112.0
+      },
+      "uppercase_run_length": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Mesoplodon_bidens",
+      "samples": 128,
+      "lowercase_base_fraction": 0.00980392156862745,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 13.0,
+        "p50": 34.0,
+        "p90": 86.0
+      },
+      "uppercase_run_length": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Microcebus_murinus",
+      "samples": 128,
+      "lowercase_base_fraction": 0.1514705882352941,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 167.0,
+        "p50": 222.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 12.0,
+        "p50": 24.0,
+        "p90": 46.0
+      },
+      "uppercase_run_length": {
+        "p10": 12.0,
+        "p50": 81.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Microgale_talazaci",
+      "samples": 128,
+      "lowercase_base_fraction": 0.012438725490196078,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 17.0,
+        "p50": 77.0,
+        "p90": 144.0
+      },
+      "uppercase_run_length": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Microtus_ochrogaster",
+      "samples": 128,
+      "lowercase_base_fraction": 0.1319546568627451,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 164.0,
+        "p50": 233.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 17.0,
+        "p50": 26.0,
+        "p90": 54.0
+      },
+      "uppercase_run_length": {
+        "p10": 14.0,
+        "p50": 102.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Miniopterus_schreibersii",
+      "samples": 128,
+      "lowercase_base_fraction": 0.01715686274509804,
+      "all_lowercase_sequence_fraction": 0.0078125,
+      "eligible_targets": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 52.0,
+        "p50": 143.0,
+        "p90": 255.0
+      },
+      "uppercase_run_length": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Mirounga_angustirostris",
+      "samples": 128,
+      "lowercase_base_fraction": 0.025520833333333333,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 84.0,
+        "p50": 99.0,
+        "p90": 178.0
+      },
+      "uppercase_run_length": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Monodon_monoceros",
+      "samples": 128,
+      "lowercase_base_fraction": 0.01835171568627451,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 56.0,
+        "p50": 82.0,
+        "p90": 114.0
+      },
+      "uppercase_run_length": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Mormoops_blainvillei",
+      "samples": 128,
+      "lowercase_base_fraction": 0.008854166666666666,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 111.0,
+        "p50": 111.0,
+        "p90": 178.0
+      },
+      "uppercase_run_length": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Moschus_moschiferus",
+      "samples": 128,
+      "lowercase_base_fraction": 0.015533088235294118,
+      "all_lowercase_sequence_fraction": 0.0078125,
+      "eligible_targets": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 10.0,
+        "p50": 95.0,
+        "p90": 255.0
+      },
+      "uppercase_run_length": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Mungos_mungo",
+      "samples": 128,
+      "lowercase_base_fraction": 0.02221200980392157,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 6.0,
+        "p50": 91.0,
+        "p90": 124.0
+      },
+      "uppercase_run_length": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Mus_musculus",
+      "samples": 128,
+      "lowercase_base_fraction": 0.13869485294117648,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 163.0,
+        "p50": 229.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 17.0,
+        "p50": 27.0,
+        "p90": 71.0
+      },
+      "uppercase_run_length": {
+        "p10": 14.0,
+        "p50": 111.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Muscardinus_avellanarius",
+      "samples": 128,
+      "lowercase_base_fraction": 0.019240196078431374,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 17.0,
+        "p50": 59.0,
+        "p90": 105.0
+      },
+      "uppercase_run_length": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Myocastor_coypus",
+      "samples": 128,
+      "lowercase_base_fraction": 0.022365196078431373,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 2.0,
+        "p50": 89.0,
+        "p90": 189.0
+      },
+      "uppercase_run_length": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Myotis_lucifugus",
+      "samples": 128,
+      "lowercase_base_fraction": 0.14448529411764705,
+      "all_lowercase_sequence_fraction": 0.0078125,
+      "eligible_targets": {
+        "p10": 175.0,
+        "p50": 231.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 17.0,
+        "p50": 24.0,
+        "p90": 59.0
+      },
+      "uppercase_run_length": {
+        "p10": 16.0,
+        "p50": 98.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Myrmecophaga_tridactyla",
+      "samples": 128,
+      "lowercase_base_fraction": 0.021813725490196077,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 17.0,
+        "p50": 65.0,
+        "p90": 101.0
+      },
+      "uppercase_run_length": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Nannospalax_galili",
+      "samples": 128,
+      "lowercase_base_fraction": 0.11832107843137254,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 187.0,
+        "p50": 235.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 14.0,
+        "p50": 25.0,
+        "p90": 68.0
+      },
+      "uppercase_run_length": {
+        "p10": 27.0,
+        "p50": 138.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Noctilio_leporinus",
+      "samples": 128,
+      "lowercase_base_fraction": 0.022058823529411766,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 43.0,
+        "p50": 79.0,
+        "p90": 113.0
+      },
+      "uppercase_run_length": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Nycticebus_coucang",
+      "samples": 128,
+      "lowercase_base_fraction": 0.014491421568627452,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 16.0,
+        "p50": 44.0,
+        "p90": 50.0
+      },
+      "uppercase_run_length": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Ochotona_princeps",
+      "samples": 128,
+      "lowercase_base_fraction": 0.16081495098039217,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 166.0,
+        "p50": 222.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 19.0,
+        "p50": 24.0,
+        "p90": 51.0
+      },
+      "uppercase_run_length": {
+        "p10": 12.0,
+        "p50": 79.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Octodon_degus",
+      "samples": 128,
+      "lowercase_base_fraction": 0.13517156862745097,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 172.0,
+        "p50": 231.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 18.0,
+        "p50": 26.0,
+        "p90": 53.0
+      },
+      "uppercase_run_length": {
+        "p10": 20.0,
+        "p50": 114.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Odobenus_rosmarus",
+      "samples": 128,
+      "lowercase_base_fraction": 0.18293504901960783,
+      "all_lowercase_sequence_fraction": 0.0078125,
+      "eligible_targets": {
+        "p10": 151.0,
+        "p50": 219.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 19.0,
+        "p50": 25.0,
+        "p90": 70.0
+      },
+      "uppercase_run_length": {
+        "p10": 13.0,
+        "p50": 88.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Odocoileus_virginianus",
+      "samples": 128,
+      "lowercase_base_fraction": 0.12527573529411765,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 186.0,
+        "p50": 230.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 13.0,
+        "p50": 25.0,
+        "p90": 53.0
+      },
+      "uppercase_run_length": {
+        "p10": 15.0,
+        "p50": 116.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Orcinus_orca",
+      "samples": 128,
+      "lowercase_base_fraction": 0.15955882352941175,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 158.0,
+        "p50": 225.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 18.0,
+        "p50": 26.0,
+        "p90": 60.0
+      },
+      "uppercase_run_length": {
+        "p10": 13.0,
+        "p50": 90.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Orycteropus_afer",
+      "samples": 128,
+      "lowercase_base_fraction": 0.02610294117647059,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 16.0,
+        "p50": 102.0,
+        "p90": 162.0
+      },
+      "uppercase_run_length": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Oryctolagus_cuniculus",
+      "samples": 128,
+      "lowercase_base_fraction": 0.13903186274509804,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 171.0,
+        "p50": 231.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 17.0,
+        "p50": 25.0,
+        "p90": 53.0
+      },
+      "uppercase_run_length": {
+        "p10": 14.0,
+        "p50": 95.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Otolemur_garnettii",
+      "samples": 128,
+      "lowercase_base_fraction": 0.0847732843137255,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 198.0,
+        "p50": 244.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 17.0,
+        "p50": 24.0,
+        "p90": 43.0
+      },
+      "uppercase_run_length": {
+        "p10": 18.0,
+        "p50": 152.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Panthera_onca",
+      "samples": 128,
+      "lowercase_base_fraction": 0.007935049019607843,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 13.0,
+        "p50": 41.0,
+        "p90": 49.0
+      },
+      "uppercase_run_length": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Papio_anubis",
+      "samples": 128,
+      "lowercase_base_fraction": 0.09813112745098039,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 187.0,
+        "p50": 241.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 12.0,
+        "p50": 23.0,
+        "p90": 41.0
+      },
+      "uppercase_run_length": {
+        "p10": 15.0,
+        "p50": 110.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Paradoxurus_hermaphroditus",
+      "samples": 128,
+      "lowercase_base_fraction": 0.024754901960784313,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 22.0,
+        "p50": 57.0,
+        "p90": 137.0
+      },
+      "uppercase_run_length": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Petromus_typicus",
+      "samples": 128,
+      "lowercase_base_fraction": 0.00818014705882353,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 6.0,
+        "p50": 17.0,
+        "p90": 81.0
+      },
+      "uppercase_run_length": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Phocoena_phocoena",
+      "samples": 128,
+      "lowercase_base_fraction": 0.006556372549019608,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 4.0,
+        "p50": 63.0,
+        "p90": 102.0
+      },
+      "uppercase_run_length": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Pithecia_pithecia",
+      "samples": 128,
+      "lowercase_base_fraction": 0.01798406862745098,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 10.0,
+        "p50": 35.0,
+        "p90": 74.0
+      },
+      "uppercase_run_length": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Platanista_gangetica",
+      "samples": 128,
+      "lowercase_base_fraction": 0.009987745098039215,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 47.0,
+        "p50": 138.0,
+        "p90": 141.0
+      },
+      "uppercase_run_length": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Rhinolophus_sinicus",
+      "samples": 128,
+      "lowercase_base_fraction": 0.12745098039215685,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 170.0,
+        "p50": 230.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 10.0,
+        "p50": 24.0,
+        "p90": 53.0
+      },
+      "uppercase_run_length": {
+        "p10": 17.0,
+        "p50": 114.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Scalopus_aquaticus",
+      "samples": 128,
+      "lowercase_base_fraction": 0.013756127450980392,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 51.0,
+        "p50": 76.0,
+        "p90": 183.0
+      },
+      "uppercase_run_length": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Solenodon_paradoxus",
+      "samples": 128,
+      "lowercase_base_fraction": 0.010692401960784314,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 42.0,
+        "p50": 58.0,
+        "p90": 198.0
+      },
+      "uppercase_run_length": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Spilogale_gracilis",
+      "samples": 128,
+      "lowercase_base_fraction": 0.03002450980392157,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 20.0,
+        "p50": 73.0,
+        "p90": 122.0
+      },
+      "uppercase_run_length": {
+        "p10": 213.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Sus_scrofa",
+      "samples": 128,
+      "lowercase_base_fraction": 0.1465686274509804,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 176.0,
+        "p50": 228.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 17.0,
+        "p50": 24.0,
+        "p90": 58.0
+      },
+      "uppercase_run_length": {
+        "p10": 11.0,
+        "p50": 97.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Symphalangus_syndactylus",
+      "samples": 128,
+      "lowercase_base_fraction": 0.023682598039215685,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 238.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 7.0,
+        "p50": 31.0,
+        "p90": 61.0
+      },
+      "uppercase_run_length": {
+        "p10": 192.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Tadarida_brasiliensis",
+      "samples": 128,
+      "lowercase_base_fraction": 0.013051470588235295,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 25.0,
+        "p50": 51.0,
+        "p90": 61.0
+      },
+      "uppercase_run_length": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Tapirus_indicus",
+      "samples": 128,
+      "lowercase_base_fraction": 0.012990196078431373,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 8.0,
+        "p50": 73.0,
+        "p90": 94.0
+      },
+      "uppercase_run_length": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Thryonomys_swinderianus",
+      "samples": 128,
+      "lowercase_base_fraction": 0.01329656862745098,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 22.0,
+        "p50": 58.0,
+        "p90": 105.0
+      },
+      "uppercase_run_length": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Tolypeutes_matacus",
+      "samples": 128,
+      "lowercase_base_fraction": 0.006372549019607843,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 38.0,
+        "p50": 72.0,
+        "p90": 98.0
+      },
+      "uppercase_run_length": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Tragulus_javanicus",
+      "samples": 128,
+      "lowercase_base_fraction": 0.007352941176470588,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 12.0,
+        "p50": 86.0,
+        "p90": 93.0
+      },
+      "uppercase_run_length": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Trichechus_manatus",
+      "samples": 128,
+      "lowercase_base_fraction": 0.12518382352941176,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 174.0,
+        "p50": 233.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 16.0,
+        "p50": 27.0,
+        "p90": 68.0
+      },
+      "uppercase_run_length": {
+        "p10": 19.0,
+        "p50": 121.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Tupaia_tana",
+      "samples": 128,
+      "lowercase_base_fraction": 0.014246323529411764,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 30.0,
+        "p50": 52.0,
+        "p90": 93.0
+      },
+      "uppercase_run_length": {
+        "p10": 255.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Ursus_maritimus",
+      "samples": 128,
+      "lowercase_base_fraction": 0.1710171568627451,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 155.0,
+        "p50": 213.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 8.0,
+        "p50": 24.0,
+        "p90": 51.0
+      },
+      "uppercase_run_length": {
+        "p10": 14.0,
+        "p50": 83.0,
+        "p90": 254.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Vicugna_pacos",
+      "samples": 128,
+      "lowercase_base_fraction": 0.16256127450980393,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 146.0,
+        "p50": 228.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 12.0,
+        "p50": 24.0,
+        "p90": 50.0
+      },
+      "uppercase_run_length": {
+        "p10": 14.0,
+        "p50": 85.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Xerus_inauris",
+      "samples": 128,
+      "lowercase_base_fraction": 0.07977941176470588,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 186.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 21.0,
+        "p50": 41.0,
+        "p90": 95.0
+      },
+      "uppercase_run_length": {
+        "p10": 49.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    },
+    {
+      "species": "Zalophus_californianus",
+      "samples": 128,
+      "lowercase_base_fraction": 0.096875,
+      "all_lowercase_sequence_fraction": 0.0,
+      "eligible_targets": {
+        "p10": 167.0,
+        "p50": 255.0,
+        "p90": 255.0
+      },
+      "lowercase_run_length": {
+        "p10": 18.0,
+        "p50": 40.0,
+        "p90": 83.0
+      },
+      "uppercase_run_length": {
+        "p10": 21.0,
+        "p50": 238.0,
+        "p90": 255.0
+      },
+      "obvious_case_encoding_break": false
+    }
+  ]
+}

@@ -1,0 +1,51 @@
+# Registered issue #515 matrix; runner.py consumes the equivalent pinned constants.
+source_checkpoint: gs://marin-us-east5/checkpoints/dna-exp232-zoonomia-v1-0p25b-v4_tss_region_and_utr5-v0.1-rerun-d08452/hf/step-2000
+dataset:
+  name: marin-dna/zoonomia-v1-v4_tss_region_and_utr5
+  revision: 80b44bf6129d6ec7988f8cf1b706e4b1464ec9dc
+  sequence_column: sequence
+  species_column: species
+  context_tokens: 256
+  reverse_complement_augmentation: false
+  filter_all_lowercase: true
+evaluation:
+  name: marin-dna/evals_mendelian_traits
+  revision: 4aed58e50c5dea0b878a665007af2ef9e5108e9f
+  split: train
+  subset: tss_proximal
+  window_bases: 255
+  lm_validation: false
+model:
+  wrapper: glm_experiments.models.components.lm.HFCLM
+  selector_mode: uniform
+  selector_ratio: 1.0
+  selector_seed: 1515
+optimizer:
+  name: AdamW
+  peak_learning_rate: 0.001
+  end_learning_rate: 0.0001
+  betas: [0.9, 0.98]
+  epsilon: 1.0e-9
+  weight_decay: 0.1
+  gradient_clip_norm: 1.0
+schedule:
+  bridge_steps: 100
+  maximum_continuation_steps: 1000
+batch:
+  effective_sequences: 2048
+  initial_microbatch_sequences: 256
+arms:
+  uniform-100: {selector_mode: uniform, selector_ratio: 1.0}
+  random-50: {selector_mode: random, selector_ratio: 0.5}
+  student-low-50: {selector_mode: student_low, selector_ratio: 0.5}
+  student-middle-50: {selector_mode: student_middle, selector_ratio: 0.5}
+  student-high-50: {selector_mode: student_high, selector_ratio: 0.5}
+budget:
+  provider: Lambda Cloud
+  accelerator: GH200:1
+  hourly_rate_usd: 2.29
+  gpu_compute_stop_usd: 18
+  all_in_cap_usd: 20
+logging:
+  authoritative: csv
+  wandb: optional_best_effort

@@ -38,10 +38,14 @@ def test_ranked_selectors_use_each_sequence_and_position_ties() -> None:
 
     assert torch.equal(low[0], torch.tensor([True, True, False, False, False, False]))
     assert torch.equal(high[0], torch.tensor([False, False, True, False, True, False]))
-    assert torch.equal(middle[0], torch.tensor([False, True, False, True, False, False]))
+    assert torch.equal(
+        middle[0], torch.tensor([False, True, False, True, False, False])
+    )
     assert torch.equal(low[1], torch.tensor([False, False, True, False, True, False]))
     assert torch.equal(high[1], torch.tensor([False, True, False, True, False, False]))
-    assert torch.equal(middle[1], torch.tensor([False, False, False, True, True, False]))
+    assert torch.equal(
+        middle[1], torch.tensor([False, False, False, True, True, False])
+    )
 
 
 def test_centered_selection_matches_registered_odd_and_even_ranks() -> None:
@@ -58,8 +62,12 @@ def test_centered_selection_matches_registered_odd_and_even_ranks() -> None:
         mode="student_middle",
         ratio=0.5,
     )
-    assert torch.equal(selected[0], torch.tensor([False, True, True, False, False, False]))
-    assert torch.equal(selected[1], torch.tensor([False, True, True, False, False, False]))
+    assert torch.equal(
+        selected[0], torch.tensor([False, True, True, False, False, False])
+    )
+    assert torch.equal(
+        selected[1], torch.tensor([False, True, True, False, False, False])
+    )
 
 
 def test_random_selector_state_round_trips_through_state_dict() -> None:

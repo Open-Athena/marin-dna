@@ -5,8 +5,8 @@ from __future__ import annotations
 from typing import Any
 
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
+from torch import nn
 
 from glm_experiments.models.components.selection import SelectorMode, TokenSelector
 
@@ -147,7 +147,7 @@ class CLM(LM):
         super().__init__(embedder, encoder, layer_norm, decoder)
         if not getattr(encoder, "is_causal", True):
             raise ValueError(
-                "CLM requires a causal encoder; "
+                "CLM requires causal encoder; "
                 f"{type(encoder).__name__}.is_causal={encoder.is_causal}"
             )
         self.selector_enabled = selector_enabled

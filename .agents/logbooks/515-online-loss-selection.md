@@ -9,9 +9,10 @@ author: gonzalobenegas
 
 ## Current TL;DR
 
-Issue #515 is in implementation and no paid run has started.
+Issue #515 has passed its no-cost implementation preflight and no paid run has started.
 The experiment will use the pinned glm-experiments code through a standalone Lambda/SkyPilot project because current Marin/Iris training does not provide the requested PyTorch selector and online evaluation path.
-Development VEP uses odd-numbered autosomes and chromosome X only.
+The primary endpoint is the pinned `marin-dna/evals_mendelian_traits` TSS-proximal train split on odd-numbered autosomes and chromosome X.
+The per-species source-case audit passed without invoking the RefSeq fallback.
 
 ## Scope
 
@@ -20,7 +21,7 @@ Development VEP uses odd-numbered autosomes and chromosome X only.
 - Constraints: One paired seed, one Lambda GH200, no more than $20 all-in or $18 GPU compute, 100 shared bridge steps, no more than 1,000 continuation steps per arm, no held-out even-autosome or chromosome-Y labels.
 - Coordinating issue: https://github.com/Open-Athena/marin-dna/issues/515
 - Experiment IDs: OLS-515-BRIDGE, OLS-515-U100, OLS-515-R50, OLS-515-L50, OLS-515-M50, and OLS-515-H50.
-- Shared W&B tags: OLS-515, issue-515, online-loss-selection, and tss-continuation.
+- Logging: CSV is authoritative; W&B is optional best effort and cannot stop the experiment.
 
 ## Baseline
 
@@ -56,7 +57,9 @@ Development VEP uses odd-numbered autosomes and chromosome X only.
 
 - 2026-08-23: Use standalone Lambda/SkyPilot execution rather than Marin/Iris because issue #515 requires a pinned PyTorch Lightning and online TraitGym path, while issue #358 records that current Marin routes VEP offline.
 - 2026-08-23: Use odd-numbered autosomes and chromosome X for every development VEP checkpoint and leave even-numbered autosomes and chromosome Y untouched.
-- 2026-08-23: Store full experiment checkpoints and issue-scoped outputs under s3://oa-bolinas/issues/515/online-loss-selection/v1, dense metrics in W&B project marin, and small code/audit summaries on the permanent branch.
+- 2026-08-23: Use `marin-dna/evals_mendelian_traits` revision `4aed58e50c5dea0b878a665007af2ef9e5108e9f`, split `train`, subset `tss_proximal`, as the primary endpoint.
+- 2026-08-23: The user explicitly authorized use of TraitGym test labels if needed; the newer pinned Mendelian endpoint makes that fallback unnecessary.
+- 2026-08-23: Store retained experiment checkpoints and issue-scoped outputs under s3://oa-bolinas/issues/515/online-loss-selection/v1, authoritative dense metrics as CSV in the same run record, and the small audit summary on the permanent branch.
 
 ## Negative Results Index
 
@@ -99,3 +102,26 @@ Development VEP uses odd-numbered autosomes and chromosome X only.
 - Result: The checkpoint contains model config, safetensors, tokenizer, and special-token metadata; Lambda is enabled; no issue #515 cluster is running.
 - Interpretation: No-cost implementation and validation can proceed, followed by a commit-pinned paid canary under the approved $20 cap.
 - Next action: Implement the selector, BOS-aligned repeat eligibility, deterministic data and resume contracts, bounded species audit, cost guard, and development-only TraitGym evaluation.
+
+### 2026-08-23 22:12 - Source-case audit and endpoint verification
+
+- Hypothesis: Source-assembly case is intact enough across all represented species to use the same-data Zoonomia continuation without invoking the preregistered RefSeq fallback.
+- Commit Hash: Pending the implementation snapshot.
+- Command: `uv run --locked exp515-audit --output ../../.agents/artifacts/515-online-loss-selection/case-distribution-audit.json`.
+- Config: Seed 1,515; 128 sequences per species; 108 expected species; pinned Zoonomia revision `80b44bf6129d6ec7988f8cf1b706e4b1464ec9dc`.
+- Result: The audit covered all 108 species after 19,842 streamed rows, flagged no species, and set `fallback_required=false`.
+- Result: Per-species lowercase-base fraction ranged from 0.64% to 19.72% with a 2.55% median, maximum all-lowercase-sequence fraction was 5.47%, and median eligible targets ranged from 213 to 255.
+- Result: The current canonical `marin-dna/evals_mendelian_traits` revision is `4aed58e50c5dea0b878a665007af2ef9e5108e9f`; its TSS-proximal train endpoint contains 2,050 variants, 205 positives, and 205 match groups on odd autosomes and X.
+- Interpretation: The primary Zoonomia pilot and the newer Mendelian development endpoint satisfy the registered pre-paid data gates.
+- Next action: Commit and publish the implementation snapshot, dry-run the commit-pinned Sky task, then launch the approved one-GH200 canary.
+
+### 2026-08-23 22:14 - Local validation boundary
+
+- Hypothesis: The issue-specific selection, coordinate, storage, resume, and publication contracts pass independently of unrelated vendored test debt.
+- Commit Hash: Pending the implementation snapshot.
+- Command: `uv run --locked pytest tests/test_selection.py tests/test_exp515.py`.
+- Result: All 17 issue-specific tests passed.
+- Command: `uv run --locked pytest`.
+- Result: The full vendored suite reported 145 passed, 17 failed, and 4 skipped.
+- Interpretation: Remaining failures are outside the paid path: four CPU FlexAttention-backward tests unsupported by Torch, tests requiring the absent local `data/gpn-animal-promoter-dataset` fixture, Lightning-version configuration assertions, one stale default-evaluation assertion, and one internally contradictory stochastic weighted-loss assertion.
+- Next action: Run the clean-commit launch preflight and remote issue-specific tests before the GPU canary.

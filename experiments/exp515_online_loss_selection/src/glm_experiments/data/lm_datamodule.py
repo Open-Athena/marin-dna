@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import Any
 
 import torch
@@ -39,18 +40,28 @@ def build_soft_mask(
     sequences: list[str],
     input_ids: torch.Tensor,
     *,
-    bos_token_id: int,
+    bos_token_id: int | None = None,
+    require_leading_bos: bool = False,
 ) -> torch.Tensor:
-    """Align source-case repeat flags to one-BOS token coordinates."""
+    """Align source-case repeat flags to zero- or one-prefix-token coordinates."""
 
     if input_ids.ndim != 2 or input_ids.shape[0] != len(sequences):
         raise ValueError("input IDs and sequences must share the batch dimension")
     soft_masked = torch.zeros(input_ids.shape, dtype=torch.bool)
     for row, sequence in enumerate(sequences):
         offset = input_ids.shape[1] - len(sequence)
-        if offset != 1 or int(input_ids[row, 0]) != bos_token_id:
+        if require_leading_bos and (
+            offset != 1
+            or bos_token_id is None
+            or int(input_ids[row, 0]) != bos_token_id
+        ):
             raise ValueError(
                 "issue #515 requires exactly one leading BOS and one token per base; "
+                f"observed offset={offset}"
+            )
+        if offset not in {0, 1}:
+            raise ValueError(
+                "cannot align source-case repeat flags to token coordinates; "
                 f"observed offset={offset}"
             )
         soft_masked[row, offset:] = torch.tensor(
@@ -104,9 +115,7 @@ def apply_dlm_masking(
     labels = input_ids.clone()
     batch_size, seq_len = input_ids.shape
     masking_ratios = torch.rand(batch_size, 1)
-    masked_indices = torch.bernoulli(
-        masking_ratios.expand(batch_size, seq_len)
-    ).bool()
+    masked_indices = torch.bernoulli(masking_ratios.expand(batch_size, seq_len)).bool()
     labels[~masked_indices] = -100
     input_ids[masked_indices] = mask_token_id
     return input_ids, labels
@@ -135,7 +144,7 @@ class LMDataModule(LightningDataModule):
         max_val_lm_samples: int | None = None,
         shuffle_buffer_size: int = 10_000,
         seed: int = 42,
-        evals: list[dict[str, Any]] | None = None,
+        evals: Mapping[str, Mapping[str, Any]] | list[dict[str, Any]] | None = None,
     ) -> None:
         super().__init__()
         self.save_hyperparameters(logger=False)
@@ -145,7 +154,22 @@ class LMDataModule(LightningDataModule):
         self.data_val: Any | None = None
         self.eval_datasets: dict[str, Any] = {}
 
-    def apply_labels(self, input_ids: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+    def _evaluation_configs(self) -> list[dict[str, Any]]:
+        """Normalize legacy named mappings and current config lists."""
+
+        configured = self.hparams.get("evals")
+        if configured is None:
+            return []
+        if isinstance(configured, Mapping):
+            return [
+                {"name": str(name), **dict(values)}
+                for name, values in configured.items()
+            ]
+        return [dict(values) for values in configured]
+
+    def apply_labels(
+        self, input_ids: torch.Tensor
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         """Create labels for the objective."""
 
         raise NotImplementedError
@@ -162,7 +186,7 @@ class LMDataModule(LightningDataModule):
             self.hparams.tokenizer_name,
             revision=self.hparams.tokenizer_revision,
         )
-        for eval_cfg in self.hparams.get("evals") or []:
+        for eval_cfg in self._evaluation_configs():
             download_genome(
                 url=eval_cfg["genome_url"],
                 data_dir=eval_cfg.get("data_dir", "data"),
@@ -219,12 +243,10 @@ class LMDataModule(LightningDataModule):
             tokenized["attention_mask"],
             dtype=torch.bool,
         )
-        if self.tokenizer.bos_token_id is None:
-            raise ValueError("checkpoint tokenizer must define bos_token_id")
         soft_masked = build_soft_mask(
             sequences,
             input_ids,
-            bos_token_id=int(self.tokenizer.bos_token_id),
+            bos_token_id=self.tokenizer.bos_token_id,
         )
         input_ids, labels = self.apply_labels(input_ids)
         result: dict[str, Any] = {
@@ -308,7 +330,7 @@ class LMDataModule(LightningDataModule):
             self.data_train = train_dataset
             self.data_val = val_dataset
 
-            for eval_cfg in self.hparams.get("evals") or []:
+            for eval_cfg in self._evaluation_configs():
                 eval_name = eval_cfg["name"]
                 self.eval_datasets[eval_name] = load_eval_dataset(
                     tokenizer=HFTokenizer(self.tokenizer),
@@ -356,8 +378,7 @@ class LMDataModule(LightningDataModule):
                     collate_fn=default_collate,
                 )
             )
-        evals = self.hparams.get("evals") or []
-        eval_by_name = {item["name"]: item for item in evals}
+        eval_by_name = {item["name"]: item for item in self._evaluation_configs()}
         for name, dataset in self.eval_datasets.items():
             config = eval_by_name[name]
             loaders.append(
@@ -385,7 +406,9 @@ class MLMDataModule(LMDataModule):
     def get_objective(self) -> str:
         return "mlm"
 
-    def apply_labels(self, input_ids: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+    def apply_labels(
+        self, input_ids: torch.Tensor
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         if self.tokenizer is None or self.tokenizer.mask_token_id is None:
             raise RuntimeError("MLM tokenizer must define a mask token")
         return apply_mlm_masking(
@@ -402,7 +425,9 @@ class DLMDataModule(LMDataModule):
     def get_objective(self) -> str:
         return "dlm"
 
-    def apply_labels(self, input_ids: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+    def apply_labels(
+        self, input_ids: torch.Tensor
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         if self.tokenizer is None or self.tokenizer.mask_token_id is None:
             raise RuntimeError("DLM tokenizer must define a mask token")
         return apply_dlm_masking(
@@ -417,5 +442,7 @@ class CLMDataModule(LMDataModule):
     def get_objective(self) -> str:
         return "clm"
 
-    def apply_labels(self, input_ids: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+    def apply_labels(
+        self, input_ids: torch.Tensor
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         return apply_clm_labels(input_ids)

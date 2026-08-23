@@ -1,0 +1,29 @@
+name: dna-exp515-online-selection
+
+resources:
+  cloud: lambda
+  accelerators: GH200:1
+  disk_size: 512
+
+setup: |
+  cd experiments/exp515_online_loss_selection
+  uv sync --locked --group dev
+
+run: |
+  set -euo pipefail
+  export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+  export EXP515_USE_WANDB="${EXP515_USE_WANDB:-0}"
+  cd experiments/exp515_online_loss_selection
+  test -n "${EXPERIMENT_COMMIT:-}"
+  test -n "${EXP515_RUN_ID:-}"
+  test -n "${EXP515_INSTANCE_START_UNIX:-}"
+  test -n "${GOOGLE_ADC_JSON_BASE64:-}"
+  test -n "${AWS_ACCESS_KEY_ID:-}"
+  test -n "${AWS_SECRET_ACCESS_KEY:-}"
+  export EXP515_CASE_AUDIT="$PWD/../../.agents/artifacts/515-online-loss-selection/case-distribution-audit.json"
+  mkdir -p "$HOME/exp515-artifacts"
+  uv run --locked pytest tests/test_selection.py tests/test_exp515.py
+  uv run --locked python -m glm_experiments.exp515.runner \
+    --artifact-dir "$HOME/exp515-artifacts" \
+    --experiment-commit "$EXPERIMENT_COMMIT" \
+    --run-id "$EXP515_RUN_ID"

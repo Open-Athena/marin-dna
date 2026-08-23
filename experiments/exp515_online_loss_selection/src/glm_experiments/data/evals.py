@@ -27,7 +27,9 @@ def assert_development_split(frame: pd.DataFrame) -> None:
     required = {"chrom", "label", "subset", "match_group"}
     missing = required - set(frame.columns)
     if missing:
-        raise ValueError(f"evaluation dataset lacks required columns: {sorted(missing)}")
+        raise ValueError(
+            f"evaluation dataset lacks required columns: {sorted(missing)}"
+        )
     observed = {str(value) for value in frame["chrom"].unique()}
     forbidden = observed - DEVELOPMENT_CHROMS
     if forbidden:
@@ -187,7 +189,9 @@ def load_eval_dataset(
             genome=genome,
             window_size=window_size,
         ),
-        remove_columns=[column for column in original_columns if column != label_column],
+        remove_columns=[
+            column for column in original_columns if column != label_column
+        ],
     )
     cache_path.parent.mkdir(parents=True, exist_ok=True)
     dataset.save_to_disk(str(cache_path))
