@@ -25,19 +25,6 @@ Multiple landmarks and alternative fragment-selection policies remain open choic
 <details>
 <summary>Related work</summary>
 
-- [#121](https://github.com/Open-Athena/marin-dna/issues/121) developed the early Zoonomia HAL enhancer-projection path.
-  It established operational feasibility for human-anchored mammalian data but was limited to an enhancer-oriented pipeline.
-- [#149](https://github.com/Open-Athena/marin-dna/issues/149) generalized human-anchored projection into a genome-wide mammalian training program.
-  It established the reusable data concept; projection semantics were inherited rather than experimentally optimized.
-- [#153](https://github.com/Open-Athena/marin-dna/issues/153) compared MAF streaming with halLiftover using no-duplicate mappings and selected HAL for speed and operational simplicity.
-  It also established the single-locus, 128–512 bp outer-span, midpoint-resize baseline.
-  The comparison chose a backend, not the best biological projection policy.
-- [#227](https://github.com/Open-Athena/marin-dna/issues/227) fixed the v4 base-pair and window-labeling contract used after projection.
-  It separates annotation semantics from projection semantics but does not measure homolog quality.
-- [#230](https://github.com/Open-Athena/marin-dna/issues/230) and [#233](https://github.com/Open-Athena/marin-dna/issues/233) added rank-based species subsetting and built the 19-order cohort.
-  They make recovery-versus-species-density experiments possible; they do not choose anchor or projection policy.
-- [#417](https://github.com/Open-Athena/marin-dna/issues/417) applies one projection contract across Zoonomia HAL and UCSC MultiZ sources and records backend-uniform rejection reasons.
-  It improves comparability and accounting while leaving the contract itself unvalidated.
 - [Ye et al., Predicting functional constraints across evolutionary timescales with phylogeny-informed genomic language models](https://pmc.ncbi.nlm.nih.gov/articles/PMC12458161/) shows that GPN-Star calibrated entropy can outperform classical phyloP or PhastCons for constraint and variant prioritization and that primate, mammal, and vertebrate timescales differ by endpoint.
   This motivates alternative anchor-inclusion scores.
   It does not determine the best projection semantics.

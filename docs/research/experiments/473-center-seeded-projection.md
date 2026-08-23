@@ -52,7 +52,9 @@ Recovery measures yield and does not prove that every accepted window is the cor
 </p>
 
 _Actual AUPRC at nine saved checkpoints from steps 1,000 through 4,999 for Mendelian missense, splicing, and synonymous variants; Complex-trait missense variants; and SGE missense and splicing variants.
-Vertical uncapped error bars are ±1 SE, gray dashed lines show positive-label prevalence, and each panel uses its own prevalence-anchored y-axis._
+Mendelian and Complex-trait panels aggregate their matched evaluation sets.
+SGE panels report accession-macro AUPRC, with macro-propagated ±1 SE and a dashed baseline equal to mean per-accession prevalence.
+Other vertical uncapped error bars are ±1 SE, other gray dashed baselines show positive-label prevalence, and each panel uses its own prevalence-anchored y-axis._
 
 The CDS policies tracked closely for Mendelian missense and splicing, Complex-trait missense, and SGE missense.
 Synonymous and SGE splicing varied more, but all three terminal CDS Mendelian paired 95% intervals included zero.
