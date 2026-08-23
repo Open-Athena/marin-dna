@@ -1,11 +1,10 @@
 """Per-variant conservation scoring via UCSC bigWig tracks.
 
-Scores matched-pair variant-effect datasets (e.g. ``bolinas-dna/evals_mendelian_traits``,
-``bolinas-dna/evals_complex_traits``) with classical conservation tracks. On ``main`` this
-module's variant-column constants are consumed by ``evals_v2`` and the ``CONSERVATION_TRACKS``
-registry below by ``zoonomia_projection_dataset``; the ``conservation_eval`` baseline pipeline
-(issue #146) that was its original driver now runs from a branch (frozen results on S3; see #332):
+Scores matched-pair variant-effect datasets (for example, `marin-dna/evals_mendelian_traits` and `marin-dna/evals_complex_traits`) with classical conservation tracks.
+This module owns the variant-column constants and conservation-track registry used by `evals_v2`.
+The original `conservation_eval` baseline pipeline (issue #146) now runs from a permanent branch; its frozen results remain on S3 as recorded in #332.
 
+The registered tracks are:
 - ``phyloP_100v``    — UCSC 100-vertebrate phyloP (multiz alignment)
 - ``phastCons_100v`` — UCSC 100-vertebrate phastCons (multiz alignment)
 - ``phyloP_241m``    — Zoonomia 241-mammal Cactus phyloP

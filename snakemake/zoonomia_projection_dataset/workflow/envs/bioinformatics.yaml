@@ -1,8 +1,0 @@
-channels:
-  - conda-forge
-  - bioconda
-dependencies:
-  - bedtools
-  - ucsc-fatotwobit
-  - ucsc-twobitinfo
-  - ucsc-twobittofa

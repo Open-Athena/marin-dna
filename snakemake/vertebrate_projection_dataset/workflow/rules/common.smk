@@ -22,6 +22,7 @@ from marin_dna_vertebrate_projection.sequence_sources import (
 )
 
 PIPELINE_VERSION = str(config["pipeline_version"])
+HF_REPO_PREFIX = f"vertebrate-{PIPELINE_VERSION}"
 TIER = str(config["tier"])
 assert TIER in {"smoke", "full"}
 PIPELINE_COMMIT = resolve_pipeline_commit()
@@ -32,11 +33,7 @@ RESULTS = (
 PRODUCER_MANIFEST = f"{RESULTS}/metadata/producer.json"
 
 WINDOW_SIZE = int(config["window_size"])
-TARGET_LENGTH = int(config["target_length"])
-PRE_RESIZE_MIN = int(config["pre_resize_min_length"])
-PRE_RESIZE_MAX = int(config["pre_resize_max_length"])
-assert WINDOW_SIZE == TARGET_LENGTH == 255
-assert 0 < PRE_RESIZE_MIN <= TARGET_LENGTH <= PRE_RESIZE_MAX
+assert WINDOW_SIZE == 255
 
 SPECIES_CANDIDATES = str(config["species_candidates"])
 SPECIES_SELECTED = str(config["species_selected"])
@@ -73,6 +70,7 @@ SPECIES_SELECTED_INPUT = local(SPECIES_SELECTED)
 MIRROR_MANIFEST_INPUT = local(MIRROR_MANIFEST)
 TWOBIT_MANIFEST_INPUT = local(TWOBIT_MANIFEST)
 ANCHOR_CATALOG_INPUT = local(ANCHOR_CATALOG) if TIER == "smoke" else ANCHOR_CATALOG
+PROJECTION_REQUESTS = f"{RESULTS}/anchors/projection_requests.parquet"
 
 assert set(MAMMALS) <= set(all_mammals)
 assert set(NON_MAMMALS) <= set(all_non_mammals)

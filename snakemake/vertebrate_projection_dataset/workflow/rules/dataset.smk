@@ -213,7 +213,7 @@ rule dataset_card:
     resources:
         mem_mb=2000,
     params:
-        repo=lambda wc: (f"{config['hf_owner']}/{config['hf_repo_prefix']}-{wc.region}"),
+        repo=lambda wc: (f"{config['hf_owner']}/{HF_REPO_PREFIX}-{wc.region}"),
         region=lambda wc: dataset_region_label(wc.region),
         scope=lambda wc: dataset_species_scope(wc.region),
     run:
@@ -321,7 +321,7 @@ rule hf_upload_dataset:
     resources:
         hf_uploads=1,
     params:
-        repo=lambda wc: (f"{config['hf_owner']}/{config['hf_repo_prefix']}-{wc.region}"),
+        repo=lambda wc: (f"{config['hf_owner']}/{HF_REPO_PREFIX}-{wc.region}"),
         workers=int(config["hf_upload_workers"]),
     run:
         upload_validated_dataset(

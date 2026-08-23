@@ -17,6 +17,8 @@ from huggingface_hub import HfApi, hf_hub_download
 from huggingface_hub.errors import RepositoryNotFoundError
 from huggingface_hub.hf_api import DatasetInfo
 
+from marin_dna_vertebrate_projection.contract import TARGET_LENGTH
+
 
 @dataclass(frozen=True)
 class ShardResult:
@@ -36,12 +38,11 @@ def _validate_record(
     expected_columns: frozenset[str],
     split: str,
     validation_chrom: str,
-    target_length: int,
 ) -> None:
     record = json.loads(raw)
     assert set(record) == expected_columns
     assert isinstance(record["sequence"], str)
-    assert len(record["sequence"]) == target_length
+    assert len(record["sequence"]) == TARGET_LENGTH
     assert record["augmentation"] in {"+", "-"}
     if split == "train":
         assert record["source_chrom"] != validation_chrom
@@ -51,9 +52,9 @@ def _validate_record(
 
 
 def _validate_shard(
-    task: tuple[Path, str, str, int, frozenset[str], str, int],
+    task: tuple[Path, str, str, int, frozenset[str], str],
 ) -> ShardResult:
-    path, cohort, split, index, columns, validation_chrom, target_length = task
+    path, cohort, split, index, columns, validation_chrom = task
     digest = hashlib.sha256()
     decompressor = zstd.ZstdDecompressor().decompressobj()
     first_line: bytes | None = None
@@ -89,7 +90,6 @@ def _validate_shard(
             expected_columns=columns,
             split=split,
             validation_chrom=validation_chrom,
-            target_length=target_length,
         )
     return ShardResult(
         cohort=cohort,
@@ -120,6 +120,7 @@ def validate_artifacts(
     assert len(pipeline_commit) == 40 and workers > 0
     assert len(config_sha256) == 64
     config = yaml.safe_load(Path(config_path).read_text())
+    repo_prefix = f"{config['hf_owner']}/vertebrate-{config['pipeline_version']}"
     assert tier in {None, "smoke", "full"}
     cohorts = (
         ["all", "cds", "ccre_non_promoter", "background"]
@@ -135,12 +136,11 @@ def validate_artifacts(
     )
     validation_shards = int(config["publication_validation_shards"])
     validation_chrom = str(config["validation_chrom"])
-    target_length = int(config["target_length"])
     assert len(cohorts) == len(set(cohorts))
     assert train_shards > 0 and validation_shards > 0
 
     expected_files: set[Path] = set()
-    tasks: list[tuple[Path, str, str, int, frozenset[str], str, int]] = []
+    tasks: list[tuple[Path, str, str, int, frozenset[str], str]] = []
     cohort_metadata: dict[str, dict[str, object]] = {}
     forbidden_card_text = [
         "bolinas-dna",
@@ -154,7 +154,7 @@ def validate_artifacts(
         expected_files.add(card.relative_to(artifact_root))
         card_bytes = card.read_bytes()
         card_text = card_bytes.decode()
-        assert f"# `marin-dna/vertebrate-v1-{cohort}`" in card_text
+        assert f"# `{repo_prefix}-{cohort}`" in card_text
         assert f"blob/{pipeline_commit}/" in card_text
         assert "path: data/train/*.jsonl.zst" in card_text
         assert "path: data/validation/*.jsonl.zst" in card_text
@@ -200,7 +200,6 @@ def validate_artifacts(
                         index,
                         columns,
                         validation_chrom,
-                        target_length,
                     )
                 )
 
@@ -249,7 +248,7 @@ def validate_artifacts(
         "config_sha256": config_sha256,
         "artifact_format": "JSONL.zst",
         "validation_chrom": validation_chrom,
-        "target_length": target_length,
+        "target_length": TARGET_LENGTH,
         "cohorts": manifest_cohorts,
     }
     output = Path(output_path)
@@ -329,6 +328,12 @@ def upload_validated_dataset(
     api = HfApi()
     before = _remote_info_or_none(api, repo_id)
     if before is not None:
+        assert before.private is False, (
+            f"Hugging Face dataset must be public: {repo_id}"
+        )
+        assert before.gated is False, (
+            f"Hugging Face dataset must not be gated: {repo_id}"
+        )
         observed = {item.rfilename for item in before.siblings}
         unexpected = observed - expected_remote
         assert not unexpected, {"repo": repo_id, "unexpected": sorted(unexpected)}
@@ -340,6 +345,7 @@ def upload_validated_dataset(
             repo_id,
             "--repo-type",
             "dataset",
+            "--no-private",
             "--num-workers",
             str(workers),
             str(cohort_dir),
@@ -362,7 +368,15 @@ def upload_validated_dataset(
     )
 
     after = api.dataset_info(repo_id, files_metadata=True)
+    assert after.private is False, f"Hugging Face dataset must be public: {repo_id}"
+    assert after.gated is False, f"Hugging Face dataset must not be gated: {repo_id}"
     assert after.sha is not None and len(after.sha) == 40
+    public_after = HfApi(token=False).dataset_info(
+        repo_id, revision=after.sha, files_metadata=True
+    )
+    assert public_after.private is False
+    assert public_after.gated is False
+    assert public_after.sha == after.sha
     observed = {item.rfilename: item for item in after.siblings}
     assert set(observed) == expected_remote, {
         "repo": repo_id,
@@ -381,7 +395,13 @@ def upload_validated_dataset(
             assert remote.lfs is not None
             assert remote.lfs.sha256 == shard["sha256"]
     remote_card = Path(
-        hf_hub_download(repo_id, "README.md", repo_type="dataset", revision=after.sha)
+        hf_hub_download(
+            repo_id,
+            "README.md",
+            repo_type="dataset",
+            revision=after.sha,
+            token=False,
+        )
     ).read_bytes()
     assert hashlib.sha256(remote_card).hexdigest() == cohort_manifest["card_sha256"]
     output = Path(output_path)

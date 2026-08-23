@@ -17,19 +17,16 @@ from pathlib import Path
 from urllib.parse import quote
 
 import polars as pl
-from marin_dna_zoonomia_projection.projection.taxonomy import normalize_zoonomia_leaf
 
 from marin_dna_vertebrate_projection.manifest import (
     select_family_representatives,
     validate_species_manifest,
 )
+from marin_dna_vertebrate_projection.projection.taxonomy import normalize_zoonomia_leaf
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 NCBI_TAX_URL = "https://api.ncbi.nlm.nih.gov/datasets/v2alpha/taxonomy/taxon"
-MAMMAL_TSV = (
-    PROJECT_ROOT.parent / "zoonomia_projection_dataset/config/"
-    "species_zoonomia_447_family_dedup.tsv"
-)
+MAMMAL_TSV = PROJECT_ROOT / "config/zoonomia_447_family_dedup.tsv"
 
 # alignment name, scientific name, UCSC assembly label, major clade,
 # explicit selection priority.  Priority is only non-equal within a family;

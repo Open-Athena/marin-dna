@@ -19,14 +19,12 @@ def main(argv: list[str] | None = None) -> None:
     human.add_argument("twobit")
     human.add_argument("chrom_sizes")
     human.add_argument("output")
-    human.add_argument("--target-length", type=int, default=255)
 
     projected = subparsers.add_parser("projected")
     projected.add_argument("accepted")
     projected.add_argument("twobit")
     projected.add_argument("sequences")
     projected.add_argument("rejected")
-    projected.add_argument("--target-length", type=int, default=255)
 
     args = parser.parse_args(argv)
     if args.command == "human":
@@ -35,7 +33,6 @@ def main(argv: list[str] | None = None) -> None:
             args.twobit,
             args.chrom_sizes,
             args.output,
-            target_length=args.target_length,
         )
     else:
         assert args.command == "projected"
@@ -44,7 +41,6 @@ def main(argv: list[str] | None = None) -> None:
             args.twobit,
             args.sequences,
             args.rejected,
-            target_length=args.target_length,
         )
 
 

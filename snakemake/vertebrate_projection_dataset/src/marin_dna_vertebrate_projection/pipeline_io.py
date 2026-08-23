@@ -10,8 +10,6 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 import polars as pl
-import pyarrow as pa
-import pyarrow.parquet as pq
 
 from marin_dna_vertebrate_projection.adapters import (
     hal_records_to_fragments,
@@ -19,6 +17,7 @@ from marin_dna_vertebrate_projection.adapters import (
 from marin_dna_vertebrate_projection.contract import (
     ACCEPTED_SCHEMA,
     REJECTION_SCHEMA,
+    TARGET_LENGTH,
     apply_projection_contract,
 )
 from marin_dna_vertebrate_projection.inspection import (
@@ -29,7 +28,6 @@ from marin_dna_vertebrate_projection.inspection import (
 )
 from marin_dna_vertebrate_projection.maf import (
     FRAGMENT_SCHEMA,
-    iter_projected_anchor_fragments,
 )
 from marin_dna_vertebrate_projection.manifest import (
     read_species_manifest,
@@ -93,7 +91,7 @@ def write_filtered_anchor_bed(
         compressed_path.replace(output)
 
 
-def read_anchor_catalog(path: str | Path, *, target_length: int = 255) -> pl.DataFrame:
+def read_anchor_catalog(path: str | Path) -> pl.DataFrame:
     """Read a TSV/Parquet anchor catalog and assert 0-based half-open invariants."""
     anchor_path = Path(path)
     frame = (
@@ -113,136 +111,9 @@ def read_anchor_catalog(path: str | Path, *, target_length: int = 255) -> pl.Dat
     assert frame["query_name"].n_unique() == frame.height
     assert frame["source_chrom"].str.starts_with("chr").all()
     assert (frame["source_start"] >= 0).all()
-    assert (frame["source_end"] - frame["source_start"] == target_length).all()
+    assert (frame["source_end"] - frame["source_start"] == TARGET_LENGTH).all()
     return frame.select(sorted(required)).sort(
         "source_chrom", "source_start", "query_name"
-    )
-
-
-def write_hal_bed6(anchors_path: str | Path, output_path: str | Path) -> None:
-    anchors = read_anchor_catalog(anchors_path)
-    anchors.select(
-        pl.col("source_chrom"),
-        pl.col("source_start"),
-        pl.col("source_end"),
-        pl.col("query_name"),
-        pl.lit(0).alias("score"),
-        pl.lit("+").alias("strand"),
-    ).write_csv(output_path, separator="\t", include_header=False)
-
-
-def write_maf_candidates(
-    maf_path: str | Path,
-    anchors_path: str | Path,
-    manifest_path: str | Path,
-    output_path: str | Path,
-    *,
-    rows_per_batch: int = 5_000,
-) -> None:
-    """Stream MAF candidates into species-clustered Parquet row groups.
-
-    Full chromosome MAFs can yield millions of Python fragment records. Small
-    per-species buffers keep parsing bounded in memory, and species-clustered
-    row groups let downstream per-species contract jobs prune almost all I/O.
-    """
-    assert rows_per_batch > 0
-    anchors = read_anchor_catalog(anchors_path)
-    manifest = read_species_manifest(str(manifest_path))
-    selected = manifest.filter(
-        (pl.col("backend") == "ucsc_multiz100way") & pl.col("selected")
-    )
-    alignment_names = sorted(selected["alignment_name"].to_list())
-    assert alignment_names
-    buffers: dict[str, list[dict[str, object]]] = {name: [] for name in alignment_names}
-    output = Path(output_path)
-    output.parent.mkdir(parents=True, exist_ok=True)
-    output.unlink(missing_ok=True)
-
-    with TemporaryDirectory(prefix=".maf-fragments-", dir=output.parent) as temp_dir:
-        temporary = Path(temp_dir)
-        writers: dict[str, pq.ParquetWriter] = {}
-
-        def flush(alignment_name: str) -> None:
-            rows = buffers[alignment_name]
-            if not rows:
-                return
-            table = pl.DataFrame(rows, schema=FRAGMENT_SCHEMA).to_arrow()
-            writer = writers.get(alignment_name)
-            if writer is None:
-                writer = pq.ParquetWriter(
-                    temporary / f"{alignment_name}.parquet",
-                    table.schema,
-                    compression="zstd",
-                    write_statistics=True,
-                )
-                writers[alignment_name] = writer
-            writer.write_table(table)
-            rows.clear()
-
-        try:
-            for fragment in iter_projected_anchor_fragments(
-                maf_path, anchors, manifest
-            ):
-                alignment_name = str(fragment["alignment_name"])
-                assert alignment_name in buffers
-                buffers[alignment_name].append(fragment)
-                if len(buffers[alignment_name]) >= rows_per_batch:
-                    flush(alignment_name)
-            for alignment_name in alignment_names:
-                flush(alignment_name)
-        finally:
-            for writer in writers.values():
-                writer.close()
-
-        output_writer: pq.ParquetWriter | None = None
-        try:
-            for alignment_name in alignment_names:
-                part_path = temporary / f"{alignment_name}.parquet"
-                if not part_path.exists():
-                    continue
-                for batch in pq.ParquetFile(part_path).iter_batches(
-                    batch_size=rows_per_batch
-                ):
-                    table = pa.Table.from_batches([batch])
-                    if output_writer is None:
-                        output_writer = pq.ParquetWriter(
-                            output,
-                            table.schema,
-                            compression="zstd",
-                            write_statistics=True,
-                        )
-                    output_writer.write_table(table)
-        finally:
-            if output_writer is not None:
-                output_writer.close()
-
-    if not output.exists():
-        pl.DataFrame(schema=FRAGMENT_SCHEMA).write_parquet(output)
-
-    stats = (
-        pl.scan_parquet(output)
-        .select(
-            pl.len().alias("rows"),
-            (pl.col("source_fragment_start") < pl.col("source_start"))
-            .sum()
-            .alias("invalid_source_starts"),
-            (pl.col("source_fragment_end") > pl.col("source_end"))
-            .sum()
-            .alias("invalid_source_ends"),
-            (pl.col("t_start") < 0).sum().alias("invalid_target_starts"),
-            (pl.col("t_end") > pl.col("t_src_size")).sum().alias("invalid_target_ends"),
-        )
-        .collect(engine="streaming")
-        .row(0, named=True)
-    )
-    assert all(
-        int(stats[column]) == 0
-        for column in [
-            "invalid_source_starts",
-            "invalid_source_ends",
-            "invalid_target_starts",
-            "invalid_target_ends",
-        ]
     )
 
 
@@ -261,22 +132,13 @@ def write_contract_outputs(
     fragments_path: str | Path,
     accepted_path: str | Path,
     rejected_path: str | Path,
-    *,
-    target_length: int,
-    pre_resize_min_length: int,
-    pre_resize_max_length: int,
 ) -> None:
-    """Apply the vectorized/fragmented contract in one read of the Parquet."""
+    """Apply the center-projection contract in one read of the Parquet."""
     schema = pl.read_parquet_schema(fragments_path)
     missing = set(FRAGMENT_SCHEMA) - set(schema)
     assert not missing, f"projection fragments missing columns: {sorted(missing)}"
     fragments = pl.read_parquet(fragments_path)
-    result = apply_projection_contract(
-        fragments,
-        target_length=target_length,
-        pre_resize_min_length=pre_resize_min_length,
-        pre_resize_max_length=pre_resize_max_length,
-    )
+    result = apply_projection_contract(fragments)
 
     accepted_output = Path(accepted_path)
     rejected_output = Path(rejected_path)
@@ -291,10 +153,6 @@ def write_contract_outputs_for_alignment(
     alignment_name: str,
     accepted_path: str | Path,
     rejected_path: str | Path,
-    *,
-    target_length: int,
-    pre_resize_min_length: int,
-    pre_resize_max_length: int,
 ) -> None:
     """Apply the shared contract to one species from clustered MAF fragments."""
     fragments = (
@@ -302,12 +160,7 @@ def write_contract_outputs_for_alignment(
         .filter(pl.col("alignment_name") == alignment_name)
         .collect(engine="streaming")
     )
-    result = apply_projection_contract(
-        fragments,
-        target_length=target_length,
-        pre_resize_min_length=pre_resize_min_length,
-        pre_resize_max_length=pre_resize_max_length,
-    )
+    result = apply_projection_contract(fragments)
     Path(accepted_path).parent.mkdir(parents=True, exist_ok=True)
     Path(rejected_path).parent.mkdir(parents=True, exist_ok=True)
     result.accepted.write_parquet(accepted_path)
@@ -331,8 +184,6 @@ def write_twobit_sequences(
     two_bit_path: str | Path,
     sequence_path: str | Path,
     rejected_path: str | Path,
-    *,
-    target_length: int = 255,
 ) -> None:
     """Extract one genome's accepted rows in a single compiled twoBitToFa call."""
     accepted = Path(accepted_path)
@@ -377,7 +228,7 @@ def write_twobit_sequences(
             accepted,
             sequences,
             sequence_output,
-            target_len=target_length,
+            target_len=TARGET_LENGTH,
         )
         assert written == row_count
 
@@ -392,10 +243,8 @@ def write_human_reference_sequences(
     two_bit_path: str | Path,
     chrom_sizes_path: str | Path,
     output_path: str | Path,
-    *,
-    target_length: int = 255,
 ) -> None:
-    anchors = read_anchor_catalog(anchors_path, target_length=target_length)
+    anchors = read_anchor_catalog(anchors_path)
     sizes = pl.read_csv(
         chrom_sizes_path,
         separator="\t",
@@ -422,7 +271,7 @@ def write_human_reference_sequences(
             pl.col("source_start").alias("pre_resize_t_start"),
             pl.col("source_end").alias("pre_resize_t_end"),
             pl.lit(1, dtype=pl.Int64).alias("fragment_count"),
-            pl.lit(target_length, dtype=pl.Int64).alias("aligned_bases"),
+            pl.lit(TARGET_LENGTH, dtype=pl.Int64).alias("aligned_bases"),
         )
         .select(ACCEPTED_SCHEMA.names())
         .cast(ACCEPTED_SCHEMA)
@@ -442,7 +291,6 @@ def write_human_reference_sequences(
             two_bit_path,
             output,
             rejected_path,
-            target_length=target_length,
         )
         assert pl.read_parquet(rejected_path).is_empty()
 
@@ -807,6 +655,9 @@ configs:
 Human-anchored 255 bp vertebrate sequences from {source_description}. This
 draft covers the `{region_label}` region cohort with `{species_scope}` species
 scope and preserves source FASTA/2bit letter case.
+
+Non-human rows project only the central human nucleotide and extract the 255 bp
+target window centered on its unique mapped locus.
 
 Anchor eligibility uses the pipeline's pinned phyloP conservation filter.
 Sequence case is independent of that filter: lowercase bases preserve source

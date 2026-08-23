@@ -57,6 +57,7 @@ def test_write_filtered_anchor_bed_is_valid_deterministic_gzip(
 def test_write_twobit_sequences_batches_bed6_and_preserves_tool_output(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    sequence = "aCgT" + "A" * 251
     accepted = tmp_path / "accepted.parquet"
     pl.DataFrame(
         [
@@ -64,7 +65,7 @@ def test_write_twobit_sequences_batches_bed6_and_preserves_tool_output(
                 "query_name": "anchor-1",
                 "source_chrom": "chr1",
                 "source_start": 100,
-                "source_end": 104,
+                "source_end": 355,
                 "region_label": "cds",
                 "species": "Test species",
                 "alignment_name": "testSpecies",
@@ -76,13 +77,13 @@ def test_write_twobit_sequences_batches_bed6_and_preserves_tool_output(
                 "alignment_source": "zoonomia_cactus",
                 "t_chrom": "chr2",
                 "t_start": 200,
-                "t_end": 204,
+                "t_end": 455,
                 "t_strand": "-",
                 "t_src_size": 1_000,
                 "pre_resize_t_start": 200,
-                "pre_resize_t_end": 204,
+                "pre_resize_t_end": 455,
                 "fragment_count": 1,
-                "aligned_bases": 4,
+                "aligned_bases": 255,
             }
         ],
         schema=ACCEPTED_SCHEMA,
@@ -94,8 +95,8 @@ def test_write_twobit_sequences_batches_bed6_and_preserves_tool_output(
         assert check
         assert command[:2] == ["twoBitToFa", str(two_bit)]
         bed = Path(command[2].removeprefix("-bed="))
-        assert bed.read_text() == "chr2\t200\t204\tanchor-1\t0\t-\n"
-        Path(command[3]).write_text(">anchor-1\naC\ngT\n")
+        assert bed.read_text() == "chr2\t200\t455\tanchor-1\t0\t-\n"
+        Path(command[3]).write_text(f">anchor-1\n{sequence[:120]}\n{sequence[120:]}\n")
 
     monkeypatch.setattr(
         "marin_dna_vertebrate_projection.pipeline_io.subprocess.run",
@@ -103,33 +104,28 @@ def test_write_twobit_sequences_batches_bed6_and_preserves_tool_output(
     )
     sequences = tmp_path / "sequences.parquet"
     rejected = tmp_path / "rejected.parquet"
-    write_twobit_sequences(
-        accepted,
-        two_bit,
-        sequences,
-        rejected,
-        target_length=4,
-    )
+    write_twobit_sequences(accepted, two_bit, sequences, rejected)
 
-    assert pl.read_parquet(sequences)["sequence"].to_list() == ["aCgT"]
+    assert pl.read_parquet(sequences)["sequence"].to_list() == [sequence]
     assert pl.read_parquet(rejected).is_empty()
 
 
 def test_write_human_reference_sequences_uses_batched_twobit_path(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    sequence = "aCgT" + "A" * 251
     anchors = tmp_path / "anchors.parquet"
     pl.DataFrame(
         {
             "query_name": ["anchor-1"],
             "source_chrom": ["chr1"],
             "source_start": [0],
-            "source_end": [4],
+            "source_end": [255],
             "region_label": ["cds"],
         }
     ).write_parquet(anchors)
     sizes = tmp_path / "chrom.sizes"
-    sizes.write_text("chr1\t100\n")
+    sizes.write_text("chr1\t1000\n")
     two_bit = tmp_path / "human.2bit"
     two_bit.write_bytes(b"test stub")
 
@@ -137,24 +133,18 @@ def test_write_human_reference_sequences_uses_batched_twobit_path(
         assert check
         assert command[:2] == ["twoBitToFa", str(two_bit)]
         bed = Path(command[2].removeprefix("-bed="))
-        assert bed.read_text() == "chr1\t0\t4\tanchor-1\t0\t+\n"
-        Path(command[3]).write_text(">anchor-1\naC\ngT\n")
+        assert bed.read_text() == "chr1\t0\t255\tanchor-1\t0\t+\n"
+        Path(command[3]).write_text(f">anchor-1\n{sequence[:120]}\n{sequence[120:]}\n")
 
     monkeypatch.setattr(
         "marin_dna_vertebrate_projection.pipeline_io.subprocess.run",
         fake_run,
     )
     output = tmp_path / "human.parquet"
-    write_human_reference_sequences(
-        anchors,
-        two_bit,
-        sizes,
-        output,
-        target_length=4,
-    )
+    write_human_reference_sequences(anchors, two_bit, sizes, output)
 
     result = pl.read_parquet(output)
-    assert result["sequence"].to_list() == ["aCgT"]
+    assert result["sequence"].to_list() == [sequence]
     assert result.select("species", "alignment_source").row(0) == (
         "Homo sapiens",
         "human_reference",
@@ -265,5 +255,6 @@ def test_dataset_card_distinguishes_anchor_filter_from_repeat_mask_case(
     )
     assert "lowercase bases preserve source repeat masking" in text
     assert "Sequence case is independent of that filter" in text
+    assert "project only the central human nucleotide" in text
     assert "conservation scores never rewrite emitted characters or case" in text
     assert "loss weight" not in text

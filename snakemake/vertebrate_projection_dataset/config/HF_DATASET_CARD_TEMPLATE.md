@@ -12,13 +12,15 @@ configs:
     path: data/validation/*.jsonl.zst
 ---
 
-# `marin-dna/vertebrate-v1-<region>`
+# `marin-dna/vertebrate-<pipeline_version>-<region>`
 
 Review status: **draft; do not upload until generated values are checked**.
 
 Human-anchored 255 bp vertebrate sequences from the Zoonomia 447-mammal Cactus
 alignment and UCSC hg38 MultiZ 100-way alignment for the `<region>` cohort.
 Source FASTA/2bit letter case is preserved.
+
+Non-human rows project only the central human nucleotide and extract the 255 bp target window centered on its unique mapped locus.
 
 Anchor eligibility uses the pipeline's pinned phyloP conservation filter.
 Sequence case is independent of that filter: lowercase bases preserve source

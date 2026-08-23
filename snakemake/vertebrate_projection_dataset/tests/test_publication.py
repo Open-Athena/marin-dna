@@ -35,11 +35,12 @@ def _fixture(tmp_path: Path) -> tuple[Path, Path, Path]:
     config_path = tmp_path / "config.yaml"
     config_path.write_text(
         "region_cohorts: [all]\n"
+        "hf_owner: marin-dna\n"
+        "pipeline_version: v2\n"
         "publication_train_shards: 2\n"
         "publication_smoke_train_shards: 1\n"
         "publication_validation_shards: 1\n"
         "validation_chrom: chr18\n"
-        "target_length: 255\n"
     )
     train = _frame("chr1", 5)
     validation = _frame("chr18", 2)
@@ -49,7 +50,7 @@ def _fixture(tmp_path: Path) -> tuple[Path, Path, Path]:
     card = artifact_dir / "all/README.md"
     card.parent.mkdir(parents=True)
     card.write_text(
-        "# `marin-dna/vertebrate-v1-all`\n"
+        "# `marin-dna/vertebrate-v2-all`\n"
         f"https://github.com/Open-Athena/marin-dna/blob/{PIPELINE_COMMIT}/README.md\n"
         "path: data/train/*.jsonl.zst\n"
         "path: data/validation/*.jsonl.zst\n"
@@ -114,11 +115,13 @@ def test_upload_rejects_unexpected_remote_file_before_subprocess(
     class FakeApi:
         def dataset_info(self, *_args: object, **_kwargs: object) -> SimpleNamespace:
             return SimpleNamespace(
+                private=False,
+                gated=False,
                 siblings=[
                     SimpleNamespace(rfilename=".gitattributes"),
                     SimpleNamespace(rfilename="README.md"),
                     SimpleNamespace(rfilename="stale.tsv"),
-                ]
+                ],
             )
 
     monkeypatch.setattr(publication, "HfApi", FakeApi)
@@ -135,7 +138,123 @@ def test_upload_rejects_unexpected_remote_file_before_subprocess(
             manifest_path,
             tmp_path / "done.json",
             cohort="all",
-            repo_id="marin-dna/vertebrate-v1-all",
+            repo_id="marin-dna/vertebrate-v2-all",
             workers=1,
         )
     assert not called
+
+
+def test_upload_rejects_private_existing_repository(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    artifact_dir, source_dir, config_path = _fixture(tmp_path)
+    manifest_path = tmp_path / "manifest.json"
+    publication.validate_artifacts(
+        artifact_dir,
+        source_dir,
+        manifest_path,
+        config_path=config_path,
+        pipeline_commit=PIPELINE_COMMIT,
+        config_sha256=CONFIG_SHA256,
+        workers=1,
+    )
+
+    class FakeApi:
+        def dataset_info(self, *_args: object, **_kwargs: object) -> SimpleNamespace:
+            return SimpleNamespace(private=True, gated=False, siblings=[])
+
+    monkeypatch.setattr(publication, "HfApi", FakeApi)
+    with pytest.raises(AssertionError, match="must be public"):
+        publication.upload_validated_dataset(
+            artifact_dir,
+            manifest_path,
+            tmp_path / "done.json",
+            cohort="all",
+            repo_id="marin-dna/vertebrate-v2-all",
+            workers=1,
+        )
+
+
+def test_upload_requests_and_verifies_public_access_without_credentials(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    artifact_dir, source_dir, config_path = _fixture(tmp_path)
+    manifest_path = tmp_path / "manifest.json"
+    manifest = publication.validate_artifacts(
+        artifact_dir,
+        source_dir,
+        manifest_path,
+        config_path=config_path,
+        pipeline_commit=PIPELINE_COMMIT,
+        config_sha256=CONFIG_SHA256,
+        workers=1,
+    )
+    cohort_manifest = manifest["cohorts"]["all"]
+    shards = {
+        shard["path"]: shard
+        for split in cohort_manifest["splits"].values()
+        for shard in split["shards"]
+    }
+    siblings = []
+    for path in sorted(publication._expected_remote_files(cohort_manifest)):
+        shard = shards.get(path)
+        siblings.append(
+            SimpleNamespace(
+                rfilename=path,
+                size=None if shard is None else shard["compressed_bytes"],
+                lfs=(
+                    None if shard is None else SimpleNamespace(sha256=shard["sha256"])
+                ),
+            )
+        )
+    remote_info = SimpleNamespace(
+        private=False, gated=False, sha="c" * 40, siblings=siblings
+    )
+    api_tokens: list[object] = []
+
+    class FakeApi:
+        def __init__(self, *, token: object = None) -> None:
+            api_tokens.append(token)
+
+        def dataset_info(self, *_args: object, **_kwargs: object) -> SimpleNamespace:
+            return remote_info
+
+    commands: list[list[str]] = []
+
+    def fake_run(command: list[str], **_kwargs: object) -> SimpleNamespace:
+        commands.append(command)
+        return SimpleNamespace(returncode=0)
+
+    download_kwargs: list[dict[str, object]] = []
+
+    def fake_download(*_args: object, **kwargs: object) -> str:
+        download_kwargs.append(kwargs)
+        return str(artifact_dir / "all/README.md")
+
+    monkeypatch.setattr(publication, "HfApi", FakeApi)
+    monkeypatch.setattr(publication.subprocess, "run", fake_run)
+    monkeypatch.setattr(publication, "hf_hub_download", fake_download)
+
+    output_path = tmp_path / "done.json"
+    publication.upload_validated_dataset(
+        artifact_dir,
+        manifest_path,
+        output_path,
+        cohort="all",
+        repo_id="marin-dna/vertebrate-v2-all",
+        workers=1,
+    )
+
+    assert "--no-private" in commands[0]
+    assert False in api_tokens
+    assert download_kwargs == [
+        {
+            "repo_type": "dataset",
+            "revision": "c" * 40,
+            "token": False,
+        }
+    ]
+    assert json.loads(output_path.read_text()) == {
+        "repo_id": "marin-dna/vertebrate-v2-all",
+        "revision": "c" * 40,
+    }
