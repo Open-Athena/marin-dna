@@ -14,6 +14,7 @@ _Bars report Pearson correlation over all retained variants in each category; th
 No-tag scores had pooled Pearson correlations of 0.970 with correct-mammalian scores and 0.981 with far-wrong-fungal scores.
 Agreement was lower for promoter variants at 0.669 and 0.659 and for distal variants at 0.672 and 0.715.
 Prompt-induced changes were largest relative to the no-tag score spread in these near-neutral subsets.
+The ratio `SD(tagged − no tag) / SD(no tag)` was 0.75–0.83 for promoter and distal variants, compared with 0.16–0.24 for missense and splicing variants.
 This supports prompt sensitivity without establishing useful or biological reranking; Pearson correlation does not measure rank preservation.
 
 ### AUPRC by consequence subset
