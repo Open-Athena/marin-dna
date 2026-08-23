@@ -35,6 +35,8 @@ def _fixture(tmp_path: Path) -> tuple[Path, Path, Path]:
     config_path = tmp_path / "config.yaml"
     config_path.write_text(
         "region_cohorts: [all]\n"
+        "hf_owner: marin-dna\n"
+        "hf_repo_prefix: vertebrate-v2\n"
         "publication_train_shards: 2\n"
         "publication_smoke_train_shards: 1\n"
         "publication_validation_shards: 1\n"
@@ -49,7 +51,7 @@ def _fixture(tmp_path: Path) -> tuple[Path, Path, Path]:
     card = artifact_dir / "all/README.md"
     card.parent.mkdir(parents=True)
     card.write_text(
-        "# `marin-dna/vertebrate-v1-all`\n"
+        "# `marin-dna/vertebrate-v2-all`\n"
         f"https://github.com/Open-Athena/marin-dna/blob/{PIPELINE_COMMIT}/README.md\n"
         "path: data/train/*.jsonl.zst\n"
         "path: data/validation/*.jsonl.zst\n"
@@ -135,7 +137,7 @@ def test_upload_rejects_unexpected_remote_file_before_subprocess(
             manifest_path,
             tmp_path / "done.json",
             cohort="all",
-            repo_id="marin-dna/vertebrate-v1-all",
+            repo_id="marin-dna/vertebrate-v2-all",
             workers=1,
         )
     assert not called

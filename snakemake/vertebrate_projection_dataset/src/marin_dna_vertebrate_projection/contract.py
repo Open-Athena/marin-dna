@@ -6,12 +6,12 @@ from collections.abc import Callable
 from dataclasses import dataclass
 
 import polars as pl
-from marin_dna_zoonomia_projection.projection.resize import (
+
+from marin_dna_vertebrate_projection.maf import FRAGMENT_SCHEMA
+from marin_dna_vertebrate_projection.projection.resize import (
     resize_dataframe,
     resize_to_length,
 )
-
-from marin_dna_vertebrate_projection.maf import FRAGMENT_SCHEMA
 
 ACCEPTED_SCHEMA = pl.Schema(
     {
@@ -140,8 +140,8 @@ def _apply_fragmented_projection_contract(
     fragments: pl.DataFrame,
     *,
     target_length: int = 255,
-    pre_resize_min_length: int = 128,
-    pre_resize_max_length: int = 512,
+    pre_resize_min_length: int = 1,
+    pre_resize_max_length: int = 2,
 ) -> ProjectionContractResult:
     """Apply the detailed contract to groups containing multiple fragments.
 
@@ -157,7 +157,7 @@ def _apply_fragmented_projection_contract(
     assert group_sizes.is_empty() or (group_sizes > 1).all(), (
         "fragmented contract received a single-fragment group"
     )
-    assert 0 < pre_resize_min_length <= target_length <= pre_resize_max_length
+    assert 0 < pre_resize_min_length <= pre_resize_max_length
 
     if fragments.is_empty():
         return ProjectionContractResult(
@@ -478,8 +478,8 @@ def _apply_projection_contract_reference(
     fragments: pl.DataFrame,
     *,
     target_length: int = 255,
-    pre_resize_min_length: int = 128,
-    pre_resize_max_length: int = 512,
+    pre_resize_min_length: int = 1,
+    pre_resize_max_length: int = 2,
 ) -> ProjectionContractResult:
     """Apply the auditable contract with a vectorized dominant fast path.
 
@@ -491,7 +491,7 @@ def _apply_projection_contract_reference(
     missing = set(FRAGMENT_SCHEMA) - set(fragments.columns)
     assert not missing, f"projection fragments missing columns: {sorted(missing)}"
     assert target_length > 0
-    assert 0 < pre_resize_min_length <= target_length <= pre_resize_max_length
+    assert 0 < pre_resize_min_length <= pre_resize_max_length
     if fragments.is_empty():
         return ProjectionContractResult(
             accepted=pl.DataFrame(schema=ACCEPTED_SCHEMA),
@@ -530,14 +530,14 @@ def apply_projection_contract(
     fragments: pl.DataFrame,
     *,
     target_length: int = 255,
-    pre_resize_min_length: int = 128,
-    pre_resize_max_length: int = 512,
+    pre_resize_min_length: int = 1,
+    pre_resize_max_length: int = 2,
 ) -> ProjectionContractResult:
     """Apply the auditable contract with vectorized group summaries."""
     missing = set(FRAGMENT_SCHEMA) - set(fragments.columns)
     assert not missing, f"projection fragments missing columns: {sorted(missing)}"
     assert target_length > 0
-    assert 0 < pre_resize_min_length <= target_length <= pre_resize_max_length
+    assert 0 < pre_resize_min_length <= pre_resize_max_length
     if fragments.is_empty():
         return ProjectionContractResult(
             accepted=pl.DataFrame(schema=ACCEPTED_SCHEMA),

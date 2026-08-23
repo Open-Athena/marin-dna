@@ -1,11 +1,11 @@
 """Independent reproduction of the 255 bp conservation-filtered anchors."""
 
-from marin_dna_zoonomia_projection.conservation.scoring import score_windows
-from marin_dna_zoonomia_projection.tracks import CONSERVATION_TRACKS
+from marin_dna_vertebrate_projection.conservation.scoring import score_windows
+from marin_dna_vertebrate_projection.tracks import CONSERVATION_TRACKS
 from marin_dna_vertebrate_projection.pipeline_io import (
     write_filtered_anchor_bed,
 )
-from marin_dna_zoonomia_projection.region_labels import (
+from marin_dna_vertebrate_projection.region_labels import (
     REGION_LABELS,
 )
 
@@ -189,7 +189,7 @@ rule label_full_anchors:
         mem_mb=24000,
     run:
         from marin_dna.data.intervals import GenomicSet
-        from marin_dna_zoonomia_projection.region_labels import (
+        from marin_dna_vertebrate_projection.region_labels import (
             build_region_beds,
             label_windows_bp_majority,
         )

@@ -1,9 +1,0 @@
-default-storage-provider: s3
-default-storage-prefix: s3://oa-bolinas/snakemake/zoonomia_projection_dataset/
-cores: all
-use-conda: true
-# Global memory budget (MB) on the launcher VM. ~30 GB leaves headroom on a
-# 32 GB c6id.4xlarge for Ray + system. Per-rule `resources: mem_mb=...` hints
-# (see validation.smk's mask + region_annotation rules) consume from this.
-resources:
-  mem_mb: 30000

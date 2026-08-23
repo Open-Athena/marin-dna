@@ -10,8 +10,6 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 import polars as pl
-import pyarrow as pa
-import pyarrow.parquet as pq
 
 from marin_dna_vertebrate_projection.adapters import (
     hal_records_to_fragments,
@@ -29,7 +27,6 @@ from marin_dna_vertebrate_projection.inspection import (
 )
 from marin_dna_vertebrate_projection.maf import (
     FRAGMENT_SCHEMA,
-    iter_projected_anchor_fragments,
 )
 from marin_dna_vertebrate_projection.manifest import (
     read_species_manifest,
@@ -116,133 +113,6 @@ def read_anchor_catalog(path: str | Path, *, target_length: int = 255) -> pl.Dat
     assert (frame["source_end"] - frame["source_start"] == target_length).all()
     return frame.select(sorted(required)).sort(
         "source_chrom", "source_start", "query_name"
-    )
-
-
-def write_hal_bed6(anchors_path: str | Path, output_path: str | Path) -> None:
-    anchors = read_anchor_catalog(anchors_path)
-    anchors.select(
-        pl.col("source_chrom"),
-        pl.col("source_start"),
-        pl.col("source_end"),
-        pl.col("query_name"),
-        pl.lit(0).alias("score"),
-        pl.lit("+").alias("strand"),
-    ).write_csv(output_path, separator="\t", include_header=False)
-
-
-def write_maf_candidates(
-    maf_path: str | Path,
-    anchors_path: str | Path,
-    manifest_path: str | Path,
-    output_path: str | Path,
-    *,
-    rows_per_batch: int = 5_000,
-) -> None:
-    """Stream MAF candidates into species-clustered Parquet row groups.
-
-    Full chromosome MAFs can yield millions of Python fragment records. Small
-    per-species buffers keep parsing bounded in memory, and species-clustered
-    row groups let downstream per-species contract jobs prune almost all I/O.
-    """
-    assert rows_per_batch > 0
-    anchors = read_anchor_catalog(anchors_path)
-    manifest = read_species_manifest(str(manifest_path))
-    selected = manifest.filter(
-        (pl.col("backend") == "ucsc_multiz100way") & pl.col("selected")
-    )
-    alignment_names = sorted(selected["alignment_name"].to_list())
-    assert alignment_names
-    buffers: dict[str, list[dict[str, object]]] = {name: [] for name in alignment_names}
-    output = Path(output_path)
-    output.parent.mkdir(parents=True, exist_ok=True)
-    output.unlink(missing_ok=True)
-
-    with TemporaryDirectory(prefix=".maf-fragments-", dir=output.parent) as temp_dir:
-        temporary = Path(temp_dir)
-        writers: dict[str, pq.ParquetWriter] = {}
-
-        def flush(alignment_name: str) -> None:
-            rows = buffers[alignment_name]
-            if not rows:
-                return
-            table = pl.DataFrame(rows, schema=FRAGMENT_SCHEMA).to_arrow()
-            writer = writers.get(alignment_name)
-            if writer is None:
-                writer = pq.ParquetWriter(
-                    temporary / f"{alignment_name}.parquet",
-                    table.schema,
-                    compression="zstd",
-                    write_statistics=True,
-                )
-                writers[alignment_name] = writer
-            writer.write_table(table)
-            rows.clear()
-
-        try:
-            for fragment in iter_projected_anchor_fragments(
-                maf_path, anchors, manifest
-            ):
-                alignment_name = str(fragment["alignment_name"])
-                assert alignment_name in buffers
-                buffers[alignment_name].append(fragment)
-                if len(buffers[alignment_name]) >= rows_per_batch:
-                    flush(alignment_name)
-            for alignment_name in alignment_names:
-                flush(alignment_name)
-        finally:
-            for writer in writers.values():
-                writer.close()
-
-        output_writer: pq.ParquetWriter | None = None
-        try:
-            for alignment_name in alignment_names:
-                part_path = temporary / f"{alignment_name}.parquet"
-                if not part_path.exists():
-                    continue
-                for batch in pq.ParquetFile(part_path).iter_batches(
-                    batch_size=rows_per_batch
-                ):
-                    table = pa.Table.from_batches([batch])
-                    if output_writer is None:
-                        output_writer = pq.ParquetWriter(
-                            output,
-                            table.schema,
-                            compression="zstd",
-                            write_statistics=True,
-                        )
-                    output_writer.write_table(table)
-        finally:
-            if output_writer is not None:
-                output_writer.close()
-
-    if not output.exists():
-        pl.DataFrame(schema=FRAGMENT_SCHEMA).write_parquet(output)
-
-    stats = (
-        pl.scan_parquet(output)
-        .select(
-            pl.len().alias("rows"),
-            (pl.col("source_fragment_start") < pl.col("source_start"))
-            .sum()
-            .alias("invalid_source_starts"),
-            (pl.col("source_fragment_end") > pl.col("source_end"))
-            .sum()
-            .alias("invalid_source_ends"),
-            (pl.col("t_start") < 0).sum().alias("invalid_target_starts"),
-            (pl.col("t_end") > pl.col("t_src_size")).sum().alias("invalid_target_ends"),
-        )
-        .collect(engine="streaming")
-        .row(0, named=True)
-    )
-    assert all(
-        int(stats[column]) == 0
-        for column in [
-            "invalid_source_starts",
-            "invalid_source_ends",
-            "invalid_target_starts",
-            "invalid_target_ends",
-        ]
     )
 
 
@@ -807,6 +677,9 @@ configs:
 Human-anchored 255 bp vertebrate sequences from {source_description}. This
 draft covers the `{region_label}` region cohort with `{species_scope}` species
 scope and preserves source FASTA/2bit letter case.
+
+Non-human rows project only the central human nucleotide and extract the 255 bp
+target window centered on its unique mapped locus.
 
 Anchor eligibility uses the pipeline's pinned phyloP conservation filter.
 Sequence case is independent of that filter: lowercase bases preserve source

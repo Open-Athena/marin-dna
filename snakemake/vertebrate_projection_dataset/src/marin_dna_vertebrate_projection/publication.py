@@ -120,6 +120,7 @@ def validate_artifacts(
     assert len(pipeline_commit) == 40 and workers > 0
     assert len(config_sha256) == 64
     config = yaml.safe_load(Path(config_path).read_text())
+    repo_prefix = f"{config['hf_owner']}/{config['hf_repo_prefix']}"
     assert tier in {None, "smoke", "full"}
     cohorts = (
         ["all", "cds", "ccre_non_promoter", "background"]
@@ -154,7 +155,7 @@ def validate_artifacts(
         expected_files.add(card.relative_to(artifact_root))
         card_bytes = card.read_bytes()
         card_text = card_bytes.decode()
-        assert f"# `marin-dna/vertebrate-v1-{cohort}`" in card_text
+        assert f"# `{repo_prefix}-{cohort}`" in card_text
         assert f"blob/{pipeline_commit}/" in card_text
         assert "path: data/train/*.jsonl.zst" in card_text
         assert "path: data/validation/*.jsonl.zst" in card_text

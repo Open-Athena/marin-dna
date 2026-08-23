@@ -4,6 +4,10 @@ from pathlib import Path
 
 import polars as pl
 
+from marin_dna_vertebrate_projection.projection.requests import (
+    PRE_RESIZE_MAX_LENGTH,
+    PRE_RESIZE_MIN_LENGTH,
+)
 from marin_dna_vertebrate_projection.manifest import (
     read_species_manifest,
 )
@@ -33,10 +37,10 @@ PRODUCER_MANIFEST = f"{RESULTS}/metadata/producer.json"
 
 WINDOW_SIZE = int(config["window_size"])
 TARGET_LENGTH = int(config["target_length"])
-PRE_RESIZE_MIN = int(config["pre_resize_min_length"])
-PRE_RESIZE_MAX = int(config["pre_resize_max_length"])
+PRE_RESIZE_MIN = PRE_RESIZE_MIN_LENGTH
+PRE_RESIZE_MAX = PRE_RESIZE_MAX_LENGTH
 assert WINDOW_SIZE == TARGET_LENGTH == 255
-assert 0 < PRE_RESIZE_MIN <= TARGET_LENGTH <= PRE_RESIZE_MAX
+assert (PRE_RESIZE_MIN, PRE_RESIZE_MAX) == (1, 2)
 
 SPECIES_CANDIDATES = str(config["species_candidates"])
 SPECIES_SELECTED = str(config["species_selected"])
@@ -73,6 +77,7 @@ SPECIES_SELECTED_INPUT = local(SPECIES_SELECTED)
 MIRROR_MANIFEST_INPUT = local(MIRROR_MANIFEST)
 TWOBIT_MANIFEST_INPUT = local(TWOBIT_MANIFEST)
 ANCHOR_CATALOG_INPUT = local(ANCHOR_CATALOG) if TIER == "smoke" else ANCHOR_CATALOG
+PROJECTION_REQUESTS = f"{RESULTS}/anchors/projection_requests.parquet"
 
 assert set(MAMMALS) <= set(all_mammals)
 assert set(NON_MAMMALS) <= set(all_non_mammals)

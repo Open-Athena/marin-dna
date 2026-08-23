@@ -1,19 +1,25 @@
 """HAL and MAF adapters feeding one projection/sequence contract."""
 
-from marin_dna_zoonomia_projection.projection.hal import (
+from marin_dna_vertebrate_projection.projection.hal import (
     attach_src_size,
     parse_halliftover_bed,
     run_halliftover,
     write_chrom_sizes,
 )
+from marin_dna_vertebrate_projection.projection.center import (
+    write_hal_request_bed6,
+    write_maf_request_candidates,
+)
+from marin_dna_vertebrate_projection.projection.requests import (
+    build_projection_requests,
+)
 from marin_dna_vertebrate_projection.pipeline_io import (
     combine_sequence_parquets,
     merge_parquets_streaming,
+    read_anchor_catalog,
     write_contract_outputs,
     write_contract_outputs_for_alignment,
-    write_hal_bed6,
     write_hal_fragments,
-    write_maf_candidates,
 )
 from marin_dna_vertebrate_projection.sequence_compatibility import (
     validate_projected_twobit_sizes,
@@ -60,13 +66,24 @@ rule human_reference_sequences:
         "human {input.anchors} {input.twobit} {input.sizes} {output}"
 
 
-rule prepare_hal_bed:
+rule projection_requests:
     input:
         ANCHOR_CATALOG_INPUT,
     output:
+        PROJECTION_REQUESTS,
+    run:
+        requests = build_projection_requests(read_anchor_catalog(input[0]))
+        Path(output[0]).parent.mkdir(parents=True, exist_ok=True)
+        requests.write_parquet(output[0])
+
+
+rule prepare_hal_bed:
+    input:
+        PROJECTION_REQUESTS,
+    output:
         f"{RESULTS}/hal/input.bed",
     run:
-        write_hal_bed6(input[0], output[0])
+        write_hal_request_bed6(input[0], output[0])
 
 
 rule hal_chrom_sizes:
@@ -111,7 +128,7 @@ rule hal_fragments:
     input:
         raw=f"{RESULTS}/hal/raw/{{species}}.bed",
         sizes=f"{RESULTS}/hal/chrom_sizes/{{species}}.tsv",
-        anchors=ANCHOR_CATALOG_INPUT,
+        requests=PROJECTION_REQUESTS,
         manifest=ACTIVE_MANIFEST,
     output:
         f"{RESULTS}/hal/fragments/{{species}}.parquet",
@@ -123,7 +140,7 @@ rule hal_fragments:
         records = attach_src_size(
             parse_halliftover_bed(input.raw, wildcards.species), input.sizes
         )
-        write_hal_fragments(records, input.anchors, input.manifest, output[0])
+        write_hal_fragments(records, input.requests, input.manifest, output[0])
 
 
 rule hal_contract:
@@ -200,7 +217,7 @@ rule hal_sequences:
 rule multiz_candidates:
     input:
         maf=local(f"{MULTIZ_STAGE_DIR}/maf/{{chrom}}.maf.gz"),
-        anchors=ANCHOR_CATALOG_INPUT,
+        requests=PROJECTION_REQUESTS,
         manifest=ACTIVE_MANIFEST,
     output:
         f"{RESULTS}/multiz/fragments/{{chrom}}.parquet",
@@ -210,7 +227,9 @@ rule multiz_candidates:
     resources:
         mem_mb=16000,
     run:
-        write_maf_candidates(input.maf, input.anchors, input.manifest, output[0])
+        write_maf_request_candidates(
+            input.maf, input.requests, input.manifest, output[0]
+        )
 
 
 rule multiz_contract:

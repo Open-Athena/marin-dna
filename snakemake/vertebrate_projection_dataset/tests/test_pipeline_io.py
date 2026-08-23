@@ -265,5 +265,6 @@ def test_dataset_card_distinguishes_anchor_filter_from_repeat_mask_case(
     )
     assert "lowercase bases preserve source repeat masking" in text
     assert "Sequence case is independent of that filter" in text
+    assert "project only the central human nucleotide" in text
     assert "conservation scores never rewrite emitted characters or case" in text
     assert "loss weight" not in text

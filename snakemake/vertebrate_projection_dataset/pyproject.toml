@@ -9,10 +9,12 @@ description = "Locked runtime and Python package for the vertebrate projection d
 requires-python = ">=3.13,<3.14"
 dependencies = [
     "marin-dna",
-    "marin-dna-zoonomia-projection",
     "huggingface-hub",
+    "numpy",
+    "polars-bio>=0.33.0,<0.34.0",
     "polars",
     "pyarrow>=21.0.0",
+    "pybigwig",
     "pyyaml",
     "zstandard",
     "snakemake",
@@ -41,7 +43,6 @@ environments = [
 
 [tool.uv.sources]
 marin-dna = { path = "../..", editable = true }
-marin-dna-zoonomia-projection = { path = "../zoonomia_projection_dataset", editable = true }
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/marin_dna_vertebrate_projection"]

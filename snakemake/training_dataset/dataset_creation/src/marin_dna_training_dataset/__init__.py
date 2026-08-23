@@ -1,9 +1,8 @@
 """Pipeline-specific helpers for ``snakemake/training_dataset/``.
 
 - ``hf_readme``: per-repo HuggingFace dataset-card (``README.md``) generators
-  for the ``genomes-v*`` training and validation datasets. Mirrors the
-  approach in ``marin_dna_zoonomia_projection`` so every
-  uploaded dataset ships a commit-pinned, recipe-accurate card.
+  for the ``genomes-v*`` training and validation datasets.
+  Each uploaded dataset ships a commit-pinned, recipe-accurate card.
 """
 
 # GitHub coordinates for commit-pinned permalinks embedded in the per-repo HF

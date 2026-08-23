@@ -1,4 +1,4 @@
-pipeline_version: v1
+pipeline_version: v2
 tier: smoke
 
 window_size: 255
@@ -6,8 +6,6 @@ step_size: 128
 phyloP_447m_threshold: 2.2162
 min_proportion_conserved: 0.20
 target_length: 255
-pre_resize_min_length: 128
-pre_resize_max_length: 512
 
 ensembl_release: 115
 ccre_url: https://downloads.wenglab.org/Registry-V4/GRCh38-cCREs.bed
@@ -47,7 +45,7 @@ region_cohorts:
    ccre_non_promoter, background]
 
 hf_owner: marin-dna
-hf_repo_prefix: vertebrate-v1
+hf_repo_prefix: vertebrate-v2
 hf_upload_workers: 1
 
 # v4 region labeling from issue #227, pinned independently here.

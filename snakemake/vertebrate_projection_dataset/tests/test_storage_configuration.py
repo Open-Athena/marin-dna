@@ -49,5 +49,11 @@ def test_results_are_producer_keyed_and_verification_receipts_are_local() -> Non
     assert "multiz_mirror.done" not in staging
     assert "local(HAL_VALIDATION)" in staging
     assert projection.count("validation=local(HAL_VALIDATION)") == 3
+    assert "PROJECTION_REQUESTS" in common
+    assert "build_projection_requests" in projection
+    assert "write_hal_request_bed6" in projection
+    assert "write_maf_request_candidates" in projection
+    assert "write_hal_bed6" not in projection
+    assert "write_maf_candidates" not in projection
     assert 'temp(local(f"{RESULTS}/upload.done/{{region}}"))' in dataset
     assert 'local(expand(f"{RESULTS}/upload.done/{{region}}"' in dataset
