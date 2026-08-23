@@ -234,6 +234,13 @@ uv run --locked --group genome-s3 snakemake
 The default profile (`workflow/profiles/default/config.yaml`) uses S3 storage
 at `s3://oa-bolinas/snakemake/analysis/evals_v2/`.
 
+### Issue #417 repair trajectory and #473 validation control
+
+The default `all` target includes nine checkpoints from the repaired issue #417 CDS full-window trajectory at steps 1,000 through 4,999 and the terminal issue #473 CDS full-window random-validation control.
+Every registration evaluates the Mendelian, Complex Traits, and SGE development `train` splits.
+Together they add ten checkpoint targets and 30 model–dataset score and metric cells to the default evaluation matrix.
+Existing S3 outputs are reused when present.
+
 ### Interpretation targets (off `rule all`)
 
 Two visual-interpretation analyses live alongside the metrics DAG but are kept

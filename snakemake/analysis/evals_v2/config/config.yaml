@@ -610,6 +610,56 @@ models:
     window_size: 255
     datasets: [mendelian_traits]
 
+  # exp473 — RoPE-consistent repair of the reused #417 CDS full-window
+  # trajectory (issue #473). These legacy exports require the maintained
+  # compatibility loader. Development VEP datasets only.
+  - name: exp417-cds-combined-vertebrates-step-1000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp417-cds-combined-vertebrates-p255m-b2m-5k/2026.08.01/hf/step-1000
+    window_size: 255
+    datasets: [mendelian_traits, complex_traits, sge]
+  - name: exp417-cds-combined-vertebrates-step-1500
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp417-cds-combined-vertebrates-p255m-b2m-5k/2026.08.01/hf/step-1500
+    window_size: 255
+    datasets: [mendelian_traits, complex_traits, sge]
+  - name: exp417-cds-combined-vertebrates-step-2000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp417-cds-combined-vertebrates-p255m-b2m-5k/2026.08.01/hf/step-2000
+    window_size: 255
+    datasets: [mendelian_traits, complex_traits, sge]
+  - name: exp417-cds-combined-vertebrates-step-2500
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp417-cds-combined-vertebrates-p255m-b2m-5k/2026.08.01/hf/step-2500
+    window_size: 255
+    datasets: [mendelian_traits, complex_traits, sge]
+  - name: exp417-cds-combined-vertebrates-step-3000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp417-cds-combined-vertebrates-p255m-b2m-5k/2026.08.01/hf/step-3000
+    window_size: 255
+    datasets: [mendelian_traits, complex_traits, sge]
+  - name: exp417-cds-combined-vertebrates-step-3500
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp417-cds-combined-vertebrates-p255m-b2m-5k/2026.08.01/hf/step-3500
+    window_size: 255
+    datasets: [mendelian_traits, complex_traits, sge]
+  - name: exp417-cds-combined-vertebrates-step-4000
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp417-cds-combined-vertebrates-p255m-b2m-5k/2026.08.01/hf/step-4000
+    window_size: 255
+    datasets: [mendelian_traits, complex_traits, sge]
+  - name: exp417-cds-combined-vertebrates-step-4500
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp417-cds-combined-vertebrates-p255m-b2m-5k/2026.08.01/hf/step-4500
+    window_size: 255
+    datasets: [mendelian_traits, complex_traits, sge]
+
+  # exp473 — terminal CDS full-window split control (issue #473). Both 0.25B
+  # models use the same CDS full-window projection and anchor recipe. The #417
+  # checkpoint held chromosome 18 out; the control sampled 16,384 validation
+  # rows before reverse-complement augmentation. Restrict evaluation to the
+  # three development VEP datasets relevant to a CDS-trained model.
+  - name: exp417-cds-combined-vertebrates-step-4999
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp417-cds-combined-vertebrates-p255m-b2m-5k/2026.08.01/hf/step-4999
+    window_size: 255
+    datasets: [mendelian_traits, complex_traits, sge]
+  - name: exp473-cds-full-window-random-val-step-4999
+    gcs_path: gs://marin-us-east5/MarinDNA/exp473_center_seeded_projection/checkpoints/dna-exp473-0p25b-cds-fullwindow-random-val-v1/2026.08.21/hf/step-4999
+    window_size: 255
+    datasets: [mendelian_traits, complex_traits, sge]
+
   # Eric's mix-v0.9 1B runs (Slack #marin_dna, 2026-05-18). Qwen3-1B,
   # 255 bp + BOS context. The i0-uniform run is the headline uniform-
   # mixture baseline; the i16 run continues training from i0's final
