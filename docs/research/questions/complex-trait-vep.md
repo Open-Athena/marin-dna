@@ -30,19 +30,9 @@ The decisive next evidence is a fixed-compute footprint ablation, followed by ma
 <details>
 <summary>Related work</summary>
 
-- The [Mendelian leaderboard](https://open-athena.github.io/marin-dna/leaderboards/mendelian), [complex-trait leaderboard](https://open-athena.github.io/marin-dna/leaderboards/complex), [#161](https://github.com/Open-Athena/marin-dna/issues/161), [#162](https://github.com/Open-Athena/marin-dna/issues/162), and [#145](https://github.com/Open-Athena/marin-dna/issues/145) define the current evaluation and GPN-Star baseline contract.
-  They expose the Mendelian-versus-complex gap under consistent dashboard metrics.
-  They do not identify whether data coverage, timescale, architecture, or scoring causes it.
 - [Ye, Benegas et al., Predicting functional constraints across evolutionary timescales with phylogeny-informed genomic language models](https://www.biorxiv.org/content/10.1101/2025.09.21.677619v1) compares vertebrate-, mammal-, and primate-alignment models.
-  Deeper evolution favors coding and rarer large-effect variants, while shallower models can favor non-coding or broader complex-trait endpoints; mammal and primate models lead different complex-trait readouts.
-  This motivates a mammal-versus-primate test rather than assuming the closest clade wins.
-  The paper does not isolate timescale from alignment-conditioned architecture for MarinDNA.
-- [How should evolutionary timescale shape training?](evolutionary-timescale.md) is the broader evolutionary-timescale synthesis.
-  Its implication here is that region and endpoint can prefer different breadths; it does not yet contain a matched complex-trait timescale result.
-- [Which genomic regions to train on, and how to find them?](training-regions.md) covers the training footprint.
-  It connects conservation filtering, weakly conserved regulatory sequence, sampling, and loss weighting, but no completed experiment yet tests the causal coverage hypothesis.
-- [Can autoregressive RAG gLMs be accurate and practical?](retrieval-augmented-models.md) covers retrieval.
-  Alignment-conditioned context is a plausible explanation for GPN-Star’s advantage, but the current RAG evidence lacks a matched no-retrieval control.
+  Deeper evolution favors coding and rarer large-effect variants, while mammal and primate models lead different complex-trait endpoints.
+  The study motivates an endpoint-specific timescale test but does not isolate timescale from alignment-conditioned architecture for MarinDNA.
 
 </details>
 
@@ -69,30 +59,9 @@ The decisive next evidence is a fixed-compute footprint ablation, followed by ma
 <details>
 <summary>Possible directions</summary>
 
-1. **Does training-footprint coverage explain the gap?**
-   Stratify current predictions by [#213](https://github.com/Open-Athena/marin-dna/issues/213)'s variant-centered conserved fraction, kept-window membership, and consequence group.
-   Compare MarinDNA with GPN-Star within each stratum.
-
-2. **Does less-conserved training sequence causally help?**
-   At fixed architecture, tokens, genome mixture, and window size, sweep the conservation cutoff and add a weakly conserved/background arm.
-   Evaluate complex global/distal AUPRC and the Mendelian tradeoff; explicitly check coordinate and sequence-similarity leakage.
-
-3. **What is the best timescale at fixed data quantity?**
-   Train matched primate, mammal, and deeper-vertebrate arms while controlling tokens and unique human loci.
-   Consider a deliberately reweighted mammal+primate mixture.
-
-4. **Is retrieval the missing capability?**
-   Compare one backbone with and without human-anchored ortholog retrieval using the same loci, species, objective, and compute.
-   As a cheaper first test, ask whether MarinDNA's error relative to GPN-Star grows as conservation weakens or alignment evidence becomes more informative.
-
-5. **How much is evaluation/readout?**
-   Use a fixed, leakage-free scoring protocol informed by [#175](https://github.com/Open-Athena/marin-dna/issues/175) and cluster-bootstrap uncertainty.
-   Stratify by PIP, consequence, MAF, and conservation to estimate any ceiling from fine-mapping ambiguity.
-
-6. **What would distinguish the hypotheses?**
-   - Improvement from a fixed-compute less-conserved-data arm, concentrated on low-conservation variants, supports hypothesis 1.
-   - Improvement from a controlled mammal/primate arm, without merely adding tokens or loci, supports hypothesis 2.
-   - Improvement from retrieval, largest on weakly conserved variants, supports hypothesis 3.
-   - If none helps, benchmark noise or missing tissue/cell-state information becomes the leading explanation.
+- Stratify current MarinDNA and GPN-Star predictions by kept-window membership, conserved fraction, consequence, and fine-mapping confidence.
+- At fixed architecture, tokens, genome mixture, and window size, compare the current footprint with weaker-conservation and background arms; measure complex-trait gains and Mendelian tradeoffs.
+- If coverage does not explain the gap, compare primate, mammal, and deeper-vertebrate training at fixed unique human loci and token exposure.
+- Estimate the incremental value of ortholog retrieval with matched reader, loci, species, objective, and compute, using a fixed leakage-free scoring protocol.
 
 </details>

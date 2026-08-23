@@ -1,12 +1,7 @@
 # Fixed-ortholog retrieval prototype
 
 > [!NOTE]
-> **TL;DR:** The fixed-ortholog 104M model reached VEP performance not seen in comparable small single-sequence models in MarinDNA's experiment history or Gonzalo Benegas's prior work; Gonzalo attributes the unusually strong performance to retrieval, while the experiment does not quantify the gain against a matched single-sequence arm; broader species coverage, longer training, and larger readers are the clearest next scale axes.
-
-![Graphical abstract showing seven mammalian ortholog windows conditioning a 104M causal model and its development-cohort VEP comparisons](figures/402/marindna-rag-visual-abstract.svg)
-
-_The fixed offline retrieval method and official development/`train` macro-AUPRC comparisons; error bars are ±1 SE and dataset facets use independent axes._
-_The figure has no matched no-retrieval training arm, so it does not quantify the retrieval gain._
+> **TL;DR:** The fixed-ortholog 104M model reached VEP performance not seen in comparable small single-sequence models in MarinDNA's experiment history or Gonzalo Benegas's prior work; Gonzalo attributes the unusually strong performance to retrieval, while the experiment does not quantify the gain against a matched single-sequence arm.
 
 ## Findings
 
@@ -22,6 +17,11 @@ The finding applies to an offline, alignment-derived context scheme.
 It does not establish the accuracy or practicality of online retrieval, arbitrary unaligned queries, or indel-effect prediction.
 
 ## Evidence
+
+![Graphical abstract showing seven mammalian ortholog windows conditioning a 104M causal model and its development-cohort VEP comparisons](figures/402/marindna-rag-visual-abstract.svg)
+
+_The fixed offline retrieval method and official development/`train` macro-AUPRC comparisons; error bars are ±1 SE and dataset facets use independent axes._
+_The figure has no matched no-retrieval training arm, so it does not quantify the retrieval gain._
 
 Each training document contained seven fixed 255-base mammalian windows projected through the Zoonomia alignment, followed by the homologous 255-base human window.
 The 46M- and 104M-parameter causal models each trained from scratch for 30,000 optimizer updates and 62.9 billion token presentations.
@@ -47,13 +47,6 @@ Behavioral checks showed that the model used the prefixed context.
 Removing, rolling, or replacing ortholog windows worsened human-token validation loss; changing the sequence-boundary tokens also changed outputs.
 Available projected bases received more attention than missing-`N` controls, with attention concentrated near the expected aligned causal offset.
 Across segment slots, loss decreased as identity to the best earlier available segment increased; the within-slot Spearman correlation was -0.471 for the 46M model and -0.470 for the 104M model across 13,169 available windows.
-
-## Promising directions
-
-The strongest near-term scale opportunity is broader species coverage because the current context covers only seven mammalian species and no non-mammalian vertebrates.
-Longer optimization is another direct axis because both validation losses were still falling at 30,000 updates.
-Larger readers are also promising because only 46M- and 104M-parameter models were tested and the 104M result was unusually strong.
-One seed per size does not establish a scaling law, so the gain from model scale remains to be measured.
 
 ## Limitations
 

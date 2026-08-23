@@ -30,12 +30,8 @@ This would separate early sample efficiency from final endpoint quality and test
 <details>
 <summary>Related work</summary>
 
-- [Does conditioning on species/clade help?](species-conditioning.md) asks whether explicit species or clade conditioning can expose taxonomic context that sequence-only training must infer.
-  Conditioning could reduce the need to choose one static timescale, but no matched MarinDNA conditioning ablation exists.
-- [Why do MarinDNA models lag on complex-trait VEP?](complex-trait-vep.md) asks whether shallower evolutionary context helps complex-trait VEP.
-  GPN-Star’s mammal and primate models lead different complex-trait endpoints, so the relevant comparison is endpoint-specific rather than a generic “closer is better” claim.
-- The distinction between nominal and effective breadth is methodological: annotation, whole-genome alignment, and human-anchored nucleotide projection admit different distant species even under the same taxonomic label.
-  Future comparisons should report realized per-species tokens and locus coverage, not only the requested clade.
+- [Ye, Benegas et al., Predicting functional constraints across evolutionary timescales with phylogeny-informed genomic language models](https://www.biorxiv.org/content/10.1101/2025.09.21.677619v1) compares primate-, mammal-, and vertebrate-alignment models across coding, regulatory, Mendelian, and complex-trait endpoints.
+  Different endpoints prefer different breadths, while alignment-conditioned architecture and training data remain confounded for comparison with MarinDNA.
 
 </details>
 
@@ -62,32 +58,9 @@ This would separate early sample efficiency from final endpoint quality and test
 <details>
 <summary>Possible directions</summary>
 
-1. **What exactly should “evolutionary timescale” mean experimentally?**
-   Phylogenetic breadth (primates versus mammals versus vertebrates versus animals), species density within a clade, total unique bases, and distance from the target organism are separate axes and should not be collapsed into one variable.
-
-2. **What is the clean fixed-compute comparison?**
-   Train matched primate-, mammal-, vertebrate-, and animal-scope arms with the same model, optimizer, total tokens, sequence-selection method, and evaluation checkpoints.
-   Report both fixed-token and matched-epoch or matched-unique-locus views so that breadth is not mistaken for repetition or dataset size.
-
-3. **Does broad-to-narrow training dominate a static mixture?**
-   At matched total tokens, compare broad-only, target-clade-only, broad pretraining followed by target-clade adaptation, and an interleaved/reweighted mixture.
-   Sweep the fraction of compute spent in each stage and measure both target-task gains and catastrophic forgetting of broader capabilities.
-
-4. **How does the answer vary by genomic region?**
-   Run the comparison separately for CDS, promoters/TSS, 5′ and 3′ UTRs, ncRNA exons, enhancers/distal regulatory sequence, and background.
-   A region-specific species mixture or curriculum may be better than a single whole-genome recipe.
-
-5. **How does the answer vary by biological endpoint?**
-   Separate language-model loss and functional-versus-background LL gaps from human Mendelian VEP, complex-trait VEP, eQTL/regulatory effects, saturation assays, and cross-species transfer.
-   Rare coding variants and common regulatory variants may reflect different evolutionary timescales.
-
-6. **Does the optimum change with model scale, context length, or token budget?**
-   A small or short-context model may benefit more from narrowly relevant data, whereas a larger model may have enough capacity and compute to absorb broad diversity without sacrificing target-clade performance.
-
-7. **What result would support each training strategy?**
-   - Broad-only winning at matched compute would support diversity and deeper conservation as the dominant source of signal.
-   - Target-clade-only winning would support evolutionary relevance and efficient use of the token budget.
-   - Broad-to-narrow beating both endpoints and the static mixture would support a curriculum in which general biological features transfer before lineage-specific adaptation.
-   - Strong region-by-timescale interactions would support region-specific mixtures or curricula rather than one universal phylogenetic scope.
+- Separate phylogenetic breadth, species density, unique bases, target distance, and effective projected coverage rather than treating them as one timescale variable.
+- Compare primate, mammal, vertebrate, and animal scopes at matched model, optimizer, tokens, construction method, and checkpoints, reporting fixed-token and matched-exposure views.
+- At matched total compute, compare broad-only, target-clade-only, broad-to-narrow adaptation, and an interleaved mixture.
+- Measure region-by-timescale and endpoint-by-timescale interactions before selecting a whole-genome default or curriculum.
 
 </details>

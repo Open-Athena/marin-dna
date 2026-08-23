@@ -46,10 +46,6 @@ Any comparison must match parameters, training tokens, and compute, align traini
 - [AlphaGenome](https://www.nature.com/articles/s41586-025-10014-0) predicts thousands of functional tracks from 1 Mb sequence using a multiscale supervised architecture.
   It demonstrates that long context and nucleotide-scale outputs can coexist through hierarchical computation.
   It does not test initialization from a short-context self-supervised gLM, so it is an architecture precedent rather than evidence for transfer.
-- [Can gLM pretraining improve human sequence-to-function modeling?](sequence-to-function.md) asks whether gLM pretraining improves sequence-to-function models.
-  Its controlled scratch-versus-pretrained benchmark is a natural first consumer of any local-to-global design, but accessibility context is much shorter than the full long-range question.
-- [Which genomic regions to train on, and how to find them?](training-regions.md) asks how long-window background sequence should be selected, sampled, or weighted.
-  This matters because uniformly weighted language modeling on long mammalian windows may devote most gradient mass to sequence outside the functional element of interest.
 
 </details>
 
@@ -66,40 +62,10 @@ Any comparison must match parameters, training tokens, and compute, align traini
 <details>
 <summary>Possible directions</summary>
 
-- **When can inference safely differ from training context?**
-  Start with matched checkpoints trained at 255, 511, and 1023 bp, compare crop and extension ladders, and separate score-construction effects from biological information gained or lost with the window.
-  Transfer one fixed probe across the ladder to test whether the same decision boundary survives changes in context.
-- **What long-range capability do we want first?**
-  Candidate tests should require distant context by construction—for example enhancer–promoter interactions, gene-level expression, long-range splicing regulation, or another task where masking distant sequence should measurably hurt.
-- **What context lengths define the useful regime?**
-  Compare a small ladder spanning the current local context through the expected biological scale, rather than testing only one large endpoint.
-- **How should a second-stage LM sample and weight sequence?**
-  Compare uniform long windows, functional-element-centered windows, and functional or conservation-aware loss weights.
-  How sensitive are the conclusions to incomplete and lineage-specific annotations?
-- **Does loss weighting damage likelihood interpretation?**
-  If the long-context model is trained with nonuniform per-base weights, which language-modeling and zero-shot variant scores remain comparable to the short-context model?
-- **How do we avoid forgetting local sequence grammar?**
-  Test freezing versus fine-tuning the local model, mixing short and long examples, and progressive context curricula.
-- **Should we preserve per-base embeddings or pool them?**
-  ARSENAL-style concatenation supplies a no-pooling baseline.
-  Compare it with mean/attention pooling, learned summary tokens, and multiple coarse tokens per chunk as context grows.
-- **How should local windows be tiled?**
-  ARSENAL uses center-aligned, mostly non-overlapping 350 bp chunks with special handling for the two sequence ends.
-  Compare overlap, stride, and blending schemes, and measure prediction or representation discontinuities at internal chunk boundaries explicitly.
-- **How does global information return to nucleotide resolution?**
-  Compare broadcasting a global embedding, cross-attention from local positions to coarse tokens, and local decoding with skip connections.
-- **Does end-to-end fine-tuning matter?**
-  ARSENAL’s released adapter freezes the local encoder by default.
-  A frozen local encoder is cheaper and gives a clean test of representation reuse, but joint training may be necessary for local features to expose information useful at the global level.
-- **What is the fair compute-matched comparison?**
-  Match parameter count where possible and report training tokens, FLOPs, peak memory, and wall time.
-  A longer sequence at the same number of examples is not a compute-matched intervention.
-- **Is the model using distant context?**
-  Evaluate with distance-stratified ablations: crop the input, mask or shuffle distal sequence, perturb the candidate interacting element, and measure performance as a function of distance.
-- **How should leakage controls change?**
-  Longer overlapping windows increase the chance that homologous or shifted sequence crosses train/test boundaries; update the similarity and locus-holdout rules before interpreting small gains.
-- **What is the smallest decisive first experiment?**
-  One option is a downstream task with known long-range dependence and five matched arms: short-context baseline, direct full-resolution extension, frozen ARSENAL-style per-base tiling, frozen-local pooled hierarchy, and jointly trained pooled hierarchy.
-  A second-stage LM arm should follow once that comparison establishes that the task and evaluation can detect useful long-range context.
+- Compare checkpoints trained at 255, 511, and 1023 bp with crop and extension ladders, and transfer one fixed probe across contexts.
+- Choose a task that requires distant sequence by construction and verify its dependence with distance-stratified cropping, masking, shuffling, or element perturbation.
+- At matched parameters, tokens, and compute, compare direct downstream extension with frozen per-base tiling, pooled local-to-global modeling, and joint local-to-global training.
+- Measure how window sampling, loss weighting, pooling, and tiling affect local grammar, nucleotide-resolution outputs, and likelihood interpretation.
+- Update locus and sequence-similarity leakage controls before using longer overlapping windows.
 
 </details>
