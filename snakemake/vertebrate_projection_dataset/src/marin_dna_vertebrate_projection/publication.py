@@ -122,6 +122,10 @@ def validate_artifacts(
     config = yaml.safe_load(Path(config_path).read_text())
     repo_name = config.get("hf_repo_prefix", f"vertebrate-{config['pipeline_version']}")
     repo_prefix = f"{config['hf_owner']}/{repo_name}"
+    repo_names = {
+        str(cohort): str(name)
+        for cohort, name in config.get("hf_repo_names", {}).items()
+    }
     assert tier in {None, "smoke", "full"}
     cohorts = (
         list(
@@ -163,11 +167,16 @@ def validate_artifacts(
         "chromosome-18",
     ]
     for cohort in cohorts:
+        repo_id = (
+            f"{config['hf_owner']}/{repo_names[cohort]}"
+            if cohort in repo_names
+            else f"{repo_prefix}-{cohort}"
+        )
         card = artifact_root / cohort / "README.md"
         expected_files.add(card.relative_to(artifact_root))
         card_bytes = card.read_bytes()
         card_text = card_bytes.decode()
-        assert f"# `{repo_prefix}-{cohort}`" in card_text
+        assert f"# `{repo_id}`" in card_text
         assert f"blob/{pipeline_commit}/" in card_text
         assert "path: data/train/*.jsonl.zst" in card_text
         assert "path: data/validation/*.jsonl.zst" in card_text

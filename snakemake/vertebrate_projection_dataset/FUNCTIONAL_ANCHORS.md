@@ -107,6 +107,8 @@ Do not execute `all_projection` locally or on remote compute until a human expli
 
 After an approved projection, `all_projection` writes the shared recovery QC, five functional training splits, human-sequence GC/repeat/ambiguity audits, a pending mapping-inspection report, and draft cards for `marin-dna/functional-{arm}`.
 
+The explicit repository map is `functional-cds`, `functional-utr3`, `functional-tss`, `functional-ncrna`, and `functional-enhancer`; the internal `tss_region` arm deliberately publishes as `functional-tss`.
+
 Run the approved full projection on the retained worker:
 
 ```bash
