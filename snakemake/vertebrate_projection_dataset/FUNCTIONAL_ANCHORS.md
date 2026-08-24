@@ -64,7 +64,11 @@ The default `all` target stops after candidate construction, conservation gating
 
 It does not stage the HAL or MAF inputs and does not run cross-species projection.
 
-Before approving projection, review `anchors/audit/preprojection_sample.tsv`, `preprojection_review.md`, `feature_summary.tsv`, `raw_overlap.tsv`, `construction_drops.parquet`, and `window_ownership.parquet` in the producer-keyed result namespace.
+Before approving projection, review `anchors/audit/preprojection_sample.tsv`, `preprojection_review.md`, `feature_summary.tsv`, `raw_overlap.tsv`, `human_sequence_summary.tsv`, `chromosome_summary.tsv`, `construction_drop_summary.tsv`, `ownership_drop_summary.tsv`, `development_overlap.tsv`, `construction_drops.parquet`, and `window_ownership.parquet` in the producer-keyed result namespace.
+
+The development-overlap audit pins `marin-dna/evals_mendelian_traits` revision `4aed58e50c5dea0b878a665007af2ef9e5108e9f` and its `train` split.
+It rejects every chromosome outside odd autosomes and X, removes complete mature-miRNA match groups, and converts the benchmark's 1-based variant positions to 0-based half-open points at the audit boundary.
+It never reads the held-out split.
 
 Materialize the complete full-tier audit on the isolated issue #517 worker:
 

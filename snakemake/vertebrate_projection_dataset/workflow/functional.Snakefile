@@ -21,6 +21,12 @@ rule all:
         f"{RESULTS}/anchors/audit/raw_overlap.tsv",
         f"{RESULTS}/anchors/audit/construction_summary.json",
         f"{RESULTS}/anchors/audit/conservation_summary.json",
+        f"{RESULTS}/anchors/audit/human_sequence.parquet",
+        f"{RESULTS}/anchors/audit/human_sequence_summary.tsv",
+        f"{RESULTS}/anchors/audit/chromosome_summary.tsv",
+        f"{RESULTS}/anchors/audit/construction_drop_summary.tsv",
+        f"{RESULTS}/anchors/audit/ownership_drop_summary.tsv",
+        f"{RESULTS}/anchors/audit/development_overlap.tsv",
         f"{RESULTS}/anchors/audit/preprojection_sample.tsv",
         f"{RESULTS}/anchors/audit/preprojection_review.md",
 
@@ -30,7 +36,6 @@ rule all_projection:
     input:
         COMBINED_SEQUENCES,
         TRAINING_SEQUENCES,
-        f"{RESULTS}/anchors/audit/human_sequence.parquet",
         f"{RESULTS}/qc/per_anchor.parquet",
         f"{RESULTS}/qc/aggregates.parquet",
         f"{RESULTS}/qc/manual_inspection.md",

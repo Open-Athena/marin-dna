@@ -3,7 +3,11 @@
 from marin_dna_vertebrate_projection.conservation.scoring import score_windows
 from marin_dna_vertebrate_projection.functional_pipeline import (
     build_functional_anchor_artifacts,
+    write_anchor_distribution_summary,
+    write_chromosome_summary,
     write_conservation_catalogs,
+    write_development_locus_overlap,
+    write_drop_summaries,
     write_human_anchor_audit,
 )
 from marin_dna_vertebrate_projection.functional_review import (
@@ -15,6 +19,13 @@ PHYLOP_THRESHOLD = float(config["phyloP_447m_threshold"])
 PROJECTION_MIN = float(config["projection_min_proportion_conserved"])
 TRAINING_MIN = float(config["training_min_proportion_conserved"])
 assert 0.0 <= PROJECTION_MIN < TRAINING_MIN <= 1.0
+DEVELOPMENT_VEP_REPO = str(config["development_vep_repo"])
+DEVELOPMENT_VEP_REVISION = str(config["development_vep_revision"])
+DEVELOPMENT_VEP_SPLIT = str(config["development_vep_split"])
+assert DEVELOPMENT_VEP_SPLIT == "train"
+DEVELOPMENT_VEP_PATH = (
+    f"{RESULTS}/anchors/audit/development_vep-" f"{DEVELOPMENT_VEP_REVISION}.parquet"
+)
 
 
 rule human_undefined_regions:
@@ -87,6 +98,18 @@ rule download_functional_phylop_447m:
         f"{RESULTS}/anchors/phyloP_447m.bw",
     params:
         url=CONSERVATION_TRACKS["phyloP_447m"],
+    shell:
+        "wget -q -O {output} {params.url}"
+
+
+rule download_functional_development_vep:
+    output:
+        DEVELOPMENT_VEP_PATH,
+    params:
+        url=(
+            f"https://huggingface.co/datasets/{DEVELOPMENT_VEP_REPO}/resolve/"
+            f"{DEVELOPMENT_VEP_REVISION}/{DEVELOPMENT_VEP_SPLIT}.parquet"
+        ),
     shell:
         "wget -q -O {output} {params.url}"
 
@@ -204,6 +227,11 @@ rule functional_preprojection_review:
         projection=ANCHOR_CATALOG_INPUT,
         training=TRAINING_CATALOG,
         deferred=DEFERRED_CATALOG,
+        human_summary=f"{RESULTS}/anchors/audit/human_sequence_summary.tsv",
+        chromosome_summary=f"{RESULTS}/anchors/audit/chromosome_summary.tsv",
+        construction_summary=(f"{RESULTS}/anchors/audit/construction_drop_summary.tsv"),
+        ownership_summary=f"{RESULTS}/anchors/audit/ownership_drop_summary.tsv",
+        development_overlap=f"{RESULTS}/anchors/audit/development_overlap.tsv",
     output:
         sample=f"{RESULTS}/anchors/audit/preprojection_sample.tsv",
         report=f"{RESULTS}/anchors/audit/preprojection_review.md",
@@ -226,3 +254,61 @@ rule functional_human_anchor_audit:
         f"{RESULTS}/anchors/audit/human_sequence.parquet",
     run:
         write_human_anchor_audit(input.anchors, input.sequences, output[0])
+
+
+rule functional_anchor_distribution_summary:
+    input:
+        f"{RESULTS}/anchors/audit/human_sequence.parquet",
+    output:
+        f"{RESULTS}/anchors/audit/human_sequence_summary.tsv",
+    run:
+        write_anchor_distribution_summary(
+            input[0],
+            output[0],
+            training_min=TRAINING_MIN,
+        )
+
+
+rule functional_chromosome_summary:
+    input:
+        projection=ANCHOR_CATALOG_INPUT,
+        training=TRAINING_CATALOG,
+    output:
+        f"{RESULTS}/anchors/audit/chromosome_summary.tsv",
+    run:
+        write_chromosome_summary(input.projection, input.training, output[0])
+
+
+rule functional_drop_summaries:
+    input:
+        ownership=f"{RESULTS}/anchors/audit/window_ownership.parquet",
+        construction=f"{RESULTS}/anchors/audit/construction_drops.parquet",
+    output:
+        construction=f"{RESULTS}/anchors/audit/construction_drop_summary.tsv",
+        ownership=f"{RESULTS}/anchors/audit/ownership_drop_summary.tsv",
+    run:
+        write_drop_summaries(
+            input.ownership,
+            input.construction,
+            output.construction,
+            output.ownership,
+        )
+
+
+rule functional_development_locus_overlap:
+    input:
+        projection=ANCHOR_CATALOG_INPUT,
+        training=TRAINING_CATALOG,
+        variants=DEVELOPMENT_VEP_PATH,
+    output:
+        f"{RESULTS}/anchors/audit/development_overlap.tsv",
+    run:
+        write_development_locus_overlap(
+            input.projection,
+            input.training,
+            input.variants,
+            output[0],
+            dataset_repo=DEVELOPMENT_VEP_REPO,
+            dataset_revision=DEVELOPMENT_VEP_REVISION,
+            dataset_split=DEVELOPMENT_VEP_SPLIT,
+        )
