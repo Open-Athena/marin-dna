@@ -242,6 +242,7 @@ def test_dataset_card_distinguishes_anchor_filter_from_repeat_mask_case(
         region_label="cds",
         species_scope="all",
         validation_seed=42,
+        anchor_provenance="Complete Ensembl release 115, all transcripts.",
     )
 
     text = " ".join(card.read_text().split())
@@ -261,4 +262,11 @@ def test_dataset_card_distinguishes_anchor_filter_from_repeat_mask_case(
     assert "sampled uniformly without replacement with seed 42" in text
     assert "does not stratify by chromosome, species, or human anchor" in text
     assert "reverse complement of a selected validation row is excluded" in text
+    assert "license: other" in text
+    assert "Complete Ensembl release 115, all transcripts." in text
+    assert "GRCh38/hg38 primary chromosomes" in text
+    assert "0-based and half-open" in text
+    assert "zstd-compressed JSON Lines" in text
+    assert "SHA-256 checksums" in text
+    assert "not a clinical resource" in text
     assert "loss weight" not in text
