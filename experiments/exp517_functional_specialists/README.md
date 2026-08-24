@@ -52,7 +52,8 @@ uv run --python /usr/bin/python3.12 --locked iris --cluster=marin job run \
 
 ## Training launch
 
-Launch CDS as the first canary, verify Hub download, tokenization, checkpointing, and W&B telemetry, and then launch the other four independent arms.
+CDS was launched first and verified through immutable Hub download, complete tokenization, real TPU optimizer steps, and W&B telemetry.
+At explicit user direction, the other four independent arms were launched before the originally planned step-500 checkpoint gate.
 The authenticated account can read the `open-athena` W&B entity but cannot create model runs there after the organization migration, so this experiment uses its existing writable `gonzalobenegas/marin` project.
 
 ```bash
@@ -74,7 +75,7 @@ uv run --python /usr/bin/python3.12 --locked iris --cluster=marin job run \
   --version 2026.08.24 --run'
 ```
 
-Repeat with `utr3`, `tss_region`, `ncrna`, and `enhancer` only after the CDS canary passes.
+Use the same command with `utr3`, `tss_region`, `ncrna`, and `enhancer`; verify each arm's Hub revision, token cache, TPU allocation, checkpoint export, and W&B run independently.
 Each arm has an independent run ID, checkpoint root, tokenized cache, and W&B run.
 
 ## Evaluation boundary

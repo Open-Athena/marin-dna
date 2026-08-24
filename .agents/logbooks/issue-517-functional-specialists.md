@@ -375,3 +375,23 @@ Its current anchor path instead creates uniform conservation-selected windows an
 - Evaluation boundary: No held-out even-autosome or chromosome-Y VEP record was read.
 - Interpretation: Public dataset publication is complete and the training input contract no longer has an unpublished or mutable dependency.
 - Next action: Commit the immutable pins, launch CDS as the canary, and require successful Hub download, tokenization, W&B telemetry, and the step-500 checkpoint before starting the other four arms.
+
+### 2026-08-24 23:22 UTC - `FAS-517-011` launch all five HF-only training arms
+
+- Hypothesis: The public immutable datasets can initialize the matched five-arm training experiment without any S3 training input and with healthy TPU and W&B telemetry.
+- CDS canary: The complete CDS train and validation token caches were built from `marin-dna/functional-cds@eb6bc7737c7f546870020a4e3d4c7a2a20d4c92c` and stored in the training-owned GCS cache.
+  A real `v5p-8` trainer completed JIT compilation and optimizer steps, reached step 224 with loss 1.3284 and approximately 634 thousand tokens per second, and remained healthy.
+- W&B namespace: The authenticated account can read the `open-athena` entity but W&B rejected model-run writes there after the organization migration.
+  The experiment therefore uses the existing writable `gonzalobenegas/marin` project and the shared `dna-exp517-functional-specialists` group.
+  The rejected attempts consumed no optimizer step.
+- Protocol deviation: The original plan gated the remaining launches on a verified CDS step-500 checkpoint.
+  After the CDS first-step, sustained-training, HF-cache, and W&B gates passed, the user explicitly directed launching the other four arms before step 500.
+- Launches: Iris accepted `/ubuntu/exp517-utr3-personal`, `/ubuntu/exp517-tss_region-personal`, `/ubuntu/exp517-ncrna-personal`, and `/ubuntu/exp517-enhancer-personal` between 23:22:09 and 23:22:28 UTC.
+  Every launcher pins its arm's public 40-character Hugging Face revision, forwards `gonzalobenegas/marin`, and allows either `v5p-8` or `v6e-4` in `us-east5`.
+- Initial status: All four parents spawned their arm-specific Hugging Face tokenization child.
+  UTR3 workers read `marin-dna/functional-utr3@790ec0ade6df6dce8e597058fc819dcf13f2eed1` directly from Hub and completed their parallel train-shard pass; TSS-region, ncRNA, and enhancer workers are active on their corresponding Hub repositories.
+- Fixed exposure: At 5,000 steps by 8,192 sequences, the augmented training-table exposures are 0.8737 epochs for CDS, 3.6044 for 3′ UTR, 5.4053 for TSS-region, 6.5961 for ncRNA, and 1.6148 for enhancer.
+- Evaluation preparation: The development-only registry contains 50 Mendelian cells, 50 Complex Traits cells, and the 10 CDS-only SGE cells required by the preregistration.
+  It contains no held-out dataset and removes complete mature-miRNA groups before Mendelian metrics.
+- Evaluation boundary: No held-out even-autosome or chromosome-Y VEP record was read.
+- Next action: Verify immutable Hub reads and W&B initialization for all four new arms, monitor all five through the terminal step 4,999 exports, then run the 110-cell development evaluation DAG.
