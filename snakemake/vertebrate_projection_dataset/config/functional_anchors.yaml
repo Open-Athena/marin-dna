@@ -17,6 +17,9 @@ training_min_proportion_conserved: 0.20
 # Ensembl_canonical-only filtering are not part of this recipe.
 ensembl_release: 115
 ccre_url: https://downloads.wenglab.org/Registry-V4/GRCh38-cCREs.bed
+development_vep_repo: marin-dna/evals_mendelian_traits
+development_vep_revision: 4aed58e50c5dea0b878a665007af2ef9e5108e9f
+development_vep_split: train
 ncrna_biotypes: [lncRNA, miRNA, snoRNA, snRNA, ribozyme, scaRNA, vault_RNA]
 functional_priority: [cds, utr3, tss_region, ncrna, enhancer]
 functional_arms: [cds, utr3, tss_region, ncrna, enhancer]
