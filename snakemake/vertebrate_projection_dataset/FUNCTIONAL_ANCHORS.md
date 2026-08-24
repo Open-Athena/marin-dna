@@ -66,6 +66,29 @@ It does not stage the HAL or MAF inputs and does not run cross-species projectio
 
 Before approving projection, review `anchors/audit/preprojection_sample.tsv`, `preprojection_review.md`, `feature_summary.tsv`, `raw_overlap.tsv`, `construction_drops.parquet`, and `window_ownership.parquet` in the producer-keyed result namespace.
 
+Materialize the complete full-tier audit on the isolated issue #517 worker:
+
+```bash
+sky launch -c issue-517-functional-project \
+  sky/functional_project.yaml \
+  --env TIER=full \
+  --env TARGET=all \
+  --env PIPELINE_COMMIT_SHA="$(git rev-parse HEAD)"
+```
+
+After the audit passes, reuse the same staged worker for the real cross-backend smoke:
+
+```bash
+sky exec issue-517-functional-project \
+  sky/functional_project.yaml \
+  --env TIER=smoke \
+  --env TARGET=all_projection \
+  --env PIPELINE_COMMIT_SHA="$(git rev-parse HEAD)"
+```
+
+The smoke stages and validates the HAL on local NVMe.
+Keep the worker only through the approved full projection so the 1.26 TB HAL is not downloaded twice.
+
 Validate the paid projection graph without executing it:
 
 ```bash
@@ -79,6 +102,18 @@ uv run --locked snakemake -n \
 Do not execute `all_projection` locally or on remote compute until a human explicitly approves the spend and records the decision in issue #517.
 
 After an approved projection, `all_projection` writes the shared recovery QC, five functional training splits, human-sequence GC/repeat/ambiguity audits, a pending mapping-inspection report, and draft cards for `marin-dna/functional-{arm}`.
+
+Run the approved full projection on the retained worker:
+
+```bash
+sky exec issue-517-functional-project \
+  sky/functional_project.yaml \
+  --env TIER=full \
+  --env TARGET=all_projection \
+  --env PIPELINE_COMMIT_SHA="$(git rev-parse HEAD)"
+```
+
+Terminate the worker with `sky down issue-517-functional-project` only after the required durable S3 artifacts have been restored and verified.
 
 Build local publication artifacts only after the projection review is accepted:
 
