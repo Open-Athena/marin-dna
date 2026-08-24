@@ -328,6 +328,7 @@ def run_training_phase(
         module,
         train_dataloaders=loader,
         ckpt_path=str(resume_from) if resume_from else None,
+        weights_only=False,
     )
     elapsed = time.time() - started
     if int(trainer.global_step) != target_global_step:
