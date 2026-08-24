@@ -19,7 +19,8 @@ author: gonzalobenegas
 ## Current TL;DR
 
 The additive Ensembl release 115 functional-anchor workflow passes all 236 locked pipeline tests and all three credential-free DAG checks.
-The default target stops at a pending human preprojection audit; paid projection, publication, training, and held-out evaluation remain approval-gated.
+PR #518 is a draft record for a long-lived experiment branch.
+Paid projection, five-arm training, and development-only evaluation are approved; public dataset publication and held-out even-autosome/Y evaluation remain unapproved.
 
 ## Baseline
 
@@ -32,18 +33,14 @@ The default target stops at a pending human preprojection audit; paid projection
 ### Active
 
 - `FAS-517-P1`: At step 4,999, each mapped home arm ranks first on its eight development Mendelian subsets.
-  Next test: blocked on approved projection, publication, and training after the human audit passes.
+  Next test: run the complete Ensembl audit, projection smoke, full projection, and training canary in sequence.
 - `FAS-517-P2`: The mapped home arm reaches the #459 persistence threshold during training.
-  Next test: blocked on approved projection, publication, and training after the human audit passes.
+  Next test: retain every 500-step checkpoint and run the preregistered development-only trajectory evaluation.
 
 ### Blocked
 
-- `FAS-517-PROJECTION`: Full HAL and MultiZ projection requires explicit paid-compute approval.
-  Resume when: the five human catalogs and pre-projection audit pass human review and projection is approved.
 - `FAS-517-PUBLISH`: Hugging Face publication requires explicit approval after projection QC and card review.
   Resume when: projection QC passes and immutable cards are ready.
-- `FAS-517-TRAIN`: The canary and remaining four training jobs require explicit paid-compute approval.
-  Resume when: immutable datasets are published and launch accounting is reviewed.
 
 ### Falsified / Dead End
 
@@ -60,6 +57,9 @@ None.
 - 2026-08-24: Reuse the maintained center-1 projection contract downstream of a new five-arm projection catalog.
 - 2026-08-24: Use the complete Ensembl GRCh38 release 115 GTF and all qualifying transcripts; do not use RefSeq or an Ensembl_canonical-only filter.
 - 2026-08-24: Keep the existing approval gates for projection, publication, training, and held-out evaluation.
+- 2026-08-24: Keep PR #518 draft and treat this branch as the permanent experiment record; decide whether to extract reusable mainline changes only after the end-to-end results are available.
+- 2026-08-24: Proceed with paid projection, five-arm training, and development-only evaluation.
+  Keep public publication and held-out even-autosome/Y evaluation gated separately.
 
 ## Background Research Brief
 
@@ -178,3 +178,15 @@ Its current anchor path instead creates uniform conservation-selected windows an
 - DAG checks: The unchanged production smoke DAG resolved 79 jobs; the functional preprojection DAG resolved 17 jobs; the opt-in functional smoke projection DAG resolved 94 jobs. All checks used `--default-storage-provider none` and executed no jobs.
 - Interpretation: `FAS-517-H1` passes locally. The implementation now reaches the intended human-audit gate with Ensembl as the explicit annotation source.
 - Next action: Publish the branch and draft PR, review the published diff, then request human review of the preprojection artifacts before any paid projection.
+
+### 2026-08-24 17:42 UTC - `FAS-517-003` experiment execution preflight
+
+- Hypothesis: The complete Ensembl audit and real cross-backend smoke can run on one retained projection worker without changing the production launcher or publishing datasets.
+- Commit hash: `9bcb3decfa38f6e848dafd34ec9458bcaece11a1`.
+- Commands: `uv run --locked pytest`; `uv run --locked snakemake all -n --snakefile workflow/functional.Snakefile --default-storage-provider none --cores 2 --config tier=full`; `uv run --locked snakemake all_projection -n --snakefile workflow/functional.Snakefile --default-storage-provider none --cores 2 --config tier=smoke`; `sky launch --dryrun -y -c issue-517-functional-project snakemake/vertebrate_projection_dataset/sky/functional_project.yaml --env TIER=full --env TARGET=all --env PIPELINE_COMMIT_SHA=a035631076a1381c0484c19e0d9280e719c1ce22`.
+- Result: 236 tests passed in 9.52 seconds with 272,320 KiB peak RSS; the full preprojection audit resolved 61 jobs; the functional projection smoke resolved 94 jobs; the Sky dry-run selected one on-demand AWS `c6id.12xlarge` in `us-east-2` at $2.42/hour and provisioned nothing.
+- Cost gate: The audit plus smoke is estimated at two to three worker-hours, or about $5–8 before storage and transfer charges.
+  The comparable issue #473 producer staged the exact 1,262,706,573,453-byte HAL in about 49 minutes and completed a 634,926-anchor bundled projection phase in roughly five hours.
+- Interpretation: The isolated launcher is ready for the approved Ensembl audit and projection smoke.
+  PR #518 is draft, public dataset publication remains gated, and held-out VEP data remain untouched.
+- Next action: Push this snapshot, materialize the full audit, inspect every reconciliation and manual sample, then run the smoke only if the audit passes.
