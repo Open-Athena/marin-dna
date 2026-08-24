@@ -1,0 +1,85 @@
+# Issue 517 functional specialists
+
+This permanent experiment-branch project trains five annotation-first 0.25B DNA specialists for issue #517.
+It is an experiment, not a merge proposal.
+
+The arms are CDS, 3′ UTR, TSS region, ncRNA, and enhancer.
+Their anchors come from complete Ensembl GRCh38 release 115 annotation across all qualifying transcripts, without RefSeq and without an Ensembl-canonical-only filter.
+Enhancers are ENCODE SCREEN Registry V4 dELS and pELS elements.
+Coordinates are GRCh38 0-based half-open inside the workflow.
+
+Every arm uses the same Qwen3-like 0.25B geometry, character-plus-BOS tokenizer, case-aware loss, optimizer, seed 0, 1,024-sequence per-device microbatch, and 5,000-step schedule.
+The global batch is 8,192 sequences of 256 tokens, or 10,485,760,000 token presentations per arm.
+Hugging Face exports and retained native checkpoints are written every 500 steps.
+
+The project is independently locked to Python 3.12 and Marin source commit `53b5b33041f742c7f4991223b0085e41ece4c458`.
+The workflow producer is commit `d06519abc5dc2c6c14d4c9765057a6a363305ee5`.
+The vendored tokenizer is byte-identical to `marin-dna/tokenizer-char-bos` revision `a73e9d9ee636f722b4c378703c9e2997857809b2` and is hash-checked before graph construction.
+
+## Dataset boundary
+
+Training reads only public Hugging Face datasets at immutable 40-character revisions.
+It never trains from S3.
+S3 is workflow-owned producer storage and is outside the training input contract.
+
+The five intended public datasets are:
+
+- `marin-dna/functional-cds`
+- `marin-dna/functional-utr3`
+- `marin-dna/functional-tss`
+- `marin-dna/functional-ncrna`
+- `marin-dna/functional-enhancer`
+
+The launcher currently fails closed because their revisions are `UNPUBLISHED`.
+Replace those placeholders only after public upload, unauthenticated verification, and recording the exact Hub revisions.
+
+## Verify
+
+```bash
+uv sync --python /usr/bin/python3.12 --locked --group dev
+uv run --python /usr/bin/python3.12 --locked pytest
+```
+
+Before the first data-bearing launch, run the tokenizer preflight on a real Iris child worker:
+
+```bash
+uv run --python /usr/bin/python3.12 --locked iris --cluster=marin job run \
+  --no-wait --job-name exp517-tokenizer-worker-preflight \
+  --cpu 1 --memory 2G --region us-east5 --extra=tpu \
+  -e MARIN_PREFIX gs://marin-us-east5/MarinDNA/exp517_functional_specialists \
+  -- python -m exp517_functional_specialists.tokenizer_preflight \
+  --version 2026.08.24 --run
+```
+
+## Training launch
+
+Launch CDS as the first canary, verify Hub download, tokenization, checkpointing, and W&B telemetry, and then launch the other four independent arms.
+
+```bash
+uv run --python /usr/bin/python3.12 --locked iris --cluster=marin job run \
+  --no-wait --no-sync --job-name exp517-cds \
+  --cpu 1 --memory 2G --region us-east5 --extra=tpu \
+  -e WANDB_API_KEY "$WANDB_API_KEY" \
+  -e WANDB_ENTITY "$WANDB_ENTITY" \
+  -e WANDB_PROJECT marin \
+  -e MARIN_PREFIX gs://marin-us-east5/MarinDNA/exp517_functional_specialists \
+  -e EXP517_TPU_REGION us-east5 \
+  -e EXP517_TPU_VARIANT v5p-8 \
+  -e EXP517_TPU_RAM 56g \
+  -e EXP517_TPU_PREEMPTIBLE true \
+  -e EXP517_ARM cds \
+  -e UV_PROJECT /app \
+  -- bash -lc 'cd /app && uv sync --locked --extra tpu && \
+  exec uv run --locked python -m exp517_functional_specialists.experiment \
+  --version 2026.08.24 --run'
+```
+
+Repeat with `utr3`, `tss_region`, `ncrna`, and `enhancer` only after the CDS canary passes.
+Each arm has an independent run ID, checkpoint root, tokenized cache, and W&B run.
+
+## Evaluation boundary
+
+Evaluate only the development split unless the user separately authorizes held-out access.
+Remove complete mature-miRNA groups before every metric, table, plot, or model-selection decision.
+The primary statistic is AUPRC, with paired joint bootstrap uncertainty for whether each home specialist ranks first.
+Do not read, generate, publish, or summarize even-autosome or chromosome-Y held-out labels, predictions, or metrics from this branch.
