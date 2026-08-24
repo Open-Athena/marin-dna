@@ -9,10 +9,10 @@ author: gonzalobenegas
 
 ## Current TL;DR
 
-The exp58 animal-CDS seven-objective gate is complete on one retained Lambda A100.
-Pure teacher KL reached pooled missense-plus-splicing AUPRC 0.177410, uniform CE reached 0.175704, and random-50 reached 0.161681 after 100 arm-local steps.
-The next registered run continues only uniform CE and pure teacher KL from their complete step-100 checkpoints to step 200 at constant 1e-3, with no second warmup.
-It stops after identical Mendelian missense-plus-splicing evaluation and paired AUPRC tests under the $48 GPU stop and $50 all-in cap.
+The exp58 animal-CDS uniform-CE and pure-teacher-KL step-200 extension is complete on one retained Lambda A100.
+Teacher KL reached pooled missense-plus-splicing AUPRC 0.183331 versus 0.170727 for uniform, a paired delta of +0.012604 with two-sided p = 0.01955.
+Teacher KL improved by 0.005921 and uniform declined by 0.004977 from step 100, but neither within-arm trajectory was significant after Holm correction at adjusted p = 0.56377.
+The extension used an estimated $3.07 and ended at $42.98 of provider allocation under the $48 GPU stop and $50 all-in cap.
 
 ## Scope
 
@@ -233,3 +233,21 @@ It stops after identical Mendelian missense-plus-splicing evaluation and paired 
 - Validation: All 35 focused no-GPU tests passed in 4.18 seconds and 6.12 seconds wall time with 1,034,564 KiB peak RSS; Ruff, syntax, and whitespace checks passed.
 - Budget: At preregistration, measured training plus evaluation times project the total provider allocation to about $43.64 after a 25% runtime margin, below the $48 GPU stop and $50 all-in ceiling.
 - Next action: Push the immutable snapshot, post and verify the GitHub preregistration comment, then launch the exact commit on the retained A100 and stop after the two step-200 evaluations.
+
+
+### 2026-08-24 22:01 - Uniform CE and teacher KL extension complete
+
+- Hypothesis: Additional matched-compute training can separate the nearly tied step-100 teacher-KL and uniform-CE AUPRCs while preserving each objective's own optimization trajectory.
+- Commit Hash: `ab65fcaf959316381f82413d3861f6033cbcc1f9`.
+- Run: Job 9 on the retained Lambda A100 completed successfully from parent run `364abd024f3c-20260824t1320z`.
+- State: Both arms restored full local-step-100 model, AdamW, scheduler, selector, data-position, and global RNG states; the extended sequence and species prefixes matched the completed plan exactly.
+- Uniform Result: Step-200 pooled/missense/splicing AUPRC was 0.170727/0.132595/0.247808, versus 0.175704/0.139221/0.249623 at step 100.
+- Teacher-KL Result: Step-200 pooled/missense/splicing AUPRC was 0.183331/0.148211/0.254956, versus 0.177410/0.142064/0.246134 at step 100.
+- Primary Significance: Teacher KL exceeded uniform at step 200 by 0.012604 pooled AUPRC with two-sided paired match-group p = 0.019549 from 20,000 permutations.
+- Trajectory Significance: Uniform changed by -0.004977 at raw p = 0.359782, while teacher KL changed by +0.005921 at raw p = 0.281886; both Holm-adjusted p-values were 0.563772.
+- Interpretation: This paired run supports teacher KL over uniform at step 200, while it does not establish that either individual step-100-to-step-200 trajectory differs from zero.
+- Runtime: Uniform and teacher KL required 2,217.06 and 2,888.03 seconds for the added 100 steps, with peak HBM fractions 47.81% and 50.08%.
+- Cost: The extension used an estimated $3.07196 and provider allocation through completion reached $42.97783 under the $48 GPU stop and $50 all-in cap.
+- Artifacts: Twenty-five curated objects totaling 5,287,882,556 bytes plus the upload manifest were verified under `s3://oa-bolinas/issues/515/online-loss-selection/v1/runs/364abd024f3c-20260824t1320z-step-200-ab65fcaf9593/`.
+- Stop: The run stopped after both step-200 evaluations; random-50, ranked-half arms, and the queued RefSeq restart were not run.
+- Next action: Publish the result summary on issue #515 and return for the next experiment decision.
