@@ -19,8 +19,9 @@ author: gonzalobenegas
 ## Current TL;DR
 
 The exact producer `d06519ab` reproduced the approved complete Ensembl release 115 audit and remains the direct-MAF smoke baseline.
-The issue-specific non-mammal backend now uses 28 checksum-pinned UCSC hg38-to-target liftOver chains at snapshot `07bb7223`; the original uniform-anchor MultiZ path is unchanged.
-A chain-versus-MAF parity smoke is the current projection gate.
+The issue-specific non-mammal backend now uses 28 checksum-pinned UCSC hg38-to-target liftOver chains at snapshot `17ec5ddd`; the original uniform-anchor MultiZ path is unchanged.
+The 250-cell chain-versus-MAF smoke is not strictly identical, but its discrepancies are bounded and fully reconciled; standard single-best liftOver is accepted as a deliberate experimental backend change rather than an equivalent optimization.
+The full chain projection is the current gate.
 PR #518 remains a draft record for a long-lived experiment branch rather than a merge proposal.
 Paid projection, public Hugging Face publication, five-arm training, and development-only evaluation are approved; held-out even-autosome/Y evaluation remains unapproved.
 Training is Hugging Face-only at immutable public dataset revisions; S3 is workflow-owned producer storage only.
@@ -36,19 +37,19 @@ Training is Hugging Face-only at immutable public dataset revisions; S3 is workf
 ### Active
 
 - `FAS-517-P1`: At step 4,999, each mapped home arm ranks first on its eight development Mendelian subsets.
-  Next test: pass chain-versus-MAF smoke parity, then run the full projection and training canary.
+  Next test: run the full chain projection, publish its five immutable public Hugging Face datasets, then run the CDS training canary.
 - `FAS-517-P2`: The mapped home arm reaches the #459 persistence threshold during training.
   Next test: retain every 500-step checkpoint and run the preregistered development-only trajectory evaluation.
 
 ### Blocked
 
-- `FAS-517-B1`: Direct MultiZ MAF scanning for the issue-specific full projection.
-  Why stopped: The 24 compressed MAFs total 74,694,939,245 bytes, while complete version-matched UCSC chains for the same 28 targets total 279,346,460 bytes.
-  Evidence: `FAS-517-007`.
+None.
 
 ### Falsified / Dead End
 
-None.
+- `FAS-517-B1`: Direct MultiZ MAF scanning for the issue-specific full projection.
+  Why stopped: The 24 compressed MAFs total 74,694,939,245 bytes, while complete version-matched UCSC chains for the same 28 targets total 279,346,460 bytes.
+  Evidence: `FAS-517-007` and `FAS-517-008`.
 
 ### Promoted
 
@@ -66,6 +67,8 @@ None.
   Keep public publication and held-out even-autosome/Y evaluation gated separately.
 - 2026-08-24: Replace the issue-specific direct-MAF non-mammal projection with 28 batched UCSC liftOver calls after smoke parity review.
   Keep the production uniform-anchor MultiZ workflow unchanged.
+- 2026-08-24: Accept standard single-best liftOver for the full issue #517 experiment after a non-strict 250-cell parity smoke.
+  Record it as an intentional experimental backend change, not as output-equivalent to direct MultiZ MAF projection.
 
 ## Background Research Brief
 
@@ -298,3 +301,27 @@ Its current anchor path instead creates uniform conservation-selected windows an
 - Interpretation: The chain path removes the known full-MAF I/O cost and preserves every downstream invariant in unit and DAG checks.
   Coordinate parity with the final direct-MAF smoke remains unmeasured, so the new backend is not yet an approved full-projection producer.
 - Next action: Run the real chain smoke on the retained worker and compare every non-mammal anchor/species outcome with the `d06519ab` direct-MAF smoke before restarting full projection.
+
+### 2026-08-24 20:50 UTC - `FAS-517-008` accept bounded non-strict liftOver parity
+
+- Hypothesis: Standard single-best UCSC liftOver can replace direct MultiZ MAF scanning for this experiment if every smoke discrepancy is bounded, sequence-consistent, and recorded rather than claimed to be equivalent.
+- Candidate snapshot: `17ec5dddf7805cc76384add4d6b2877ff80917df` with configuration SHA-256 `0c99b26d54726d20e16e7496843c50c7a0f044d2072e8bfc7c7914d280a3c50b`.
+- Execution: Sky dry-run job 8 succeeded with 88 rules, correcting the prelaunch 89-rule estimate in `FAS-517-007`.
+  Sky job 9 then completed all 88 rules in 5 minutes 12 seconds with no projection-contract or sequence-extraction failure.
+  The final direct-MAF smoke took 17 minutes 56 seconds, so the complete liftOver smoke was 3.45 times faster even though both runs also constructed Ensembl/ENCODE anchors, scored phyloP, projected two HAL mammals, extracted sequences, ran QC, and materialized dataset files.
+- Request invariant: The old and new `projection_requests.parquet` tables are exactly identical across 50 anchors and five non-mammal targets, for a complete 250-cell comparison.
+- Cell outcomes: 62 exact accepted outputs, 162 exact no-mappings, 13 common accepted mappings with different target windows, 11 liftOver-only mappings, and 2 direct-MAF-only mappings.
+  Neither backend produced a contract rejection in these five species.
+- Conflict reconciliation: All 13 non-identical common mappings remain on the same target chromosome and strand.
+  Their absolute 255 bp window shift is 1 to 46 bp with a median of 4 bp; every pair overlaps by at least 209 bp, and all 13 overlapping sequence segments are exactly identical.
+- Backend-only reconciliation: The pairwise chains recover 11 mappings absent from the chromosome MultiZ MAF results.
+  UCSC liftOver reports both direct-MAF-only cells as `Deleted in new` under the corresponding pairwise chain.
+- Multiple-mapping check: Ad hoc Sky job 12 failed before downloading or running liftOver because its shell omitted the Sky runtime AWS path.
+  Corrected job 13 succeeded.
+  `liftOver -multiple` returned the same query partitions and target coordinates for all five species, with zero duplicated queries; only the BED score field changed from `0` to `1`.
+- Durable artifacts: The 250-row detail table, aggregate summary, and JSON disposition are under `s3://oa-bolinas/snakemake/vertebrate_projection_dataset/results/functional-v1/17ec5dddf7805cc76384add4d6b2877ff80917df/0c99b26d54726d20e16e7496843c50c7a0f044d2072e8bfc7c7914d280a3c50b/smoke/parity/maf-vs-liftover/`.
+  Their SHA-256 digests are `0b9e4d2a62ca7536323a2e1a3f956230a439e9e78fd10c9b6e48c64e18ab21ac` for `details.tsv`, `9187f00684919e66f09c85dee8b408584a1c4021925bf57c4fbc3b3858064a18` for `summary.tsv`, and `0049c9debb7cae75a4402f8cb6b6659d7ef2e9af925823daf0ecebd381fcb348` for `report.json`.
+- Interpretation: Strict parity is false.
+  The discrepancies are internally sequence-consistent and reflect bounded differences between pairwise-chain and multiple-alignment representations rather than assembly, chromosome, strand, coordinate-boundary, or extraction corruption.
+  Standard single-best liftOver is accepted for the full issue #517 experiment because it preserves the reviewed contract, recovers more smoke mappings, avoids the 267.39-fold compressed-input penalty, and has no smoke benefit from `-multiple`.
+- Next action: Snapshot this interpretation, dry-run the exact full producer, then restart the 22-chromosome, 107-HAL-species, 28-liftOver-species projection before any Hugging Face publication or training.
