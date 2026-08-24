@@ -155,6 +155,9 @@ A probe that targets a legacy score parquet must explicitly rerun that one `comp
 
 - **Train split only.** Test is held out for the final-eval pass; train is
   the development split.
+- **Optional complete-group exclusions.** A matched-pair dataset may set `exclude_complete_match_groups_with_subsets: [subset_name, ...]`.
+  Before metrics, the workflow removes every row from any `match_group` that contains a named subset and fails if a configured subset is absent.
+  Score parquets remain complete; only the downstream metrics scope changes.
 - **Three context conventions are supported.** Per-model `window_size`
   config field selects the number of DNA bases extracted. The tokenizer
   loaded from each checkpoint handles BOS itself.
