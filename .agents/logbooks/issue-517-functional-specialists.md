@@ -18,9 +18,10 @@ author: gonzalobenegas
 
 ## Current TL;DR
 
-The additive Ensembl release 115 functional-anchor workflow passes all 236 locked pipeline tests and all three credential-free DAG checks.
+The additive Ensembl release 115 functional-anchor workflow passes all 238 locked pipeline tests and the expanded 68-job preprojection DAG check.
 PR #518 is a draft record for a long-lived experiment branch.
 Paid projection, five-arm training, and development-only evaluation are approved; public dataset publication and held-out even-autosome/Y evaluation remain unapproved.
+The first complete anchor build succeeded, exposed missing issue-mandated audit tables, and is provisional until the corrected audit snapshot is materialized and reviewed.
 
 ## Baseline
 
@@ -190,3 +191,30 @@ Its current anchor path instead creates uniform conservation-selected windows an
 - Interpretation: The isolated launcher is ready for the approved Ensembl audit and projection smoke.
   PR #518 is draft, public dataset publication remains gated, and held-out VEP data remain untouched.
 - Next action: Push this snapshot, materialize the full audit, inspect every reconciliation and manual sample, then run the smoke only if the audit passes.
+
+### 2026-08-24 18:09 UTC - `FAS-517-004` preliminary Ensembl audit and completed review gate
+
+- Hypothesis: The complete Ensembl release 115 anchor catalog reconciles biologically and the preprojection target materializes every issue-mandated review surface before projection.
+- Preliminary producer commit: `d9af68a35ef3133e74c39f7cb1c7f44dc6b4167d`.
+- Corrected audit-gate commit: `713a653873511138389133319910259133b84785`.
+- Execution: Sky job 1 failed during setup because `uv --version` included an architecture suffix; it read no scientific input.
+  Sky job 2 passed setup and completed the 61-job preliminary full-tier audit in 5 minutes 5 seconds on one AWS `c6id.12xlarge` at $2.42/hour.
+- Preliminary Ensembl counts: 229,962 retained CDS candidates, 278,932 3′ UTR, 169,444 TSS-region, 397,639 ncRNA, and 1,428,246 enhancer.
+  The ≥10% projection catalog contains 205,131 CDS, 83,766 3′ UTR, 64,349 TSS-region, 48,982 ncRNA, and 202,452 enhancer anchors.
+  The ≥20% training catalog contains 188,830 CDS, 52,099 3′ UTR, 37,608 TSS-region, 28,815 ncRNA, and 117,010 enhancer anchors.
+- Gate finding: The preliminary target did not materialize the required development-locus overlap, preprojection human GC/repeat/ambiguity distributions, chromosome summary, or explicit construction and ownership loss summaries.
+  The preliminary result is therefore not an approved projection input even though its existing rules succeeded.
+- Correction: Commit `713a6538` adds pinned development-only overlap against `marin-dna/evals_mendelian_traits` revision `4aed58e50c5dea0b878a665007af2ef9e5108e9f`, rejects any chromosome outside odd autosomes/X, removes complete mature-miRNA match groups, and converts 1-based variant positions to 0-based half-open points at the boundary.
+  It also moves human sequence composition into the preprojection gate and adds arm-wise quantiles, chromosome counts, and explicit construction and ownership loss tables.
+- Real-data development check: Four complete mature-miRNA match groups were removed.
+  In the ≥20% training catalog, home-arm positive-locus coverage was 85.7% for CDS/missense, 69.9% for CDS/splicing, 76.1% for CDS/synonymous, 36.4% for 3′ UTR, 43.3% for TSS/5′ UTR, 41.0% for TSS/promoter, 65.2% for ncRNA, and 34.5% for enhancer/distal.
+  The home arm had the highest coverage on every mapped subset in both conservation catalogs.
+  This is an anchor-composition sanity check, not a model result.
+- Local resource note: The first real-catalog overlap check ran from 2026-08-24T18:06:38Z to 18:06:40Z and unexpectedly reached 563,148 KiB peak RSS, above the 500 MiB local planning bound.
+  The corrected implementation now reads only the five required anchor columns, and every subsequent full-data audit runs on the retained remote worker.
+- Validation: 238 locked tests passed in 9.45 seconds with 278,696 KiB peak RSS; all applicable pre-commit hooks passed; the expanded full-tier preprojection dry-run resolved 68 jobs.
+- Scope: The annotation remains the complete Ensembl GRCh38 release 115 GTF with all qualifying transcripts.
+  RefSeq is not used.
+  Public publication and held-out even-autosome/Y access remain gated and untouched.
+- Interpretation: The preliminary catalog is biologically plausible, but the corrected 68-job audit must be materialized and reviewed before the real projection smoke.
+- Next action: Push the corrected snapshot, rerun the complete remote audit, inspect every new table and deterministic sample, then launch the real cross-backend smoke only if all reconciliation gates pass.
