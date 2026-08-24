@@ -111,10 +111,11 @@ def validate_artifacts(
     config_path: str | Path,
     pipeline_commit: str,
     config_sha256: str,
+    source_artifacts: dict[str, dict[str, str | os.PathLike[str]]] | None = None,
     tier: str | None = None,
     workers: int,
 ) -> dict[str, object]:
-    """Validate the exact local artifact tree and persist its content manifest."""
+    """Validate the local release tree against explicit or colocated sources."""
     artifact_root = Path(artifact_dir)
     source_root = Path(source_datasets_dir)
     assert len(pipeline_commit) == 40 and workers > 0
@@ -184,8 +185,22 @@ def validate_artifacts(
             assert forbidden not in card_text
 
         cohort_root = source_root / cohort
-        train_source = cohort_root / "train.parquet"
-        validation_source = cohort_root / "validation.parquet"
+        expected_source_names = {
+            "train.parquet",
+            "validation.parquet",
+            "validation_selection.tsv",
+            "validation_composition.tsv",
+            "split_summary.json",
+        }
+        if source_artifacts is None:
+            cohort_sources = {
+                name: cohort_root / name for name in expected_source_names
+            }
+        else:
+            cohort_sources = source_artifacts[cohort]
+            assert set(cohort_sources) == expected_source_names
+        train_source = Path(cohort_sources["train.parquet"])
+        validation_source = Path(cohort_sources["validation.parquet"])
         train_schema = pl.read_parquet_schema(train_source)
         assert train_schema == pl.read_parquet_schema(validation_source)
         assert {
@@ -196,7 +211,7 @@ def validate_artifacts(
         columns = frozenset(train_schema)
         source_rows = {
             split: int(
-                pl.scan_parquet(cohort_root / f"{split}.parquet")
+                pl.scan_parquet(train_source if split == "train" else validation_source)
                 .select(pl.len())
                 .collect(engine="streaming")
                 .item()
@@ -206,7 +221,7 @@ def validate_artifacts(
         assert source_rows["train"] > 0
         assert source_rows["validation"] == validation_rows
 
-        summary = json.loads((cohort_root / "split_summary.json").read_text())
+        summary = json.loads(Path(cohort_sources["split_summary.json"]).read_text())
         assert summary["split_strategy"] == (
             "uniform_row_random_before_reverse_complement"
         )
@@ -232,7 +247,7 @@ def validate_artifacts(
         assert bool(summary["add_reverse_complements"]) == add_reverse_complements
 
         selection = pl.read_csv(
-            cohort_root / "validation_selection.tsv",
+            Path(cohort_sources["validation_selection.tsv"]),
             separator="\t",
         )
         assert selection.height == validation_rows
@@ -304,7 +319,7 @@ def validate_artifacts(
         assert train_augmentation_counts == expected_augmentation_counts
 
         composition = pl.read_csv(
-            cohort_root / "validation_composition.tsv",
+            Path(cohort_sources["validation_composition.tsv"]),
             separator="\t",
         )
         expected_composition = build_validation_composition(
