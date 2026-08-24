@@ -395,3 +395,19 @@ Its current anchor path instead creates uniform conservation-selected windows an
   It contains no held-out dataset and removes complete mature-miRNA groups before Mendelian metrics.
 - Evaluation boundary: No held-out even-autosome or chromosome-Y VEP record was read.
 - Next action: Verify immutable Hub reads and W&B initialization for all four new arms, monitor all five through the terminal step 4,999 exports, then run the 110-cell development evaluation DAG.
+
+### 2026-08-24 23:50 UTC - `FAS-517-012` multi-arm startup validation
+
+- Tokenization: The UTR3, TSS-region, ncRNA, and enhancer tokenization parents all succeeded after complete train and validation passes against their pinned public Hugging Face revisions.
+  Zephyr terminated the completed shard workers and cache probes normally after their work drained.
+- TPU allocation: UTR3, TSS-region, and ncRNA received four-chip TPU v6e workers and initialized the intended 0.25B, 8,192-sequence training configuration.
+  All three registered their expected W&B runs; UTR3 and TSS-region began loading their first cached training batches while ncRNA completed runtime setup.
+  The independent enhancer trainer remains accepted but queued on explicit insufficient-TPU capacity feedback.
+- CDS recovery: The CDS worker was preempted after W&B step 236 and resumed from its latest temporary checkpoint at step 143.
+  It retrained the discarded interval, surpassed the old W&B step, and was advancing again at step 257 with loss 1.4312.
+- Evaluation implementation: Commit `b8ac67fb` adds the preregistered five-way paired match-group bootstrap.
+  The optional rule produces 80 checkpoint-by-subset trajectory rows with the complete five-arm AUPRC matrix and `P(home ranks first)`, plus eight persistence rows using the first of two consecutive checkpoints at or above 95%.
+  Exact ties count as ranking first, complete mature-miRNA groups are excluded before analysis, and no specialist macro or global score is emitted.
+- Verification: The focused home-rank tests passed, the complete locked evals_v2 suite passed with 416 tests and five skips, repository hooks passed, and the exact issue-517 development DAG dry-run resolves 272 jobs including the single joint aggregation.
+- Evaluation boundary: No held-out even-autosome or chromosome-Y VEP record was read.
+- Next action: Confirm first optimizer steps for UTR3 and TSS-region, allow ncRNA and enhancer to acquire capacity, and monitor all five through their retained step-4,999 exports.
