@@ -16,7 +16,8 @@ The next run is a shallow CDS gate using the original `exp58-animals` lineage.
 - This is the original animal-CDS corpus used by exp58.
 - Lowercase repeat targets are excluded in every arm, while their bases remain visible as context.
 - Run one shared 100-step uniform bridge with linear warmup from 1e-5 to 1e-3.
-- Fork all seven arms from the complete bridge checkpoint and train every arm for exactly 100 additional steps at constant 1e-3.
+- Fork the model weights for all seven arms from the complete bridge checkpoint.
+- Treat every arm as a distinct objective: reset AdamW independently for every arm, including uniform, and use an identical 20-step arm-local warmup from 1e-5 to 1e-3 followed by 80 steps at constant 1e-3.
 - Every arm uses effective batch 2,048 and the same 204,800 post-bridge input rows.
 
 ### Seven arms
@@ -45,4 +46,7 @@ CSV metrics and per-variant predictions are authoritative.
 W&B is optional.
 The existing Lambda A100 remains subject to the original allocation clock, the $48 GPU stop, and the authorized $50 all-in cap.
 
-Focused validation passed: 30 tests covering BOS/no-BOS alignment, selectors, pure teacher KL, teacher-low masking, checkpoint compatibility, retained-cluster launch behavior, exact resume metadata, and statistical tests.
+The first launch completed the deterministic plan, worst-case teacher calibration, shared bridge, and bridge evaluation before the user identified the objective-transition confound.
+It was stopped during the partial uniform arm, before any nonuniform objective began.
+The retained bridge has pooled missense-plus-splicing AUPRC 0.156796, with missense 0.126489 and splicing 0.219649.
+The arm amendment preserves that bridge but discards the partial uniform arm.

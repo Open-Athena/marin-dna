@@ -183,3 +183,13 @@ The per-species source-case audit passed without invoking the RefSeq fallback.
 - Validation: 30 focused issue tests passed in 4.06 seconds, including no-BOS alignment, pure teacher KL gradients, teacher-low selection, checkpoint compatibility, retained-cluster launch behavior, resume state, and statistical-gate contracts; peak local RSS was 1,037,220 KiB.
 - Budget: Retain the existing Lambda A100 at $1.99/hour; preserve the original instance-start clock and $48 GPU stop under the authorized $50 all-in cap; CSV remains authoritative and W&B optional.
 - Next action: Publish this amendment to issue #515, snapshot the clean implementation, run remote parity and HBM calibration, and launch only if the measured full gate remains below the compute stop.
+
+### 2026-08-24 14:31 - Objective-transition amendment after bridge
+
+- Observation: The user clarified that every arm is a distinct objective, so inheriting uniform-CE Adam moments and switching nonuniform objectives directly at 1e-3 would favor uniform and confound the shallow gate.
+- Result: Run `364abd024f3c-20260824t1320z` completed its 409,600-row CDS plan, teacher-KL memory and timing canary, shared 100-step bridge, and bridge evaluation before being canceled during the partial uniform arm; no nonuniform arm had begun.
+- Bridge: Microbatch 32; 2,234.36 seconds for 100 hard-CE steps; peak HBM 47.81%; pooled missense-plus-splicing AUPRC 0.156796; missense AUPRC 0.126489; splicing AUPRC 0.219649.
+- Data: The exact plan contains 11.740% lowercase bases after skipping 1,103 fully lowercase windows; sequence checksum `d3df0a5bc8fd980d503bc48e2597efd586163c2803e0ea4724e6357fa56bcb0c`.
+- Decision: Reuse the complete bridge model weights and post-bridge row offset, discard the partial uniform arm, reset AdamW and the scheduler independently for all seven arms including uniform, and apply the same 20-step warmup from 1e-5 to 1e-3 followed by 80 constant steps.
+- Rationale: The original exp58 configuration used learning rate 1e-3 at effective batch 2,048, so the plateau remains lineage-consistent; the amendment removes stale objective-specific optimizer moments and the abrupt peak-LR transition.
+- Next action: Validate, post the amendment, snapshot the code, archive the partial arm evidence, and resume from the retained bridge on the same A100.

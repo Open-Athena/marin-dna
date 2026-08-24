@@ -46,7 +46,8 @@ This older checkpoint consumes 256 nucleotide tokens with no BOS token.
 A row therefore contributes 255 causal next-token targets.
 
 The run performs one shared 100-step uniform bridge with linear warmup from 1e-5 to 1e-3.
-It then forks seven arms from the complete bridge checkpoint and trains every arm for exactly 100 additional optimizer steps at constant 1e-3.
+It then forks the model weights into seven arms, resets AdamW independently for every arm including uniform, and trains every arm for exactly 100 optimizer steps.
+Every arm uses the same 20-step linear warmup from 1e-5 to 1e-3 followed by 80 steps at constant 1e-3.
 The five online arms are uniform, random 50%, current-student low 50%, middle 50%, and high 50%.
 The two frozen-teacher arms use the matching final step-16,999 export: pure full-distribution `KL(teacher || student)` at temperature 1, and hard-label CE on the lowest-loss 50% of eligible tokens ranked by teacher NLL.
 All arms exclude lowercase repeat targets and see the same 204,800 post-bridge input windows.
@@ -97,7 +98,8 @@ The runner stops estimated GPU compute at USD 48 under the USD 50 all-in cap.
 The training plan stores fixed-width 255- or 256-byte sequences and uint16 corpus IDs in checksumed files.
 Every arm consumes the same row interval.
 Each full Lightning checkpoint records the plan checksum, exact next sample ID, effective batch, model state, optimizer state, scheduler state, selector RNG, and Python, NumPy, PyTorch, and CUDA RNG states.
-An intentional bridge-to-arm fork resets only the arm selector stream; a same-arm resume restores it exactly.
+An intentional CDS bridge-to-arm fork loads only shared model and selector state, resets the selector stream when its policy changes, resets AdamW and the scheduler for every arm, and records the absolute post-bridge data offset.
+A same-arm resume restores the complete arm optimizer, scheduler, selector, data-position, and RNG state exactly.
 An explicit `--resume-from-bridge` repair mode validates the passing smoke test, registered canary and bridge metadata, and step-100 checkpoint before skipping those completed phases.
 When a launch resumes on the same instance, `--instance-start-unix` preserves the original provider allocation time for the hard budget guard.
 An explicit `--publish-only` repair mode archives any stale pre-completion failure record and retries immutable S3 publication without rerunning training or evaluation.

@@ -29,6 +29,7 @@ from glm_experiments.exp515.config import (
     ARMS,
     BRIDGE_STEPS,
     CANARY_STEPS,
+    CDS_ARM_WARMUP_STEPS,
     CDS_ARMS,
     CDS_GATE_CONTINUATION_STEPS,
     CDS_NUCLEOTIDE_LENGTH,
@@ -209,6 +210,7 @@ def _new_module(
     objective_kind: ObjectiveKind = "hard_ce",
     teacher_dir: Path | None = None,
     schedule_kind: ScheduleKind = "warmup_cosine",
+    sample_id_offset: int = 0,
 ) -> Exp515Module:
     net = HFCLM(
         str(source_dir),
@@ -227,6 +229,7 @@ def _new_module(
         objective_kind=objective_kind,
         teacher_checkpoint=str(teacher_dir) if teacher_dir is not None else None,
         schedule_kind=schedule_kind,
+        sample_id_offset=sample_id_offset,
     )
 
 
@@ -309,6 +312,27 @@ def _optional_loggers(output_dir: Path, run_name: str) -> list[Any]:
     return loggers
 
 
+def _phase_position(
+    resume_from: Path | None,
+    fork_weights_from: Path | None,
+) -> tuple[int, int, int]:
+    """Return absolute data start, local optimizer step, and data offset."""
+
+    if resume_from is not None and fork_weights_from is not None:
+        raise ValueError("choose full resume or fresh-optimizer fork, not both")
+    state_source = resume_from or fork_weights_from
+    start_sample = (
+        0 if state_source is None else checkpoint_next_sample_id(str(state_source))
+    )
+    start_step = 0 if resume_from is None else _checkpoint_step(resume_from)
+    sample_id_offset = start_sample - start_step * EFFECTIVE_BATCH_SIZE
+    if sample_id_offset < 0:
+        raise ValueError(
+            "checkpoint data position precedes its optimizer-step position"
+        )
+    return start_sample, start_step, sample_id_offset
+
+
 def run_training_phase(
     *,
     source_dir: Path,
@@ -322,6 +346,7 @@ def run_training_phase(
     target_global_step: int,
     microbatch_size: int,
     resume_from: Path | None,
+    fork_weights_from: Path | None = None,
     schedule_kind: ScheduleKind = "warmup_cosine",
     objective_kind: ObjectiveKind = "hard_ce",
     teacher_dir: Path | None = None,
@@ -333,15 +358,10 @@ def run_training_phase(
     if EFFECTIVE_BATCH_SIZE % microbatch_size:
         raise ValueError("microbatch must divide the effective batch")
     plan = validate_sequence_plan(plan_dir)
-    start_sample = (
-        0 if resume_from is None else checkpoint_next_sample_id(str(resume_from))
+    start_sample, start_step, sample_id_offset = _phase_position(
+        resume_from,
+        fork_weights_from,
     )
-    start_step = 0 if resume_from is None else _checkpoint_step(resume_from)
-    expected_start = start_step * EFFECTIVE_BATCH_SIZE
-    if start_sample != expected_start:
-        raise ValueError(
-            f"checkpoint data position {start_sample} != global-step position {expected_start}"
-        )
     if target_global_step <= start_step:
         raise ValueError("phase target must exceed its checkpoint step")
     phase_rows = (target_global_step - start_step) * EFFECTIVE_BATCH_SIZE
@@ -368,7 +388,11 @@ def run_training_phase(
         objective_kind=objective_kind,
         teacher_dir=teacher_dir,
         schedule_kind=schedule_kind,
+        sample_id_offset=sample_id_offset,
     )
+    if fork_weights_from is not None:
+        payload = torch.load(fork_weights_from, map_location="cpu", weights_only=False)
+        module.load_state_dict(payload["state_dict"], strict=True)
     phase_dir = output_dir / run_name
     phase_dir.mkdir(parents=True, exist_ok=True)
     diagnostics = Exp515Diagnostics(
@@ -420,7 +444,9 @@ def run_training_phase(
         "start_global_step": start_step,
         "end_global_step": target_global_step,
         "start_sample_id": start_sample,
-        "end_sample_id": target_global_step * EFFECTIVE_BATCH_SIZE,
+        "end_sample_id": start_sample + phase_rows,
+        "sample_id_offset": sample_id_offset,
+        "fresh_optimizer_fork": fork_weights_from is not None,
         "microbatch_size": microbatch_size,
         "gradient_accumulation": EFFECTIVE_BATCH_SIZE // microbatch_size,
         "elapsed_seconds": elapsed,
@@ -1557,10 +1583,11 @@ def run_cds_gate(
             selector_mode=arm.selector_mode,
             selector_ratio=arm.selector_ratio,
             continuation_steps=CDS_GATE_CONTINUATION_STEPS,
-            target_global_step=gate_global_step,
+            target_global_step=CDS_GATE_CONTINUATION_STEPS,
             microbatch_size=selected_microbatch,
-            resume_from=bridge_checkpoint,
-            schedule_kind="warmup_constant",
+            resume_from=None,
+            fork_weights_from=bridge_checkpoint,
+            schedule_kind="arm_warmup_constant",
             objective_kind=arm.objective_kind,
             teacher_dir=(teacher_dir if arm.objective_kind != "hard_ce" else None),
             nucleotide_length=CDS_NUCLEOTIDE_LENGTH,
@@ -1625,9 +1652,11 @@ def run_cds_gate(
         "arm_steps": CDS_GATE_CONTINUATION_STEPS,
         "microbatch_size": selected_microbatch,
         "schedule": {
-            "warmup_steps": BRIDGE_STEPS,
+            "bridge_warmup_steps": BRIDGE_STEPS,
+            "arm_warmup_steps": CDS_ARM_WARMUP_STEPS,
             "warmup_start_learning_rate": 1e-5,
             "peak_and_constant_learning_rate": 1e-3,
+            "arm_optimizer_state": "fresh AdamW for every arm",
         },
         "dataset": {
             "name": EXP58_TRAIN_DATASET,

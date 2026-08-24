@@ -71,8 +71,10 @@ cds_gate:
     bos_token: null
     filter_all_lowercase: true
   schedule:
-    warmup_steps: 100
+    bridge_warmup_steps: 100
     arm_steps: 100
+    arm_optimizer_state: fresh_per_arm_including_uniform
+    arm_warmup_steps: 20
     peak_and_constant_learning_rate: 0.001
   evaluation:
     split: train

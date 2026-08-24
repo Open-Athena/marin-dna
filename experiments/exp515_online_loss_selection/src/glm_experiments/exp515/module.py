@@ -15,6 +15,7 @@ from lightning.pytorch.utilities import grad_norm
 from glm_experiments.exp515.config import (
     BETAS,
     BRIDGE_STEPS,
+    CDS_ARM_WARMUP_STEPS,
     EFFECTIVE_BATCH_SIZE,
     END_LEARNING_RATE,
     EPSILON,
@@ -25,7 +26,11 @@ from glm_experiments.exp515.config import (
 from glm_experiments.models.components.lm import HFCLM
 from glm_experiments.models.components.selection import SelectorMode, select_token_mask
 
-ScheduleKind = Literal["warmup_cosine", "warmup_constant"]
+ScheduleKind = Literal[
+    "warmup_cosine",
+    "warmup_constant",
+    "arm_warmup_constant",
+]
 
 
 def learning_rate_factor(step: int, continuation_steps: int) -> float:
@@ -51,6 +56,14 @@ def constant_after_warmup_learning_rate_factor(step: int) -> float:
     return 1.0
 
 
+def arm_warmup_constant_learning_rate_factor(step: int) -> float:
+    """Warm a fresh arm optimizer, then hold the exp58 learning rate."""
+
+    if step < CDS_ARM_WARMUP_STEPS:
+        return (step + 1) / CDS_ARM_WARMUP_STEPS
+    return 1.0
+
+
 class Exp515Module(LightningModule):
     """HF Qwen3 CLM trained through the registered token selector."""
 
@@ -66,6 +79,7 @@ class Exp515Module(LightningModule):
         teacher_checkpoint: str | None = None,
         schedule_kind: ScheduleKind = "warmup_cosine",
         effective_batch_size: int = EFFECTIVE_BATCH_SIZE,
+        sample_id_offset: int = 0,
     ) -> None:
         super().__init__()
         self.save_hyperparameters(logger=False, ignore=["net"])
@@ -78,6 +92,7 @@ class Exp515Module(LightningModule):
         self.teacher_checkpoint = teacher_checkpoint
         self.schedule_kind = schedule_kind
         self.effective_batch_size = effective_batch_size
+        self.sample_id_offset = sample_id_offset
         self.last_selector_diagnostics: dict[str, torch.Tensor] | None = None
         self.zero_eligible_batches = 0
         self.gradient_clip_events = 0
@@ -85,6 +100,8 @@ class Exp515Module(LightningModule):
         self.selected_target_tokens = 0
         self._teacher_net: HFCLM | None = None
 
+        if sample_id_offset < 0:
+            raise ValueError("sample ID offset must be non-negative")
         if objective_kind == "hard_ce" and teacher_checkpoint is not None:
             raise ValueError("hard-CE objective must not load a teacher")
         if objective_kind != "hard_ce" and teacher_checkpoint is None:
@@ -288,7 +305,9 @@ class Exp515Module(LightningModule):
     def configure_optimizers(self) -> dict[str, Any]:
         """Create the registered fresh AdamW state and shared schedule."""
 
-        if self.schedule_kind == "warmup_constant":
+        if self.schedule_kind == "arm_warmup_constant":
+            learning_rate_lambda = arm_warmup_constant_learning_rate_factor
+        elif self.schedule_kind == "warmup_constant":
             learning_rate_lambda = constant_after_warmup_learning_rate_factor
         else:
             learning_rate_lambda = lambda step: learning_rate_factor(
@@ -335,7 +354,9 @@ class Exp515Module(LightningModule):
 
         checkpoint["exp515"] = {
             "plan_sha256": self.plan_sha256,
-            "next_sample_id": self.global_step * self.effective_batch_size,
+            "next_sample_id": self.sample_id_offset
+            + self.global_step * self.effective_batch_size,
+            "sample_id_offset": self.sample_id_offset,
             "effective_batch_size": self.effective_batch_size,
             "selector_mode": self.selector_mode,
             "selector_ratio": self.selector_ratio,
@@ -363,6 +384,8 @@ class Exp515Module(LightningModule):
             raise ValueError("checkpoint sequence plan does not match this run")
         if int(metadata["effective_batch_size"]) != self.effective_batch_size:
             raise ValueError("checkpoint effective batch does not match this run")
+        if int(metadata.get("sample_id_offset", 0)) != self.sample_id_offset:
+            raise ValueError("checkpoint sample offset does not match this run")
         self.zero_eligible_batches = int(metadata["zero_eligible_batches"])
         self.gradient_clip_events = int(metadata["gradient_clip_events"])
         self.optimizer_steps_seen = int(metadata["optimizer_steps_seen"])

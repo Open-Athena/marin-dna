@@ -19,6 +19,7 @@ from glm_experiments.exp515.config import (
     ALL_IN_CAP_USD,
     BRIDGE_STEPS,
     CANARY_STEPS,
+    CDS_ARM_WARMUP_STEPS,
     CDS_ARMS,
     EFFECTIVE_BATCH_SIZE,
     GPU_COMPUTE_CAP_USD,
@@ -36,6 +37,7 @@ from glm_experiments.exp515.diagnostics import selector_composition_counts
 from glm_experiments.exp515.evaluation import _prepare_model_for_evaluation
 from glm_experiments.exp515.module import (
     Exp515Module,
+    arm_warmup_constant_learning_rate_factor,
     constant_after_warmup_learning_rate_factor,
     learning_rate_factor,
 )
@@ -43,6 +45,7 @@ from glm_experiments.exp515.runner import (
     _archive_precompletion_failure,
     _checkpoint_contract,
     _completed_bridge_state,
+    _phase_position,
     _retain_for_publication,
     _selector_device_smoke,
 )
@@ -348,12 +351,47 @@ def test_registered_schedule_and_data_position_contract() -> None:
     assert constant_after_warmup_learning_rate_factor(99) == pytest.approx(1.0)
     assert constant_after_warmup_learning_rate_factor(100) == pytest.approx(1.0)
     assert constant_after_warmup_learning_rate_factor(600) == pytest.approx(1.0)
+    assert CDS_ARM_WARMUP_STEPS == 20
+    assert arm_warmup_constant_learning_rate_factor(0) == pytest.approx(0.05)
+    assert arm_warmup_constant_learning_rate_factor(19) == pytest.approx(1.0)
+    assert arm_warmup_constant_learning_rate_factor(20) == pytest.approx(1.0)
     assert 100 * EFFECTIVE_BATCH_SIZE == 204_800
     assert len(CDS_ARMS) == 7
     assert [arm.objective_kind for arm in CDS_ARMS[-2:]] == [
         "teacher_kl",
         "teacher_low",
     ]
+
+
+def test_fresh_optimizer_fork_preserves_absolute_data_position(tmp_path: Path) -> None:
+    bridge = tmp_path / "bridge.ckpt"
+    arm = tmp_path / "arm.ckpt"
+    torch.save(
+        {
+            "global_step": 100,
+            "exp515": {"next_sample_id": 100 * EFFECTIVE_BATCH_SIZE},
+        },
+        bridge,
+    )
+    torch.save(
+        {
+            "global_step": 100,
+            "exp515": {"next_sample_id": 200 * EFFECTIVE_BATCH_SIZE},
+        },
+        arm,
+    )
+    assert _phase_position(None, bridge) == (
+        100 * EFFECTIVE_BATCH_SIZE,
+        0,
+        100 * EFFECTIVE_BATCH_SIZE,
+    )
+    assert _phase_position(arm, None) == (
+        200 * EFFECTIVE_BATCH_SIZE,
+        100,
+        100 * EFFECTIVE_BATCH_SIZE,
+    )
+    with pytest.raises(ValueError, match="choose full resume"):
+        _phase_position(arm, bridge)
 
 
 def test_registered_hardware_and_budget_contract() -> None:
