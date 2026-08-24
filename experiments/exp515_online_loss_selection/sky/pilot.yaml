@@ -13,6 +13,7 @@ run: |
   set -euo pipefail
   export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
   export EXP515_USE_WANDB="${EXP515_USE_WANDB:-0}"
+  export EXP515_RESUME_FROM_BRIDGE="${EXP515_RESUME_FROM_BRIDGE:-0}"
   cd experiments/exp515_online_loss_selection
   test -n "${EXPERIMENT_COMMIT:-}"
   test -n "${EXP515_RUN_ID:-}"
@@ -23,7 +24,12 @@ run: |
   export EXP515_CASE_AUDIT="$PWD/../../.agents/artifacts/515-online-loss-selection/case-distribution-audit.json"
   mkdir -p "$HOME/exp515-artifacts"
   uv run --locked pytest tests/test_selection.py tests/test_exp515.py
+  resume_args=()
+  if [[ "$EXP515_RESUME_FROM_BRIDGE" == "1" ]]; then
+    resume_args+=(--resume-from-bridge)
+  fi
   uv run --locked python -m glm_experiments.exp515.runner \
     --artifact-dir "$HOME/exp515-artifacts" \
     --experiment-commit "$EXPERIMENT_COMMIT" \
-    --run-id "$EXP515_RUN_ID"
+    --run-id "$EXP515_RUN_ID" \
+    "${resume_args[@]}"

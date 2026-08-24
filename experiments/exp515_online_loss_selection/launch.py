@@ -72,7 +72,13 @@ def launch_command(
     *,
     retry_until_up: bool,
     include_aws_session_token: bool = False,
+    instance_start_unix: int | None = None,
+    resume_from_bridge: bool = False,
 ) -> list[str]:
+    if instance_start_unix is None:
+        instance_start_unix = int(time.time())
+    if instance_start_unix <= 0:
+        raise ValueError("instance start must be a positive Unix timestamp")
     command = [
         "sky",
         "launch",
@@ -88,7 +94,7 @@ def launch_command(
         "--env",
         f"EXP515_RUN_ID={run_id}",
         "--env",
-        f"EXP515_INSTANCE_START_UNIX={int(time.time())}",
+        f"EXP515_INSTANCE_START_UNIX={instance_start_unix}",
         "--secret",
         "GOOGLE_ADC_JSON_BASE64",
         "--secret",
@@ -98,6 +104,8 @@ def launch_command(
     ]
     if include_aws_session_token:
         command.extend(["--secret", "AWS_SESSION_TOKEN"])
+    if resume_from_bridge:
+        command.extend(["--env", "EXP515_RESUME_FROM_BRIDGE=1"])
     if retry_until_up:
         command.append("--retry-until-up")
     command.extend(["--down", "--yes"])
@@ -110,6 +118,8 @@ def main() -> None:
     parser.add_argument("--run-id")
     parser.add_argument("--execute", action="store_true")
     parser.add_argument("--retry-until-up", action="store_true")
+    parser.add_argument("--instance-start-unix", type=int)
+    parser.add_argument("--resume-from-bridge", action="store_true")
     args = parser.parse_args()
     run_id = args.run_id or f"{args.commit[:12]}-{int(time.time())}"
     _clean_commit(args.commit)
@@ -119,6 +129,8 @@ def main() -> None:
         run_id,
         retry_until_up=args.retry_until_up,
         include_aws_session_token=bool(environment.get("AWS_SESSION_TOKEN")),
+        instance_start_unix=args.instance_start_unix,
+        resume_from_bridge=args.resume_from_bridge,
     )
     print(" ".join(command))
     if args.execute:

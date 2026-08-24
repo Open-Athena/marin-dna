@@ -145,6 +145,16 @@ def _sequence_log_probability(
     return (token_log_probabilities * attention_mask[:, 1:]).sum(dim=-1)
 
 
+def _prepare_model_for_evaluation(model: HFCLM) -> torch.device:
+    """Place a Lightning-detached model on the best available eval device."""
+
+    current_device = next(model.parameters()).device
+    device = torch.device("cuda") if torch.cuda.is_available() else current_device
+    model.to(device)
+    model.eval()
+    return device
+
+
 @torch.inference_mode()
 def evaluate_promoter_auprc(
     model: HFCLM,
@@ -159,11 +169,10 @@ def evaluate_promoter_auprc(
 
     if batch_size <= 0:
         raise ValueError("evaluation batch size must be positive")
-    device = next(model.parameters()).device
+    device = _prepare_model_for_evaluation(model)
     center = NUCLEOTIDE_LENGTH // 2
     scores = np.empty(len(frame), dtype=np.float32)
     started = time.time()
-    model.eval()
     for start in range(0, len(frame), batch_size):
         stop = min(start + batch_size, len(frame))
         references = frame["sequence"].iloc[start:stop].tolist()

@@ -179,6 +179,55 @@ def _checkpoint_step(path: Path) -> int:
     return int(checkpoint["global_step"])
 
 
+def _completed_bridge_state(
+    root: Path,
+) -> tuple[Path, int, dict[str, Any], dict[str, Any]]:
+    """Validate and return a completed bridge for an explicit repair resume."""
+
+    smoke = json.loads((root / "smoke-test.json").read_text(encoding="utf-8"))
+    if smoke.get("passed") is not True:
+        raise ValueError("bridge resume requires a passing smoke test")
+    canary = json.loads(
+        (root / "canary-20" / "runtime.json").read_text(encoding="utf-8")
+    )
+    bridge = json.loads((root / "bridge" / "runtime.json").read_text(encoding="utf-8"))
+    selected_microbatch = int(canary["microbatch_size"])
+    if (
+        int(canary["end_global_step"]) != CANARY_STEPS
+        or int(bridge["end_global_step"]) != BRIDGE_STEPS
+        or int(bridge["microbatch_size"]) != selected_microbatch
+    ):
+        raise ValueError(
+            "bridge resume metadata does not match the registered protocol"
+        )
+    bridge_checkpoint = root / "bridge" / f"step-{BRIDGE_STEPS}.ckpt"
+    if _checkpoint_step(bridge_checkpoint) != BRIDGE_STEPS:
+        raise ValueError(
+            "bridge resume checkpoint is not at the registered bridge step"
+        )
+    return bridge_checkpoint, selected_microbatch, canary, bridge
+
+
+def _module_from_checkpoint(
+    source_dir: Path,
+    checkpoint: Path,
+    *,
+    plan_sha256: str,
+) -> Exp515Module:
+    """Restore model weights for evaluation; arm training restores full state later."""
+
+    module = _new_module(
+        source_dir,
+        continuation_steps=MAX_CONTINUATION_STEPS,
+        plan_sha256=plan_sha256,
+        selector_mode="uniform",
+        selector_ratio=1.0,
+    )
+    payload = torch.load(checkpoint, map_location="cpu", weights_only=False)
+    module.load_state_dict(payload["state_dict"], strict=True)
+    return module
+
+
 def _optional_loggers(output_dir: Path, run_name: str) -> list[Any]:
     """Always return CSV; add W&B only when explicit initialization succeeds."""
 
@@ -577,7 +626,13 @@ def publish_run_artifacts(root: Path, run_id: str) -> list[dict[str, object]]:
     return records
 
 
-def run_experiment(artifact_dir: Path, *, experiment_commit: str, run_id: str) -> None:
+def run_experiment(
+    artifact_dir: Path,
+    *,
+    experiment_commit: str,
+    run_id: str,
+    resume_from_bridge: bool = False,
+) -> None:
     """Execute the canary, bridge, gate, and conditional five-arm matrix."""
 
     if len(experiment_commit) != 40:
@@ -601,68 +656,79 @@ def run_experiment(artifact_dir: Path, *, experiment_commit: str, run_id: str) -
             "prepaid case audit is missing, mismatched, or requires fallback"
         )
     shutil.copy2(audit_path, root / "case-distribution-audit.json")
-    smoke_test(source_dir, tokenizer, plan_dir, root / "smoke-test.json")
 
-    selected_microbatch = 0
-    one_step_metadata: dict[str, Any] | None = None
-    for candidate in (256, 128, 64, 32, 16, 8, 4, 2, 1):
-        try:
-            candidate_module, _, metadata = run_training_phase(
-                source_dir=source_dir,
-                tokenizer=tokenizer,
-                plan_dir=plan_dir,
-                output_dir=root / "canary-selection",
-                run_name=f"microbatch-{candidate}",
-                selector_mode="uniform",
-                selector_ratio=1.0,
-                continuation_steps=MAX_CONTINUATION_STEPS,
-                target_global_step=1,
-                microbatch_size=candidate,
-                resume_from=None,
-            )
-        except RuntimeError as error:
-            if not _is_cuda_oom(error):
-                raise
+    if resume_from_bridge:
+        bridge_checkpoint, selected_microbatch, canary, bridge = (
+            _completed_bridge_state(root)
+        )
+        bridge_module = _module_from_checkpoint(
+            source_dir,
+            bridge_checkpoint,
+            plan_sha256=str(plan["sequences_sha256"]),
+        )
+    else:
+        smoke_test(source_dir, tokenizer, plan_dir, root / "smoke-test.json")
+
+        selected_microbatch = 0
+        one_step_metadata: dict[str, Any] | None = None
+        for candidate in (256, 128, 64, 32, 16, 8, 4, 2, 1):
+            try:
+                candidate_module, _, metadata = run_training_phase(
+                    source_dir=source_dir,
+                    tokenizer=tokenizer,
+                    plan_dir=plan_dir,
+                    output_dir=root / "canary-selection",
+                    run_name=f"microbatch-{candidate}",
+                    selector_mode="uniform",
+                    selector_ratio=1.0,
+                    continuation_steps=MAX_CONTINUATION_STEPS,
+                    target_global_step=1,
+                    microbatch_size=candidate,
+                    resume_from=None,
+                )
+            except RuntimeError as error:
+                if not _is_cuda_oom(error):
+                    raise
+                gc.collect()
+                torch.cuda.empty_cache()
+                continue
+            del candidate_module
             gc.collect()
             torch.cuda.empty_cache()
-            continue
-        del candidate_module
-        gc.collect()
-        torch.cuda.empty_cache()
-        if float(metadata["peak_memory_fraction"]) < 0.85:
-            selected_microbatch = candidate
-            one_step_metadata = metadata
-            break
-    if not selected_microbatch or one_step_metadata is None:
-        raise RuntimeError("no power-of-two microbatch passed the 85% HBM gate")
+            if float(metadata["peak_memory_fraction"]) < 0.85:
+                selected_microbatch = candidate
+                one_step_metadata = metadata
+                break
+        if not selected_microbatch or one_step_metadata is None:
+            raise RuntimeError("no power-of-two microbatch passed the 85% HBM gate")
 
-    _, canary_checkpoint, canary = run_training_phase(
-        source_dir=source_dir,
-        tokenizer=tokenizer,
-        plan_dir=plan_dir,
-        output_dir=root,
-        run_name="canary-20",
-        selector_mode="uniform",
-        selector_ratio=1.0,
-        continuation_steps=MAX_CONTINUATION_STEPS,
-        target_global_step=CANARY_STEPS,
-        microbatch_size=selected_microbatch,
-        resume_from=None,
-    )
-    del canary_checkpoint
-    bridge_module, bridge_checkpoint, bridge = run_training_phase(
-        source_dir=source_dir,
-        tokenizer=tokenizer,
-        plan_dir=plan_dir,
-        output_dir=root,
-        run_name="bridge",
-        selector_mode="uniform",
-        selector_ratio=1.0,
-        continuation_steps=MAX_CONTINUATION_STEPS,
-        target_global_step=BRIDGE_STEPS,
-        microbatch_size=selected_microbatch,
-        resume_from=None,
-    )
+        _, canary_checkpoint, canary = run_training_phase(
+            source_dir=source_dir,
+            tokenizer=tokenizer,
+            plan_dir=plan_dir,
+            output_dir=root,
+            run_name="canary-20",
+            selector_mode="uniform",
+            selector_ratio=1.0,
+            continuation_steps=MAX_CONTINUATION_STEPS,
+            target_global_step=CANARY_STEPS,
+            microbatch_size=selected_microbatch,
+            resume_from=None,
+        )
+        del canary_checkpoint
+        bridge_module, bridge_checkpoint, bridge = run_training_phase(
+            source_dir=source_dir,
+            tokenizer=tokenizer,
+            plan_dir=plan_dir,
+            output_dir=root,
+            run_name="bridge",
+            selector_mode="uniform",
+            selector_ratio=1.0,
+            continuation_steps=MAX_CONTINUATION_STEPS,
+            target_global_step=BRIDGE_STEPS,
+            microbatch_size=selected_microbatch,
+            resume_from=None,
+        )
     evaluation_frame = load_promoter_frame(root / "evaluation-cache")
     bridge_eval = evaluate_promoter_auprc(
         bridge_module.net,
@@ -810,6 +876,7 @@ def main() -> None:
     parser.add_argument("--artifact-dir", type=Path, required=True)
     parser.add_argument("--experiment-commit", required=True)
     parser.add_argument("--run-id", required=True)
+    parser.add_argument("--resume-from-bridge", action="store_true")
     args = parser.parse_args()
     if Path(args.run_id).name != args.run_id or args.run_id in {".", ".."}:
         raise ValueError("run ID must be one safe path component")
@@ -819,6 +886,7 @@ def main() -> None:
             args.artifact_dir,
             experiment_commit=args.experiment_commit,
             run_id=args.run_id,
+            resume_from_bridge=args.resume_from_bridge,
         )
     except BaseException as error:
         signal.alarm(0)

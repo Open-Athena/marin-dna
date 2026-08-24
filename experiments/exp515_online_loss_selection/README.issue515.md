@@ -45,6 +45,8 @@ The training plan stores 255-byte sequences and uint16 species IDs in fixed-widt
 Every arm consumes the same row interval.
 Each full Lightning checkpoint records the plan checksum, exact next sample ID, effective batch, model state, optimizer state, scheduler state, selector RNG, and Python, NumPy, PyTorch, and CUDA RNG states.
 An intentional bridge-to-arm fork resets only the arm selector stream; a same-arm resume restores it exactly.
+An explicit `--resume-from-bridge` repair mode validates the passing smoke test, registered canary and bridge metadata, and step-100 checkpoint before skipping those completed phases.
+When a launch resumes on the same instance, `--instance-start-unix` preserves the original provider allocation time for the hard budget guard.
 
 All genomic coordinates are 0-based and half-open internally.
 The newer Mendelian dataset's VCF-like 1-based `pos` field is converted only when extracting the 255-bp reference window.

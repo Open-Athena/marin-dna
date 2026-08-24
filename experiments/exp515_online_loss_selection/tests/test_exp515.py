@@ -17,6 +17,8 @@ from glm_experiments.data.lm_datamodule import build_soft_mask, has_eligible_tar
 from glm_experiments.exp515.config import (
     ACCELERATOR,
     ALL_IN_CAP_USD,
+    BRIDGE_STEPS,
+    CANARY_STEPS,
     EFFECTIVE_BATCH_SIZE,
     GPU_COMPUTE_CAP_USD,
     GPU_PRICE_PER_HOUR_USD,
@@ -28,8 +30,10 @@ from glm_experiments.exp515.data import (
     validate_sequence_plan,
 )
 from glm_experiments.exp515.diagnostics import selector_composition_counts
+from glm_experiments.exp515.evaluation import _prepare_model_for_evaluation
 from glm_experiments.exp515.module import learning_rate_factor
 from glm_experiments.exp515.runner import (
+    _completed_bridge_state,
     _retain_for_publication,
     _selector_device_smoke,
 )
@@ -275,6 +279,55 @@ def test_selector_device_smoke_contracts_on_cpu() -> None:
     assert result["ranked_masks_passed"] is True
     assert result["random_resume_passed"] is True
     assert result["empty_row_passed"] is True
+
+
+def test_evaluation_moves_detached_model_to_available_device(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class FakeModel:
+        def __init__(self) -> None:
+            self.parameter = nn.Parameter(torch.zeros(()))
+            self.moved_to: torch.device | None = None
+            self.training = True
+
+        def parameters(self):
+            yield self.parameter
+
+        def to(self, device: torch.device) -> FakeModel:
+            self.moved_to = device
+            return self
+
+        def eval(self) -> FakeModel:
+            self.training = False
+            return self
+
+    model = FakeModel()
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
+    device = _prepare_model_for_evaluation(model)  # type: ignore[arg-type]
+    assert device == torch.device("cuda")
+    assert model.moved_to == device
+    assert model.training is False
+
+
+def test_completed_bridge_state_validates_registered_resume(tmp_path: Path) -> None:
+    (tmp_path / "canary-20").mkdir()
+    (tmp_path / "bridge").mkdir()
+    (tmp_path / "smoke-test.json").write_text(
+        json.dumps({"passed": True}), encoding="utf-8"
+    )
+    (tmp_path / "canary-20" / "runtime.json").write_text(
+        json.dumps({"end_global_step": CANARY_STEPS, "microbatch_size": 128}),
+        encoding="utf-8",
+    )
+    (tmp_path / "bridge" / "runtime.json").write_text(
+        json.dumps({"end_global_step": BRIDGE_STEPS, "microbatch_size": 128}),
+        encoding="utf-8",
+    )
+    checkpoint = tmp_path / "bridge" / f"step-{BRIDGE_STEPS}.ckpt"
+    torch.save({"global_step": BRIDGE_STEPS}, checkpoint)
+    observed_checkpoint, microbatch, _, _ = _completed_bridge_state(tmp_path)
+    assert observed_checkpoint == checkpoint
+    assert microbatch == 128
 
 
 def test_global_rng_round_trip_reference() -> None:
