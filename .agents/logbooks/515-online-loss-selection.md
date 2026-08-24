@@ -9,7 +9,7 @@ author: gonzalobenegas
 
 ## Current TL;DR
 
-Issue #515 has passed its no-cost implementation preflight and no paid run has started.
+Issue #515 has passed its no-cost implementation preflight and is ready to launch on an available Lambda A100.
 The experiment will use the pinned glm-experiments code through a standalone Lambda/SkyPilot project because current Marin/Iris training does not provide the requested PyTorch selector and online evaluation path.
 The primary endpoint is the pinned `marin-dna/evals_mendelian_traits` TSS-proximal train split on odd-numbered autosomes and chromosome X.
 The per-species source-case audit passed without invoking the RefSeq fallback.
@@ -18,7 +18,7 @@ The per-species source-case audit passed without invoking the RefSeq fallback.
 
 - Goal: Test whether selecting the lowest-current-loss half of eligible nonrepeat targets improves promoter VEP learning speed at fixed processed-input compute.
 - Primary metrics: TraitGym Mendelian promoter development-split AUPRC at the shared bridge, continuation midpoint, and endpoint; paired differences from uniform-100 conditional on the uniform sanity gate.
-- Constraints: One paired seed, one Lambda GH200, no more than $20 all-in or $18 GPU compute, 100 shared bridge steps, no more than 1,000 continuation steps per arm, no held-out even-autosome or chromosome-Y labels.
+- Constraints: One paired seed, one Lambda A100, no more than $30 all-in or $28 GPU compute, 100 shared bridge steps, no more than 1,000 continuation steps per arm, no held-out even-autosome or chromosome-Y labels.
 - Coordinating issue: https://github.com/Open-Athena/marin-dna/issues/515
 - Experiment IDs: OLS-515-BRIDGE, OLS-515-U100, OLS-515-R50, OLS-515-L50, OLS-515-M50, and OLS-515-H50.
 - Logging: CSV is authoritative; W&B is optional best effort and cannot stop the experiment.
@@ -60,6 +60,7 @@ The per-species source-case audit passed without invoking the RefSeq fallback.
 - 2026-08-23: Use `marin-dna/evals_mendelian_traits` revision `4aed58e50c5dea0b878a665007af2ef9e5108e9f`, split `train`, subset `tss_proximal`, as the primary endpoint.
 - 2026-08-23: The user explicitly authorized use of TraitGym test labels if needed; the newer pinned Mendelian endpoint makes that fallback unnecessary.
 - 2026-08-23: Store retained experiment checkpoints and issue-scoped outputs under s3://oa-bolinas/issues/515/online-loss-selection/v1, authoritative dense metrics as CSV in the same run record, and the small audit summary on the permanent branch.
+- 2026-08-24: The user authorized a single Lambda A100 and raised the all-in budget ceiling to $30; reserve $2 by stopping estimated GPU compute at $28.
 
 ## Negative Results Index
 
@@ -143,3 +144,14 @@ The per-species source-case audit passed without invoking the RefSeq fallback.
 - Result: All 18 issue-specific tests passed, Ruff check and format passed, and 100 full middle-rank microbatches took 0.305 seconds on CPU.
 - Interpretation: Stable per-sequence ranking, lower-position tie breaks, empty rows, random-stream resume, and differentiable empty loss are preserved without the millions of per-row GPU synchronization points implied by the first implementation.
 - Next action: Publish the optimization snapshot and restart the sparse capacity watcher on the new clean commit.
+
+### 2026-08-24 00:22 - A100 protocol change
+
+- Hypothesis: One available 40 GB Lambda A100 can run the registered matrix after automatic microbatch calibration while the larger budget preserves the paired design.
+- Commit Hash: `410b16cc86a3587a6f0cf21ac95b67a11cfa30ec`.
+- Command: Lambda read-only catalog query; `uv run --locked pytest tests/test_selection.py tests/test_exp515.py`; Ruff check and format.
+- Config: One `A100:1` at $1.99/hour; $28 GPU compute stop; $30 all-in cap; largest power-of-two microbatch below 85% HBM; effective batch 2,048.
+- Result: `gpu_1x_a100_sxm4` advertised capacity in `us-east-1`, `us-west-2`, and `asia-south-1`.
+- Result: All 20 issue-specific tests passed in 3.86 seconds with 1,035,992 KiB peak RSS; Ruff check and format passed after import sorting.
+- Interpretation: The available A100 removes the GH200 capacity blocker without changing the data, optimizer, selector, evaluation, gate, or paired-arm protocol.
+- Next action: Commit and push the logbook snapshot, update issue #515, and launch the exact clean commit.
