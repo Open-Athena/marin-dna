@@ -9,7 +9,7 @@ author: gonzalobenegas
 
 ## Current TL;DR
 
-Issue #515 has passed its no-cost implementation preflight and is ready to launch on an available Lambda A100.
+Issue #515 is active on one Lambda A100; preprocessing, calibration, the 20-step canary, and the 100-step bridge are complete, and evaluation is resuming from the bridge after a device-placement repair.
 The experiment will use the pinned glm-experiments code through a standalone Lambda/SkyPilot project because current Marin/Iris training does not provide the requested PyTorch selector and online evaluation path.
 The primary endpoint is the pinned `marin-dna/evals_mendelian_traits` TSS-proximal train split on odd-numbered autosomes and chromosome X.
 The per-species source-case audit passed without invoking the RefSeq fallback.
@@ -155,3 +155,16 @@ The per-species source-case audit passed without invoking the RefSeq fallback.
 - Result: All 20 issue-specific tests passed in 3.86 seconds with 1,035,992 KiB peak RSS; Ruff check and format passed after import sorting.
 - Interpretation: The available A100 removes the GH200 capacity blocker without changing the data, optimizer, selector, evaluation, gate, or paired-arm protocol.
 - Next action: Commit and push the logbook snapshot, update issue #515, and launch the exact clean commit.
+
+### 2026-08-24 01:31 - A100 bridge complete and evaluator repair
+
+- Hypothesis: The completed preprocessing and step-100 bridge can be reused exactly while moving Lightning-detached models back to CUDA for each Mendelian checkpoint evaluation.
+- Commit Hash: `f07aea7c880a7cad994e5601b58a6b45eb01922f`.
+- Config: Lambda `gpu_1x_a100_sxm4` in `us-east-1`, 40 GB A100, selected microbatch 128, effective batch 2,048, W&B disabled, CSV authoritative, run `f34f5e359311-20260824t0025z`.
+- Result: Remote issue-specific tests passed; the fixed sequence plan contains 2,252,800 rows; source checkpoint download and exact smoke tests passed; the 20-step canary sustained about 60,111 input tokens/second at 79.85% peak HBM; the 100-step bridge sustained about 59,817 input tokens/second and saved a valid full checkpoint.
+- Result: The pinned Mendelian TSS-proximal frame and GRCh38 reference were materialized once and cached before 01:08 UTC.
+- Result: Evaluation then consumed CPU because Lightning detached the trained module to CPU after `Trainer.fit`; this was an evaluator device-placement defect, not additional preprocessing.
+- Result: The repair explicitly moves every evaluation model to CUDA, validates the passing smoke record, canary/bridge metadata, microbatch, and step-100 checkpoint before a bridge resume, and preserves the original instance start time in the hard budget guard.
+- Validation: All 22 issue-specific local tests passed in 3.89 seconds with 1,033,324 KiB peak RSS; Ruff check, format, and `git diff --check` passed.
+- Interpretation: No preprocessing, calibration, canary, or bridge work needs to be repeated; only the interrupted bridge evaluation and downstream gated arms resume on the same A100.
+- Next action: Publish the repair snapshot, stop the CPU-bound evaluator without terminating the instance, and relaunch the same run ID from the validated step-100 bridge.
