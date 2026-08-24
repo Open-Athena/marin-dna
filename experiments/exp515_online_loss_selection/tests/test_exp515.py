@@ -14,7 +14,14 @@ from torch import nn
 
 from glm_experiments.data.evals import transform_llr_clm_odd
 from glm_experiments.data.lm_datamodule import build_soft_mask, has_eligible_target
-from glm_experiments.exp515.config import EFFECTIVE_BATCH_SIZE, NUCLEOTIDE_LENGTH
+from glm_experiments.exp515.config import (
+    ACCELERATOR,
+    ALL_IN_CAP_USD,
+    EFFECTIVE_BATCH_SIZE,
+    GPU_COMPUTE_CAP_USD,
+    GPU_PRICE_PER_HOUR_USD,
+    NUCLEOTIDE_LENGTH,
+)
 from glm_experiments.exp515.data import (
     SequencePlanDataset,
     sha256_file,
@@ -212,6 +219,13 @@ def test_registered_schedule_and_data_position_contract() -> None:
     assert learning_rate_factor(100, 1000) == pytest.approx(1.0)
     assert learning_rate_factor(1100, 1000) == pytest.approx(0.1)
     assert 100 * EFFECTIVE_BATCH_SIZE == 204_800
+
+
+def test_registered_hardware_and_budget_contract() -> None:
+    assert ACCELERATOR == "A100:1"
+    assert GPU_PRICE_PER_HOUR_USD == 1.99
+    assert GPU_COMPUTE_CAP_USD == 28.0
+    assert ALL_IN_CAP_USD == 30.0
 
 
 def test_composition_diagnostics_cover_registered_dimensions() -> None:

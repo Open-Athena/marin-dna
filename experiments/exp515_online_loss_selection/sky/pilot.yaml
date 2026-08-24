@@ -2,7 +2,7 @@ name: dna-exp515-online-selection
 
 resources:
   cloud: lambda
-  accelerators: GH200:1
+  accelerators: A100:1
   disk_size: 512
 
 setup: |

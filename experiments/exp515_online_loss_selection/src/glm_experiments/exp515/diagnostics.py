@@ -15,8 +15,8 @@ from lightning import Callback, LightningModule, Trainer
 
 from glm_experiments.exp515.config import (
     EFFECTIVE_BATCH_SIZE,
-    GH200_PRICE_PER_HOUR_USD,
     GPU_COMPUTE_CAP_USD,
+    GPU_PRICE_PER_HOUR_USD,
     SEQUENCE_LENGTH,
 )
 
@@ -238,7 +238,7 @@ class Exp515Diagnostics(Callback):
                 self._counts[key][0] += values[0]
                 self._counts[key][1] += values[1]
         elapsed = time.time() - self._instance_start
-        compute_cost = self._prior_cost + elapsed / 3600 * GH200_PRICE_PER_HOUR_USD
+        compute_cost = self._prior_cost + elapsed / 3600 * GPU_PRICE_PER_HOUR_USD
         if compute_cost >= GPU_COMPUTE_CAP_USD:
             raise RuntimeError(
                 f"issue #515 compute stop reached ${compute_cost:.2f} of ${GPU_COMPUTE_CAP_USD:.2f}"

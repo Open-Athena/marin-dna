@@ -1,4 +1,4 @@
-"""Sequential, gated, budget-bounded GH200 execution for issue #515."""
+"""Sequential, gated, budget-bounded GPU execution for issue #515."""
 
 from __future__ import annotations
 
@@ -24,13 +24,14 @@ from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedTokenize
 
 from glm_experiments.data.lm_datamodule import has_eligible_target
 from glm_experiments.exp515.config import (
+    ACCELERATOR,
     ALL_IN_CAP_USD,
     ARMS,
     BRIDGE_STEPS,
     CANARY_STEPS,
     EFFECTIVE_BATCH_SIZE,
-    GH200_PRICE_PER_HOUR_USD,
     GPU_COMPUTE_CAP_USD,
+    GPU_PRICE_PER_HOUR_USD,
     GRADIENT_CLIP_VALUE,
     ISSUE_S3_PREFIX,
     MAX_CONTINUATION_STEPS,
@@ -73,15 +74,15 @@ def _utc_timestamp(epoch_seconds: float | None = None) -> str:
 
 
 def _install_compute_guard(instance_start: float) -> None:
-    """Raise before one GH200 can exceed the registered compute cap."""
+    """Raise before one GPU can exceed the registered compute cap."""
 
-    maximum_seconds = GPU_COMPUTE_CAP_USD / GH200_PRICE_PER_HOUR_USD * 3600
+    maximum_seconds = GPU_COMPUTE_CAP_USD / GPU_PRICE_PER_HOUR_USD * 3600
     remaining = maximum_seconds - (time.time() - instance_start)
     if remaining <= 0:
         raise TimeoutError("issue #515 compute wall-clock allowance is exhausted")
 
     def stop_compute(_signum: int, _frame: Any) -> None:
-        raise TimeoutError("issue #515 hard GH200 wall-clock guard fired")
+        raise TimeoutError("issue #515 hard GPU wall-clock guard fired")
 
     signal.signal(signal.SIGALRM, stop_compute)
     signal.alarm(max(1, math.ceil(remaining)))
@@ -486,7 +487,7 @@ def choose_continuation_steps(
     """Choose one common arm length under the remaining compute envelope."""
 
     elapsed = time.time() - instance_start
-    maximum_seconds = GPU_COMPUTE_CAP_USD / GH200_PRICE_PER_HOUR_USD * 3600
+    maximum_seconds = GPU_COMPUTE_CAP_USD / GPU_PRICE_PER_HOUR_USD * 3600
     remaining = maximum_seconds - elapsed
     remaining_evaluations = 10
     usable_training = (
@@ -512,7 +513,7 @@ def choose_continuation_steps(
         "projected_remaining_seconds": projected_seconds,
         "projected_total_compute_usd": (elapsed + projected_seconds)
         / 3600
-        * GH200_PRICE_PER_HOUR_USD,
+        * GPU_PRICE_PER_HOUR_USD,
         "gpu_compute_cap_usd": GPU_COMPUTE_CAP_USD,
         "all_in_cap_usd": ALL_IN_CAP_USD,
     }
@@ -767,7 +768,7 @@ def run_experiment(artifact_dir: Path, *, experiment_commit: str, run_id: str) -
             projected_cost = (
                 (time.time() - instance_start + estimated_remaining)
                 / 3600
-                * GH200_PRICE_PER_HOUR_USD
+                * GPU_PRICE_PER_HOUR_USD
             )
             _write_json(
                 root / "post-uniform-budget-projection.json",
@@ -785,8 +786,8 @@ def run_experiment(artifact_dir: Path, *, experiment_commit: str, run_id: str) -
         "experiment_commit": experiment_commit,
         "run_id": run_id,
         "provider": "Lambda Cloud",
-        "accelerator": "GH200:1",
-        "hourly_rate_usd": GH200_PRICE_PER_HOUR_USD,
+        "accelerator": ACCELERATOR,
+        "hourly_rate_usd": GPU_PRICE_PER_HOUR_USD,
         "instance_start_unix": instance_start,
         "instance_start_utc": _utc_timestamp(instance_start),
         "continuation_steps": continuation_steps,
@@ -797,7 +798,7 @@ def run_experiment(artifact_dir: Path, *, experiment_commit: str, run_id: str) -
         "runtimes": runtimes,
         "elapsed_seconds": elapsed,
         "completed_at_utc": _utc_timestamp(),
-        "estimated_compute_cost_usd": elapsed / 3600 * GH200_PRICE_PER_HOUR_USD,
+        "estimated_compute_cost_usd": elapsed / 3600 * GPU_PRICE_PER_HOUR_USD,
         "compute_cap_usd": GPU_COMPUTE_CAP_USD,
         "all_in_cap_usd": ALL_IN_CAP_USD,
     }
@@ -830,7 +831,7 @@ def main() -> None:
             "failed_at_utc": _utc_timestamp(),
             "estimated_compute_cost_usd": (time.time() - instance_start)
             / 3600
-            * GH200_PRICE_PER_HOUR_USD,
+            * GPU_PRICE_PER_HOUR_USD,
         }
         if root.exists():
             _write_json(root / "failure.json", failure)

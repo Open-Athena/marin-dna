@@ -42,10 +42,10 @@ arms:
   student-high-50: {selector_mode: student_high, selector_ratio: 0.5}
 budget:
   provider: Lambda Cloud
-  accelerator: GH200:1
-  hourly_rate_usd: 2.29
-  gpu_compute_stop_usd: 18
-  all_in_cap_usd: 20
+  accelerator: A100:1
+  hourly_rate_usd: 1.99
+  gpu_compute_stop_usd: 28
+  all_in_cap_usd: 30
 logging:
   authoritative: csv
   wandb: optional_best_effort

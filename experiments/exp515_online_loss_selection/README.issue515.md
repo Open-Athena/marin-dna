@@ -36,8 +36,8 @@ The launch must reference a clean, pushed, full commit SHA:
 uv run --locked python launch.py --commit "$COMMIT" --execute --retry-until-up
 ```
 
-The Sky task provisions exactly one Lambda GH200, forwards Google and AWS credentials as secrets, runs the targeted remote tests, executes the canary and gated matrix, uploads curated immutable artifacts below `s3://oa-bolinas/issues/515/online-loss-selection/v1/`, and shuts the instance down.
-The runner stops GPU compute at an estimated $18 and preserves the $20 all-in cap.
+The Sky task provisions exactly one Lambda A100, forwards Google and AWS credentials as secrets, runs the targeted remote tests, executes the canary and gated matrix, uploads curated immutable artifacts below `s3://oa-bolinas/issues/515/online-loss-selection/v1/`, and shuts the instance down.
+The runner stops GPU compute at an estimated $28 and preserves the $30 all-in cap.
 
 ## Resume and data contract
 

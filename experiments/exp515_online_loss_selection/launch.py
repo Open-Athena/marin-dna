@@ -11,7 +11,7 @@ import time
 from pathlib import Path
 
 REPOSITORY_URL = "https://github.com/Open-Athena/marin-dna.git"
-CLUSTER_NAME = "dna-exp515-online-selection-gh200"
+CLUSTER_NAME = "dna-exp515-online-selection-a100"
 CASE_AUDIT = ".agents/artifacts/515-online-loss-selection/case-distribution-audit.json"
 
 
