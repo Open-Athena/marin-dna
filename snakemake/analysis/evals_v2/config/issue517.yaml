@@ -1,0 +1,237 @@
+# Issue 517 development-only specialist trajectory.
+# This config reads only the pinned Mendelian `train` split.
+# Do not change `split` or add held-out datasets on the experiment branch.
+
+input_hf_prefix: bolinas-dna/evals
+genome_path: s3://oa-bolinas/data/genomes/homo_sapiens/GRCh38/ensembl-release-115/Homo_sapiens.GRCh38.dna_sm.primary_assembly.fa.gz
+split: train
+
+datasets:
+  - name: mendelian_traits
+    hf_revision: 4aed58e50c5dea0b878a665007af2ef9e5108e9f
+    score_protocol: minus_llr
+    exclude_complete_match_groups_with_subsets: [mature_miRNA_variant]
+
+models:
+  - name: exp517-cds-step-500
+    gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-cds-v1/2026.08.24/hf/step-500
+    window_size: 255
+
+  - name: exp517-cds-step-1000
+    gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-cds-v1/2026.08.24/hf/step-1000
+    window_size: 255
+
+  - name: exp517-cds-step-1500
+    gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-cds-v1/2026.08.24/hf/step-1500
+    window_size: 255
+
+  - name: exp517-cds-step-2000
+    gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-cds-v1/2026.08.24/hf/step-2000
+    window_size: 255
+
+  - name: exp517-cds-step-2500
+    gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-cds-v1/2026.08.24/hf/step-2500
+    window_size: 255
+
+  - name: exp517-cds-step-3000
+    gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-cds-v1/2026.08.24/hf/step-3000
+    window_size: 255
+
+  - name: exp517-cds-step-3500
+    gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-cds-v1/2026.08.24/hf/step-3500
+    window_size: 255
+
+  - name: exp517-cds-step-4000
+    gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-cds-v1/2026.08.24/hf/step-4000
+    window_size: 255
+
+  - name: exp517-cds-step-4500
+    gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-cds-v1/2026.08.24/hf/step-4500
+    window_size: 255
+
+  - name: exp517-cds-step-4999
+    gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-cds-v1/2026.08.24/hf/step-4999
+    window_size: 255
+
+  - name: exp517-utr3-step-500
+    gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-utr3-v1/2026.08.24/hf/step-500
+    window_size: 255
+
+  - name: exp517-utr3-step-1000
+    gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-utr3-v1/2026.08.24/hf/step-1000
+    window_size: 255
+
+  - name: exp517-utr3-step-1500
+    gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-utr3-v1/2026.08.24/hf/step-1500
+    window_size: 255
+
+  - name: exp517-utr3-step-2000
+    gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-utr3-v1/2026.08.24/hf/step-2000
+    window_size: 255
+
+  - name: exp517-utr3-step-2500
+    gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-utr3-v1/2026.08.24/hf/step-2500
+    window_size: 255
+
+  - name: exp517-utr3-step-3000
+    gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-utr3-v1/2026.08.24/hf/step-3000
+    window_size: 255
+
+  - name: exp517-utr3-step-3500
+    gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-utr3-v1/2026.08.24/hf/step-3500
+    window_size: 255
+
+  - name: exp517-utr3-step-4000
+    gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-utr3-v1/2026.08.24/hf/step-4000
+    window_size: 255
+
+  - name: exp517-utr3-step-4500
+    gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-utr3-v1/2026.08.24/hf/step-4500
+    window_size: 255
+
+  - name: exp517-utr3-step-4999
+    gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-utr3-v1/2026.08.24/hf/step-4999
+    window_size: 255
+
+  - name: exp517-tss_region-step-500
+    gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-tss_region-v1/2026.08.24/hf/step-500
+    window_size: 255
+
+  - name: exp517-tss_region-step-1000
+    gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-tss_region-v1/2026.08.24/hf/step-1000
+    window_size: 255
+
+  - name: exp517-tss_region-step-1500
+    gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-tss_region-v1/2026.08.24/hf/step-1500
+    window_size: 255
+
+  - name: exp517-tss_region-step-2000
+    gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-tss_region-v1/2026.08.24/hf/step-2000
+    window_size: 255
+
+  - name: exp517-tss_region-step-2500
+    gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-tss_region-v1/2026.08.24/hf/step-2500
+    window_size: 255
+
+  - name: exp517-tss_region-step-3000
+    gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-tss_region-v1/2026.08.24/hf/step-3000
+    window_size: 255
+
+  - name: exp517-tss_region-step-3500
+    gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-tss_region-v1/2026.08.24/hf/step-3500
+    window_size: 255
+
+  - name: exp517-tss_region-step-4000
+    gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-tss_region-v1/2026.08.24/hf/step-4000
+    window_size: 255
+
+  - name: exp517-tss_region-step-4500
+    gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-tss_region-v1/2026.08.24/hf/step-4500
+    window_size: 255
+
+  - name: exp517-tss_region-step-4999
+    gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-tss_region-v1/2026.08.24/hf/step-4999
+    window_size: 255
+
+  - name: exp517-ncrna-step-500
+    gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-ncrna-v1/2026.08.24/hf/step-500
+    window_size: 255
+
+  - name: exp517-ncrna-step-1000
+    gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-ncrna-v1/2026.08.24/hf/step-1000
+    window_size: 255
+
+  - name: exp517-ncrna-step-1500
+    gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-ncrna-v1/2026.08.24/hf/step-1500
+    window_size: 255
+
+  - name: exp517-ncrna-step-2000
+    gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-ncrna-v1/2026.08.24/hf/step-2000
+    window_size: 255
+
+  - name: exp517-ncrna-step-2500
+    gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-ncrna-v1/2026.08.24/hf/step-2500
+    window_size: 255
+
+  - name: exp517-ncrna-step-3000
+    gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-ncrna-v1/2026.08.24/hf/step-3000
+    window_size: 255
+
+  - name: exp517-ncrna-step-3500
+    gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-ncrna-v1/2026.08.24/hf/step-3500
+    window_size: 255
+
+  - name: exp517-ncrna-step-4000
+    gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-ncrna-v1/2026.08.24/hf/step-4000
+    window_size: 255
+
+  - name: exp517-ncrna-step-4500
+    gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-ncrna-v1/2026.08.24/hf/step-4500
+    window_size: 255
+
+  - name: exp517-ncrna-step-4999
+    gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-ncrna-v1/2026.08.24/hf/step-4999
+    window_size: 255
+
+  - name: exp517-enhancer-step-500
+    gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-enhancer-v1/2026.08.24/hf/step-500
+    window_size: 255
+
+  - name: exp517-enhancer-step-1000
+    gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-enhancer-v1/2026.08.24/hf/step-1000
+    window_size: 255
+
+  - name: exp517-enhancer-step-1500
+    gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-enhancer-v1/2026.08.24/hf/step-1500
+    window_size: 255
+
+  - name: exp517-enhancer-step-2000
+    gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-enhancer-v1/2026.08.24/hf/step-2000
+    window_size: 255
+
+  - name: exp517-enhancer-step-2500
+    gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-enhancer-v1/2026.08.24/hf/step-2500
+    window_size: 255
+
+  - name: exp517-enhancer-step-3000
+    gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-enhancer-v1/2026.08.24/hf/step-3000
+    window_size: 255
+
+  - name: exp517-enhancer-step-3500
+    gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-enhancer-v1/2026.08.24/hf/step-3500
+    window_size: 255
+
+  - name: exp517-enhancer-step-4000
+    gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-enhancer-v1/2026.08.24/hf/step-4000
+    window_size: 255
+
+  - name: exp517-enhancer-step-4500
+    gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-enhancer-v1/2026.08.24/hf/step-4500
+    window_size: 255
+
+  - name: exp517-enhancer-step-4999
+    gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-enhancer-v1/2026.08.24/hf/step-4999
+    window_size: 255
+
+inference:
+  batch_size: 128
+  num_workers: 4
+  data_transform_on_the_fly: true
+  torch_compile: true
+  bf16: true
+  rc: true
+  return_embeddings: true
+  eval_accumulation_steps: null
+  n_bootstrap: 1000
+  bootstrap_seed: 0
+
+# The command-line config extends config/config.yaml, so explicitly disable
+# unrelated off-rule-all registries whose model names are not in this matrix.
+probe:
+  models: []
+nuc_dep:
+  models: []
+umap_embeddings:
+  models: []
+ll_gap:
+  models: []
