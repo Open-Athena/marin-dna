@@ -639,6 +639,7 @@ def write_dataset_card(
     region_label: str,
     species_scope: str,
     validation_seed: int,
+    anchor_provenance: str | None = None,
 ) -> None:
     """Write the reviewable HF README required before any upload."""
     assert len(pipeline_commit) == 40, "dataset cards require a commit-pinned SHA"
@@ -681,11 +682,17 @@ def write_dataset_card(
             "MultiZ 100-way alignment"
         )
     )
+    provenance_section = (
+        f"\n## Human anchor provenance\n\n{anchor_provenance}\n"
+        if anchor_provenance is not None
+        else ""
+    )
     text = f"""---
 tags:
 - biology
 - genomics
 - dna
+license: other
 configs:
 - config_name: default
   data_files:
@@ -706,6 +713,17 @@ Anchor eligibility uses the pipeline's pinned phyloP conservation filter.
 Sequence case is independent of that filter: lowercase bases preserve source repeat masking, uppercase bases preserve source non-repeat-masked sequence, and conservation scores never rewrite emitted characters or case.
 
 Produced by the [commit-pinned vertebrate projection pipeline]({pipeline_url}).
+{provenance_section}
+## Coordinates and sequence semantics
+
+Human source coordinates use GRCh38/hg38 primary chromosomes.
+All human and target coordinates are 0-based and half-open.
+Every emitted sequence is exactly 255 bases, preserves its source FASTA/2bit letter case, and is oriented to the human anchor.
+
+The published format is zstd-compressed JSON Lines under `data/train/` and `data/validation/`.
+The release is validated before upload against a producer-keyed manifest of file sizes and SHA-256 checksums, and the immutable Hub revision exposes each large-file SHA-256 identifier.
+
+`license: other` preserves the source-specific terms of the public genome assemblies, annotations, and alignments rather than relicensing those inputs.
 
 ## Splits
 
@@ -725,5 +743,11 @@ The selected target manifest contains {selected.height:,} family-deduplicated pr
 ## Schema
 
 {schema_lines}
+
+## Intended use and limitations
+
+This dataset is intended for genomic language-model research and is not a clinical resource.
+Assembly quality, alignment gaps, repeat masking, family-deduplicated species selection, human conservation selection, and the center-nucleotide acceptance contract affect the observed sequence distribution.
+Projecting the center nucleotide does not establish that both 127 bp target flanks are homologous to the full human anchor.
 """
     Path(output_path).write_text(text)

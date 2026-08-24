@@ -227,6 +227,19 @@ rule functional_dataset_card:
             region_label=wildcards.region,
             species_scope="all",
             validation_seed=int(config["validation_seed"]),
+            anchor_provenance=(
+                "Human anchors were constructed on GRCh38 from the complete "
+                "Ensembl release 115 GTF with all qualifying transcripts; "
+                "RefSeq and canonical-transcript-only filtering were not used. "
+                "The enhancer input is ENCODE SCREEN Registry V4 dELS/pELS. "
+                "The five disjoint classes use the base-priority order "
+                "`cds > utr3 > tss_region > ncrna > enhancer` followed by the "
+                "source-arm window-majority gate. The shared projection catalog "
+                "requires at least 10% human bases above the pinned phyloP cutoff; "
+                "this initial training dataset contains only the nested at-least-"
+                "20% catalog. Projected 10–20% rows are excluded and retained as "
+                "a separate producer artifact."
+            ),
         )
 
 
