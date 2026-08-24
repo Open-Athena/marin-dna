@@ -120,10 +120,16 @@ def validate_artifacts(
     assert len(pipeline_commit) == 40 and workers > 0
     assert len(config_sha256) == 64
     config = yaml.safe_load(Path(config_path).read_text())
-    repo_prefix = f"{config['hf_owner']}/vertebrate-{config['pipeline_version']}"
+    repo_name = config.get("hf_repo_prefix", f"vertebrate-{config['pipeline_version']}")
+    repo_prefix = f"{config['hf_owner']}/{repo_name}"
     assert tier in {None, "smoke", "full"}
     cohorts = (
-        ["all", "cds", "ccre_non_promoter", "background"]
+        list(
+            config.get(
+                "smoke_region_cohorts",
+                ["all", "cds", "ccre_non_promoter", "background"],
+            )
+        )
         if tier == "smoke"
         else list(config["region_cohorts"])
     )

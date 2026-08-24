@@ -11,6 +11,8 @@ The retired `snakemake/zoonomia_projection_dataset` workflow is no longer a code
 Its existing S3 and Hugging Face artifacts remain historical records and are not read, rewritten, or deleted by this workflow.
 This workflow writes `results/<pipeline_version>/<producer_commit>/<config_sha256>/<tier>/`; producer and configuration keys prevent cross-recipe reuse.
 
+The additive issue #517 functional-specialist recipe has its own [annotation, audit, and approval runbook](FUNCTIONAL_ANCHORS.md).
+
 Run commands from `snakemake/vertebrate_projection_dataset` so this project uses its own pinned environment and lockfile. Install it with:
 
 ```bash
