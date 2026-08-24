@@ -29,15 +29,32 @@ from glm_experiments.exp515.config import (
     ARMS,
     BRIDGE_STEPS,
     CANARY_STEPS,
+    CDS_ARMS,
+    CDS_GATE_CONTINUATION_STEPS,
+    CDS_NUCLEOTIDE_LENGTH,
+    CDS_SEQUENCE_LENGTH,
     EFFECTIVE_BATCH_SIZE,
+    EXP58_STUDENT_CHECKPOINT,
+    EXP58_TEACHER_CHECKPOINT,
+    EXP58_TRAIN_DATASET,
+    EXP58_TRAIN_REVISION,
+    EXP58_TRAIN_TEXT_KEY,
     GPU_COMPUTE_CAP_USD,
     GPU_PRICE_PER_HOUR_USD,
     GRADIENT_CLIP_VALUE,
     ISSUE_S3_PREFIX,
     MAX_CONTINUATION_STEPS,
+    NUCLEOTIDE_LENGTH,
+    REFSEQ_INITIAL_CONTINUATION_STEPS,
+    REFSEQ_MIDPOINT_STEPS,
+    REFSEQ_TRAIN_DATASET,
+    REFSEQ_TRAIN_REVISION,
+    REFSEQ_TRAIN_TEXT_KEY,
     RUNTIME_MARGIN,
     SEED,
+    SEQUENCE_LENGTH,
     SOURCE_CHECKPOINT,
+    ObjectiveKind,
     continuation_endpoint,
     continuation_midpoint,
 )
@@ -52,7 +69,12 @@ from glm_experiments.exp515.evaluation import (
     evaluate_promoter_auprc,
     load_promoter_frame,
 )
-from glm_experiments.exp515.module import Exp515Module, checkpoint_next_sample_id
+from glm_experiments.exp515.module import (
+    Exp515Module,
+    ScheduleKind,
+    checkpoint_next_sample_id,
+)
+from glm_experiments.exp515.significance import statistically_not_worse_gate
 from glm_experiments.exp515.storage import (
     ISSUE_BUCKET_REGION,
     upload_issue_artifact,
@@ -107,8 +129,12 @@ def _gcs_token() -> dict[str, Any] | str | None:
     return credentials or None
 
 
-def download_source_checkpoint(destination: Path) -> Path:
-    """Download the exact step-2,000 HF export from GCS."""
+def download_source_checkpoint(
+    destination: Path,
+    *,
+    checkpoint_uri: str = SOURCE_CHECKPOINT,
+) -> Path:
+    """Download one exact Hugging Face export from GCS."""
 
     required = {
         "config.json",
@@ -125,7 +151,7 @@ def download_source_checkpoint(destination: Path) -> Path:
 
     destination.mkdir(parents=True, exist_ok=True)
     filesystem = gcsfs.GCSFileSystem(token=_gcs_token())
-    prefix = SOURCE_CHECKPOINT.removeprefix("gs://").rstrip("/")
+    prefix = checkpoint_uri.removeprefix("gs://").rstrip("/")
     remote_files = [path for path in filesystem.find(prefix) if not path.endswith("/")]
     for remote in remote_files:
         target = destination / Path(remote).relative_to(prefix)
@@ -137,19 +163,40 @@ def download_source_checkpoint(destination: Path) -> Path:
     return destination
 
 
-def _load_tokenizer(source_dir: Path) -> PreTrainedTokenizerBase:
+def _load_tokenizer(
+    source_dir: Path,
+    *,
+    nucleotide_length: int = NUCLEOTIDE_LENGTH,
+    sequence_length: int = SEQUENCE_LENGTH,
+    require_bos: bool = True,
+) -> PreTrainedTokenizerBase:
     tokenizer = AutoTokenizer.from_pretrained(source_dir)
-    if tokenizer.bos_token_id is None:
+    if require_bos and tokenizer.bos_token_id is None:
         raise ValueError("source checkpoint tokenizer lacks BOS")
-    probe = tokenizer("A" * 255, add_special_tokens=True)
-    if (
-        len(probe["input_ids"]) != 256
-        or probe["input_ids"][0] != tokenizer.bos_token_id
-    ):
-        raise ValueError(
-            "source tokenizer is not one BOS plus one token per nucleotide"
-        )
+    if not require_bos and tokenizer.bos_token_id is not None:
+        raise ValueError("source checkpoint unexpectedly defines BOS")
+    probe = tokenizer("A" * nucleotide_length, add_special_tokens=True)
+    if len(probe["input_ids"]) != sequence_length:
+        raise ValueError("source tokenizer is not one token per nucleotide")
+    if require_bos and probe["input_ids"][0] != tokenizer.bos_token_id:
+        raise ValueError("source tokenizer does not prepend its BOS token")
     return tokenizer
+
+
+def _nucleotide_token_ids(
+    tokenizer: PreTrainedTokenizerBase,
+) -> dict[str, int]:
+    """Return the exact singleton IDs for A/C/G/T under one tokenizer."""
+
+    result: dict[str, int] = {}
+    for base in "ACGT":
+        encoded = tokenizer(base, add_special_tokens=False)["input_ids"]
+        if len(encoded) != 1:
+            raise ValueError(f"tokenizer does not encode {base} as one token")
+        result[base] = int(encoded[0])
+    if len(set(result.values())) != 4:
+        raise ValueError("nucleotide tokenizer IDs are not distinct")
+    return result
 
 
 def _new_module(
@@ -159,6 +206,9 @@ def _new_module(
     plan_sha256: str,
     selector_mode: str,
     selector_ratio: float,
+    objective_kind: ObjectiveKind = "hard_ce",
+    teacher_dir: Path | None = None,
+    schedule_kind: ScheduleKind = "warmup_cosine",
 ) -> Exp515Module:
     net = HFCLM(
         str(source_dir),
@@ -174,6 +224,9 @@ def _new_module(
         plan_sha256=plan_sha256,
         selector_mode=selector_mode,  # type: ignore[arg-type]
         selector_ratio=selector_ratio,
+        objective_kind=objective_kind,
+        teacher_checkpoint=str(teacher_dir) if teacher_dir is not None else None,
+        schedule_kind=schedule_kind,
     )
 
 
@@ -269,6 +322,11 @@ def run_training_phase(
     target_global_step: int,
     microbatch_size: int,
     resume_from: Path | None,
+    schedule_kind: ScheduleKind = "warmup_cosine",
+    objective_kind: ObjectiveKind = "hard_ce",
+    teacher_dir: Path | None = None,
+    nucleotide_length: int = NUCLEOTIDE_LENGTH,
+    sequence_length: int = SEQUENCE_LENGTH,
 ) -> tuple[Exp515Module, Path, dict[str, Any]]:
     """Run one exact plan segment and save a full Lightning checkpoint."""
 
@@ -296,7 +354,10 @@ def run_training_phase(
         pin_memory=True,
         persistent_workers=True,
         drop_last=True,
-        collate_fn=SequenceCollator(tokenizer),
+        collate_fn=SequenceCollator(
+            tokenizer,
+            nucleotide_length=nucleotide_length,
+        ),
     )
     module = _new_module(
         source_dir,
@@ -304,10 +365,18 @@ def run_training_phase(
         plan_sha256=str(plan["sequences_sha256"]),
         selector_mode=selector_mode,
         selector_ratio=selector_ratio,
+        objective_kind=objective_kind,
+        teacher_dir=teacher_dir,
+        schedule_kind=schedule_kind,
     )
     phase_dir = output_dir / run_name
     phase_dir.mkdir(parents=True, exist_ok=True)
-    diagnostics = Exp515Diagnostics(phase_dir, every_n_steps=10)
+    diagnostics = Exp515Diagnostics(
+        phase_dir,
+        every_n_steps=10,
+        sequence_length=sequence_length,
+        nucleotide_token_ids=_nucleotide_token_ids(tokenizer),
+    )
     trainer = Trainer(
         accelerator="gpu",
         devices=1,
@@ -340,10 +409,14 @@ def run_training_phase(
         )
     checkpoint = phase_dir / f"step-{target_global_step}.ckpt"
     trainer.save_checkpoint(checkpoint, weights_only=False)
+    module.release_teacher()
+    gc.collect()
+    torch.cuda.empty_cache()
     metadata = {
         "run_name": run_name,
         "selector_mode": selector_mode,
         "selector_ratio": selector_ratio,
+        "objective_kind": objective_kind,
         "start_global_step": start_step,
         "end_global_step": target_global_step,
         "start_sample_id": start_sample,
@@ -439,23 +512,27 @@ def smoke_test(
     tokenizer: PreTrainedTokenizerBase,
     plan_dir: Path,
     output_path: Path,
+    *,
+    nucleotide_length: int = NUCLEOTIDE_LENGTH,
+    require_bos: bool = True,
 ) -> dict[str, Any]:
     """Check direct-HF logits and selector-disabled uniform loss parity."""
 
     dataset = SequencePlanDataset(plan_dir, start=0, rows=2)
-    batch = SequenceCollator(tokenizer)([dataset[0], dataset[1]])
+    collator = SequenceCollator(tokenizer, nucleotide_length=nucleotide_length)
+    batch = collator([dataset[0], dataset[1]])
     selector_checks = _selector_device_smoke(torch.device("cuda"))
-    synthetic_sequence = "A" + "c" + "A" * 253
-    synthetic_batch = SequenceCollator(tokenizer)(
+    synthetic_sequence = "A" + "c" + "A" * (nucleotide_length - 2)
+    synthetic_batch = collator(
         [{"sample_id": 0, "sequence": synthetic_sequence, "species": "synthetic"}]
     )
-    bos_repeat_alignment_passed = bool(
-        not synthetic_batch["soft_masked"][0, 0]
-        and not synthetic_batch["soft_masked"][0, 1]
-        and synthetic_batch["soft_masked"][0, 2]
+    repeat_offset = int(require_bos)
+    repeat_alignment_passed = bool(
+        not synthetic_batch["soft_masked"][0, repeat_offset]
+        and synthetic_batch["soft_masked"][0, repeat_offset + 1]
     )
     all_lowercase_filter_passed = not has_eligible_target(
-        "a" * 255
+        "a" * nucleotide_length
     ) and has_eligible_target(synthetic_sequence)
     device_batch = {
         key: value.cuda() if isinstance(value, torch.Tensor) else value
@@ -514,12 +591,12 @@ def smoke_test(
         "eligible_count": int(selected["eligible_count"]),
         "selected_count": int(selected["selected_count"]),
         "selector_device": selector_checks,
-        "bos_repeat_alignment_passed": bos_repeat_alignment_passed,
+        "repeat_alignment_passed": repeat_alignment_passed,
         "all_lowercase_filter_passed": all_lowercase_filter_passed,
         "passed": max_logit_error == 0.0
         and loss_error <= 1e-6
         and selector_checks["passed"]
-        and bos_repeat_alignment_passed
+        and repeat_alignment_passed
         and all_lowercase_filter_passed,
     }
     _write_json(output_path, payload)
@@ -578,7 +655,11 @@ def choose_continuation_steps(
 def _retain_for_publication(relative: Path) -> bool:
     """Exclude reproducible caches and non-evidentiary canary checkpoints."""
 
-    if relative.parts[0] in {"source-checkpoint", "evaluation-cache"}:
+    if relative.parts[0] in {
+        "source-checkpoint",
+        "teacher-checkpoint",
+        "evaluation-cache",
+    }:
         return False
     if relative.parts[0] == "sequence-plan" and relative.name != "manifest.json":
         return False
@@ -894,6 +975,692 @@ def run_experiment(
     _write_json(root / "final-manifest.json", final)
 
 
+def run_refseq_screen(
+    artifact_dir: Path,
+    *,
+    experiment_commit: str,
+    run_id: str,
+    resume_from_bridge: bool = False,
+) -> None:
+    """Run the fresh RefSeq five-arm screen with a statistical midpoint gate."""
+
+    if len(experiment_commit) != 40:
+        raise ValueError("experiment commit must be a full SHA")
+    seed_everything(SEED, workers=True)
+    instance_start = float(os.getenv("EXP515_INSTANCE_START_UNIX", time.time()))
+    screen_started = time.time()
+    root = artifact_dir / run_id
+    _install_compute_guard(instance_start)
+    root.mkdir(parents=True, exist_ok=True)
+
+    source_dir = download_source_checkpoint(root / "source-checkpoint")
+    tokenizer = _load_tokenizer(source_dir)
+    plan_dir = root / "sequence-plan"
+    maximum_global_step = BRIDGE_STEPS + REFSEQ_INITIAL_CONTINUATION_STEPS
+    plan = build_sequence_plan(
+        plan_dir,
+        rows=maximum_global_step * EFFECTIVE_BATCH_SIZE,
+        seed=SEED,
+        dataset=REFSEQ_TRAIN_DATASET,
+        revision=REFSEQ_TRAIN_REVISION,
+        text_key=REFSEQ_TRAIN_TEXT_KEY,
+        species_key=None,
+    )
+    _write_json(
+        root / "refseq-plan-audit.json",
+        {
+            "dataset": plan["dataset"],
+            "revision": plan["revision"],
+            "rows": plan["rows"],
+            "nucleotide_length": plan["nucleotide_length"],
+            "filtered_all_lowercase": plan["filtered_all_lowercase"],
+            "filtered_wrong_length": plan["filtered_wrong_length"],
+            "lowercase_bases": plan["lowercase_bases"],
+            "total_bases": plan["total_bases"],
+            "lowercase_base_fraction": plan["lowercase_base_fraction"],
+            "sequence_plan_sha256": plan["sequences_sha256"],
+            "repeat_definition": "lowercase source-assembly soft masking",
+        },
+    )
+
+    if resume_from_bridge:
+        bridge_checkpoint, selected_microbatch, canary, bridge = (
+            _completed_bridge_state(root)
+        )
+        bridge_module = _module_from_checkpoint(
+            source_dir,
+            bridge_checkpoint,
+            plan_sha256=str(plan["sequences_sha256"]),
+        )
+    else:
+        smoke_test(source_dir, tokenizer, plan_dir, root / "smoke-test.json")
+        selected_microbatch = 0
+        for candidate in (256, 128, 64, 32, 16, 8, 4, 2, 1):
+            try:
+                candidate_module, _, metadata = run_training_phase(
+                    source_dir=source_dir,
+                    tokenizer=tokenizer,
+                    plan_dir=plan_dir,
+                    output_dir=root / "canary-selection",
+                    run_name=f"microbatch-{candidate}",
+                    selector_mode="uniform",
+                    selector_ratio=1.0,
+                    continuation_steps=REFSEQ_INITIAL_CONTINUATION_STEPS,
+                    target_global_step=1,
+                    microbatch_size=candidate,
+                    resume_from=None,
+                    schedule_kind="warmup_constant",
+                )
+            except RuntimeError as error:
+                if not _is_cuda_oom(error):
+                    raise
+                gc.collect()
+                torch.cuda.empty_cache()
+                continue
+            del candidate_module
+            gc.collect()
+            torch.cuda.empty_cache()
+            if float(metadata["peak_memory_fraction"]) < 0.85:
+                selected_microbatch = candidate
+                break
+        if not selected_microbatch:
+            raise RuntimeError("no power-of-two microbatch passed the 85% HBM gate")
+
+        canary_module, _, canary = run_training_phase(
+            source_dir=source_dir,
+            tokenizer=tokenizer,
+            plan_dir=plan_dir,
+            output_dir=root,
+            run_name="canary-20",
+            selector_mode="uniform",
+            selector_ratio=1.0,
+            continuation_steps=REFSEQ_INITIAL_CONTINUATION_STEPS,
+            target_global_step=CANARY_STEPS,
+            microbatch_size=selected_microbatch,
+            resume_from=None,
+            schedule_kind="warmup_constant",
+        )
+        del canary_module
+        gc.collect()
+        torch.cuda.empty_cache()
+        bridge_module, bridge_checkpoint, bridge = run_training_phase(
+            source_dir=source_dir,
+            tokenizer=tokenizer,
+            plan_dir=plan_dir,
+            output_dir=root,
+            run_name="bridge",
+            selector_mode="uniform",
+            selector_ratio=1.0,
+            continuation_steps=REFSEQ_INITIAL_CONTINUATION_STEPS,
+            target_global_step=BRIDGE_STEPS,
+            microbatch_size=selected_microbatch,
+            resume_from=None,
+            schedule_kind="warmup_constant",
+        )
+
+    evaluation_frame = load_promoter_frame(root / "evaluation-cache")
+    bridge_csv = root / "evaluations" / "bridge.csv"
+    bridge_eval = evaluate_promoter_auprc(
+        bridge_module.net,
+        tokenizer,
+        frame=evaluation_frame,
+        output_path=bridge_csv,
+        batch_size=selected_microbatch,
+        checkpoint_name="bridge",
+    )
+    del bridge_module
+    gc.collect()
+    torch.cuda.empty_cache()
+
+    elapsed = time.time() - instance_start
+    worst_case_training_seconds = (
+        len(ARMS)
+        * REFSEQ_INITIAL_CONTINUATION_STEPS
+        * float(canary["seconds_per_optimizer_step"])
+    )
+    worst_case_evaluations = len(ARMS) * 2
+    projected_remaining_seconds = RUNTIME_MARGIN * (
+        worst_case_training_seconds
+        + worst_case_evaluations * float(bridge_eval["elapsed_seconds"])
+    )
+    projected_total_cost = (
+        (elapsed + projected_remaining_seconds) / 3600 * GPU_PRICE_PER_HOUR_USD
+    )
+    projection = {
+        "instance_elapsed_seconds": elapsed,
+        "canary_seconds_per_optimizer_step": canary["seconds_per_optimizer_step"],
+        "worst_case_arm_steps": (len(ARMS) * REFSEQ_INITIAL_CONTINUATION_STEPS),
+        "worst_case_remaining_evaluations": worst_case_evaluations,
+        "runtime_margin": RUNTIME_MARGIN,
+        "projected_remaining_seconds": projected_remaining_seconds,
+        "projected_total_compute_usd": projected_total_cost,
+        "gpu_compute_cap_usd": GPU_COMPUTE_CAP_USD,
+        "all_in_cap_usd": ALL_IN_CAP_USD,
+        "passed": projected_total_cost < GPU_COMPUTE_CAP_USD,
+    }
+    _write_json(root / "budget-projection.json", projection)
+    if not projection["passed"]:
+        raise RuntimeError("RefSeq screen projection reaches the compute stop")
+
+    midpoint_global_step = BRIDGE_STEPS + REFSEQ_MIDPOINT_STEPS
+    endpoint_global_step = BRIDGE_STEPS + REFSEQ_INITIAL_CONTINUATION_STEPS
+    summaries = [bridge_eval]
+    runtimes = [canary, bridge]
+    midpoint_checkpoints: dict[str, Path] = {}
+    midpoint_evaluations: dict[str, dict[str, Any]] = {}
+    for arm in ARMS:
+        run_name = f"{arm.name}-midpoint"
+        module, checkpoint, runtime = run_training_phase(
+            source_dir=source_dir,
+            tokenizer=tokenizer,
+            plan_dir=plan_dir,
+            output_dir=root,
+            run_name=run_name,
+            selector_mode=arm.selector_mode,
+            selector_ratio=arm.selector_ratio,
+            continuation_steps=REFSEQ_INITIAL_CONTINUATION_STEPS,
+            target_global_step=midpoint_global_step,
+            microbatch_size=selected_microbatch,
+            resume_from=bridge_checkpoint,
+            schedule_kind="warmup_constant",
+        )
+        evaluation = evaluate_promoter_auprc(
+            module.net,
+            tokenizer,
+            frame=evaluation_frame,
+            output_path=root / "evaluations" / f"{run_name}.csv",
+            batch_size=selected_microbatch,
+            checkpoint_name=run_name,
+        )
+        midpoint_checkpoints[arm.name] = checkpoint
+        midpoint_evaluations[arm.name] = evaluation
+        summaries.append(evaluation)
+        runtimes.append(runtime)
+        del module
+        gc.collect()
+        torch.cuda.empty_cache()
+
+    gate = statistically_not_worse_gate(
+        bridge_csv,
+        {
+            arm.name: root / "evaluations" / f"{arm.name}-midpoint.csv"
+            for arm in ARMS
+            if arm.name != "uniform-100"
+        },
+        permutations=20_000,
+        alpha=0.05,
+        seed=SEED + 5000,
+    )
+    _write_json(root / "midpoint-gate.json", gate)
+
+    endpoint_evaluations: dict[str, dict[str, Any]] = {}
+    endpoint_checkpoints: dict[str, Path] = {}
+    for arm in ARMS:
+        continue_to_endpoint = arm.name == "uniform-100" or bool(
+            gate["tests"][arm.name]["continue_to_endpoint"]
+        )
+        if not continue_to_endpoint:
+            _write_json(
+                root / f"{arm.name}-result.json",
+                {
+                    "arm": arm.name,
+                    "bridge_auprc": bridge_eval["auprc"],
+                    "midpoint_auprc": midpoint_evaluations[arm.name]["auprc"],
+                    "continued_to_endpoint": False,
+                    "gate": gate["tests"][arm.name],
+                },
+            )
+            continue
+        run_name = f"{arm.name}-endpoint"
+        module, checkpoint, runtime = run_training_phase(
+            source_dir=source_dir,
+            tokenizer=tokenizer,
+            plan_dir=plan_dir,
+            output_dir=root,
+            run_name=run_name,
+            selector_mode=arm.selector_mode,
+            selector_ratio=arm.selector_ratio,
+            continuation_steps=REFSEQ_INITIAL_CONTINUATION_STEPS,
+            target_global_step=endpoint_global_step,
+            microbatch_size=selected_microbatch,
+            resume_from=midpoint_checkpoints[arm.name],
+            schedule_kind="warmup_constant",
+        )
+        evaluation = evaluate_promoter_auprc(
+            module.net,
+            tokenizer,
+            frame=evaluation_frame,
+            output_path=root / "evaluations" / f"{run_name}.csv",
+            batch_size=selected_microbatch,
+            checkpoint_name=run_name,
+        )
+        endpoint_checkpoints[arm.name] = checkpoint
+        endpoint_evaluations[arm.name] = evaluation
+        summaries.append(evaluation)
+        runtimes.append(runtime)
+        _write_json(
+            root / f"{arm.name}-result.json",
+            {
+                "arm": arm.name,
+                "bridge_auprc": bridge_eval["auprc"],
+                "midpoint_auprc": midpoint_evaluations[arm.name]["auprc"],
+                "continued_to_endpoint": True,
+                "endpoint_auprc": evaluation["auprc"],
+                "endpoint_checkpoint": str(checkpoint),
+                "gate": gate["tests"].get(arm.name),
+            },
+        )
+        del module
+        gc.collect()
+        torch.cuda.empty_cache()
+
+    now = time.time()
+    final = {
+        "status": "complete",
+        "protocol": "refseq-250-500-warmup-constant",
+        "experiment_commit": experiment_commit,
+        "run_id": run_id,
+        "provider": "Lambda Cloud",
+        "accelerator": ACCELERATOR,
+        "hourly_rate_usd": GPU_PRICE_PER_HOUR_USD,
+        "instance_start_unix": instance_start,
+        "instance_start_utc": _utc_timestamp(instance_start),
+        "screen_started_utc": _utc_timestamp(screen_started),
+        "completed_at_utc": _utc_timestamp(now),
+        "continuation_steps": REFSEQ_INITIAL_CONTINUATION_STEPS,
+        "midpoint_steps": REFSEQ_MIDPOINT_STEPS,
+        "microbatch_size": selected_microbatch,
+        "schedule": {
+            "warmup_steps": BRIDGE_STEPS,
+            "warmup_start_learning_rate": 1e-5,
+            "peak_and_constant_learning_rate": 1e-3,
+        },
+        "dataset": {
+            "name": REFSEQ_TRAIN_DATASET,
+            "revision": REFSEQ_TRAIN_REVISION,
+            "text_key": REFSEQ_TRAIN_TEXT_KEY,
+            "sequence_plan_sha256": plan["sequences_sha256"],
+            "lowercase_base_fraction": plan["lowercase_base_fraction"],
+        },
+        "bridge_auprc": bridge_eval["auprc"],
+        "midpoint_gate": gate,
+        "completed_evaluations": summaries,
+        "runtimes": runtimes,
+        "screen_elapsed_seconds": now - screen_started,
+        "estimated_screen_compute_usd": (
+            (now - screen_started) / 3600 * GPU_PRICE_PER_HOUR_USD
+        ),
+        "provider_allocation_elapsed_seconds": now - instance_start,
+        "estimated_provider_allocation_usd": (
+            (now - instance_start) / 3600 * GPU_PRICE_PER_HOUR_USD
+        ),
+        "compute_cap_usd": GPU_COMPUTE_CAP_USD,
+        "all_in_cap_usd": ALL_IN_CAP_USD,
+    }
+    _write_json(root / "final-manifest.json", final)
+
+
+def _checkpoint_contract(student_dir: Path, teacher_dir: Path) -> dict[str, Any]:
+    """Verify that exp58 student and teacher exports share one exact contract."""
+
+    student_config = json.loads((student_dir / "config.json").read_text())
+    teacher_config = json.loads((teacher_dir / "config.json").read_text())
+    fields = (
+        "model_type",
+        "vocab_size",
+        "max_position_embeddings",
+        "hidden_size",
+        "intermediate_size",
+        "num_hidden_layers",
+        "num_attention_heads",
+        "num_key_value_heads",
+        "bos_token_id",
+        "eos_token_id",
+        "pad_token_id",
+    )
+    differences = {
+        field: {
+            "student": student_config.get(field),
+            "teacher": teacher_config.get(field),
+        }
+        for field in fields
+        if student_config.get(field) != teacher_config.get(field)
+    }
+    tokenizer_equal = (student_dir / "tokenizer.json").read_bytes() == (
+        teacher_dir / "tokenizer.json"
+    ).read_bytes()
+    payload = {
+        "checked_fields": list(fields),
+        "differences": differences,
+        "tokenizer_json_equal": tokenizer_equal,
+        "passed": not differences and tokenizer_equal,
+    }
+    if not payload["passed"]:
+        raise ValueError(f"student/teacher checkpoint contract mismatch: {payload}")
+    return payload
+
+
+def run_cds_gate(
+    artifact_dir: Path,
+    *,
+    experiment_commit: str,
+    run_id: str,
+    resume_from_bridge: bool = False,
+) -> None:
+    """Run the exp58 step-1k CDS bridge and seven 100-step arm gate."""
+
+    if len(experiment_commit) != 40:
+        raise ValueError("experiment commit must be a full SHA")
+    seed_everything(SEED, workers=True)
+    instance_start = float(os.getenv("EXP515_INSTANCE_START_UNIX", time.time()))
+    screen_started = time.time()
+    root = artifact_dir / run_id
+    _install_compute_guard(instance_start)
+    root.mkdir(parents=True, exist_ok=True)
+
+    source_dir = download_source_checkpoint(
+        root / "source-checkpoint",
+        checkpoint_uri=EXP58_STUDENT_CHECKPOINT,
+    )
+    teacher_dir = download_source_checkpoint(
+        root / "teacher-checkpoint",
+        checkpoint_uri=EXP58_TEACHER_CHECKPOINT,
+    )
+    _write_json(
+        root / "checkpoint-contract.json",
+        _checkpoint_contract(source_dir, teacher_dir),
+    )
+    tokenizer = _load_tokenizer(
+        source_dir,
+        nucleotide_length=CDS_NUCLEOTIDE_LENGTH,
+        sequence_length=CDS_SEQUENCE_LENGTH,
+        require_bos=False,
+    )
+    plan_dir = root / "sequence-plan"
+    gate_global_step = BRIDGE_STEPS + CDS_GATE_CONTINUATION_STEPS
+    plan = build_sequence_plan(
+        plan_dir,
+        rows=gate_global_step * EFFECTIVE_BATCH_SIZE,
+        seed=SEED,
+        dataset=EXP58_TRAIN_DATASET,
+        revision=EXP58_TRAIN_REVISION,
+        text_key=EXP58_TRAIN_TEXT_KEY,
+        species_key=None,
+        nucleotide_length=CDS_NUCLEOTIDE_LENGTH,
+        exclude_first_base_from_eligibility=True,
+    )
+    _write_json(
+        root / "cds-plan-audit.json",
+        {
+            "dataset": plan["dataset"],
+            "revision": plan["revision"],
+            "rows": plan["rows"],
+            "nucleotide_length": plan["nucleotide_length"],
+            "filtered_all_lowercase": plan["filtered_all_lowercase"],
+            "filtered_wrong_length": plan["filtered_wrong_length"],
+            "lowercase_bases": plan["lowercase_bases"],
+            "total_bases": plan["total_bases"],
+            "lowercase_base_fraction": plan["lowercase_base_fraction"],
+            "sequence_plan_sha256": plan["sequences_sha256"],
+            "repeat_policy": "lowercase targets excluded in every arm",
+        },
+    )
+
+    if resume_from_bridge:
+        bridge_checkpoint, selected_microbatch, teacher_canary, bridge = (
+            _completed_bridge_state(root)
+        )
+        bridge_module = _module_from_checkpoint(
+            source_dir,
+            bridge_checkpoint,
+            plan_sha256=str(plan["sequences_sha256"]),
+        )
+    else:
+        smoke_test(
+            source_dir,
+            tokenizer,
+            plan_dir,
+            root / "smoke-test.json",
+            nucleotide_length=CDS_NUCLEOTIDE_LENGTH,
+            require_bos=False,
+        )
+        selected_microbatch = 0
+        for candidate in (64, 32, 16, 8, 4, 2, 1):
+            try:
+                candidate_module, _, metadata = run_training_phase(
+                    source_dir=source_dir,
+                    tokenizer=tokenizer,
+                    plan_dir=plan_dir,
+                    output_dir=root / "canary-selection",
+                    run_name=f"teacher-kl-microbatch-{candidate}",
+                    selector_mode="uniform",
+                    selector_ratio=1.0,
+                    continuation_steps=CDS_GATE_CONTINUATION_STEPS,
+                    target_global_step=1,
+                    microbatch_size=candidate,
+                    resume_from=None,
+                    schedule_kind="warmup_constant",
+                    objective_kind="teacher_kl",
+                    teacher_dir=teacher_dir,
+                    nucleotide_length=CDS_NUCLEOTIDE_LENGTH,
+                    sequence_length=CDS_SEQUENCE_LENGTH,
+                )
+            except RuntimeError as error:
+                if not _is_cuda_oom(error):
+                    raise
+                gc.collect()
+                torch.cuda.empty_cache()
+                continue
+            del candidate_module
+            gc.collect()
+            torch.cuda.empty_cache()
+            if float(metadata["peak_memory_fraction"]) < 0.85:
+                selected_microbatch = candidate
+                break
+        if not selected_microbatch:
+            raise RuntimeError("no power-of-two teacher microbatch passed the HBM gate")
+
+        teacher_canary_module, _, teacher_canary = run_training_phase(
+            source_dir=source_dir,
+            tokenizer=tokenizer,
+            plan_dir=plan_dir,
+            output_dir=root,
+            run_name="canary-20",
+            selector_mode="uniform",
+            selector_ratio=1.0,
+            continuation_steps=CDS_GATE_CONTINUATION_STEPS,
+            target_global_step=CANARY_STEPS,
+            microbatch_size=selected_microbatch,
+            resume_from=None,
+            schedule_kind="warmup_constant",
+            objective_kind="teacher_kl",
+            teacher_dir=teacher_dir,
+            nucleotide_length=CDS_NUCLEOTIDE_LENGTH,
+            sequence_length=CDS_SEQUENCE_LENGTH,
+        )
+        del teacher_canary_module
+        gc.collect()
+        torch.cuda.empty_cache()
+        bridge_module, bridge_checkpoint, bridge = run_training_phase(
+            source_dir=source_dir,
+            tokenizer=tokenizer,
+            plan_dir=plan_dir,
+            output_dir=root,
+            run_name="bridge",
+            selector_mode="uniform",
+            selector_ratio=1.0,
+            continuation_steps=CDS_GATE_CONTINUATION_STEPS,
+            target_global_step=BRIDGE_STEPS,
+            microbatch_size=selected_microbatch,
+            resume_from=None,
+            schedule_kind="warmup_constant",
+            nucleotide_length=CDS_NUCLEOTIDE_LENGTH,
+            sequence_length=CDS_SEQUENCE_LENGTH,
+        )
+
+    evaluation_frame = load_promoter_frame(
+        root / "evaluation-cache",
+        subsets=("missense_variant", "splicing"),
+        nucleotide_length=CDS_NUCLEOTIDE_LENGTH,
+    )
+    bridge_csv = root / "evaluations" / "bridge.csv"
+    bridge_eval = evaluate_promoter_auprc(
+        bridge_module.net,
+        tokenizer,
+        frame=evaluation_frame,
+        output_path=bridge_csv,
+        batch_size=selected_microbatch,
+        checkpoint_name="bridge",
+        nucleotide_length=CDS_NUCLEOTIDE_LENGTH,
+        sequence_length=CDS_SEQUENCE_LENGTH,
+    )
+    del bridge_module
+    gc.collect()
+    torch.cuda.empty_cache()
+
+    elapsed = time.time() - instance_start
+    hard_seconds_per_step = float(bridge["seconds_per_optimizer_step"])
+    teacher_seconds_per_step = float(teacher_canary["seconds_per_optimizer_step"])
+    projected_remaining_seconds = RUNTIME_MARGIN * (
+        5 * CDS_GATE_CONTINUATION_STEPS * hard_seconds_per_step
+        + 2 * CDS_GATE_CONTINUATION_STEPS * teacher_seconds_per_step
+        + len(CDS_ARMS) * float(bridge_eval["elapsed_seconds"])
+    )
+    projected_total_cost = (
+        (elapsed + projected_remaining_seconds) / 3600 * GPU_PRICE_PER_HOUR_USD
+    )
+    projection = {
+        "instance_elapsed_seconds": elapsed,
+        "hard_seconds_per_optimizer_step": hard_seconds_per_step,
+        "teacher_seconds_per_optimizer_step": teacher_seconds_per_step,
+        "remaining_arm_steps": len(CDS_ARMS) * CDS_GATE_CONTINUATION_STEPS,
+        "projected_remaining_seconds": projected_remaining_seconds,
+        "projected_total_compute_usd": projected_total_cost,
+        "gpu_compute_cap_usd": GPU_COMPUTE_CAP_USD,
+        "all_in_cap_usd": ALL_IN_CAP_USD,
+        "passed": projected_total_cost < GPU_COMPUTE_CAP_USD,
+    }
+    _write_json(root / "budget-projection.json", projection)
+    if not projection["passed"]:
+        raise RuntimeError("CDS gate projection reaches the compute stop")
+
+    summaries = [bridge_eval]
+    runtimes = [teacher_canary, bridge]
+    arm_evaluations: dict[str, dict[str, Any]] = {}
+    for arm in CDS_ARMS:
+        module, checkpoint, runtime = run_training_phase(
+            source_dir=source_dir,
+            tokenizer=tokenizer,
+            plan_dir=plan_dir,
+            output_dir=root,
+            run_name=f"{arm.name}-gate-100",
+            selector_mode=arm.selector_mode,
+            selector_ratio=arm.selector_ratio,
+            continuation_steps=CDS_GATE_CONTINUATION_STEPS,
+            target_global_step=gate_global_step,
+            microbatch_size=selected_microbatch,
+            resume_from=bridge_checkpoint,
+            schedule_kind="warmup_constant",
+            objective_kind=arm.objective_kind,
+            teacher_dir=(teacher_dir if arm.objective_kind != "hard_ce" else None),
+            nucleotide_length=CDS_NUCLEOTIDE_LENGTH,
+            sequence_length=CDS_SEQUENCE_LENGTH,
+        )
+        evaluation = evaluate_promoter_auprc(
+            module.net,
+            tokenizer,
+            frame=evaluation_frame,
+            output_path=root / "evaluations" / f"{arm.name}-gate-100.csv",
+            batch_size=selected_microbatch,
+            checkpoint_name=f"{arm.name}-gate-100",
+            nucleotide_length=CDS_NUCLEOTIDE_LENGTH,
+            sequence_length=CDS_SEQUENCE_LENGTH,
+        )
+        arm_evaluations[arm.name] = evaluation
+        summaries.append(evaluation)
+        runtimes.append(runtime)
+        _write_json(
+            root / f"{arm.name}-result.json",
+            {
+                "arm": arm.name,
+                "objective_kind": arm.objective_kind,
+                "bridge_auprc": bridge_eval["auprc"],
+                "gate_100_auprc": evaluation["auprc"],
+                "subsets": evaluation["subsets"],
+                "checkpoint": str(checkpoint),
+            },
+        )
+        del module
+        gc.collect()
+        torch.cuda.empty_cache()
+
+    gate = statistically_not_worse_gate(
+        bridge_csv,
+        {
+            arm.name: root / "evaluations" / f"{arm.name}-gate-100.csv"
+            for arm in CDS_ARMS
+            if arm.name != "uniform-100"
+        },
+        permutations=20_000,
+        alpha=0.05,
+        seed=SEED + 5800,
+    )
+    _write_json(root / "gate-100-significance.json", gate)
+    now = time.time()
+    final = {
+        "status": "complete",
+        "protocol": "exp58-animals-step1000-100-bridge-100-seven-arm-gate",
+        "experiment_commit": experiment_commit,
+        "run_id": run_id,
+        "provider": "Lambda Cloud",
+        "accelerator": ACCELERATOR,
+        "hourly_rate_usd": GPU_PRICE_PER_HOUR_USD,
+        "instance_start_unix": instance_start,
+        "instance_start_utc": _utc_timestamp(instance_start),
+        "screen_started_utc": _utc_timestamp(screen_started),
+        "completed_at_utc": _utc_timestamp(now),
+        "source_checkpoint": EXP58_STUDENT_CHECKPOINT,
+        "teacher_checkpoint": EXP58_TEACHER_CHECKPOINT,
+        "bridge_steps": BRIDGE_STEPS,
+        "arm_steps": CDS_GATE_CONTINUATION_STEPS,
+        "microbatch_size": selected_microbatch,
+        "schedule": {
+            "warmup_steps": BRIDGE_STEPS,
+            "warmup_start_learning_rate": 1e-5,
+            "peak_and_constant_learning_rate": 1e-3,
+        },
+        "dataset": {
+            "name": EXP58_TRAIN_DATASET,
+            "revision": EXP58_TRAIN_REVISION,
+            "text_key": EXP58_TRAIN_TEXT_KEY,
+            "nucleotide_length": CDS_NUCLEOTIDE_LENGTH,
+            "bos_token": None,
+            "sequence_plan_sha256": plan["sequences_sha256"],
+            "lowercase_base_fraction": plan["lowercase_base_fraction"],
+        },
+        "evaluation_subsets": [
+            "missense_variant",
+            "splicing",
+        ],
+        "bridge_evaluation": bridge_eval,
+        "arm_evaluations": arm_evaluations,
+        "gate_100_significance": gate,
+        "completed_evaluations": summaries,
+        "runtimes": runtimes,
+        "screen_elapsed_seconds": now - screen_started,
+        "estimated_screen_compute_usd": (
+            (now - screen_started) / 3600 * GPU_PRICE_PER_HOUR_USD
+        ),
+        "provider_allocation_elapsed_seconds": now - instance_start,
+        "estimated_provider_allocation_usd": (
+            (now - instance_start) / 3600 * GPU_PRICE_PER_HOUR_USD
+        ),
+        "compute_cap_usd": GPU_COMPUTE_CAP_USD,
+        "all_in_cap_usd": ALL_IN_CAP_USD,
+    }
+    _write_json(root / "final-manifest.json", final)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--artifact-dir", type=Path, required=True)
@@ -901,6 +1668,8 @@ def main() -> None:
     parser.add_argument("--run-id", required=True)
     parser.add_argument("--resume-from-bridge", action="store_true")
     parser.add_argument("--publish-only", action="store_true")
+    parser.add_argument("--refseq-screen", action="store_true")
+    parser.add_argument("--cds-gate", action="store_true")
     args = parser.parse_args()
     if Path(args.run_id).name != args.run_id or args.run_id in {".", ".."}:
         raise ValueError("run ID must be one safe path component")
@@ -910,12 +1679,29 @@ def main() -> None:
         publish_run_artifacts(root, args.run_id)
         return
     try:
-        run_experiment(
-            args.artifact_dir,
-            experiment_commit=args.experiment_commit,
-            run_id=args.run_id,
-            resume_from_bridge=args.resume_from_bridge,
-        )
+        if args.refseq_screen and args.cds_gate:
+            raise ValueError("choose only one of --refseq-screen and --cds-gate")
+        if args.cds_gate:
+            run_cds_gate(
+                args.artifact_dir,
+                experiment_commit=args.experiment_commit,
+                run_id=args.run_id,
+                resume_from_bridge=args.resume_from_bridge,
+            )
+        elif args.refseq_screen:
+            run_refseq_screen(
+                args.artifact_dir,
+                experiment_commit=args.experiment_commit,
+                run_id=args.run_id,
+                resume_from_bridge=args.resume_from_bridge,
+            )
+        else:
+            run_experiment(
+                args.artifact_dir,
+                experiment_commit=args.experiment_commit,
+                run_id=args.run_id,
+                resume_from_bridge=args.resume_from_bridge,
+            )
     except BaseException as error:
         signal.alarm(0)
         instance_start = float(os.getenv("EXP515_INSTANCE_START_UNIX", time.time()))

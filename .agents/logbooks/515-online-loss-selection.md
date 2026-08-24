@@ -168,3 +168,18 @@ The per-species source-case audit passed without invoking the RefSeq fallback.
 - Validation: All 22 issue-specific local tests passed in 3.89 seconds with 1,033,324 KiB peak RSS; Ruff check, format, and `git diff --check` passed.
 - Interpretation: No preprocessing, calibration, canary, or bridge work needs to be repeated; only the interrupted bridge evaluation and downstream gated arms resume on the same A100.
 - Next action: Publish the repair snapshot, stop the CPU-bound evaluator without terminating the instance, and relaunch the same run ID from the validated step-100 bridge.
+
+### 2026-08-24 13:08 - Exp58 CDS seven-arm gate preregistration
+
+- Hypothesis: The qualitative ranking of current-loss selectors can be tested with higher AUPRC precision on a CDS-specialized model, while frozen final-checkpoint teacher arms distinguish hard token selection from self-distillation.
+- Source: `exp58-animals-r01-1e3682` HF step 1,000; Qwen3 0.6B-class configuration, 256 raw nucleotide tokens, vocabulary size 6, and no BOS or EOS.
+- Teacher: The compatible final HF export at step 16,999 from the same run and tokenizer.
+- Data: `marin-dna/genomes-v4-genome_set-animals-intervals-v5_256_128` revision `04d374450a0f78f0ab5e17a8bc7b7c4baeb8295c`; original exp58 animal-CDS corpus; lowercase targets excluded in every arm.
+- Schedule: Fresh AdamW; one shared 100-step uniform warmup from 1e-5 to 1e-3; then constant 1e-3 for exactly 100 steps in every arm; effective batch 2,048; all arms consume the same 204,800 post-bridge rows.
+- Arms: uniform 100%; random 50%; current-student low, middle, and high 50%; pure `KL(teacher || student)` over every eligible target at temperature 1; and hard CE on the frozen teacher's lowest-NLL 50% targets.
+- Evaluation: Pinned Mendelian train split, pooled missense plus splicing AUPRC as primary; 8,990 rows, 899 positive match groups, one positive and nine negatives per group; report missense and splicing separately.
+- Decision: Synonymous variants are excluded by user direction because their AUPRC is too noisy.
+- Stop: Evaluate the shared bridge and all seven step-100 arm checkpoints, compute paired match-group comparisons to bridge with Holm adjustment across the six nonuniform arms, and return for a continuation decision without running further steps.
+- Validation: 30 focused issue tests passed in 4.06 seconds, including no-BOS alignment, pure teacher KL gradients, teacher-low selection, checkpoint compatibility, retained-cluster launch behavior, resume state, and statistical-gate contracts; peak local RSS was 1,037,220 KiB.
+- Budget: Retain the existing Lambda A100 at $1.99/hour; preserve the original instance-start clock and $48 GPU stop under the authorized $50 all-in cap; CSV remains authoritative and W&B optional.
+- Next action: Publish this amendment to issue #515, snapshot the clean implementation, run remote parity and HBM calibration, and launch only if the measured full gate remains below the compute stop.

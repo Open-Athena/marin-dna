@@ -75,6 +75,9 @@ def launch_command(
     instance_start_unix: int | None = None,
     resume_from_bridge: bool = False,
     publish_only: bool = False,
+    refseq_screen: bool = False,
+    cds_gate: bool = False,
+    down_after_run: bool = True,
 ) -> list[str]:
     if instance_start_unix is None:
         instance_start_unix = int(time.time())
@@ -109,9 +112,15 @@ def launch_command(
         command.extend(["--env", "EXP515_RESUME_FROM_BRIDGE=1"])
     if publish_only:
         command.extend(["--env", "EXP515_PUBLISH_ONLY=1"])
+    if refseq_screen:
+        command.extend(["--env", "EXP515_REFSEQ_SCREEN=1"])
+    if cds_gate:
+        command.extend(["--env", "EXP515_CDS_GATE=1"])
     if retry_until_up:
         command.append("--retry-until-up")
-    command.extend(["--down", "--yes"])
+    if down_after_run:
+        command.append("--down")
+    command.append("--yes")
     return command
 
 
@@ -123,6 +132,8 @@ def main() -> None:
     parser.add_argument("--retry-until-up", action="store_true")
     parser.add_argument("--instance-start-unix", type=int)
     parser.add_argument("--resume-from-bridge", action="store_true")
+    parser.add_argument("--refseq-screen", action="store_true")
+    parser.add_argument("--cds-gate", action="store_true")
     parser.add_argument("--publish-only", action="store_true")
     args = parser.parse_args()
     run_id = args.run_id or f"{args.commit[:12]}-{int(time.time())}"
@@ -135,6 +146,9 @@ def main() -> None:
         include_aws_session_token=bool(environment.get("AWS_SESSION_TOKEN")),
         instance_start_unix=args.instance_start_unix,
         resume_from_bridge=args.resume_from_bridge,
+        refseq_screen=args.refseq_screen,
+        cds_gate=args.cds_gate,
+        down_after_run=not args.cds_gate,
         publish_only=args.publish_only,
     )
     print(" ".join(command))

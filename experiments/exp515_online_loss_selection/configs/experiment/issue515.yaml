@@ -40,12 +40,57 @@ arms:
   student-low-50: {selector_mode: student_low, selector_ratio: 0.5}
   student-middle-50: {selector_mode: student_middle, selector_ratio: 0.5}
   student-high-50: {selector_mode: student_high, selector_ratio: 0.5}
+refseq_screen:
+  dataset:
+    name: marin-dna/genomes-v5-genome_set-animals-intervals-v1_255_128
+    revision: d93209847b02a0c9be5c03591a0a5e56ee09c35d
+    sequence_column: seq
+    species_column: null
+    filter_all_lowercase: true
+  schedule:
+    warmup_steps: 100
+    peak_and_constant_learning_rate: 0.001
+  midpoint_continuation_steps: 250
+  endpoint_continuation_steps: 500
+  midpoint_gate:
+    test: paired_match_group_permutation
+    alternative: candidate_is_worse_than_bridge
+    permutations: 20000
+    correction: holm
+    familywise_alpha: 0.05
+    decision: drop_only_if_significantly_worse
+
+cds_gate:
+  student_checkpoint: gs://marin-dna-us-central1/checkpoints/exp58-animals-r01-1e3682/hf/step-1000
+  teacher_checkpoint: gs://marin-dna-us-central1/checkpoints/exp58-animals-r01-1e3682/hf/step-16999
+  dataset:
+    name: marin-dna/genomes-v4-genome_set-animals-intervals-v5_256_128
+    revision: 04d374450a0f78f0ab5e17a8bc7b7c4baeb8295c
+    sequence_column: seq
+    window_bases: 256
+    bos_token: null
+    filter_all_lowercase: true
+  schedule:
+    warmup_steps: 100
+    arm_steps: 100
+    peak_and_constant_learning_rate: 0.001
+  evaluation:
+    split: train
+    subsets: [missense_variant, splicing]
+    primary: pooled_auprc
+    rows: 8990
+    positives: 899
+  additional_arms:
+    teacher-kl-full: {objective: pure_teacher_kl, temperature: 1.0}
+    teacher-low-50: {objective: hard_ce, selector: frozen_teacher_low, ratio: 0.5}
+  stop: discuss_after_all_seven_arms_reach_100_steps
+
 budget:
   provider: Lambda Cloud
   accelerator: A100:1
   hourly_rate_usd: 1.99
-  gpu_compute_stop_usd: 28
-  all_in_cap_usd: 30
+  gpu_compute_stop_usd: 48
+  all_in_cap_usd: 50
 logging:
   authoritative: csv
   wandb: optional_best_effort

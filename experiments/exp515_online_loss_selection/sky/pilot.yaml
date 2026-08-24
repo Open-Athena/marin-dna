@@ -15,6 +15,8 @@ run: |
   export EXP515_USE_WANDB="${EXP515_USE_WANDB:-0}"
   export EXP515_RESUME_FROM_BRIDGE="${EXP515_RESUME_FROM_BRIDGE:-0}"
   export EXP515_PUBLISH_ONLY="${EXP515_PUBLISH_ONLY:-0}"
+  export EXP515_REFSEQ_SCREEN="${EXP515_REFSEQ_SCREEN:-0}"
+  export EXP515_CDS_GATE="${EXP515_CDS_GATE:-0}"
   cd experiments/exp515_online_loss_selection
   test -n "${EXPERIMENT_COMMIT:-}"
   test -n "${EXP515_RUN_ID:-}"
@@ -24,13 +26,19 @@ run: |
   test -n "${AWS_SECRET_ACCESS_KEY:-}"
   export EXP515_CASE_AUDIT="$PWD/../../.agents/artifacts/515-online-loss-selection/case-distribution-audit.json"
   mkdir -p "$HOME/exp515-artifacts"
-  uv run --locked pytest tests/test_selection.py tests/test_exp515.py
+  uv run --locked pytest tests/test_selection.py tests/test_exp515.py tests/test_significance.py
   resume_args=()
   if [[ "$EXP515_RESUME_FROM_BRIDGE" == "1" ]]; then
     resume_args+=(--resume-from-bridge)
   fi
   if [[ "$EXP515_PUBLISH_ONLY" == "1" ]]; then
     resume_args+=(--publish-only)
+  fi
+  if [[ "$EXP515_REFSEQ_SCREEN" == "1" ]]; then
+    resume_args+=(--refseq-screen)
+  fi
+  if [[ "$EXP515_CDS_GATE" == "1" ]]; then
+    resume_args+=(--cds-gate)
   fi
   uv run --locked python -m glm_experiments.exp515.runner \
     --artifact-dir "$HOME/exp515-artifacts" \

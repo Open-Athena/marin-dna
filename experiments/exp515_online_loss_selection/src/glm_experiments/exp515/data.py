@@ -18,7 +18,6 @@ from transformers import PreTrainedTokenizerBase
 from glm_experiments.data.lm_datamodule import build_soft_mask
 from glm_experiments.exp515.config import (
     NUCLEOTIDE_LENGTH,
-    SEQUENCE_LENGTH,
     SHUFFLE_BUFFER_SIZE,
     TRAIN_DATASET,
     TRAIN_REVISION,
@@ -40,25 +39,47 @@ def sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
-def _training_stream(seed: int) -> Any:
+def _training_stream(
+    seed: int,
+    *,
+    dataset: str = TRAIN_DATASET,
+    revision: str = TRAIN_REVISION,
+) -> Any:
     from datasets import load_dataset
 
     stream = load_dataset(
-        TRAIN_DATASET,
-        revision=TRAIN_REVISION,
+        dataset,
+        revision=revision,
         split="train",
         streaming=True,
     )
     return stream.shuffle(seed=seed, buffer_size=SHUFFLE_BUFFER_SIZE)
 
 
-def _eligible_sequence(sequence: str) -> bool:
-    return len(sequence) == NUCLEOTIDE_LENGTH and any(
-        character.isupper() for character in sequence
+def _eligible_sequence(
+    sequence: str,
+    *,
+    nucleotide_length: int,
+    exclude_first_base: bool,
+) -> bool:
+    targets = sequence[1:] if exclude_first_base else sequence
+    return len(sequence) == nucleotide_length and any(
+        character.isupper() for character in targets
     )
 
 
-def build_sequence_plan(destination: Path, *, rows: int, seed: int) -> dict[str, Any]:
+def build_sequence_plan(
+    destination: Path,
+    *,
+    rows: int,
+    seed: int,
+    dataset: str = TRAIN_DATASET,
+    revision: str = TRAIN_REVISION,
+    text_key: str = TRAIN_TEXT_KEY,
+    species_key: str | None = TRAIN_SPECIES_KEY,
+    nucleotide_length: int = NUCLEOTIDE_LENGTH,
+    exclude_first_base_from_eligibility: bool = False,
+) -> dict[str, Any]:
     """Materialize a compact fixed-width plan shared by every arm."""
 
     if rows <= 0:
@@ -69,6 +90,30 @@ def build_sequence_plan(destination: Path, *, rows: int, seed: int) -> dict[str,
     manifest_path = destination / "manifest.json"
     if manifest_path.exists():
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        expected_identity = {
+            "dataset": dataset,
+            "revision": revision,
+            "text_key": text_key,
+            "species_key": species_key,
+            "nucleotide_length": nucleotide_length,
+            "exclude_first_base_from_eligibility": (
+                exclude_first_base_from_eligibility
+            ),
+        }
+        observed_identity = {
+            "dataset": manifest.get("dataset"),
+            "revision": manifest.get("revision"),
+            "text_key": manifest.get("text_key", TRAIN_TEXT_KEY),
+            "species_key": manifest.get("species_key", TRAIN_SPECIES_KEY),
+            "nucleotide_length": int(
+                manifest.get("nucleotide_length", NUCLEOTIDE_LENGTH)
+            ),
+            "exclude_first_base_from_eligibility": bool(
+                manifest.get("exclude_first_base_from_eligibility", False)
+            ),
+        }
+        if observed_identity != expected_identity:
+            raise ValueError("existing sequence plan uses a different corpus contract")
         if int(manifest["rows"]) < rows:
             raise ValueError("existing sequence plan is shorter than requested")
         validate_sequence_plan(destination)
@@ -78,27 +123,43 @@ def build_sequence_plan(destination: Path, *, rows: int, seed: int) -> dict[str,
     temporary_species = destination / "species.u16.partial"
     species_to_id: dict[str, int] = {}
     filtered_all_lowercase = 0
+    lowercase_bases = 0
+    total_bases = 0
     filtered_wrong_length = 0
     written = 0
     with (
         temporary_sequence.open("wb") as sequence_handle,
         temporary_species.open("wb") as species_handle,
     ):
-        for record in _training_stream(seed):
-            sequence = str(record[TRAIN_TEXT_KEY])
-            if len(sequence) != NUCLEOTIDE_LENGTH:
+        for record in _training_stream(
+            seed,
+            dataset=dataset,
+            revision=revision,
+        ):
+            sequence = str(record[text_key])
+            if len(sequence) != nucleotide_length:
                 filtered_wrong_length += 1
                 continue
-            if not _eligible_sequence(sequence):
+            if not _eligible_sequence(
+                sequence,
+                nucleotide_length=nucleotide_length,
+                exclude_first_base=exclude_first_base_from_eligibility,
+            ):
                 filtered_all_lowercase += 1
                 continue
-            species = str(record[TRAIN_SPECIES_KEY])
+            species = (
+                str(record[species_key])
+                if species_key is not None
+                else "refseq-animals"
+            )
             species_id = species_to_id.setdefault(species, len(species_to_id))
             if species_id >= 2**16:
                 raise ValueError("sequence plan exceeds the uint16 species capacity")
             encoded = sequence.encode("ascii")
-            if len(encoded) != NUCLEOTIDE_LENGTH:
+            if len(encoded) != nucleotide_length:
                 raise ValueError("training sequence is not one-byte ASCII")
+            lowercase_bases += sum(sequence.count(base) for base in "acgt")
+            total_bases += len(sequence)
             sequence_handle.write(encoded)
             species_handle.write(struct.pack("<H", species_id))
             written += 1
@@ -109,15 +170,21 @@ def build_sequence_plan(destination: Path, *, rows: int, seed: int) -> dict[str,
     os.replace(temporary_sequence, sequence_path)
     os.replace(temporary_species, species_path)
     manifest = {
-        "dataset": TRAIN_DATASET,
-        "revision": TRAIN_REVISION,
+        "dataset": dataset,
+        "revision": revision,
+        "text_key": text_key,
+        "species_key": species_key,
         "seed": seed,
         "rows": rows,
-        "nucleotide_length": NUCLEOTIDE_LENGTH,
+        "nucleotide_length": nucleotide_length,
+        "exclude_first_base_from_eligibility": (exclude_first_base_from_eligibility),
         "species": species_to_id,
         "filtered_all_lowercase": filtered_all_lowercase,
         "filtered_wrong_length": filtered_wrong_length,
         "sequences_sha256": sha256_file(sequence_path),
+        "lowercase_bases": lowercase_bases,
+        "total_bases": total_bases,
+        "lowercase_base_fraction": lowercase_bases / total_bases,
         "species_sha256": sha256_file(species_path),
     }
     manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
@@ -151,7 +218,8 @@ def validate_sequence_plan(
     rows = int(manifest["rows"])
     sequence_path = directory / "sequences.bin"
     species_path = directory / "species.u16"
-    if sequence_path.stat().st_size != rows * NUCLEOTIDE_LENGTH:
+    nucleotide_length = int(manifest.get("nucleotide_length", NUCLEOTIDE_LENGTH))
+    if sequence_path.stat().st_size != rows * nucleotide_length:
         raise ValueError("sequence-plan byte length does not match its manifest")
     if species_path.stat().st_size != rows * 2:
         raise ValueError("species-plan byte length does not match its manifest")
@@ -173,6 +241,9 @@ class SequencePlanDataset(Dataset[dict[str, Any]]):
             raise ValueError("sequence-plan view is outside the materialized plan")
         self.start = start
         self.rows = rows
+        self.nucleotide_length = int(
+            self.manifest.get("nucleotide_length", NUCLEOTIDE_LENGTH)
+        )
         self._sequence_handle: Any | None = None
         self._species_handle: Any | None = None
         self._id_to_species = {
@@ -194,8 +265,8 @@ class SequencePlanDataset(Dataset[dict[str, Any]]):
             self._sequence_handle = (self.directory / "sequences.bin").open("rb")
             self._species_handle = (self.directory / "species.u16").open("rb")
         absolute = self.start + index
-        self._sequence_handle.seek(absolute * NUCLEOTIDE_LENGTH)
-        sequence = self._sequence_handle.read(NUCLEOTIDE_LENGTH).decode("ascii")
+        self._sequence_handle.seek(absolute * self.nucleotide_length)
+        sequence = self._sequence_handle.read(self.nucleotide_length).decode("ascii")
         assert self._species_handle is not None
         self._species_handle.seek(absolute * 2)
         species_id = struct.unpack("<H", self._species_handle.read(2))[0]
@@ -207,12 +278,16 @@ class SequencePlanDataset(Dataset[dict[str, Any]]):
 
 
 class SequenceCollator:
-    """Tokenize a plan batch and align source-case flags after one BOS."""
+    """Tokenize a plan batch and align source-case flags with optional BOS."""
 
-    def __init__(self, tokenizer: PreTrainedTokenizerBase) -> None:
-        if tokenizer.bos_token_id is None:
-            raise ValueError("checkpoint tokenizer must define a BOS token")
+    def __init__(
+        self,
+        tokenizer: PreTrainedTokenizerBase,
+        *,
+        nucleotide_length: int = NUCLEOTIDE_LENGTH,
+    ) -> None:
         self.tokenizer = tokenizer
+        self.nucleotide_length = nucleotide_length
 
     def __call__(self, rows: Sequence[dict[str, Any]]) -> dict[str, Any]:
         sequences = [str(row["sequence"]) for row in rows]
@@ -225,7 +300,8 @@ class SequenceCollator:
         )
         input_ids = encoded["input_ids"].long()
         attention_mask = encoded["attention_mask"].bool()
-        expected = (len(rows), SEQUENCE_LENGTH)
+        prefix_tokens = int(self.tokenizer.bos_token_id is not None)
+        expected = (len(rows), self.nucleotide_length + prefix_tokens)
         if tuple(input_ids.shape) != expected:
             raise ValueError(
                 f"tokenized plan batch has shape {tuple(input_ids.shape)}, expected {expected}"
@@ -233,8 +309,12 @@ class SequenceCollator:
         soft_masked = build_soft_mask(
             sequences,
             input_ids,
-            bos_token_id=int(self.tokenizer.bos_token_id),
-            require_leading_bos=True,
+            bos_token_id=(
+                int(self.tokenizer.bos_token_id)
+                if self.tokenizer.bos_token_id is not None
+                else None
+            ),
+            require_leading_bos=self.tokenizer.bos_token_id is not None,
         )
         return {
             "input_ids": input_ids,

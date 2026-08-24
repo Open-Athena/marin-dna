@@ -4,10 +4,11 @@ from __future__ import annotations
 
 import math
 import random
-from typing import Any
+from typing import Any, Literal
 
 import numpy as np
 import torch
+import torch.nn.functional as F
 from lightning import LightningModule
 from lightning.pytorch.utilities import grad_norm
 
@@ -19,9 +20,12 @@ from glm_experiments.exp515.config import (
     EPSILON,
     PEAK_LEARNING_RATE,
     WEIGHT_DECAY,
+    ObjectiveKind,
 )
 from glm_experiments.models.components.lm import HFCLM
-from glm_experiments.models.components.selection import SelectorMode
+from glm_experiments.models.components.selection import SelectorMode, select_token_mask
+
+ScheduleKind = Literal["warmup_cosine", "warmup_constant"]
 
 
 def learning_rate_factor(step: int, continuation_steps: int) -> float:
@@ -39,6 +43,14 @@ def learning_rate_factor(step: int, continuation_steps: int) -> float:
     )
 
 
+def constant_after_warmup_learning_rate_factor(step: int) -> float:
+    """Warm through the bridge, then hold the peak learning rate."""
+
+    if step < BRIDGE_STEPS:
+        return (step + 1) / BRIDGE_STEPS
+    return 1.0
+
+
 class Exp515Module(LightningModule):
     """HF Qwen3 CLM trained through the registered token selector."""
 
@@ -50,6 +62,9 @@ class Exp515Module(LightningModule):
         plan_sha256: str,
         selector_mode: SelectorMode,
         selector_ratio: float,
+        objective_kind: ObjectiveKind = "hard_ce",
+        teacher_checkpoint: str | None = None,
+        schedule_kind: ScheduleKind = "warmup_cosine",
         effective_batch_size: int = EFFECTIVE_BATCH_SIZE,
     ) -> None:
         super().__init__()
@@ -59,16 +74,154 @@ class Exp515Module(LightningModule):
         self.plan_sha256 = plan_sha256
         self.selector_mode = selector_mode
         self.selector_ratio = selector_ratio
+        self.objective_kind = objective_kind
+        self.teacher_checkpoint = teacher_checkpoint
+        self.schedule_kind = schedule_kind
         self.effective_batch_size = effective_batch_size
         self.last_selector_diagnostics: dict[str, torch.Tensor] | None = None
         self.zero_eligible_batches = 0
         self.gradient_clip_events = 0
         self.optimizer_steps_seen = 0
         self.selected_target_tokens = 0
+        self._teacher_net: HFCLM | None = None
+
+        if objective_kind == "hard_ce" and teacher_checkpoint is not None:
+            raise ValueError("hard-CE objective must not load a teacher")
+        if objective_kind != "hard_ce" and teacher_checkpoint is None:
+            raise ValueError("teacher objective requires a checkpoint")
+
+    def on_fit_start(self) -> None:
+        """Load a frozen teacher without registering it in student checkpoints."""
+
+        if self.objective_kind == "hard_ce":
+            return
+        assert self.teacher_checkpoint is not None
+        teacher = HFCLM(
+            self.teacher_checkpoint,
+            torch_dtype="bfloat16",
+            selector_enabled=False,
+        )
+        teacher.requires_grad_(False)
+        teacher.eval()
+        teacher.to(self.device)
+        object.__setattr__(self, "_teacher_net", teacher)
+
+    @staticmethod
+    def _masked_mean(values: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
+        denominator = mask.sum().clamp_min(1)
+        return values.masked_select(mask).sum() / denominator
+
+    @staticmethod
+    def _teacher_selection_thresholds(
+        teacher_loss: torch.Tensor,
+        eligible: torch.Tensor,
+        selected: torch.Tensor,
+    ) -> torch.Tensor:
+        bounds = torch.full(
+            (teacher_loss.shape[0], 2),
+            torch.nan,
+            device=teacher_loss.device,
+            dtype=teacher_loss.dtype,
+        )
+        selected_loss = teacher_loss.masked_fill(~(selected & eligible), float("inf"))
+        bounds[:, 0] = selected_loss.amin(dim=1)
+        bounds[:, 1] = teacher_loss.masked_fill(
+            ~(selected & eligible),
+            float("-inf"),
+        ).amax(dim=1)
+        bounds.masked_fill_(~selected.any(dim=1, keepdim=True), torch.nan)
+        return bounds
+
+    def _teacher_result(
+        self,
+        batch: dict[str, torch.Tensor],
+    ) -> dict[str, torch.Tensor]:
+        """Compute pure teacher KL or hard CE on frozen-teacher low-loss targets."""
+
+        teacher = self._teacher_net
+        if teacher is None:
+            raise RuntimeError("teacher was not loaded before the training step")
+        student_logits = self.net.get_logits(
+            batch["input_ids"],
+            attention_mask=batch["attention_mask"],
+        )[:, :-1]
+        with torch.no_grad():
+            teacher_logits = teacher.get_logits(
+                batch["input_ids"],
+                attention_mask=batch["attention_mask"],
+            )[:, :-1]
+        labels = batch["labels"][:, 1:].long()
+        valid = (labels != -100) & batch["attention_mask"][:, 1:].bool()
+        eligible = valid & ~batch["soft_masked"][:, 1:].bool()
+        teacher_ce = F.cross_entropy(
+            teacher_logits.transpose(1, 2).float(),
+            labels,
+            reduction="none",
+            ignore_index=-100,
+        )
+        student_ce = F.cross_entropy(
+            student_logits.transpose(1, 2).float(),
+            labels,
+            reduction="none",
+            ignore_index=-100,
+        )
+        if self.objective_kind == "teacher_kl":
+            teacher_log_prob = F.log_softmax(teacher_logits.float(), dim=-1)
+            teacher_prob = teacher_log_prob.exp()
+            student_log_prob = F.log_softmax(student_logits.float(), dim=-1)
+            loss_per_token = (teacher_prob * (teacher_log_prob - student_log_prob)).sum(
+                dim=-1
+            )
+            selected = eligible
+            thresholds = torch.full(
+                (labels.shape[0], 2),
+                torch.nan,
+                device=labels.device,
+                dtype=loss_per_token.dtype,
+            )
+        elif self.objective_kind == "teacher_low":
+            loss_per_token = student_ce
+            selected = select_token_mask(
+                teacher_ce,
+                eligible,
+                mode="student_low",
+                ratio=self.selector_ratio,
+            )
+            thresholds = self._teacher_selection_thresholds(
+                teacher_ce,
+                eligible,
+                selected,
+            )
+        else:
+            raise ValueError(f"unexpected objective {self.objective_kind!r}")
+        unselected = eligible & ~selected
+        return {
+            "loss": self._masked_mean(loss_per_token, selected),
+            "loss_full": self._masked_mean(loss_per_token, valid),
+            "loss_non_soft_masked": self._masked_mean(loss_per_token, eligible),
+            "loss_selected": self._masked_mean(loss_per_token, selected),
+            "loss_unselected": self._masked_mean(loss_per_token, unselected),
+            "loss_per_token": loss_per_token,
+            "aligned_labels": labels,
+            "eligible_mask": eligible,
+            "selected_mask": selected,
+            "unselected_mask": unselected,
+            "selection_thresholds": thresholds,
+            "eligible_count": eligible.sum(),
+            "selected_count": selected.sum(),
+            "unselected_count": unselected.sum(),
+        }
+
+    def release_teacher(self) -> None:
+        """Release the unregistered frozen teacher before evaluation/checkpoint return."""
+
+        object.__setattr__(self, "_teacher_net", None)
 
     def forward(self, batch: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
         """Compute selection and loss with no extra diagnostic forward."""
 
+        if self.objective_kind != "hard_ce":
+            return self._teacher_result(batch)
         return self.net(
             input_ids=batch["input_ids"],
             labels=batch["labels"],
@@ -135,8 +288,16 @@ class Exp515Module(LightningModule):
     def configure_optimizers(self) -> dict[str, Any]:
         """Create the registered fresh AdamW state and shared schedule."""
 
+        if self.schedule_kind == "warmup_constant":
+            learning_rate_lambda = constant_after_warmup_learning_rate_factor
+        else:
+            learning_rate_lambda = lambda step: learning_rate_factor(
+                step,
+                self.continuation_steps,
+            )
+
         optimizer = torch.optim.AdamW(
-            self.parameters(),
+            self.net.parameters(),
             lr=PEAK_LEARNING_RATE,
             betas=BETAS,
             eps=EPSILON,
@@ -144,7 +305,7 @@ class Exp515Module(LightningModule):
         )
         scheduler = torch.optim.lr_scheduler.LambdaLR(
             optimizer,
-            lr_lambda=lambda step: learning_rate_factor(step, self.continuation_steps),
+            lr_lambda=learning_rate_lambda,
         )
         return {
             "optimizer": optimizer,
@@ -155,7 +316,7 @@ class Exp515Module(LightningModule):
         """Record the pre-clip norm and clipping frequency."""
 
         del optimizer
-        total = grad_norm(self, norm_type=2)["grad_2.0_norm_total"]
+        total = grad_norm(self.net, norm_type=2)["grad_2.0_norm_total"]
         if not bool(torch.isfinite(total).detach()):
             raise FloatingPointError("issue #515 gradient norm is non-finite")
         clipped = float(total) > 1.0
@@ -178,6 +339,8 @@ class Exp515Module(LightningModule):
             "effective_batch_size": self.effective_batch_size,
             "selector_mode": self.selector_mode,
             "selector_ratio": self.selector_ratio,
+            "objective_kind": self.objective_kind,
+            "teacher_checkpoint": self.teacher_checkpoint,
             "zero_eligible_batches": self.zero_eligible_batches,
             "gradient_clip_events": self.gradient_clip_events,
             "optimizer_steps_seen": self.optimizer_steps_seen,

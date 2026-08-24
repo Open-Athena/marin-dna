@@ -19,21 +19,29 @@ from glm_experiments.exp515.config import (
     ALL_IN_CAP_USD,
     BRIDGE_STEPS,
     CANARY_STEPS,
+    CDS_ARMS,
     EFFECTIVE_BATCH_SIZE,
     GPU_COMPUTE_CAP_USD,
     GPU_PRICE_PER_HOUR_USD,
     NUCLEOTIDE_LENGTH,
 )
 from glm_experiments.exp515.data import (
+    SequenceCollator,
     SequencePlanDataset,
+    _eligible_sequence,
     sha256_file,
     validate_sequence_plan,
 )
 from glm_experiments.exp515.diagnostics import selector_composition_counts
 from glm_experiments.exp515.evaluation import _prepare_model_for_evaluation
-from glm_experiments.exp515.module import learning_rate_factor
+from glm_experiments.exp515.module import (
+    Exp515Module,
+    constant_after_warmup_learning_rate_factor,
+    learning_rate_factor,
+)
 from glm_experiments.exp515.runner import (
     _archive_precompletion_failure,
+    _checkpoint_contract,
     _completed_bridge_state,
     _retain_for_publication,
     _selector_device_smoke,
@@ -44,6 +52,7 @@ from glm_experiments.exp515.storage import (
 )
 from glm_experiments.models.components.lm import CLM
 from glm_experiments.models.components.selection import TokenSelector
+from launch import launch_command
 
 
 class IdentityEncoder(nn.Identity):
@@ -56,6 +65,39 @@ class FakeTokenizer:
     def encode(self, text: str) -> list[int]:
         lookup = {"A": 3, "C": 4, "G": 5, "T": 6}
         return [2, *(lookup[value] for value in text)]
+
+
+class FakeNoBosTokenizer:
+    bos_token_id = None
+
+    def __call__(self, sequences, **kwargs):
+        del kwargs
+        lookup = {"a": 2, "c": 3, "g": 4, "t": 5}
+        input_ids = torch.tensor(
+            [[lookup[value.lower()] for value in sequence] for sequence in sequences]
+        )
+        return {
+            "input_ids": input_ids,
+            "attention_mask": torch.ones_like(input_ids),
+        }
+
+
+class FixedLogitNet(nn.Module):
+    def __init__(self, logits: list[float]) -> None:
+        super().__init__()
+        self.logits = nn.Parameter(torch.tensor(logits))
+
+    def get_logits(
+        self,
+        input_ids: torch.Tensor,
+        attention_mask: torch.Tensor | None = None,
+    ) -> torch.Tensor:
+        del attention_mask
+        return self.logits.view(1, 1, -1).expand(
+            input_ids.shape[0],
+            input_ids.shape[1],
+            -1,
+        )
 
 
 class FakeGenome:
@@ -103,6 +145,82 @@ def test_bos_repeat_alignment_and_all_lowercase_filter() -> None:
             bos_token_id=2,
             require_leading_bos=True,
         )
+
+
+def test_no_bos_collator_preserves_256_base_alignment() -> None:
+    collator = SequenceCollator(
+        FakeNoBosTokenizer(),  # type: ignore[arg-type]
+        nucleotide_length=4,
+    )
+    batch = collator([{"sample_id": 7, "sequence": "ACgT", "species": "animals"}])
+    assert batch["input_ids"].tolist() == [[2, 3, 4, 5]]
+    assert batch["soft_masked"].tolist() == [[False, False, True, False]]
+    assert batch["sample_ids"].tolist() == [7]
+    assert not _eligible_sequence(
+        "Aaaa",
+        nucleotide_length=4,
+        exclude_first_base=True,
+    )
+    assert _eligible_sequence(
+        "aAaa",
+        nucleotide_length=4,
+        exclude_first_base=True,
+    )
+
+
+def test_teacher_kl_and_teacher_low_objectives() -> None:
+    batch = {
+        "input_ids": torch.tensor([[2, 2, 3, 4]]),
+        "labels": torch.tensor([[2, 2, 3, 4]]),
+        "attention_mask": torch.ones((1, 4), dtype=torch.bool),
+        "soft_masked": torch.zeros((1, 4), dtype=torch.bool),
+    }
+    teacher = FixedLogitNet([0.0, 0.0, 3.0, 1.0, -1.0, -2.0])
+    student = FixedLogitNet([0.0] * 6)
+    distillation = Exp515Module(
+        student,  # type: ignore[arg-type]
+        continuation_steps=100,
+        plan_sha256="plan",
+        selector_mode="uniform",
+        selector_ratio=1.0,
+        objective_kind="teacher_kl",
+        teacher_checkpoint="teacher",
+    )
+    object.__setattr__(distillation, "_teacher_net", teacher)
+    result = distillation.forward(batch)
+    assert torch.equal(result["selected_mask"], result["eligible_mask"])
+    assert float(result["loss"]) >= -1e-6
+    result["loss"].backward()
+    assert student.logits.grad is not None
+    assert teacher.logits.grad is None
+
+    teacher_low = Exp515Module(
+        FixedLogitNet([0.0] * 6),  # type: ignore[arg-type]
+        continuation_steps=100,
+        plan_sha256="plan",
+        selector_mode="uniform",
+        selector_ratio=0.5,
+        objective_kind="teacher_low",
+        teacher_checkpoint="teacher",
+    )
+    object.__setattr__(teacher_low, "_teacher_net", teacher)
+    selected = teacher_low.forward(batch)["selected_mask"]
+    assert selected.tolist() == [[True, False, False]]
+
+
+def test_exp58_checkpoint_contract_requires_identical_tokenizer(tmp_path: Path) -> None:
+    student = tmp_path / "student"
+    teacher = tmp_path / "teacher"
+    student.mkdir()
+    teacher.mkdir()
+    config = {"model_type": "qwen3", "vocab_size": 6, "bos_token_id": None}
+    for directory in (student, teacher):
+        (directory / "config.json").write_text(json.dumps(config))
+        (directory / "tokenizer.json").write_text('{"vocab": 6}')
+    assert _checkpoint_contract(student, teacher)["passed"] is True
+    (teacher / "tokenizer.json").write_text('{"vocab": 7}')
+    with pytest.raises(ValueError, match="contract mismatch"):
+        _checkpoint_contract(student, teacher)
 
 
 def test_odd_clm_transform_uses_one_based_boundary_and_one_bos() -> None:
@@ -226,14 +344,37 @@ def test_registered_schedule_and_data_position_contract() -> None:
     assert learning_rate_factor(99, 1000) == pytest.approx(1.0)
     assert learning_rate_factor(100, 1000) == pytest.approx(1.0)
     assert learning_rate_factor(1100, 1000) == pytest.approx(0.1)
+    assert constant_after_warmup_learning_rate_factor(0) == pytest.approx(0.01)
+    assert constant_after_warmup_learning_rate_factor(99) == pytest.approx(1.0)
+    assert constant_after_warmup_learning_rate_factor(100) == pytest.approx(1.0)
+    assert constant_after_warmup_learning_rate_factor(600) == pytest.approx(1.0)
     assert 100 * EFFECTIVE_BATCH_SIZE == 204_800
+    assert len(CDS_ARMS) == 7
+    assert [arm.objective_kind for arm in CDS_ARMS[-2:]] == [
+        "teacher_kl",
+        "teacher_low",
+    ]
 
 
 def test_registered_hardware_and_budget_contract() -> None:
     assert ACCELERATOR == "A100:1"
     assert GPU_PRICE_PER_HOUR_USD == 1.99
-    assert GPU_COMPUTE_CAP_USD == 28.0
-    assert ALL_IN_CAP_USD == 30.0
+    assert GPU_COMPUTE_CAP_USD == 48.0
+    assert ALL_IN_CAP_USD == 50.0
+
+
+def test_cds_launch_retains_cluster_and_sets_gate_flag() -> None:
+    command = launch_command(
+        "a" * 40,
+        "cds-gate",
+        retry_until_up=False,
+        instance_start_unix=1,
+        cds_gate=True,
+        down_after_run=False,
+    )
+    assert "EXP515_CDS_GATE=1" in command
+    assert "--down" not in command
+    assert command[-1] == "--yes"
 
 
 def test_composition_diagnostics_cover_registered_dimensions() -> None:
@@ -269,6 +410,7 @@ def test_issue_storage_prefix_is_scoped_and_versioned() -> None:
 
 def test_publication_retains_evidence_but_excludes_reproducible_caches() -> None:
     assert not _retain_for_publication(Path("source-checkpoint/model.safetensors"))
+    assert not _retain_for_publication(Path("teacher-checkpoint/model.safetensors"))
     assert not _retain_for_publication(Path("evaluation-cache/reference.fa.gz"))
     assert not _retain_for_publication(Path("canary-20/step-20.ckpt"))
     assert not _retain_for_publication(Path("sequence-plan/sequences.bin"))

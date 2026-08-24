@@ -71,10 +71,16 @@ def download_reference(destination: Path) -> Path:
     return paths[REFERENCE_FASTA]
 
 
-def load_promoter_frame(cache_dir: Path) -> pd.DataFrame:
-    """Load the newer pinned Mendelian endpoint and attach 255-bp windows."""
+def load_promoter_frame(
+    cache_dir: Path,
+    *,
+    subsets: tuple[str, ...] = ("tss_proximal",),
+    nucleotide_length: int = NUCLEOTIDE_LENGTH,
+) -> pd.DataFrame:
+    """Load pinned Mendelian subsets and attach reference-centered windows."""
 
-    cached = cache_dir / "mendelian_tss_proximal_255.parquet"
+    subset_slug = "-".join(subsets)
+    cached = cache_dir / f"mendelian_{subset_slug}_{nucleotide_length}.parquet"
     if cached.exists():
         return pd.read_parquet(cached)
     dataset_path = hf_hub_download(
@@ -93,31 +99,31 @@ def load_promoter_frame(cache_dir: Path) -> pd.DataFrame:
     )
     if mature_groups:
         frame = frame.loc[~frame["match_group"].isin(mature_groups)]
-    frame = frame.loc[frame["subset"] == "tss_proximal"].copy()
+    frame = frame.loc[frame["subset"].isin(subsets)].copy()
     frame["chrom"] = frame["chrom"].astype(str)
     frame["ref"] = frame["ref"].str.upper()
     frame["alt"] = frame["alt"].str.upper()
     if frame.empty or frame["label"].nunique() != 2:
-        raise ValueError("Mendelian TSS-proximal endpoint is empty or one-class")
+        raise ValueError("Mendelian endpoint is empty or one-class")
     if (
         not frame["ref"].isin(list("ACGT")).all()
         or not frame["alt"].isin(list("ACGT")).all()
     ):
-        raise ValueError("Mendelian TSS-proximal endpoint contains non-SNV alleles")
+        raise ValueError("Mendelian endpoint contains non-SNV alleles")
 
     fasta_path = download_reference(cache_dir / "reference")
-    center = NUCLEOTIDE_LENGTH // 2
+    center = nucleotide_length // 2
     sequences: list[str] = []
     with Fasta(fasta_path, as_raw=True, rebuild=False) as genome:
         names = set(genome.keys())
         for row in frame.itertuples(index=False):
             center_zero_based = int(row.pos) - 1
             start = center_zero_based - center
-            end = start + NUCLEOTIDE_LENGTH
+            end = start + nucleotide_length
             if row.chrom not in names or start < 0 or end > len(genome[row.chrom]):
                 raise ValueError(f"variant window is outside {row.chrom}:{start}-{end}")
             sequence = str(genome[row.chrom][start:end]).upper()
-            if len(sequence) != NUCLEOTIDE_LENGTH:
+            if len(sequence) != nucleotide_length:
                 raise ValueError(f"short reference window at {row.chrom}:{start}-{end}")
             if sequence[center] != row.ref:
                 raise ValueError(
@@ -164,13 +170,15 @@ def evaluate_promoter_auprc(
     output_path: Path,
     batch_size: int,
     checkpoint_name: str,
+    nucleotide_length: int = NUCLEOTIDE_LENGTH,
+    sequence_length: int = SEQUENCE_LENGTH,
 ) -> dict[str, Any]:
     """Score the exact ref/alt endpoint and write per-variant CSV evidence."""
 
     if batch_size <= 0:
         raise ValueError("evaluation batch size must be positive")
     device = _prepare_model_for_evaluation(model)
-    center = NUCLEOTIDE_LENGTH // 2
+    center = nucleotide_length // 2
     scores = np.empty(len(frame), dtype=np.float32)
     started = time.time()
     for start in range(0, len(frame), batch_size):
@@ -193,7 +201,7 @@ def evaluate_promoter_auprc(
         )
         input_ids = encoded["input_ids"].to(device)
         attention_mask = encoded["attention_mask"].to(device)
-        if input_ids.shape[1] != SEQUENCE_LENGTH:
+        if input_ids.shape[1] != sequence_length:
             raise ValueError(f"evaluation produced {input_ids.shape[1]} tokens")
         with (
             torch.autocast(device_type="cuda", dtype=torch.bfloat16)
@@ -211,11 +219,26 @@ def evaluate_promoter_auprc(
         raise RuntimeError("Mendelian promoter evaluation produced non-finite scores")
     transformed = -scores
     auprc = float(average_precision_score(frame["label"].astype(int), transformed))
-    result_frame = frame[["chrom", "pos", "ref", "alt", "label", "match_group"]].copy()
+    result_frame = frame[
+        ["chrom", "pos", "ref", "alt", "label", "match_group", "subset"]
+    ].copy()
     result_frame["raw_alt_minus_ref_llr"] = scores
     result_frame["minus_llr_score"] = transformed
     output_path.parent.mkdir(parents=True, exist_ok=True)
     result_frame.to_csv(output_path, index=False)
+    by_subset = {
+        str(subset): {
+            "rows": len(group),
+            "positives": int(group["label"].sum()),
+            "auprc": float(
+                average_precision_score(
+                    group["label"].astype(int),
+                    transformed[group.index.to_numpy()],
+                )
+            ),
+        }
+        for subset, group in frame.reset_index(drop=True).groupby("subset")
+    }
     summary = {
         "checkpoint": checkpoint_name,
         "dataset": EVAL_DATASET,
@@ -223,6 +246,7 @@ def evaluate_promoter_auprc(
         "rows": len(frame),
         "positives": int(frame["label"].sum()),
         "auprc": auprc,
+        "subsets": by_subset,
         "elapsed_seconds": time.time() - started,
         "scores_csv": str(output_path),
         "scores_sha256": _sha256(output_path),

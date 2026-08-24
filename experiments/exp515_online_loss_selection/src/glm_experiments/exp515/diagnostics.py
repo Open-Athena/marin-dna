@@ -54,8 +54,16 @@ def _repeat_boundary_buckets(soft_masked: torch.Tensor) -> torch.Tensor:
     return result
 
 
-def _local_gc_buckets(target_ids: torch.Tensor) -> torch.Tensor:
-    gc = ((target_ids == 4) | (target_ids == 5)).float().unsqueeze(1)
+def _local_gc_buckets(
+    target_ids: torch.Tensor,
+    *,
+    gc_token_ids: tuple[int, int],
+) -> torch.Tensor:
+    gc = (
+        ((target_ids == gc_token_ids[0]) | (target_ids == gc_token_ids[1]))
+        .float()
+        .unsqueeze(1)
+    )
     fractions = F.avg_pool1d(
         gc,
         kernel_size=21,
@@ -66,9 +74,13 @@ def _local_gc_buckets(target_ids: torch.Tensor) -> torch.Tensor:
     return torch.clamp((fractions * 10).floor().long(), max=9)
 
 
-def _sevenmer_frequency_buckets(target_ids: torch.Tensor) -> torch.Tensor:
+def _sevenmer_frequency_buckets(
+    target_ids: torch.Tensor,
+    *,
+    nucleotide_token_ids: tuple[int, int, int, int],
+) -> torch.Tensor:
     digits = torch.full_like(target_ids, -1)
-    for digit, token_id in enumerate((3, 4, 5, 6)):
+    for digit, token_id in enumerate(nucleotide_token_ids):
         digits[target_ids == token_id] = digit
     result = torch.zeros_like(target_ids)
     if target_ids.shape[1] < 7:
@@ -98,6 +110,8 @@ def _sevenmer_frequency_buckets(target_ids: torch.Tensor) -> torch.Tensor:
 
 def selector_composition_counts(
     diagnostic: dict[str, torch.Tensor],
+    *,
+    nucleotide_token_ids: dict[str, int] | None = None,
 ) -> dict[CountKey, list[int]]:
     """Summarize selection composition from detached current-batch tensors."""
 
@@ -107,6 +121,9 @@ def selector_composition_counts(
     target_soft_masked = diagnostic["soft_masked"][:, 1:].bool().cpu()
     if eligible.shape != target_ids.shape or selected.shape != target_ids.shape:
         raise ValueError("selector diagnostics have inconsistent causal alignment")
+    token_ids = nucleotide_token_ids or {"A": 3, "C": 4, "G": 5, "T": 6}
+    if set(token_ids) != set("ACGT") or len(set(token_ids.values())) != 4:
+        raise ValueError("nucleotide token IDs must map distinct A/C/G/T tokens")
     counts: dict[CountKey, list[int]] = defaultdict(lambda: [0, 0])
     _add_grouped(
         counts,
@@ -114,7 +131,7 @@ def selector_composition_counts(
         target_ids,
         eligible,
         selected,
-        {3: "A", 4: "C", 5: "G", 6: "T"},
+        {identifier: base for base, identifier in token_ids.items()},
     )
     positions = torch.arange(1, target_ids.shape[1] + 1).expand_as(target_ids)
     _add_grouped(
@@ -136,7 +153,10 @@ def selector_composition_counts(
     _add_grouped(
         counts,
         "local_gc_fraction",
-        _local_gc_buckets(target_ids),
+        _local_gc_buckets(
+            target_ids,
+            gc_token_ids=(token_ids["C"], token_ids["G"]),
+        ),
         eligible,
         selected,
         {index: f"{index / 10:.1f}-{(index + 1) / 10:.1f}" for index in range(10)},
@@ -144,7 +164,10 @@ def selector_composition_counts(
     _add_grouped(
         counts,
         "local_7mer_frequency",
-        _sevenmer_frequency_buckets(target_ids),
+        _sevenmer_frequency_buckets(
+            target_ids,
+            nucleotide_token_ids=tuple(token_ids[base] for base in "ACGT"),
+        ),
         eligible,
         selected,
         {0: "edge_or_noncanonical", 1: "1", 2: "2-3", 3: "4-7", 4: "8+"},
@@ -165,12 +188,21 @@ def _append_csv(path: Path, fieldnames: list[str], rows: list[dict[str, Any]]) -
 class Exp515Diagnostics(Callback):
     """Write authoritative CSV diagnostics and enforce the compute stop."""
 
-    def __init__(self, output_dir: Path, *, every_n_steps: int = 10) -> None:
+    def __init__(
+        self,
+        output_dir: Path,
+        *,
+        every_n_steps: int = 10,
+        sequence_length: int = SEQUENCE_LENGTH,
+        nucleotide_token_ids: dict[str, int] | None = None,
+    ) -> None:
         super().__init__()
         if every_n_steps <= 0:
             raise ValueError("every_n_steps must be positive")
         self.output_dir = output_dir
         self.every_n_steps = every_n_steps
+        self.sequence_length = sequence_length
+        self.nucleotide_token_ids = nucleotide_token_ids
         self._last_step: int | None = None
         self._last_resource_step: int | None = None
         self._starting_step = 0
@@ -233,7 +265,10 @@ class Exp515Diagnostics(Callback):
         self._last_step = step
         diagnostic = getattr(pl_module, "last_selector_diagnostics", None)
         if step > 0 and step % self.every_n_steps == 0 and diagnostic is not None:
-            observed = selector_composition_counts(diagnostic)
+            observed = selector_composition_counts(
+                diagnostic,
+                nucleotide_token_ids=self.nucleotide_token_ids,
+            )
             for key, values in observed.items():
                 self._counts[key][0] += values[0]
                 self._counts[key][1] += values[1]
@@ -266,10 +301,10 @@ class Exp515Diagnostics(Callback):
                         "wall_seconds": wall,
                         "processed_input_tokens": phase_steps
                         * EFFECTIVE_BATCH_SIZE
-                        * SEQUENCE_LENGTH,
+                        * self.sequence_length,
                         "input_tokens_per_second": phase_steps
                         * EFFECTIVE_BATCH_SIZE
-                        * SEQUENCE_LENGTH
+                        * self.sequence_length
                         / max(wall, 1e-9),
                         "peak_memory_bytes": peak_memory,
                         "estimated_compute_cost_usd": compute_cost,
