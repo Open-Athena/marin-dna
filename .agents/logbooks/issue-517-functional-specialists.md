@@ -18,10 +18,11 @@ author: gonzalobenegas
 
 ## Current TL;DR
 
-The additive Ensembl release 115 functional-anchor workflow passes all 238 locked pipeline tests and the expanded 68-job preprojection DAG check.
-PR #518 is a draft record for a long-lived experiment branch.
-Paid projection, five-arm training, and development-only evaluation are approved; public dataset publication and held-out even-autosome/Y evaluation remain unapproved.
-The first complete anchor build succeeded, exposed missing issue-mandated audit tables, and is provisional until the corrected audit snapshot is materialized and reviewed.
+The exact publication producer `d06519ab` reproduced the approved complete Ensembl release 115 audit and passed the real cross-backend smoke.
+The 90-job final smoke completed both HAL and MultiZ paths, and every QC, anchor, sequence, and split artifact is byte-identical to the row-validated smoke.
+PR #518 remains a draft record for a long-lived experiment branch rather than a merge proposal.
+Paid projection, public Hugging Face publication, five-arm training, and development-only evaluation are approved; held-out even-autosome/Y evaluation remains unapproved.
+Training is Hugging Face-only at immutable public dataset revisions; S3 is workflow-owned producer storage only.
 
 ## Baseline
 
@@ -40,8 +41,7 @@ The first complete anchor build succeeded, exposed missing issue-mandated audit 
 
 ### Blocked
 
-- `FAS-517-PUBLISH`: Hugging Face publication requires explicit approval after projection QC and card review.
-  Resume when: projection QC passes and immutable cards are ready.
+None.
 
 ### Falsified / Dead End
 
@@ -247,3 +247,31 @@ Its current anchor path instead creates uniform conservation-selected windows an
 - Interpretation: The 13.79% CDS ownership loss is material but exactly reconciled, low-purity by construction, and broadly distributed rather than biologically concentrated.
   The corrected preprojection audit passes without weakening the fixed gate.
 - Next action: Run the real cross-backend smoke, then the full bundled projection if smoke accounting and sequence invariants pass.
+
+### 2026-08-24 19:45 UTC - `FAS-517-006` exact publication producer and cross-backend smoke pass
+
+- Hypothesis: The final publication producer reproduces the reviewed complete Ensembl audit and exercises both real projection backends before the full bundled projection.
+- SHA correction: The exact corrected-audit commit is `713a6538f798761c5186520bc7c6823cae73c8bc`.
+  Entries `FAS-517-004` and `FAS-517-005` and the corresponding progress comment expanded the abbreviated `713a6538` incorrectly as `713a653873511138389133319910259133b84785`.
+  That incorrect string was used only as the old smoke's isolated producer namespace; the underlying checked-out code was the expected experiment branch, and the final audit and final smoke below use an exact locally resolved commit.
+- Final producer: `d06519abc5dc2c6c14d4c9765057a6a363305ee5`.
+  The full-tier config SHA-256 is `b7e3206e01f39ef85277e690ea1c82525e2e9a16d286cf662d810b7525c5908f` and the smoke-tier config SHA-256 is `a903698a0564180f24a7e52d3d03da2b748a90a11a7d77312b77b9e4c07adb40`.
+- Final audit: Sky job 5 completed all 68 jobs in 4 minutes 57 seconds.
+  It exactly reproduced the reviewed projection counts of 205,131 CDS, 83,766 3′ UTR, 64,349 TSS-region, 48,982 ncRNA, and 202,452 enhancer anchors and the nested training counts of 188,830, 52,099, 37,608, 28,815, and 117,010.
+- Final smoke: Sky job 6 completed all 90 jobs in 17 minutes 52 seconds on the retained AWS `c6id.12xlarge`.
+  It exercised Ensembl 115 and cCRE V4 anchor construction on chromosomes 7 and 18, center-1 HAL projection to mouse and elephant, MultiZ projection to five non-mammal clades, target twoBit compatibility, both strands, sequence extraction, QC, five arm splits, and final public-Hub cards.
+- Smoke reconciliation: Each arm contributes 10 projection anchors and eight ≥20% training anchors.
+  The 350 requested anchor-species cells reconcile exactly as accepted plus no-mapping, with no other rejection reason.
+  The five arm acceptance totals are 52 CDS, 24 3′ UTR, 32 TSS-region, 33 ncRNA, and 25 enhancer projections.
+- Sequence contracts: All 216 emitted rows are valid 255-base IUPAC sequences with exact in-bounds 255-base target spans and human-anchor orientation; 135 are target-forward and 81 are target-reverse.
+  Seven projected rows contain 200 `N` bases in total, or 0.363% of 55,080 emitted bases, with a maximum single-row ambiguous fraction of 75.69%.
+  This is preserved source assembly content and maps through the maintained tokenizer unknown token.
+- Training and split contracts: The ≥20% catalog yields 180 original-orientation training-eligible source rows.
+  Each arm selects one validation row before augmentation; every remaining source row has exactly one original and one correct reverse-complement training row, with no validation reverse complement in training.
+- Reproducibility check: Every final-producer smoke QC table, anchor catalog, sequence table, split summary, and train/validation Parquet is byte-identical to the row-validated old smoke.
+  Representative SHA-256 values are `11052c6b4c73637a414080d651ee5e991bad59c81398aac688d8a522da37ebf9` for `qc/per_anchor.parquet`, `ae5f0133f65af13372f2a6fb82358ec3a5b7f17337acd64b141a7daf3fb667ec` for `sequences/all_sources.parquet`, and `7c588a0cdeee48152a49dd72f9be6ed267bfad1f3bda78f9b58c0ef39a74082b` for `sequences/training_eligible.parquet`.
+- Training boundary: The isolated trainer at `9e6e708526785aefe8abe5488f55d519959033fd` accepts only public `marin-dna/functional-*` Hugging Face datasets pinned to 40-character hexadecimal Hub commit hashes.
+  Tests reject any S3 URI in the tokenization or training dependency graph, and a real Iris child-worker tokenizer preflight passed.
+- Interpretation: The exact final producer passes both the complete human audit and real cross-backend smoke without a biological or pipeline-contract discrepancy.
+  The full bundled projection may proceed; public publication remains downstream of its complete QC, and training will consume only the resulting immutable Hugging Face revisions.
+- Next action: Launch the full 22-chromosome, 107-mammal-family, 28-non-mammal-family projection, review its complete QC, prepare and publish the five public datasets, and source-pin their exact Hub revisions before the CDS canary.
