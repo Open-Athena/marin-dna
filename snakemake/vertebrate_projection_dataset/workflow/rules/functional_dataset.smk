@@ -212,7 +212,7 @@ rule functional_dataset_card:
         validation=f"{RESULTS}/datasets/{{region}}/validation.parquet",
         manifest=ACTIVE_MANIFEST,
     output:
-        f"{HF_RESULTS}/{{region}}/README.md",
+        local(f"{HF_RESULTS}/{{region}}/README.md"),
     wildcard_constraints:
         region=COHORT_RE,
     resources:
@@ -279,7 +279,7 @@ rule functional_hf_artifact_manifest:
                 shard=PUBLICATION_VALIDATION_SHARDS,
             )
         ),
-        cards=expand(f"{HF_RESULTS}/{{region}}/README.md", region=COHORTS),
+        cards=local(expand(f"{HF_RESULTS}/{{region}}/README.md", region=COHORTS)),
     output:
         HF_MANIFEST,
     threads: 8
@@ -324,7 +324,7 @@ rule all_functional_hf_files:
                 shard=PUBLICATION_VALIDATION_SHARDS,
             )
         ),
-        expand(f"{HF_RESULTS}/{{region}}/README.md", region=COHORTS),
+        local(expand(f"{HF_RESULTS}/{{region}}/README.md", region=COHORTS)),
 
 
 rule functional_hf_upload_dataset:
@@ -339,7 +339,7 @@ rule functional_hf_upload_dataset:
             local(f"{HF_RESULTS}/{wc.region}/data/validation/{shard}.jsonl.zst")
             for shard in PUBLICATION_VALIDATION_SHARDS
         ],
-        card=f"{HF_RESULTS}/{{region}}/README.md",
+        card=local(f"{HF_RESULTS}/{{region}}/README.md"),
     output:
         temp(local(f"{RESULTS}/upload.done/{{region}}")),
     wildcard_constraints:
