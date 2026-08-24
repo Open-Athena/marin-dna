@@ -21,7 +21,10 @@ from marin_dna_vertebrate_projection.sequence_sources import (
 )
 
 PIPELINE_VERSION = str(config["pipeline_version"])
-HF_REPO_PREFIX = str(config["hf_repo_prefix"])
+HF_OWNER = str(config["hf_owner"])
+HF_REPO_NAMES = {
+    str(cohort): str(repo_name) for cohort, repo_name in config["hf_repo_names"].items()
+}
 TIER = str(config["tier"])
 assert TIER in {"smoke", "full"}
 VALIDATION_ROWS = int(
@@ -39,6 +42,15 @@ WINDOW_SIZE = int(config["window_size"])
 assert WINDOW_SIZE == 255
 assert tuple(config["functional_arms"]) == FUNCTIONAL_ARMS
 COHORTS = list(FUNCTIONAL_ARMS)
+assert set(HF_REPO_NAMES) == set(COHORTS)
+assert len(set(HF_REPO_NAMES.values())) == len(COHORTS)
+assert all("/" not in repo_name for repo_name in HF_REPO_NAMES.values())
+
+
+def functional_hf_repo(cohort):
+    assert cohort in HF_REPO_NAMES
+    return f"{HF_OWNER}/{HF_REPO_NAMES[cohort]}"
+
 
 SPECIES_CANDIDATES = str(config["species_candidates"])
 SPECIES_SELECTED = str(config["species_selected"])

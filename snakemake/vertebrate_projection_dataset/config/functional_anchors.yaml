@@ -1,5 +1,11 @@
 pipeline_version: functional-v1
 hf_repo_prefix: functional
+hf_repo_names:
+  cds: functional-cds
+  utr3: functional-utr3
+  tss_region: functional-tss
+  ncrna: functional-ncrna
+  enhancer: functional-enhancer
 tier: smoke
 
 window_size: 255

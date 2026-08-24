@@ -215,7 +215,7 @@ rule functional_dataset_card:
     resources:
         mem_mb=2000,
     params:
-        repo=lambda wc: f"{config['hf_owner']}/{HF_REPO_PREFIX}-{wc.region}",
+        repo=lambda wc: functional_hf_repo(wc.region),
     run:
         write_dataset_card(
             input.train,
@@ -330,7 +330,7 @@ rule functional_hf_upload_dataset:
     resources:
         hf_uploads=1,
     params:
-        repo=lambda wc: f"{config['hf_owner']}/{HF_REPO_PREFIX}-{wc.region}",
+        repo=lambda wc: functional_hf_repo(wc.region),
         workers=int(config["hf_upload_workers"]),
     run:
         upload_validated_dataset(

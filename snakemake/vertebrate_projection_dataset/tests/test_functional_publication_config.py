@@ -5,7 +5,7 @@ from marin_dna_vertebrate_projection.publication import validate_artifacts
 from .test_publication import CONFIG_SHA256, PIPELINE_COMMIT, _fixture
 
 
-def test_publication_validator_accepts_functional_prefix_and_smoke_cohorts(
+def test_publication_validator_accepts_functional_repo_map_and_smoke_cohorts(
     tmp_path: Path,
 ) -> None:
     artifact_dir, source_dir, config_path = _fixture(tmp_path)
@@ -16,12 +16,13 @@ def test_publication_validator_accepts_functional_prefix_and_smoke_cohorts(
         )
         .replace("smoke_validation_rows: 1", "smoke_validation_rows: 2")
         + "hf_repo_prefix: functional\n"
+        + "hf_repo_names:\n  all: functional-short-name\n"
         + "smoke_region_cohorts: [all]\n"
     )
     card_path = artifact_dir / "all/README.md"
     card_path.write_text(
         card_path.read_text().replace(
-            "marin-dna/vertebrate-v2-all", "marin-dna/functional-all"
+            "marin-dna/vertebrate-v2-all", "marin-dna/functional-short-name"
         )
     )
 
