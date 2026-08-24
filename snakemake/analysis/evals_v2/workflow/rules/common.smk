@@ -18,6 +18,7 @@ from marin_dna_evals.metrics import (
     compute_qtl_metrics,
     compute_sge_metrics,
     compute_sge_probe_metrics,
+    exclude_complete_match_groups_with_subsets,
     per_chrom_ap_table,
 )
 from marin_dna_evals.variant_probe import PAIR_COMBOS, run_subset_probes
@@ -89,6 +90,17 @@ for _d in config["datasets"]:
     assert _ep in EVAL_PROTOCOLS, (
         f"dataset {_d['name']!r} `eval_protocol` must be one of "
         f"{sorted(EVAL_PROTOCOLS)}, got {_ep!r}"
+    )
+    _excluded_group_subsets = _d.get("exclude_complete_match_groups_with_subsets", [])
+    assert isinstance(_excluded_group_subsets, list) and all(
+        isinstance(_subset, str) and _subset for _subset in _excluded_group_subsets
+    ), (
+        f"dataset {_d['name']!r} `exclude_complete_match_groups_with_subsets` "
+        f"must be a list of non-empty strings"
+    )
+    assert not _excluded_group_subsets or _ep == "matched_pair", (
+        f"dataset {_d['name']!r} group exclusions require "
+        f"eval_protocol='matched_pair', got {_ep!r}"
     )
 
 # Wildcard alternations used across rules.
