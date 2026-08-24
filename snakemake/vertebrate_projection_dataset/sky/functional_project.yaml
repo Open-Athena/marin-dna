@@ -15,6 +15,14 @@ name: functional-vertebrate-projection
 #     snakemake/vertebrate_projection_dataset/sky/functional_project.yaml \
 #     --env TIER=full --env TARGET=all_projection \
 #     --env PIPELINE_COMMIT_SHA=$(git rev-parse HEAD)
+#   sky exec issue-517-functional-project \
+#     snakemake/vertebrate_projection_dataset/sky/functional_project.yaml \
+#     --env TIER=full --env TARGET=all_functional_hf_files \
+#     --env PIPELINE_COMMIT_SHA=<producer-commit>
+#   sky exec issue-517-functional-project \
+#     snakemake/vertebrate_projection_dataset/sky/functional_project.yaml \
+#     --env TIER=full --env TARGET=all_functional_hf \
+#     --env PIPELINE_COMMIT_SHA=<producer-commit>
 #   sky down issue-517-functional-project
 
 resources:
@@ -68,7 +76,13 @@ run: |
   command -v halStats
   test -n "$PIPELINE_COMMIT_SHA"
   test "$TIER" = "smoke" -o "$TIER" = "full"
-  test "$TARGET" = "all" -o "$TARGET" = "all_projection"
+  case "$TARGET" in
+    all|all_projection|all_functional_hf_files|all_functional_hf) ;;
+    *)
+      echo "ERROR: unsupported functional target $TARGET"
+      exit 1
+      ;;
+  esac
 
   if ! mountpoint -q /mnt/nvme; then
     sudo apt-get update
