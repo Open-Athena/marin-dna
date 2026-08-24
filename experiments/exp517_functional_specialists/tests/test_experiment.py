@@ -67,8 +67,10 @@ def test_five_hub_arms_fail_closed_until_publication() -> None:
     }
     assert {arm.revision for arm in ARMS.values()} == {UNPUBLISHED_REVISION}
     for arm in ARMS.values():
-        with pytest.raises(ValueError, match="published 40-character Hub revision"):
+        with pytest.raises(ValueError, match="40-character hexadecimal"):
             arm.resolved_revision()
+        with pytest.raises(ValueError, match="40-character hexadecimal"):
+            replace(arm, revision="z" * 40).resolved_revision()
 
 
 def test_tokenization_reads_only_immutable_hugging_face_input() -> None:

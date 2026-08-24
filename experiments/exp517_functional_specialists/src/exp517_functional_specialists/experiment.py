@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import os
+import string
 from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Self
@@ -115,9 +116,14 @@ class Arm:
     def resolved_revision(self) -> str:
         if not self.hf_repo.startswith("marin-dna/functional-"):
             raise ValueError(f"{self.key} must use its public marin-dna Hub dataset")
-        if self.revision == UNPUBLISHED_REVISION or len(self.revision) != 40:
+        if (
+            self.revision == UNPUBLISHED_REVISION
+            or len(self.revision) != 40
+            or not set(self.revision) <= set(string.hexdigits)
+        ):
             raise ValueError(
-                f"{self.key} must pin its published 40-character Hub revision"
+                f"{self.key} must pin its published 40-character hexadecimal "
+                "Hub revision"
             )
         return self.revision
 
