@@ -18,8 +18,8 @@ author: gonzalobenegas
 
 ## Current TL;DR
 
-The current pipeline passes all 221 locked tests at the mainline baseline.
-The implementation gap is an additive annotation-first human-anchor builder and audit path; the production center-1 projection contract can remain downstream of that new catalog.
+The additive Ensembl release 115 functional-anchor workflow passes all 235 locked pipeline tests and all three credential-free DAG checks.
+The default target stops at a pending human preprojection audit; paid projection, publication, training, and held-out evaluation remain approval-gated.
 
 ## Baseline
 
@@ -31,8 +31,6 @@ The implementation gap is an additive annotation-first human-anchor builder and 
 
 ### Active
 
-- `FAS-517-H1`: The additive functional-anchor builder can reconcile feature extraction, priority ownership, tiling, stable identity, and conservation subsets exactly before projection.
-  Next test: synthetic contract tests followed by the credential-free Snakemake smoke dry-run.
 - `FAS-517-P1`: At step 4,999, each mapped home arm ranks first on its eight development Mendelian subsets.
   Next test: blocked on approved projection, publication, and training after the human audit passes.
 - `FAS-517-P2`: The mapped home arm reaches the #459 persistence threshold during training.
@@ -53,12 +51,14 @@ None.
 
 ### Promoted
 
-None.
+- `FAS-517-H1`: The additive Ensembl builder reconciles feature extraction, priority ownership, tiling, stable identity, conservation subsets, and review artifacts before projection.
+  Evidence: commit `731807af`, 235 locked tests, and the 17-job preprojection DAG check.
 
 ## Decision Log
 
 - 2026-08-24: Extend `snakemake/vertebrate_projection_dataset` additively and leave the production uniform-anchor v2 path unchanged.
 - 2026-08-24: Reuse the maintained center-1 projection contract downstream of a new five-arm projection catalog.
+- 2026-08-24: Use the complete Ensembl GRCh38 release 115 GTF and all qualifying transcripts; do not use RefSeq or an Ensembl_canonical-only filter.
 - 2026-08-24: Keep the existing approval gates for projection, publication, training, and held-out evaluation.
 
 ## Background Research Brief
@@ -166,3 +166,15 @@ Its current anchor path instead creates uniform conservation-selected windows an
 - Result: 221 tests passed in 11.60 seconds; exit status 0; peak RSS 289,196 KiB.
 - Interpretation: The branch starts from a green pipeline, so new failures can be attributed to the additive functional-anchor work.
 - Next action: Implement the pipeline-local functional-anchor module and its synthetic contract tests.
+
+
+### 2026-08-24 16:48 UTC - `FAS-517-002` Ensembl functional-anchor implementation
+
+- Hypothesis: The additive builder can satisfy the fixed five-arm construction, ownership, provenance, conservation, and review contracts without changing the production uniform-anchor v2 workflow.
+- Commit hash: `731807af`.
+- Annotation decision: Complete Ensembl GRCh38 release 115 GTF, all qualifying transcripts, no RefSeq, and no Ensembl_canonical-only filter.
+- Implementation: Added `workflow/functional.Snakefile`, a pinned issue-specific config, five-arm construction and audit libraries, projection/dataset/publication targets, review reports, and a reusable runbook.
+- Validation: 235 locked tests passed in 9.75 seconds with exit status 0 and 273,620 KiB peak RSS; all configured pre-commit hooks passed.
+- DAG checks: The unchanged production smoke DAG resolved 79 jobs; the functional preprojection DAG resolved 17 jobs; the opt-in functional smoke projection DAG resolved 94 jobs. All checks used `--default-storage-provider none` and executed no jobs.
+- Interpretation: `FAS-517-H1` passes locally. The implementation now reaches the intended human-audit gate with Ensembl as the explicit annotation source.
+- Next action: Publish the branch and draft PR, review the published diff, then request human review of the preprojection artifacts before any paid projection.
