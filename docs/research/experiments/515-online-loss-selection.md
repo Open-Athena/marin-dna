@@ -23,7 +23,8 @@ Only training loss was logged, so the accepted findings rest on downstream varia
 
 The experiment initialized a 256-base, no-BOS Qwen3 model from exp58-animals step 1,000 and used its pinned animal-CDS corpus.
 Lowercase repeat targets were excluded, while repeat bases remained visible as context.
-A shared 100-step uniform-CE bridge was followed by seven independent 100-step objective forks, each with fresh AdamW and scheduler state, a 20-step warmup to 1e-3, and a constant 1e-3 learning rate thereafter.
+The shared 100-step uniform-CE bridge used fresh AdamW and a linear warmup from 1e-5 to 1e-3.
+Seven independent 100-step objective forks each reset AdamW and scheduler state, used a 20-step warmup to 1e-3, and held the learning rate constant at 1e-3 thereafter.
 The uniform and teacher-KL arms later resumed their complete step-100 states for another 100 steps without a second warmup.
 
 The primary evaluation pooled 5,800 missense and 3,190 splicing records from the pinned Mendelian-traits train split.
@@ -42,7 +43,7 @@ The 8,990 records formed 899 matched groups with one positive and nine negatives
 | Uniform CE, step 200 | 0.170727 | 0.132595 | 0.247808 |
 | Teacher KL, step 200 | **0.183331** | **0.148211** | **0.254956** |
 
-_Exact AUPRC at each completed evaluation; pooled missense plus splicing is primary._
+_AUPRC rounded to six decimals at each completed evaluation; pooled missense plus splicing is primary._
 
 At step 100, one-sided paired match-group swap tests compared each nonuniform objective with the bridge using 20,000 permutations and Holm correction across six comparisons.
 Random-50 and teacher KL each had adjusted p_worse = 1.0.
