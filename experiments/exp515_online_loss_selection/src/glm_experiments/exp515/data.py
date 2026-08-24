@@ -137,13 +137,15 @@ def _plan_signature(directory: Path) -> PlanSignature:
     )
 
 
-def validate_sequence_plan(directory: Path) -> dict[str, Any]:
+def validate_sequence_plan(
+    directory: Path, *, force_rehash: bool = False
+) -> dict[str, Any]:
     """Validate plan lengths and immutable hashes."""
 
     cache_key = directory.resolve()
     signature = _plan_signature(directory)
     cached = _PLAN_VALIDATION_CACHE.get(cache_key)
-    if cached is not None and cached[0] == signature:
+    if not force_rehash and cached is not None and cached[0] == signature:
         return cached[1]
     manifest = json.loads((directory / "manifest.json").read_text(encoding="utf-8"))
     rows = int(manifest["rows"])

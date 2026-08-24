@@ -128,7 +128,7 @@ def test_sequence_plan_is_fixed_width_and_checksumed(tmp_path: Path) -> None:
         handle.seek(0)
         handle.write(b"C")
     with pytest.raises(ValueError, match="checksum mismatch"):
-        validate_sequence_plan(plan_dir)
+        validate_sequence_plan(plan_dir, force_rehash=True)
 
 
 def test_selected_loss_is_exact_mean_and_repeats_are_ineligible() -> None:
