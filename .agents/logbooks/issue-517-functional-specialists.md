@@ -18,8 +18,9 @@ author: gonzalobenegas
 
 ## Current TL;DR
 
-The exact publication producer `d06519ab` reproduced the approved complete Ensembl release 115 audit and passed the real cross-backend smoke.
-The 90-job final smoke completed both HAL and MultiZ paths, and every QC, anchor, sequence, and split artifact is byte-identical to the row-validated smoke.
+The exact producer `d06519ab` reproduced the approved complete Ensembl release 115 audit and remains the direct-MAF smoke baseline.
+The issue-specific non-mammal backend now uses 28 checksum-pinned UCSC hg38-to-target liftOver chains at snapshot `07bb7223`; the original uniform-anchor MultiZ path is unchanged.
+A chain-versus-MAF parity smoke is the current projection gate.
 PR #518 remains a draft record for a long-lived experiment branch rather than a merge proposal.
 Paid projection, public Hugging Face publication, five-arm training, and development-only evaluation are approved; held-out even-autosome/Y evaluation remains unapproved.
 Training is Hugging Face-only at immutable public dataset revisions; S3 is workflow-owned producer storage only.
@@ -35,13 +36,15 @@ Training is Hugging Face-only at immutable public dataset revisions; S3 is workf
 ### Active
 
 - `FAS-517-P1`: At step 4,999, each mapped home arm ranks first on its eight development Mendelian subsets.
-  Next test: run the complete Ensembl audit, projection smoke, full projection, and training canary in sequence.
+  Next test: pass chain-versus-MAF smoke parity, then run the full projection and training canary.
 - `FAS-517-P2`: The mapped home arm reaches the #459 persistence threshold during training.
   Next test: retain every 500-step checkpoint and run the preregistered development-only trajectory evaluation.
 
 ### Blocked
 
-None.
+- `FAS-517-B1`: Direct MultiZ MAF scanning for the issue-specific full projection.
+  Why stopped: The 24 compressed MAFs total 74,694,939,245 bytes, while complete version-matched UCSC chains for the same 28 targets total 279,346,460 bytes.
+  Evidence: `FAS-517-007`.
 
 ### Falsified / Dead End
 
@@ -61,6 +64,8 @@ None.
 - 2026-08-24: Keep PR #518 draft and treat this branch as the permanent experiment record; decide whether to extract reusable mainline changes only after the end-to-end results are available.
 - 2026-08-24: Proceed with paid projection, five-arm training, and development-only evaluation.
   Keep public publication and held-out even-autosome/Y evaluation gated separately.
+- 2026-08-24: Replace the issue-specific direct-MAF non-mammal projection with 28 batched UCSC liftOver calls after smoke parity review.
+  Keep the production uniform-anchor MultiZ workflow unchanged.
 
 ## Background Research Brief
 
@@ -275,3 +280,21 @@ Its current anchor path instead creates uniform conservation-selected windows an
 - Interpretation: The exact final producer passes both the complete human audit and real cross-backend smoke without a biological or pipeline-contract discrepancy.
   The full bundled projection may proceed; public publication remains downstream of its complete QC, and training will consume only the resulting immutable Hugging Face revisions.
 - Next action: Launch the full 22-chromosome, 107-mammal-family, 28-non-mammal-family projection, review its complete QC, prepare and publish the five public datasets, and source-pin their exact Hub revisions before the CDS canary.
+
+### 2026-08-24 20:27 UTC - `FAS-517-007` switch non-mammals to UCSC liftOver chains
+
+- Hypothesis: Version-matched UCSC hg38-to-target chains can preserve or explicitly reconcile the reviewed center-1 non-mammal mappings while avoiding full MultiZ MAF scans.
+- Commit hash: `07bb722328479c039bb8a988a14ff09f51c80e02`.
+- Input comparison: Official chains exist for all 28 selected UCSC assemblies and total 279,346,460 compressed bytes.
+  The 24 pinned MultiZ chromosome MAFs total 74,694,939,245 compressed bytes, or 267.39 times the chain volume.
+- Cancelled execution: Sky job 7, the direct-MAF full projection, was cancelled after 24 minutes 25 seconds at 328 of 1,654 rules.
+  The retained worker, staged HAL, earlier audit/smoke outputs, and completed durable S3 objects were preserved.
+- Implementation: Added an issue-specific chain manifest with official UCSC MD5s and sizes, atomic verified download, one batched BED6 liftOver per target, mapped/unmapped partition reconciliation, exact target-2bit chromosome-size joins, and a chain adapter into the unchanged shared acceptance and sequence contracts.
+  The default uniform-anchor workflow retains the direct MultiZ MAF rules.
+- Coordinate contract: Human center landmarks and mapped target loci are 0-based and half-open one-base intervals.
+  The default command is `liftOver -minMatch=0.95` without `-multiple`.
+- Validation: All 243 locked pipeline tests passed in 10.75 seconds and every repository hook passed.
+  The functional default audit resolves 24 rules, the chain smoke resolves 89 rules, and the full chain projection resolves 1,052 rules with exactly 28 `run_non_mammal_liftover` jobs and no MAF rules.
+- Interpretation: The chain path removes the known full-MAF I/O cost and preserves every downstream invariant in unit and DAG checks.
+  Coordinate parity with the final direct-MAF smoke remains unmeasured, so the new backend is not yet an approved full-projection producer.
+- Next action: Run the real chain smoke on the retained worker and compare every non-mammal anchor/species outcome with the `d06519ab` direct-MAF smoke before restarting full projection.
