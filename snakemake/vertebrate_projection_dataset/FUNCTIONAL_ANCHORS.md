@@ -119,17 +119,34 @@ sky exec issue-517-functional-project \
 
 Terminate the worker with `sky down issue-517-functional-project` only after the required durable S3 artifacts have been restored and verified.
 
-Build local publication artifacts only after the projection review is accepted:
+Build publication artifacts on the retained remote worker only after the projection review is accepted:
 
 ```bash
-uv run --locked snakemake \
-  --snakefile workflow/functional.Snakefile \
-  --profile workflow/profiles/default \
-  all_functional_hf_files
+sky exec issue-517-functional-project \
+  sky/functional_project.yaml \
+  --env TIER=full \
+  --env TARGET=all_functional_hf_files \
+  --env PIPELINE_COMMIT_SHA="<producer-commit>"
 ```
 
-`all_functional_hf_files` validates local artifacts and does not write to Hugging Face.
+`all_functional_hf_files` restores the producer-pinned splits from S3, builds the exact JSONL.zst release trees on remote NVMe, and writes the durable content-hash manifest without writing to Hugging Face.
 
 The `all_functional_hf` target uploads five repositories and is an external write that requires separate explicit publication approval.
+
+After that approval is recorded, make an authorized `marin-dna` credential available on the worker and run:
+
+```bash
+sky exec issue-517-functional-project \
+  sky/functional_project.yaml \
+  --env TIER=full \
+  --env TARGET=all_functional_hf \
+  --env PIPELINE_COMMIT_SHA="<producer-commit>"
+```
+
+The upload target revalidates every local file and the mutable Hub state, requires public ungated repositories, verifies the resulting revision without credentials, and writes a temporary per-arm receipt containing the immutable revision.
+
+Record those revisions in issue #517 and pin them in every training consumer.
+
+Training must consume these public immutable Hugging Face revisions rather than the internal S3 producer paths.
 
 Training and held-out VEP evaluation remain separate approval gates and are not targets of this workflow.
