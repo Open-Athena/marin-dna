@@ -53,7 +53,10 @@ from glm_experiments.exp515.evaluation import (
     load_promoter_frame,
 )
 from glm_experiments.exp515.module import Exp515Module, checkpoint_next_sample_id
-from glm_experiments.exp515.storage import upload_issue_artifact
+from glm_experiments.exp515.storage import (
+    ISSUE_BUCKET_REGION,
+    upload_issue_artifact,
+)
 from glm_experiments.models.components.lm import HFCLM
 from glm_experiments.models.components.selection import (
     TokenSelector,
@@ -594,7 +597,7 @@ def publish_run_artifacts(root: Path, run_id: str) -> list[dict[str, object]]:
         raise FileNotFoundError(root)
     import boto3
 
-    client = boto3.client("s3")
+    client = boto3.client("s3", region_name=ISSUE_BUCKET_REGION)
     records: list[dict[str, object]] = []
     for path in sorted(root.rglob("*")):
         if not path.is_file():
@@ -625,6 +628,25 @@ def publish_run_artifacts(root: Path, run_id: str) -> list[dict[str, object]]:
         )
     )
     return records
+
+
+def _archive_precompletion_failure(root: Path) -> Path | None:
+    """Move a stale failure aside once the same run has a final manifest."""
+
+    failure = root / "failure.json"
+    if not failure.exists() or not (root / "final-manifest.json").exists():
+        return None
+    destination = root / "repair-history" / "pre-completion-failure.json"
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    if destination.exists():
+        if destination.read_bytes() != failure.read_bytes():
+            raise FileExistsError(
+                "repair-history failure record already exists with different content"
+            )
+        failure.unlink()
+    else:
+        failure.replace(destination)
+    return destination
 
 
 def run_experiment(
@@ -878,10 +900,15 @@ def main() -> None:
     parser.add_argument("--experiment-commit", required=True)
     parser.add_argument("--run-id", required=True)
     parser.add_argument("--resume-from-bridge", action="store_true")
+    parser.add_argument("--publish-only", action="store_true")
     args = parser.parse_args()
     if Path(args.run_id).name != args.run_id or args.run_id in {".", ".."}:
         raise ValueError("run ID must be one safe path component")
     root = args.artifact_dir / args.run_id
+    if args.publish_only:
+        _archive_precompletion_failure(root)
+        publish_run_artifacts(root, args.run_id)
+        return
     try:
         run_experiment(
             args.artifact_dir,
@@ -914,6 +941,7 @@ def main() -> None:
         raise
     else:
         try:
+            _archive_precompletion_failure(root)
             publish_run_artifacts(root, args.run_id)
         finally:
             signal.alarm(0)

@@ -8,6 +8,7 @@ from typing import Any
 from urllib.parse import urlparse
 
 ISSUE_BUCKET = "oa-bolinas"
+ISSUE_BUCKET_REGION = "us-east-2"
 ISSUE_PREFIX = "issues/515/"
 
 
@@ -65,7 +66,7 @@ def upload_issue_artifact(
     if client is None:
         import boto3
 
-        client = boto3.client("s3")
+        client = boto3.client("s3", region_name=ISSUE_BUCKET_REGION)
 
     if local_path.is_file():
         files = [(local_path, PurePosixPath(local_path.name))]
@@ -152,7 +153,7 @@ def download_verified_issue_object(
     if client is None:
         import boto3
 
-        client = boto3.client("s3")
+        client = boto3.client("s3", region_name=ISSUE_BUCKET_REGION)
 
     remote = client.head_object(Bucket=parsed.netloc, Key=key)
     remote_size = int(remote.get("ContentLength", -1))

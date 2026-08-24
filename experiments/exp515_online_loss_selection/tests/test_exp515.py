@@ -33,11 +33,15 @@ from glm_experiments.exp515.diagnostics import selector_composition_counts
 from glm_experiments.exp515.evaluation import _prepare_model_for_evaluation
 from glm_experiments.exp515.module import learning_rate_factor
 from glm_experiments.exp515.runner import (
+    _archive_precompletion_failure,
     _completed_bridge_state,
     _retain_for_publication,
     _selector_device_smoke,
 )
-from glm_experiments.exp515.storage import validate_issue_s3_prefix
+from glm_experiments.exp515.storage import (
+    ISSUE_BUCKET_REGION,
+    validate_issue_s3_prefix,
+)
 from glm_experiments.models.components.lm import CLM
 from glm_experiments.models.components.selection import TokenSelector
 
@@ -258,6 +262,7 @@ def test_issue_storage_prefix_is_scoped_and_versioned() -> None:
     assert validate_issue_s3_prefix(
         "s3://oa-bolinas/issues/515/online-loss-selection/v1"
     ) == ("oa-bolinas", "issues/515/online-loss-selection/v1")
+    assert ISSUE_BUCKET_REGION == "us-east-2"
     with pytest.raises(ValueError):
         validate_issue_s3_prefix("s3://oa-bolinas/issues/479/wrong/v1")
 
@@ -328,6 +333,18 @@ def test_completed_bridge_state_validates_registered_resume(tmp_path: Path) -> N
     observed_checkpoint, microbatch, _, _ = _completed_bridge_state(tmp_path)
     assert observed_checkpoint == checkpoint
     assert microbatch == 128
+
+
+def test_successful_run_archives_a_precompletion_failure(tmp_path: Path) -> None:
+    failure = tmp_path / "failure.json"
+    failure.write_text('{"status": "failed"}\n', encoding="utf-8")
+    (tmp_path / "final-manifest.json").write_text(
+        '{"status": "complete"}\n', encoding="utf-8"
+    )
+    destination = _archive_precompletion_failure(tmp_path)
+    assert destination == tmp_path / "repair-history" / "pre-completion-failure.json"
+    assert destination.read_bytes() == b'{"status": "failed"}\n'
+    assert not failure.exists()
 
 
 def test_global_rng_round_trip_reference() -> None:

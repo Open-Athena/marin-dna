@@ -14,6 +14,7 @@ run: |
   export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
   export EXP515_USE_WANDB="${EXP515_USE_WANDB:-0}"
   export EXP515_RESUME_FROM_BRIDGE="${EXP515_RESUME_FROM_BRIDGE:-0}"
+  export EXP515_PUBLISH_ONLY="${EXP515_PUBLISH_ONLY:-0}"
   cd experiments/exp515_online_loss_selection
   test -n "${EXPERIMENT_COMMIT:-}"
   test -n "${EXP515_RUN_ID:-}"
@@ -27,6 +28,9 @@ run: |
   resume_args=()
   if [[ "$EXP515_RESUME_FROM_BRIDGE" == "1" ]]; then
     resume_args+=(--resume-from-bridge)
+  fi
+  if [[ "$EXP515_PUBLISH_ONLY" == "1" ]]; then
+    resume_args+=(--publish-only)
   fi
   uv run --locked python -m glm_experiments.exp515.runner \
     --artifact-dir "$HOME/exp515-artifacts" \

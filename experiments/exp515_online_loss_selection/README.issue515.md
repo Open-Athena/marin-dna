@@ -47,6 +47,7 @@ Each full Lightning checkpoint records the plan checksum, exact next sample ID, 
 An intentional bridge-to-arm fork resets only the arm selector stream; a same-arm resume restores it exactly.
 An explicit `--resume-from-bridge` repair mode validates the passing smoke test, registered canary and bridge metadata, and step-100 checkpoint before skipping those completed phases.
 When a launch resumes on the same instance, `--instance-start-unix` preserves the original provider allocation time for the hard budget guard.
+An explicit `--publish-only` repair mode archives any stale pre-completion failure record and retries immutable S3 publication without rerunning training or evaluation.
 
 All genomic coordinates are 0-based and half-open internally.
 The newer Mendelian dataset's VCF-like 1-based `pos` field is converted only when extracting the 255-bp reference window.
