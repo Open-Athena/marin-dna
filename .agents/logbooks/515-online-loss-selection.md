@@ -61,10 +61,14 @@ The per-species source-case audit passed without invoking the RefSeq fallback.
 - 2026-08-23: The user explicitly authorized use of TraitGym test labels if needed; the newer pinned Mendelian endpoint makes that fallback unnecessary.
 - 2026-08-23: Store retained experiment checkpoints and issue-scoped outputs under s3://oa-bolinas/issues/515/online-loss-selection/v1, authoritative dense metrics as CSV in the same run record, and the small audit summary on the permanent branch.
 - 2026-08-24: The user authorized a single Lambda A100 and raised the all-in budget ceiling to $30; reserve $2 by stopping estimated GPU compute at $28.
+- 2026-08-24: The user raised the all-in ceiling to $50 and authorized the retained A100 for the exp58 CDS gate, with a $48 GPU stop.
+- 2026-08-24: Treat the seven CDS arms as independent objectives that share bridge weights but reset AdamW and scheduler state and use identical 20-step arm-local warmup.
+- 2026-08-24: At the 100-step CDS gate, retain teacher KL and random-50 for discussion alongside uniform; drop all three student loss-ranked halves and teacher-low-50 because each is significantly worse than bridge.
+- 2026-08-24: Stop every CDS arm at the gate pending user review; do not launch the queued RefSeq restart yet.
 
 ## Negative Results Index
 
-- None.
+- Exp58 animal-CDS gate: student-low-50, student-middle-50, student-high-50, and final-teacher-low-50 all reduced pooled missense-plus-splicing AUPRC and were worse than bridge at Holm-adjusted p = 0.000300.
 
 ## Background Research Brief
 
@@ -193,3 +197,22 @@ The per-species source-case audit passed without invoking the RefSeq fallback.
 - Decision: Reuse the complete bridge model weights and post-bridge row offset, discard the partial uniform arm, reset AdamW and the scheduler independently for all seven arms including uniform, and apply the same 20-step warmup from 1e-5 to 1e-3 followed by 80 constant steps.
 - Rationale: The original exp58 configuration used learning rate 1e-3 at effective batch 2,048, so the plateau remains lineage-consistent; the amendment removes stale objective-specific optimizer moments and the abrupt peak-LR transition.
 - Next action: Validate, post the amendment, snapshot the code, archive the partial arm evidence, and resume from the retained bridge on the same A100.
+
+### 2026-08-24 19:38 - Exp58 CDS gate complete
+
+- Hypothesis: Current-loss-ranked hard-CE objectives or offline final-teacher supervision can improve CDS-specialist missense-plus-splicing AUPRC relative to uniform continuation at matched processed-input compute.
+- Commit Hash: `480e6e17a9097d29f0881cbef5506d244276f89e`.
+- Run: `364abd024f3c-20260824t1320z`; one retained Lambda A100 at $1.99/hour; microbatch 32; effective batch 2,048; W&B disabled; CSV and per-variant predictions authoritative.
+- Protocol: One 100-step uniform bridge, followed by seven independent 100-step objective forks from identical bridge weights; every arm reset AdamW and scheduler state, warmed from 1e-5 to 1e-3 over 20 local steps, held 1e-3 for 80 steps, and consumed absolute rows 204,800 through 409,600.
+- Evaluation: `marin-dna/evals_mendelian_traits` revision `4aed58e50c5dea0b878a665007af2ef9e5108e9f`, train split, pooled missense plus splicing; 8,990 variants, 899 positives, and 899 matched groups; synonymous excluded.
+- Result: Bridge pooled/missense/splicing AUPRC was 0.156796/0.126489/0.219649.
+- Result: Teacher KL led pooled AUPRC at 0.177410, followed by uniform at 0.175704 and random-50 at 0.161681.
+- Result: Teacher-low-50 reached 0.129372; student-low-50, student-middle-50, and student-high-50 reached 0.110347, 0.109192, and 0.108288.
+- Significance: One-sided paired match-group swap tests used 20,000 permutations with Holm correction across six nonuniform arms; random-50 and teacher KL had adjusted p_worse = 1.0, while all four ranked-half objectives had adjusted p_worse = 0.000300.
+- Interpretation: Pure teacher KL, uniform CE, and random-50 remain candidates for discussion; all four loss-ranked half objectives fail this gate. Teacher KL exceeds uniform by only 0.001707 pooled AUPRC and trades higher missense for lower splicing, so this run does not establish KL superiority.
+- Runtime: Hard-CE arms took about 22.4 seconds per optimizer step; teacher-driven arms took about 29.2 seconds; peak HBM was 47.81% and 50.08%, respectively.
+- Cost: The final manifest estimates $38.22 of provider allocation through gate completion against the $48 GPU stop and $50 all-in cap.
+- Artifacts: The amended immutable snapshot contains 94 curated objects totaling 21,151,784,136 bytes under `s3://oa-bolinas/issues/515/online-loss-selection/v1/runs/364abd024f3c-20260824t1320z-amended-480e6e17/`.
+- Publication repair: The first final upload encountered an immutable-key conflict with the pre-amendment budget projection; the completed tree was published under a new snapshot prefix without overwriting the earlier evidence or rerunning training.
+- GitHub: Final result comment `https://github.com/Open-Athena/marin-dna/issues/515#issuecomment-5400440143`.
+- Next action: Stop at the gate and review whether uniform, random-50, and teacher KL should receive any continuation or whether to proceed to the queued RefSeq corpus experiment.
