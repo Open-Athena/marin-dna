@@ -301,6 +301,16 @@ rule functional_hf_artifact_manifest:
             config_path="config/functional_anchors.yaml",
             pipeline_commit=PIPELINE_COMMIT,
             config_sha256=PIPELINE_CONFIG_SHA256,
+            source_artifacts={
+                cohort: {
+                    "train.parquet": input.train_source[index],
+                    "validation.parquet": input.validation_source[index],
+                    "validation_selection.tsv": input.split_selection[index],
+                    "validation_composition.tsv": input.split_composition[index],
+                    "split_summary.json": input.split_summary[index],
+                }
+                for index, cohort in enumerate(COHORTS)
+            },
             tier=TIER,
             workers=threads,
         )
