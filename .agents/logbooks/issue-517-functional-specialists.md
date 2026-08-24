@@ -325,3 +325,33 @@ Its current anchor path instead creates uniform conservation-selected windows an
   The discrepancies are internally sequence-consistent and reflect bounded differences between pairwise-chain and multiple-alignment representations rather than assembly, chromosome, strand, coordinate-boundary, or extraction corruption.
   Standard single-best liftOver is accepted for the full issue #517 experiment because it preserves the reviewed contract, recovers more smoke mappings, avoids the 267.39-fold compressed-input penalty, and has no smoke benefit from `-multiple`.
 - Next action: Snapshot this interpretation, dry-run the exact full producer, then restart the 22-chromosome, 107-HAL-species, 28-liftOver-species projection before any Hugging Face publication or training.
+
+### 2026-08-24 22:06 UTC - `FAS-517-009` full projection and publication package pass
+
+- Hypothesis: The complete five-arm Ensembl catalog can be projected through 107 HAL mammals and 28 pairwise-chain non-mammals, split reproducibly, and packaged for Hugging Face without violating the shared coordinate, sequence, or storage contracts.
+- Producer: Commit `e42a4ea1eca760219e0add91004b45cac59b19c9`, full-tier config SHA-256 `a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb`, pipeline `functional-v1`.
+- Execution: Sky job 15 completed all 1,051 full-projection rules in 43 minutes 20 seconds on the retained AWS `c6id.12xlarge` worker.
+  The graph contained 107 batched `halLiftover` jobs, 28 batched UCSC `liftOver` jobs, and zero direct-MAF jobs.
+- Annotation: Human anchors use the complete Ensembl GRCh38 release 115 GTF with all qualifying transcripts.
+  RefSeq and canonical-transcript-only filtering are not used, and the enhancer source remains ENCODE SCREEN Registry V4 dELS/pELS.
+- Accepted projections: CDS emitted 24,922,190 accepted rows from 205,131 anchors; enhancer emitted 20,912,797 from 202,452; ncRNA emitted 4,972,825 from 48,982; TSS-region emitted 6,180,915 from 64,349; and 3′ UTR emitted 8,691,627 from 83,766.
+  Mean accepted non-human species per anchor was 121.49 for CDS, 103.30 for enhancer, 101.52 for ncRNA, 96.05 for TSS-region, and 103.76 for 3′ UTR.
+- Reconciliation: Every anchor requested all 135 non-human targets.
+  Rejections partition into no-mapping, out-of-bounds centered windows, and target chromosomes shorter than 255 bases, with no unclassified cell.
+  Only 342 of 604,680 anchors had zero accepted non-human projections.
+- Dataset splits: Each arm selected exactly 16,384 unaugmented validation rows before reverse-complement augmentation with seed 517.
+  Training contains 46,882,278 CDS rows, 25,364,652 enhancer rows, 6,209,692 ncRNA rows, 7,577,794 TSS-region rows, and 11,364,040 3′ UTR rows.
+- Sequence audit: All 81,920 uniformly selected validation sequences are exactly 255 bases, use only the configured DNA alphabet, have in-bounds 255-base source and target intervals, and preserve the projection strand contract.
+  There are 173 validation rows with at least 50% `N` and 43 all-`N` rows, or 0.211% and 0.0525% respectively.
+  Every high-ambiguity row comes from an older Zoonomia HAL mammal assembly; the pairwise-chain non-mammals have no validation row at or above 50% `N`.
+- Manual review: All 15 deterministic accepted examples and all four deterministic rejections were inspected.
+  The rejection examples correctly represent two target chromosomes shorter than the requested window and two negative centered-window starts.
+- Publication package: Sky job 16 built all 325 compressed JSONL shards but exposed a storage-path bug before manifest creation.
+  Commits `e3079582eeb0552512927c75a63a9aa4cf7fc595` and `e220485133861eded90a251c314b496ae9de51aa` keep cards local and make the validator consume Snakemake's explicit staged producer paths.
+  The fixed project passes 244 locked tests, all repository hooks, and the exact functional publication DAG dry-run.
+  Sky job 24 then validated the exact release trees, source reconciliation, shard checksums, schemas, and split reconstruction and stored the publication manifest successfully.
+- Evaluation boundary: No held-out even-autosome or chromosome-Y VEP record was read.
+  The observed ambiguity rate is recorded as a low-rate source-assembly limitation for this development experiment, not silently filtered.
+- Interpretation: The complete producer and its Hugging Face release package pass the fixed correctness gates.
+  Public development-dataset upload is authorized and in progress; model training remains gated on anonymous verification and exact Hub revision pinning.
+- Next action: Verify all five public datasets without credentials, pin their immutable Hub revisions in the HF-only trainer, then run the CDS canary and development-only evaluation before launching the other four arms.
