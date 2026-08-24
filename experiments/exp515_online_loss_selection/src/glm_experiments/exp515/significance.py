@@ -119,6 +119,94 @@ def paired_group_swap_p_worse(
     }
 
 
+def paired_group_swap_p_two_sided(
+    candidate_csv: Path,
+    reference_csv: Path,
+    *,
+    permutations: int,
+    seed: int,
+    batch_size: int = 250,
+) -> dict[str, Any]:
+    """Test either-direction AP difference by swapping model identity per group."""
+
+    if permutations <= 0 or batch_size <= 0:
+        raise ValueError("permutations and batch size must be positive")
+    candidate = pd.read_csv(candidate_csv)
+    reference = pd.read_csv(reference_csv)
+    missing = set(KEY_COLUMNS + ["minus_llr_score"]) - set(candidate.columns)
+    missing |= set(KEY_COLUMNS + ["minus_llr_score"]) - set(reference.columns)
+    if missing:
+        raise ValueError(f"evaluation CSV lacks columns {sorted(missing)}")
+    if not candidate[KEY_COLUMNS].equals(reference[KEY_COLUMNS]):
+        raise ValueError("candidate and reference evaluation rows are not aligned")
+
+    labels = candidate["label"].astype(bool).to_numpy()
+    groups, group_index = np.unique(
+        candidate["match_group"].to_numpy(),
+        return_inverse=True,
+    )
+    group_sizes = np.bincount(group_index)
+    positive_counts = np.bincount(group_index, weights=labels.astype(np.int8))
+    if (
+        len(groups) == 0
+        or not np.all(group_sizes == group_sizes[0])
+        or not np.all(positive_counts == 1)
+    ):
+        raise ValueError(
+            "evaluation must have equal matched groups with one positive each"
+        )
+
+    candidate_scores = candidate["minus_llr_score"].to_numpy(dtype=np.float64)
+    reference_scores = reference["minus_llr_score"].to_numpy(dtype=np.float64)
+    if (
+        not np.isfinite(candidate_scores).all()
+        or not np.isfinite(reference_scores).all()
+    ):
+        raise ValueError("evaluation scores must be finite")
+    observed_candidate = float(average_precision_score(labels, candidate_scores))
+    observed_reference = float(average_precision_score(labels, reference_scores))
+    observed_delta = observed_candidate - observed_reference
+
+    rng = np.random.default_rng(seed)
+    at_least_as_extreme = 0
+    for start in range(0, permutations, batch_size):
+        stop = min(start + batch_size, permutations)
+        swap_group = rng.integers(
+            0,
+            2,
+            size=(stop - start, len(groups)),
+            dtype=np.int8,
+        ).astype(bool)
+        swap_row = swap_group[:, group_index]
+        permuted_candidate = np.where(
+            swap_row,
+            reference_scores,
+            candidate_scores,
+        )
+        permuted_reference = np.where(
+            swap_row,
+            candidate_scores,
+            reference_scores,
+        )
+        deltas = _batched_average_precision(
+            permuted_candidate,
+            labels,
+        ) - _batched_average_precision(permuted_reference, labels)
+        at_least_as_extreme += int(
+            np.count_nonzero(np.abs(deltas) >= abs(observed_delta))
+        )
+
+    return {
+        "candidate_auprc": observed_candidate,
+        "reference_auprc": observed_reference,
+        "delta_auprc": observed_delta,
+        "p_two_sided": (at_least_as_extreme + 1) / (permutations + 1),
+        "permutations": permutations,
+        "seed": seed,
+        "randomization_unit": "match_group",
+    }
+
+
 def holm_adjust(p_values: dict[str, float]) -> dict[str, float]:
     """Return Holm familywise adjusted p-values by key."""
 

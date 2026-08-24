@@ -9,16 +9,16 @@ author: gonzalobenegas
 
 ## Current TL;DR
 
-Issue #515 is active on one Lambda A100; preprocessing, calibration, the 20-step canary, and the 100-step bridge are complete, and evaluation is resuming from the bridge after a device-placement repair.
-The experiment will use the pinned glm-experiments code through a standalone Lambda/SkyPilot project because current Marin/Iris training does not provide the requested PyTorch selector and online evaluation path.
-The primary endpoint is the pinned `marin-dna/evals_mendelian_traits` TSS-proximal train split on odd-numbered autosomes and chromosome X.
-The per-species source-case audit passed without invoking the RefSeq fallback.
+The exp58 animal-CDS seven-objective gate is complete on one retained Lambda A100.
+Pure teacher KL reached pooled missense-plus-splicing AUPRC 0.177410, uniform CE reached 0.175704, and random-50 reached 0.161681 after 100 arm-local steps.
+The next registered run continues only uniform CE and pure teacher KL from their complete step-100 checkpoints to step 200 at constant 1e-3, with no second warmup.
+It stops after identical Mendelian missense-plus-splicing evaluation and paired AUPRC tests under the $48 GPU stop and $50 all-in cap.
 
 ## Scope
 
 - Goal: Test whether selecting the lowest-current-loss half of eligible nonrepeat targets improves promoter VEP learning speed at fixed processed-input compute.
 - Primary metrics: TraitGym Mendelian promoter development-split AUPRC at the shared bridge, continuation midpoint, and endpoint; paired differences from uniform-100 conditional on the uniform sanity gate.
-- Constraints: One paired seed, one Lambda A100, no more than $30 all-in or $28 GPU compute, 100 shared bridge steps, no more than 1,000 continuation steps per arm, no held-out even-autosome or chromosome-Y labels.
+- Constraints: One paired seed, one Lambda A100, no more than $50 all-in or $48 GPU compute, 100 shared bridge steps, no more than 1,000 continuation steps per arm, no held-out even-autosome or chromosome-Y labels.
 - Coordinating issue: https://github.com/Open-Athena/marin-dna/issues/515
 - Experiment IDs: OLS-515-BRIDGE, OLS-515-U100, OLS-515-R50, OLS-515-L50, OLS-515-M50, and OLS-515-H50.
 - Logging: CSV is authoritative; W&B is optional best effort and cannot stop the experiment.
@@ -65,6 +65,7 @@ The per-species source-case audit passed without invoking the RefSeq fallback.
 - 2026-08-24: Treat the seven CDS arms as independent objectives that share bridge weights but reset AdamW and scheduler state and use identical 20-step arm-local warmup.
 - 2026-08-24: At the 100-step CDS gate, retain teacher KL and random-50 for discussion alongside uniform; drop all three student loss-ranked halves and teacher-low-50 because each is significantly worse than bridge.
 - 2026-08-24: Stop every CDS arm at the gate pending user review; do not launch the queued RefSeq restart yet.
+- 2026-08-24: Continue only uniform CE and pure teacher KL from their full step-100 states through step 200, keep the constant 1e-3 plateau with no second warmup, and stop for review after paired missense-plus-splicing evaluation.
 
 ## Negative Results Index
 

@@ -77,6 +77,7 @@ def launch_command(
     publish_only: bool = False,
     refseq_screen: bool = False,
     cds_gate: bool = False,
+    cds_extension_200: bool = False,
     down_after_run: bool = True,
 ) -> list[str]:
     if instance_start_unix is None:
@@ -116,6 +117,8 @@ def launch_command(
         command.extend(["--env", "EXP515_REFSEQ_SCREEN=1"])
     if cds_gate:
         command.extend(["--env", "EXP515_CDS_GATE=1"])
+    if cds_extension_200:
+        command.extend(["--env", "EXP515_CDS_EXTENSION_200=1"])
     if retry_until_up:
         command.append("--retry-until-up")
     if down_after_run:
@@ -134,6 +137,7 @@ def main() -> None:
     parser.add_argument("--resume-from-bridge", action="store_true")
     parser.add_argument("--refseq-screen", action="store_true")
     parser.add_argument("--cds-gate", action="store_true")
+    parser.add_argument("--cds-extension-200", action="store_true")
     parser.add_argument("--publish-only", action="store_true")
     args = parser.parse_args()
     run_id = args.run_id or f"{args.commit[:12]}-{int(time.time())}"
@@ -148,7 +152,8 @@ def main() -> None:
         resume_from_bridge=args.resume_from_bridge,
         refseq_screen=args.refseq_screen,
         cds_gate=args.cds_gate,
-        down_after_run=not args.cds_gate,
+        cds_extension_200=args.cds_extension_200,
+        down_after_run=not (args.cds_gate or args.cds_extension_200),
         publish_only=args.publish_only,
     )
     print(" ".join(command))

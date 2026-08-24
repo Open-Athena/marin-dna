@@ -21,6 +21,8 @@ from glm_experiments.exp515.config import (
     CANARY_STEPS,
     CDS_ARM_WARMUP_STEPS,
     CDS_ARMS,
+    CDS_EXTENSION_ARMS,
+    CDS_EXTENSION_TARGET_STEP,
     EFFECTIVE_BATCH_SIZE,
     GPU_COMPUTE_CAP_USD,
     GPU_PRICE_PER_HOUR_USD,
@@ -48,6 +50,8 @@ from glm_experiments.exp515.runner import (
     _phase_position,
     _retain_for_publication,
     _selector_device_smoke,
+    _validate_cds_extension_checkpoint,
+    _validate_cds_plan_extension,
 )
 from glm_experiments.exp515.storage import (
     ISSUE_BUCKET_REGION,
@@ -256,6 +260,24 @@ def test_sequence_plan_is_fixed_width_and_checksumed(tmp_path: Path) -> None:
         validate_sequence_plan(plan_dir, force_rehash=True)
 
 
+def test_cds_extended_plan_preserves_completed_prefix(tmp_path: Path) -> None:
+    first = "A" * NUCLEOTIDE_LENGTH
+    second = "C" * NUCLEOTIDE_LENGTH
+    parent = tmp_path / "parent"
+    extension = tmp_path / "extension"
+    _write_plan(parent, [first, second])
+    _write_plan(extension, [first, second, first, second])
+    observed = _validate_cds_plan_extension(
+        parent,
+        extension,
+        expected_parent_rows=2,
+        expected_extension_rows=4,
+    )
+    assert observed["passed"] is True
+    assert observed["added_rows"] == 2
+    assert observed["sequence_prefix_sha256"] == observed["parent_sequences_sha256"]
+
+
 def test_selected_loss_is_exact_mean_and_repeats_are_ineligible() -> None:
     torch.manual_seed(3)
     net = CLM(
@@ -357,6 +379,11 @@ def test_registered_schedule_and_data_position_contract() -> None:
     assert arm_warmup_constant_learning_rate_factor(20) == pytest.approx(1.0)
     assert 100 * EFFECTIVE_BATCH_SIZE == 204_800
     assert len(CDS_ARMS) == 7
+    assert CDS_EXTENSION_TARGET_STEP == 200
+    assert [arm.name for arm in CDS_EXTENSION_ARMS] == [
+        "uniform-100",
+        "teacher-kl-full",
+    ]
     assert [arm.objective_kind for arm in CDS_ARMS[-2:]] == [
         "teacher_kl",
         "teacher_low",
@@ -394,6 +421,37 @@ def test_fresh_optimizer_fork_preserves_absolute_data_position(tmp_path: Path) -
         _phase_position(arm, bridge)
 
 
+def test_cds_extension_requires_full_matching_step_100_state(tmp_path: Path) -> None:
+    checkpoint = tmp_path / "uniform-step-100.ckpt"
+    arm = CDS_EXTENSION_ARMS[0]
+    torch.save(
+        {
+            "global_step": 100,
+            "exp515": {
+                "next_sample_id": 200 * EFFECTIVE_BATCH_SIZE,
+                "sample_id_offset": 100 * EFFECTIVE_BATCH_SIZE,
+                "effective_batch_size": EFFECTIVE_BATCH_SIZE,
+                "selector_mode": arm.selector_mode,
+                "selector_ratio": arm.selector_ratio,
+                "objective_kind": arm.objective_kind,
+                "teacher_checkpoint": None,
+                "plan_sha256": "parent-plan",
+            },
+            "optimizer_states": [{}],
+            "lr_schedulers": [{}],
+        },
+        checkpoint,
+    )
+    observed = _validate_cds_extension_checkpoint(
+        checkpoint,
+        arm=arm,
+        parent_plan_sha256="parent-plan",
+        expected_teacher_checkpoint=None,
+    )
+    assert observed["passed"] is True
+    assert observed["global_step"] == 100
+
+
 def test_registered_hardware_and_budget_contract() -> None:
     assert ACCELERATOR == "A100:1"
     assert GPU_PRICE_PER_HOUR_USD == 1.99
@@ -411,6 +469,21 @@ def test_cds_launch_retains_cluster_and_sets_gate_flag() -> None:
         down_after_run=False,
     )
     assert "EXP515_CDS_GATE=1" in command
+    assert "--down" not in command
+    assert command[-1] == "--yes"
+
+
+def test_cds_extension_launch_retains_cluster_and_sets_flag() -> None:
+    command = launch_command(
+        "a" * 40,
+        "cds-step-200",
+        retry_until_up=False,
+        instance_start_unix=1,
+        cds_extension_200=True,
+        down_after_run=False,
+    )
+    assert "EXP515_CDS_EXTENSION_200=1" in command
+    assert "EXP515_CDS_GATE=1" not in command
     assert "--down" not in command
     assert command[-1] == "--yes"
 

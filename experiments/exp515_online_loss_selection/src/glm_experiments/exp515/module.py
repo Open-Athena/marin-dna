@@ -76,6 +76,7 @@ class Exp515Module(LightningModule):
         selector_mode: SelectorMode,
         selector_ratio: float,
         objective_kind: ObjectiveKind = "hard_ce",
+        resume_plan_sha256: str | None = None,
         teacher_checkpoint: str | None = None,
         schedule_kind: ScheduleKind = "warmup_cosine",
         effective_batch_size: int = EFFECTIVE_BATCH_SIZE,
@@ -86,6 +87,7 @@ class Exp515Module(LightningModule):
         self.net = net
         self.continuation_steps = continuation_steps
         self.plan_sha256 = plan_sha256
+        self.resume_plan_sha256 = resume_plan_sha256
         self.selector_mode = selector_mode
         self.selector_ratio = selector_ratio
         self.objective_kind = objective_kind
@@ -354,6 +356,7 @@ class Exp515Module(LightningModule):
 
         checkpoint["exp515"] = {
             "plan_sha256": self.plan_sha256,
+            "parent_plan_sha256": self.resume_plan_sha256,
             "next_sample_id": self.sample_id_offset
             + self.global_step * self.effective_batch_size,
             "sample_id_offset": self.sample_id_offset,
@@ -380,8 +383,14 @@ class Exp515Module(LightningModule):
         metadata = checkpoint.get("exp515")
         if not isinstance(metadata, dict):
             raise TypeError("checkpoint lacks exp515 resume metadata")
-        if metadata["plan_sha256"] != self.plan_sha256:
-            raise ValueError("checkpoint sequence plan does not match this run")
+        accepted_plan_sha256s = {self.plan_sha256}
+        if self.resume_plan_sha256 is not None:
+            accepted_plan_sha256s.add(self.resume_plan_sha256)
+        if metadata["plan_sha256"] not in accepted_plan_sha256s:
+            raise ValueError(
+                "checkpoint sequence plan does not match this run or its "
+                "validated parent plan"
+            )
         if int(metadata["effective_batch_size"]) != self.effective_batch_size:
             raise ValueError("checkpoint effective batch does not match this run")
         if int(metadata.get("sample_id_offset", 0)) != self.sample_id_offset:

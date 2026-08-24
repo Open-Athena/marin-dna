@@ -17,6 +17,7 @@ run: |
   export EXP515_PUBLISH_ONLY="${EXP515_PUBLISH_ONLY:-0}"
   export EXP515_REFSEQ_SCREEN="${EXP515_REFSEQ_SCREEN:-0}"
   export EXP515_CDS_GATE="${EXP515_CDS_GATE:-0}"
+  export EXP515_CDS_EXTENSION_200="${EXP515_CDS_EXTENSION_200:-0}"
   cd experiments/exp515_online_loss_selection
   test -n "${EXPERIMENT_COMMIT:-}"
   test -n "${EXP515_RUN_ID:-}"
@@ -39,6 +40,9 @@ run: |
   fi
   if [[ "$EXP515_CDS_GATE" == "1" ]]; then
     resume_args+=(--cds-gate)
+  fi
+  if [[ "$EXP515_CDS_EXTENSION_200" == "1" ]]; then
+    resume_args+=(--cds-extension-200)
   fi
   uv run --locked python -m glm_experiments.exp515.runner \
     --artifact-dir "$HOME/exp515-artifacts" \

@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import base64
 import gc
+import hashlib
 import json
 import math
 import os
@@ -31,6 +32,9 @@ from glm_experiments.exp515.config import (
     CANARY_STEPS,
     CDS_ARM_WARMUP_STEPS,
     CDS_ARMS,
+    CDS_EXTENSION_ADDITIONAL_STEPS,
+    CDS_EXTENSION_ARMS,
+    CDS_EXTENSION_TARGET_STEP,
     CDS_GATE_CONTINUATION_STEPS,
     CDS_NUCLEOTIDE_LENGTH,
     CDS_SEQUENCE_LENGTH,
@@ -55,6 +59,7 @@ from glm_experiments.exp515.config import (
     SEED,
     SEQUENCE_LENGTH,
     SOURCE_CHECKPOINT,
+    Arm,
     ObjectiveKind,
     continuation_endpoint,
     continuation_midpoint,
@@ -75,7 +80,11 @@ from glm_experiments.exp515.module import (
     ScheduleKind,
     checkpoint_next_sample_id,
 )
-from glm_experiments.exp515.significance import statistically_not_worse_gate
+from glm_experiments.exp515.significance import (
+    holm_adjust,
+    paired_group_swap_p_two_sided,
+    statistically_not_worse_gate,
+)
 from glm_experiments.exp515.storage import (
     ISSUE_BUCKET_REGION,
     upload_issue_artifact,
@@ -208,6 +217,7 @@ def _new_module(
     selector_mode: str,
     selector_ratio: float,
     objective_kind: ObjectiveKind = "hard_ce",
+    resume_plan_sha256: str | None = None,
     teacher_dir: Path | None = None,
     schedule_kind: ScheduleKind = "warmup_cosine",
     sample_id_offset: int = 0,
@@ -223,6 +233,7 @@ def _new_module(
     return Exp515Module(
         net,
         continuation_steps=continuation_steps,
+        resume_plan_sha256=resume_plan_sha256,
         plan_sha256=plan_sha256,
         selector_mode=selector_mode,  # type: ignore[arg-type]
         selector_ratio=selector_ratio,
@@ -346,6 +357,7 @@ def run_training_phase(
     target_global_step: int,
     microbatch_size: int,
     resume_from: Path | None,
+    resume_plan_sha256: str | None = None,
     fork_weights_from: Path | None = None,
     schedule_kind: ScheduleKind = "warmup_cosine",
     objective_kind: ObjectiveKind = "hard_ce",
@@ -382,6 +394,7 @@ def run_training_phase(
     module = _new_module(
         source_dir,
         continuation_steps=continuation_steps,
+        resume_plan_sha256=resume_plan_sha256,
         plan_sha256=str(plan["sequences_sha256"]),
         selector_mode=selector_mode,
         selector_ratio=selector_ratio,
@@ -1366,6 +1379,141 @@ def _checkpoint_contract(student_dir: Path, teacher_dir: Path) -> dict[str, Any]
     return payload
 
 
+def _sha256_prefix(path: Path, length: int) -> str:
+    """Hash exactly one byte prefix without loading it into memory."""
+
+    if length < 0:
+        raise ValueError("prefix length must be non-negative")
+    digest = hashlib.sha256()
+    remaining = length
+    with path.open("rb") as handle:
+        while remaining:
+            chunk = handle.read(min(8 * 1024 * 1024, remaining))
+            if not chunk:
+                raise ValueError(f"{path} is shorter than the requested prefix")
+            digest.update(chunk)
+            remaining -= len(chunk)
+    return digest.hexdigest()
+
+
+def _validate_cds_plan_extension(
+    parent_dir: Path,
+    extension_dir: Path,
+    *,
+    expected_parent_rows: int | None = None,
+    expected_extension_rows: int | None = None,
+) -> dict[str, Any]:
+    """Prove that the longer deterministic plan preserves the completed prefix."""
+
+    parent = validate_sequence_plan(parent_dir, force_rehash=True)
+    extension = validate_sequence_plan(extension_dir, force_rehash=True)
+    expected_parent_rows = (
+        expected_parent_rows
+        or (BRIDGE_STEPS + CDS_GATE_CONTINUATION_STEPS) * EFFECTIVE_BATCH_SIZE
+    )
+    expected_extension_rows = (
+        expected_extension_rows
+        or (BRIDGE_STEPS + CDS_EXTENSION_TARGET_STEP) * EFFECTIVE_BATCH_SIZE
+    )
+    if expected_parent_rows <= 0 or expected_extension_rows <= expected_parent_rows:
+        raise ValueError("extension plan row bounds are invalid")
+    if int(parent["rows"]) != expected_parent_rows:
+        raise ValueError("parent CDS plan does not end at the step-100 arm boundary")
+    if int(extension["rows"]) != expected_extension_rows:
+        raise ValueError("extended CDS plan does not end at the step-200 arm boundary")
+
+    identity_fields = (
+        "dataset",
+        "revision",
+        "text_key",
+        "species_key",
+        "seed",
+        "nucleotide_length",
+        "exclude_first_base_from_eligibility",
+    )
+    differences = {
+        field: {"parent": parent.get(field), "extension": extension.get(field)}
+        for field in identity_fields
+        if parent.get(field) != extension.get(field)
+    }
+    if differences:
+        raise ValueError(f"extended CDS plan identity differs: {differences}")
+
+    nucleotide_length = int(parent["nucleotide_length"])
+    sequence_prefix_bytes = expected_parent_rows * nucleotide_length
+    species_prefix_bytes = expected_parent_rows * 2
+    sequence_prefix_sha256 = _sha256_prefix(
+        extension_dir / "sequences.bin",
+        sequence_prefix_bytes,
+    )
+    species_prefix_sha256 = _sha256_prefix(
+        extension_dir / "species.u16",
+        species_prefix_bytes,
+    )
+    if sequence_prefix_sha256 != parent["sequences_sha256"]:
+        raise ValueError("extended CDS sequence plan does not preserve its parent")
+    if species_prefix_sha256 != parent["species_sha256"]:
+        raise ValueError("extended CDS species plan does not preserve its parent")
+    return {
+        "passed": True,
+        "parent_rows": expected_parent_rows,
+        "extension_rows": expected_extension_rows,
+        "added_rows": expected_extension_rows - expected_parent_rows,
+        "parent_sequences_sha256": parent["sequences_sha256"],
+        "extension_sequences_sha256": extension["sequences_sha256"],
+        "sequence_prefix_sha256": sequence_prefix_sha256,
+        "parent_species_sha256": parent["species_sha256"],
+        "extension_species_sha256": extension["species_sha256"],
+        "species_prefix_sha256": species_prefix_sha256,
+    }
+
+
+def _validate_cds_extension_checkpoint(
+    checkpoint: Path,
+    *,
+    arm: Arm,
+    parent_plan_sha256: str,
+    expected_teacher_checkpoint: str | None,
+) -> dict[str, Any]:
+    """Validate a complete step-100 arm state before adding more updates."""
+
+    payload = torch.load(checkpoint, map_location="cpu", weights_only=False)
+    metadata = payload.get("exp515")
+    if not isinstance(metadata, dict):
+        raise TypeError("extension checkpoint lacks exp515 metadata")
+    expected = {
+        "global_step": CDS_GATE_CONTINUATION_STEPS,
+        "next_sample_id": (BRIDGE_STEPS + CDS_GATE_CONTINUATION_STEPS)
+        * EFFECTIVE_BATCH_SIZE,
+        "sample_id_offset": BRIDGE_STEPS * EFFECTIVE_BATCH_SIZE,
+        "effective_batch_size": EFFECTIVE_BATCH_SIZE,
+        "selector_mode": arm.selector_mode,
+        "selector_ratio": arm.selector_ratio,
+        "objective_kind": arm.objective_kind,
+        "teacher_checkpoint": expected_teacher_checkpoint,
+        "plan_sha256": parent_plan_sha256,
+    }
+    observed = {
+        "global_step": int(payload["global_step"]),
+        **{field: metadata.get(field) for field in expected if field != "global_step"},
+    }
+    mismatches = {
+        field: {"expected": value, "observed": observed[field]}
+        for field, value in expected.items()
+        if observed[field] != value
+    }
+    if mismatches:
+        raise ValueError(f"extension checkpoint contract mismatch: {mismatches}")
+    if not payload.get("optimizer_states") or not payload.get("lr_schedulers"):
+        raise ValueError("extension checkpoint lacks optimizer or scheduler state")
+    return {
+        "passed": True,
+        "checkpoint": str(checkpoint),
+        "size_bytes": checkpoint.stat().st_size,
+        **expected,
+    }
+
+
 def run_cds_gate(
     artifact_dir: Path,
     *,
@@ -1690,6 +1838,311 @@ def run_cds_gate(
     _write_json(root / "final-manifest.json", final)
 
 
+def run_cds_extension(
+    artifact_dir: Path,
+    *,
+    experiment_commit: str,
+    run_id: str,
+) -> None:
+    """Resume uniform CE and teacher KL from arm step 100 through step 200."""
+
+    if len(experiment_commit) != 40:
+        raise ValueError("experiment commit must be a full SHA")
+    seed_everything(SEED, workers=True)
+    instance_start = float(os.getenv("EXP515_INSTANCE_START_UNIX", time.time()))
+    extension_started = time.time()
+    root = artifact_dir / run_id
+    if not root.is_dir():
+        raise FileNotFoundError(f"parent CDS run does not exist: {root}")
+    extension_root = root / "extensions" / "step-200"
+    extension_root.mkdir(parents=True, exist_ok=True)
+    _install_compute_guard(instance_start)
+
+    parent_final = json.loads((root / "final-manifest.json").read_text())
+    if (
+        parent_final.get("status") != "complete"
+        or int(parent_final.get("arm_steps", -1)) != CDS_GATE_CONTINUATION_STEPS
+        or parent_final.get("evaluation_subsets") != ["missense_variant", "splicing"]
+    ):
+        raise ValueError("parent CDS gate manifest does not match the extension")
+
+    source_dir = download_source_checkpoint(
+        root / "source-checkpoint",
+        checkpoint_uri=EXP58_STUDENT_CHECKPOINT,
+    )
+    teacher_dir = download_source_checkpoint(
+        root / "teacher-checkpoint",
+        checkpoint_uri=EXP58_TEACHER_CHECKPOINT,
+    )
+    _write_json(
+        extension_root / "checkpoint-contract.json",
+        _checkpoint_contract(source_dir, teacher_dir),
+    )
+    tokenizer = _load_tokenizer(
+        source_dir,
+        nucleotide_length=CDS_NUCLEOTIDE_LENGTH,
+        sequence_length=CDS_SEQUENCE_LENGTH,
+        require_bos=False,
+    )
+
+    parent_plan_dir = root / "sequence-plan"
+    parent_plan = validate_sequence_plan(parent_plan_dir, force_rehash=True)
+    extension_plan_dir = extension_root / "sequence-plan"
+    extended_plan = build_sequence_plan(
+        extension_plan_dir,
+        rows=(BRIDGE_STEPS + CDS_EXTENSION_TARGET_STEP) * EFFECTIVE_BATCH_SIZE,
+        seed=SEED,
+        dataset=EXP58_TRAIN_DATASET,
+        revision=EXP58_TRAIN_REVISION,
+        text_key=EXP58_TRAIN_TEXT_KEY,
+        species_key=None,
+        nucleotide_length=CDS_NUCLEOTIDE_LENGTH,
+        exclude_first_base_from_eligibility=True,
+    )
+    plan_lineage = _validate_cds_plan_extension(
+        parent_plan_dir,
+        extension_plan_dir,
+    )
+    _write_json(extension_root / "plan-lineage.json", plan_lineage)
+
+    selected_microbatch = int(parent_final["microbatch_size"])
+    baseline_evaluations = {
+        arm.name: json.loads(
+            (
+                root
+                / "evaluations"
+                / f"{arm.name}-gate-{CDS_GATE_CONTINUATION_STEPS}.summary.json"
+            ).read_text()
+        )
+        for arm in CDS_EXTENSION_ARMS
+    }
+    parent_checkpoints = {
+        arm.name: (
+            root
+            / f"{arm.name}-gate-{CDS_GATE_CONTINUATION_STEPS}"
+            / f"step-{CDS_GATE_CONTINUATION_STEPS}.ckpt"
+        )
+        for arm in CDS_EXTENSION_ARMS
+    }
+    checkpoint_contracts = {
+        arm.name: _validate_cds_extension_checkpoint(
+            parent_checkpoints[arm.name],
+            arm=arm,
+            parent_plan_sha256=str(parent_plan["sequences_sha256"]),
+            expected_teacher_checkpoint=(
+                str(teacher_dir) if arm.objective_kind == "teacher_kl" else None
+            ),
+        )
+        for arm in CDS_EXTENSION_ARMS
+    }
+    _write_json(
+        extension_root / "parent-checkpoint-contracts.json",
+        {"checkpoints": checkpoint_contracts},
+    )
+
+    hard_runtime = json.loads(
+        (root / "uniform-100-gate-100" / "runtime.json").read_text()
+    )
+    teacher_runtime = json.loads(
+        (root / "teacher-kl-full-gate-100" / "runtime.json").read_text()
+    )
+    evaluation_seconds = max(
+        float(summary["elapsed_seconds"]) for summary in baseline_evaluations.values()
+    )
+    allocation_elapsed = time.time() - instance_start
+    projected_remaining_seconds = RUNTIME_MARGIN * (
+        CDS_EXTENSION_ADDITIONAL_STEPS
+        * float(hard_runtime["seconds_per_optimizer_step"])
+        + CDS_EXTENSION_ADDITIONAL_STEPS
+        * float(teacher_runtime["seconds_per_optimizer_step"])
+        + len(CDS_EXTENSION_ARMS) * evaluation_seconds
+        + 300.0
+    )
+    projection = {
+        "instance_elapsed_seconds": allocation_elapsed,
+        "hard_seconds_per_optimizer_step": hard_runtime["seconds_per_optimizer_step"],
+        "teacher_seconds_per_optimizer_step": teacher_runtime[
+            "seconds_per_optimizer_step"
+        ],
+        "additional_steps_per_arm": CDS_EXTENSION_ADDITIONAL_STEPS,
+        "remaining_evaluations": len(CDS_EXTENSION_ARMS),
+        "publication_overhead_seconds": 300.0,
+        "runtime_margin": RUNTIME_MARGIN,
+        "projected_remaining_seconds": projected_remaining_seconds,
+        "projected_total_compute_usd": (
+            allocation_elapsed + projected_remaining_seconds
+        )
+        / 3600
+        * GPU_PRICE_PER_HOUR_USD,
+        "gpu_compute_cap_usd": GPU_COMPUTE_CAP_USD,
+        "all_in_cap_usd": ALL_IN_CAP_USD,
+    }
+    projection["passed"] = (
+        float(projection["projected_total_compute_usd"]) < GPU_COMPUTE_CAP_USD
+    )
+    _write_json(extension_root / "budget-projection.json", projection)
+    if not projection["passed"]:
+        raise RuntimeError("CDS step-200 extension projection reaches the compute stop")
+
+    evaluation_frame = load_promoter_frame(
+        root / "evaluation-cache",
+        subsets=("missense_variant", "splicing"),
+        nucleotide_length=CDS_NUCLEOTIDE_LENGTH,
+    )
+    evaluations: dict[str, dict[str, Any]] = {}
+    runtimes: dict[str, dict[str, Any]] = {}
+    for arm in CDS_EXTENSION_ARMS:
+        run_name = f"{arm.name}-step-{CDS_EXTENSION_TARGET_STEP}"
+        module, checkpoint, runtime = run_training_phase(
+            source_dir=source_dir,
+            tokenizer=tokenizer,
+            plan_dir=extension_plan_dir,
+            output_dir=extension_root,
+            run_name=run_name,
+            selector_mode=arm.selector_mode,
+            selector_ratio=arm.selector_ratio,
+            continuation_steps=CDS_EXTENSION_TARGET_STEP,
+            target_global_step=CDS_EXTENSION_TARGET_STEP,
+            microbatch_size=selected_microbatch,
+            resume_from=parent_checkpoints[arm.name],
+            resume_plan_sha256=str(parent_plan["sequences_sha256"]),
+            schedule_kind="arm_warmup_constant",
+            objective_kind=arm.objective_kind,
+            teacher_dir=(teacher_dir if arm.objective_kind == "teacher_kl" else None),
+            nucleotide_length=CDS_NUCLEOTIDE_LENGTH,
+            sequence_length=CDS_SEQUENCE_LENGTH,
+        )
+        evaluation = evaluate_promoter_auprc(
+            module.net,
+            tokenizer,
+            frame=evaluation_frame,
+            output_path=extension_root / "evaluations" / f"{run_name}.csv",
+            batch_size=selected_microbatch,
+            checkpoint_name=run_name,
+            nucleotide_length=CDS_NUCLEOTIDE_LENGTH,
+            sequence_length=CDS_SEQUENCE_LENGTH,
+        )
+        evaluations[arm.name] = evaluation
+        runtimes[arm.name] = runtime
+        _write_json(
+            extension_root / f"{arm.name}-result.json",
+            {
+                "arm": arm.name,
+                "objective_kind": arm.objective_kind,
+                "gate_100_evaluation": baseline_evaluations[arm.name],
+                "step_200_evaluation": evaluation,
+                "checkpoint": str(checkpoint),
+            },
+        )
+        del module
+        gc.collect()
+        torch.cuda.empty_cache()
+
+    step_200_csvs = {
+        arm.name: (
+            extension_root
+            / "evaluations"
+            / f"{arm.name}-step-{CDS_EXTENSION_TARGET_STEP}.csv"
+        )
+        for arm in CDS_EXTENSION_ARMS
+    }
+    primary_comparison = paired_group_swap_p_two_sided(
+        step_200_csvs["teacher-kl-full"],
+        step_200_csvs["uniform-100"],
+        permutations=20_000,
+        seed=SEED + 6200,
+    )
+    trajectory_tests = {
+        arm.name: paired_group_swap_p_two_sided(
+            step_200_csvs[arm.name],
+            root / "evaluations" / f"{arm.name}-gate-{CDS_GATE_CONTINUATION_STEPS}.csv",
+            permutations=20_000,
+            seed=SEED + 6201 + index,
+        )
+        for index, arm in enumerate(CDS_EXTENSION_ARMS)
+    }
+    trajectory_adjusted = holm_adjust(
+        {name: float(test["p_two_sided"]) for name, test in trajectory_tests.items()}
+    )
+    for name, test in trajectory_tests.items():
+        test["p_two_sided_holm"] = trajectory_adjusted[name]
+    comparisons = {
+        "primary": {
+            "comparison": "teacher-kl-full step 200 versus uniform-100 step 200",
+            "alternative": "two-sided",
+            **primary_comparison,
+        },
+        "trajectories": {
+            "comparison": "step 200 versus the same arm at step 100",
+            "alternative": "two-sided",
+            "correction": "Holm across two arms",
+            "tests": trajectory_tests,
+        },
+    }
+    _write_json(extension_root / "step-200-comparisons.json", comparisons)
+
+    now = time.time()
+    final = {
+        "status": "complete",
+        "protocol": "exp58-cds-uniform-kl-step100-to-step200-extension",
+        "experiment_commit": experiment_commit,
+        "parent_experiment_commit": parent_final["experiment_commit"],
+        "run_id": run_id,
+        "provider": "Lambda Cloud",
+        "accelerator": ACCELERATOR,
+        "hourly_rate_usd": GPU_PRICE_PER_HOUR_USD,
+        "instance_start_unix": instance_start,
+        "instance_start_utc": _utc_timestamp(instance_start),
+        "extension_started_utc": _utc_timestamp(extension_started),
+        "completed_at_utc": _utc_timestamp(now),
+        "source_checkpoint": EXP58_STUDENT_CHECKPOINT,
+        "teacher_checkpoint": EXP58_TEACHER_CHECKPOINT,
+        "resumed_arm_step": CDS_GATE_CONTINUATION_STEPS,
+        "target_arm_step": CDS_EXTENSION_TARGET_STEP,
+        "additional_steps_per_arm": CDS_EXTENSION_ADDITIONAL_STEPS,
+        "absolute_start_sample_id": (BRIDGE_STEPS + CDS_GATE_CONTINUATION_STEPS)
+        * EFFECTIVE_BATCH_SIZE,
+        "absolute_end_sample_id": (BRIDGE_STEPS + CDS_EXTENSION_TARGET_STEP)
+        * EFFECTIVE_BATCH_SIZE,
+        "microbatch_size": selected_microbatch,
+        "schedule": {
+            "kind": "constant after the completed arm-local warmup",
+            "learning_rate": 1e-3,
+            "optimizer_scheduler_rng_state": "fully restored per arm",
+        },
+        "dataset": {
+            "name": EXP58_TRAIN_DATASET,
+            "revision": EXP58_TRAIN_REVISION,
+            "text_key": EXP58_TRAIN_TEXT_KEY,
+            "nucleotide_length": CDS_NUCLEOTIDE_LENGTH,
+            "bos_token": None,
+            "extension_sequence_plan_sha256": extended_plan["sequences_sha256"],
+            "plan_lineage": plan_lineage,
+        },
+        "evaluation_subsets": ["missense_variant", "splicing"],
+        "baseline_evaluations": baseline_evaluations,
+        "step_200_evaluations": evaluations,
+        "comparisons": comparisons,
+        "runtimes": runtimes,
+        "budget_projection": projection,
+        "extension_elapsed_seconds": now - extension_started,
+        "estimated_extension_compute_usd": (now - extension_started)
+        / 3600
+        * GPU_PRICE_PER_HOUR_USD,
+        "provider_allocation_elapsed_seconds": now - instance_start,
+        "estimated_provider_allocation_usd": (now - instance_start)
+        / 3600
+        * GPU_PRICE_PER_HOUR_USD,
+        "compute_cap_usd": GPU_COMPUTE_CAP_USD,
+        "all_in_cap_usd": ALL_IN_CAP_USD,
+        "parent_artifact_prefix": (
+            "s3://oa-bolinas/issues/515/online-loss-selection/v1/runs/"
+            "364abd024f3c-20260824t1320z-amended-480e6e17/"
+        ),
+    }
+    _write_json(extension_root / "final-manifest.json", final)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--artifact-dir", type=Path, required=True)
@@ -1699,18 +2152,39 @@ def main() -> None:
     parser.add_argument("--publish-only", action="store_true")
     parser.add_argument("--refseq-screen", action="store_true")
     parser.add_argument("--cds-gate", action="store_true")
+    parser.add_argument("--cds-extension-200", action="store_true")
     args = parser.parse_args()
     if Path(args.run_id).name != args.run_id or args.run_id in {".", ".."}:
         raise ValueError("run ID must be one safe path component")
+    selected_modes = sum(
+        (
+            args.publish_only,
+            args.refseq_screen,
+            args.cds_gate,
+            args.cds_extension_200,
+        )
+    )
+    if selected_modes > 1:
+        raise ValueError("choose only one experiment or publication mode")
+
     root = args.artifact_dir / args.run_id
+    publication_root = root
+    publication_run_id = args.run_id
+    if args.cds_extension_200:
+        publication_root = root / "extensions" / "step-200"
+        publication_run_id = f"{args.run_id}-step-200-{args.experiment_commit[:12]}"
     if args.publish_only:
         _archive_precompletion_failure(root)
         publish_run_artifacts(root, args.run_id)
         return
     try:
-        if args.refseq_screen and args.cds_gate:
-            raise ValueError("choose only one of --refseq-screen and --cds-gate")
-        if args.cds_gate:
+        if args.cds_extension_200:
+            run_cds_extension(
+                args.artifact_dir,
+                experiment_commit=args.experiment_commit,
+                run_id=args.run_id,
+            )
+        elif args.cds_gate:
             run_cds_gate(
                 args.artifact_dir,
                 experiment_commit=args.experiment_commit,
@@ -1734,30 +2208,39 @@ def main() -> None:
     except BaseException as error:
         signal.alarm(0)
         instance_start = float(os.getenv("EXP515_INSTANCE_START_UNIX", time.time()))
+        failed_at_utc = _utc_timestamp()
         failure = {
             "status": "failed",
             "error_type": type(error).__name__,
             "error": str(error),
             "traceback": traceback.format_exc(),
-            "failed_at_utc": _utc_timestamp(),
+            "failed_at_utc": failed_at_utc,
             "estimated_compute_cost_usd": (time.time() - instance_start)
             / 3600
             * GPU_PRICE_PER_HOUR_USD,
         }
-        if root.exists():
-            _write_json(root / "failure.json", failure)
+        if publication_root.exists():
+            _write_json(publication_root / "failure.json", failure)
+            failure_publication_id = publication_run_id
+            if args.cds_extension_200:
+                failure_publication_id = (
+                    f"{publication_run_id}-failure-{int(time.time())}"
+                )
             try:
-                publish_run_artifacts(root, args.run_id)
+                publish_run_artifacts(
+                    publication_root,
+                    failure_publication_id,
+                )
             except Exception as publication_error:  # noqa: BLE001
                 failure["publication_error"] = (
                     f"{type(publication_error).__name__}: {publication_error}"
                 )
-                _write_json(root / "failure.json", failure)
+                _write_json(publication_root / "failure.json", failure)
         raise
     else:
         try:
-            _archive_precompletion_failure(root)
-            publish_run_artifacts(root, args.run_id)
+            _archive_precompletion_failure(publication_root)
+            publish_run_artifacts(publication_root, publication_run_id)
         finally:
             signal.alarm(0)
 

@@ -69,6 +69,30 @@ uv run --locked python launch.py \
   --execute
 ```
 
+## CDS step-200 extension
+
+The selected extension continues only `uniform-100` hard CE and `teacher-kl-full` pure teacher KL for 100 additional arm-local optimizer steps.
+Each arm resumes its complete step-100 Lightning checkpoint, including model, AdamW, scheduler, selector, data position, and global RNG state.
+The arm-local scheduler has already completed its 20-step warmup, so steps 100 through 200 remain at the constant 1e-3 learning rate with no second warmup.
+
+The deterministic CDS sequence plan grows from 409,600 through 614,400 absolute rows.
+The runner hashes both sequence and species prefixes to prove that the first 409,600 rows are byte-identical to the completed parent plan before training.
+Step-200 evaluation uses the same pinned Mendelian train-split missense-plus-splicing endpoint, with separate subset AUPRCs also reported.
+The preregistered primary comparison is a two-sided 20,000-permutation paired match-group swap test of teacher KL versus uniform at step 200.
+Each arm's step-200 versus step-100 trajectory is exploratory and receives a two-sided paired test with Holm correction across the two arms.
+The run stops after both step-200 evaluations and retains the A100 under its 60-minute idle autostop.
+
+Launch this exact continuation against the original run directory with:
+
+```bash
+uv run --locked python launch.py \
+  --commit "$COMMIT" \
+  --run-id "364abd024f3c-20260824t1320z" \
+  --instance-start-unix 1787531138 \
+  --cds-extension-200 \
+  --execute
+```
+
 ## Queued RefSeq restart
 
 The queued screen is an explicit corpus restart using marin-dna/genomes-v5-genome_set-animals-intervals-v1_255_128 at revision d93209847b02a0c9be5c03591a0a5e56ee09c35d.

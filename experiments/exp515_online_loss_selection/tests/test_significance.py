@@ -12,6 +12,7 @@ from sklearn.metrics import average_precision_score
 from glm_experiments.exp515.significance import (
     _batched_average_precision,
     holm_adjust,
+    paired_group_swap_p_two_sided,
     paired_group_swap_p_worse,
 )
 
@@ -80,3 +81,20 @@ def test_paired_group_swap_detects_a_clearly_worse_candidate(
     )
     assert observed["delta_auprc"] < 0
     assert observed["p_worse_one_sided"] < 0.05
+
+
+def test_two_sided_group_swap_detects_a_large_difference(
+    tmp_path: Path,
+) -> None:
+    teacher = tmp_path / "teacher.csv"
+    uniform = tmp_path / "uniform.csv"
+    _write_evaluation(teacher, positive_score=1.0, negative_score=0.0)
+    _write_evaluation(uniform, positive_score=0.0, negative_score=1.0)
+    observed = paired_group_swap_p_two_sided(
+        teacher,
+        uniform,
+        permutations=5_000,
+        seed=516,
+        batch_size=250,
+    )
+    assert observed["delta_auprc"] > 0
