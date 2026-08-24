@@ -40,6 +40,9 @@ species_candidates: config/species_candidates.tsv
 species_selected: config/species_selected.tsv
 multiz_mirror_manifest: config/multiz_mirror.tsv
 twobit_manifest: config/twobit_manifest.tsv
+liftover_chain_manifest: config/liftover_chain_manifest.tsv
+liftover_min_match: 0.95
+liftover_multiple: false
 
 hal_s3_uri: s3://oa-bolinas/staging/447-mammalian-2022v1.hal
 hal_stage_path: /mnt/nvme/vertebrate_projection/447-mammalian-2022v1.hal

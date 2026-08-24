@@ -7,7 +7,7 @@ configfile: "config/functional_anchors.yaml"
 include: "rules/functional_common.smk"
 include: "rules/functional_anchors.smk"
 include: "rules/staging.smk"
-include: "rules/projection.smk"
+include: "rules/functional_projection_liftover.smk"
 include: "rules/functional_dataset.smk"
 
 

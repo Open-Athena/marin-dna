@@ -12,6 +12,9 @@ from marin_dna_vertebrate_projection.pipeline_io import (
     write_qc_files,
 )
 from marin_dna_vertebrate_projection.provenance import validate_producer_manifest
+from marin_dna_vertebrate_projection.projection.liftover import (
+    rewrite_functional_liftover_card,
+)
 from marin_dna_vertebrate_projection.publication import (
     upload_validated_dataset,
     validate_artifacts,
@@ -20,13 +23,13 @@ from marin_dna_vertebrate_projection.publication import (
 HAL_REJECTIONS = expand(
     f"{RESULTS}/hal/rejected/{{species}}.parquet", species=MAMMALS
 ) + expand(f"{RESULTS}/hal/sequence_rejected/{{species}}.parquet", species=MAMMALS)
-MULTIZ_REJECTIONS = expand(
-    f"{RESULTS}/multiz/rejected/{{species}}.parquet", species=NON_MAMMALS
+LIFTOVER_REJECTIONS = expand(
+    f"{RESULTS}/liftover/rejected/{{species}}.parquet", species=NON_MAMMALS
 ) + expand(
-    f"{RESULTS}/multiz/sequence_rejected/{{species}}.parquet",
+    f"{RESULTS}/liftover/sequence_rejected/{{species}}.parquet",
     species=NON_MAMMALS,
 )
-ALL_REJECTIONS = HAL_REJECTIONS + MULTIZ_REJECTIONS
+ALL_REJECTIONS = HAL_REJECTIONS + LIFTOVER_REJECTIONS
 
 
 rule functional_training_sequences:
@@ -241,6 +244,7 @@ rule functional_dataset_card:
                 "a separate producer artifact."
             ),
         )
+        rewrite_functional_liftover_card(output[0])
 
 
 rule functional_hf_artifact_manifest:

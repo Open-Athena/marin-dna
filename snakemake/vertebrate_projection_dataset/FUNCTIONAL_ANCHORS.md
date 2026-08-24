@@ -4,6 +4,10 @@ Issue [#517](https://github.com/Open-Athena/marin-dna/issues/517) is implemented
 
 The authoritative entry point is `workflow/functional.Snakefile`, and its pinned configuration is `config/functional_anchors.yaml`.
 
+The 107 mammal targets use the Zoonomia HAL path.
+The 28 non-mammal targets use the official UCSC hg38-to-target pairwise chains pinned in `config/liftover_chain_manifest.tsv`.
+The default uniform-anchor workflow retains its direct MultiZ MAF backend.
+
 ## Annotation and coordinates
 
 The annotation source is the complete Ensembl GRCh38 release 115 GTF at `Homo_sapiens.GRCh38.115.gtf.gz`.
@@ -80,7 +84,7 @@ sky launch -c issue-517-functional-project \
   --env PIPELINE_COMMIT_SHA="$(git rev-parse HEAD)"
 ```
 
-After the audit passes, reuse the same staged worker for the real cross-backend smoke:
+After the audit passes, reuse the same staged worker for the real HAL plus liftOver smoke:
 
 ```bash
 sky exec issue-517-functional-project \
@@ -90,8 +94,22 @@ sky exec issue-517-functional-project \
   --env PIPELINE_COMMIT_SHA="$(git rev-parse HEAD)"
 ```
 
-The smoke stages and validates the HAL on local NVMe.
+The smoke stages and validates the HAL on local NVMe and downloads the five configured chain files through the checksum-pinned manifest.
 Keep the worker only through the approved full projection so the 1.26 TB HAL is not downloaded twice.
+
+## Non-mammal liftOver contract
+
+The functional workflow runs 28 `liftOver` jobs in the full tier and five in the smoke tier.
+Each job receives every center-1 request in one BED6 file.
+The default invocation is `liftOver -minMatch=0.95` without `-multiple`.
+
+Every input query must appear in the mapped or unmapped BED output, never both.
+Mapped intervals must remain one-base, 0-based, half-open loci with a valid target strand and a chromosome present in the pinned target 2bit.
+Mapped rows then enter the same target-window bounds, orientation, sequence extraction, rejection, QC, and split contracts as the HAL projections.
+
+Before an initial full run from a new chain recipe, compare the complete smoke output with the final direct-MAF smoke from producer `d06519abc5dc2c6c14d4c9765057a6a363305ee5` and config `a903698a0564180f24a7e52d3d03da2b748a90a11a7d77312b77b9e4c07adb40`.
+Report exact coordinate agreement, chain-only mappings, MAF-only mappings, and conflicting mapped loci by target species.
+Proceed only after every difference is explicitly reconciled.
 
 Validate the paid projection graph without executing it:
 
@@ -106,6 +124,7 @@ uv run --locked snakemake -n \
 Do not execute `all_projection` locally or on remote compute until a human explicitly approves the spend and records the decision in issue #517.
 
 After an approved projection, `all_projection` writes the shared recovery QC, five functional training splits, human-sequence GC/repeat/ambiguity audits, a pending mapping-inspection report, and draft cards for `marin-dna/functional-{arm}`.
+The cards identify the official liftOver chains as the non-mammal projection operation while retaining `ucsc_multiz100way` as the stable cohort identifier in the dataset schema.
 
 The explicit repository map is `functional-cds`, `functional-utr3`, `functional-tss`, `functional-ncrna`, and `functional-enhancer`; the internal `tss_region` arm deliberately publishes as `functional-tss`.
 
