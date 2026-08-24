@@ -251,3 +251,10 @@ The extension used an estimated $3.07 and ended at $42.98 of provider allocation
 - Artifacts: Twenty-five curated objects totaling 5,287,882,556 bytes plus the upload manifest were verified under `s3://oa-bolinas/issues/515/online-loss-selection/v1/runs/364abd024f3c-20260824t1320z-step-200-ab65fcaf9593/`.
 - Stop: The run stopped after both step-200 evaluations; random-50, ranked-half arms, and the queued RefSeq restart were not run.
 - Next action: Publish the result summary on issue #515 and return for the next experiment decision.
+
+
+### 2026-08-24 22:04 - Step-200 result publication
+
+- GitHub: Final result comment `https://github.com/Open-Athena/marin-dna/issues/515#issuecomment-5402001292`.
+- Formatting: The posted comment was re-fetched as 30 real lines with no literal backslash-n sequences, including a valid Markdown result table.
+- Next action: Await the next experiment decision while the retained A100 remains subject to its 60-minute idle autostop.
