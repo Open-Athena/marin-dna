@@ -53,14 +53,15 @@ uv run --python /usr/bin/python3.12 --locked iris --cluster=marin job run \
 ## Training launch
 
 Launch CDS as the first canary, verify Hub download, tokenization, checkpointing, and W&B telemetry, and then launch the other four independent arms.
+The authenticated account can read the `open-athena` W&B entity but cannot create model runs there after the organization migration, so this experiment uses its existing writable `gonzalobenegas/marin` project.
 
 ```bash
 uv run --python /usr/bin/python3.12 --locked iris --cluster=marin job run \
   --no-wait --job-name exp517-cds \
   --cpu 1 --memory 2G --region us-east5 --extra=tpu \
   -e WANDB_API_KEY "$WANDB_API_KEY" \
-  -e WANDB_ENTITY open-athena \
-  -e WANDB_PROJECT marin-dna \
+  -e WANDB_ENTITY gonzalobenegas \
+  -e WANDB_PROJECT marin \
   -e MARIN_PREFIX gs://marin-us-east5/MarinDNA/exp517_functional_specialists \
   -e EXP517_TPU_REGION us-east5 \
   -e EXP517_TPU_VARIANT v5p-8 \
