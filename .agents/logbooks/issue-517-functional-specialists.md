@@ -18,7 +18,7 @@ author: gonzalobenegas
 
 ## Current TL;DR
 
-The additive Ensembl release 115 functional-anchor workflow passes all 235 locked pipeline tests and all three credential-free DAG checks.
+The additive Ensembl release 115 functional-anchor workflow passes all 236 locked pipeline tests and all three credential-free DAG checks.
 The default target stops at a pending human preprojection audit; paid projection, publication, training, and held-out evaluation remain approval-gated.
 
 ## Baseline
@@ -52,7 +52,7 @@ None.
 ### Promoted
 
 - `FAS-517-H1`: The additive Ensembl builder reconciles feature extraction, priority ownership, tiling, stable identity, conservation subsets, and review artifacts before projection.
-  Evidence: commit `731807af`, 235 locked tests, and the 17-job preprojection DAG check.
+  Evidence: commit `731807af`, 236 locked tests, and the 17-job preprojection DAG check.
 
 ## Decision Log
 
@@ -174,7 +174,7 @@ Its current anchor path instead creates uniform conservation-selected windows an
 - Commit hash: `731807af`.
 - Annotation decision: Complete Ensembl GRCh38 release 115 GTF, all qualifying transcripts, no RefSeq, and no Ensembl_canonical-only filter.
 - Implementation: Added `workflow/functional.Snakefile`, a pinned issue-specific config, five-arm construction and audit libraries, projection/dataset/publication targets, review reports, and a reusable runbook.
-- Validation: 235 locked tests passed in 9.75 seconds with exit status 0 and 273,620 KiB peak RSS; all configured pre-commit hooks passed.
+- Validation: 236 locked tests passed in 9.33 seconds with exit status 0 and 271,448 KiB peak RSS; all configured pre-commit hooks passed.
 - DAG checks: The unchanged production smoke DAG resolved 79 jobs; the functional preprojection DAG resolved 17 jobs; the opt-in functional smoke projection DAG resolved 94 jobs. All checks used `--default-storage-provider none` and executed no jobs.
 - Interpretation: `FAS-517-H1` passes locally. The implementation now reaches the intended human-audit gate with Ensembl as the explicit annotation source.
 - Next action: Publish the branch and draft PR, review the published diff, then request human review of the preprojection artifacts before any paid projection.
