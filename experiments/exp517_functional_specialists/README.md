@@ -84,8 +84,9 @@ Remove complete mature-miRNA groups before every metric, table, plot, or model-s
 The primary statistic is AUPRC, with paired joint bootstrap uncertainty for whether each home specialist ranks first.
 Do not read, generate, publish, or summarize even-autosome or chromosome-Y held-out labels, predictions, or metrics from this branch.
 
-The dedicated `snakemake/analysis/evals_v2/config/issue517.yaml` config registers 50 development cells: five arms at steps 500, 1,000, 1,500, 2,000, 2,500, 3,000, 3,500, 4,000, 4,500, and the terminal step 4,999.
-It pins the Mendelian development dataset, enables complete-group mature-miRNA exclusion, and does not register a held-out dataset.
+The dedicated `snakemake/analysis/evals_v2/config/issue517.yaml` config registers five arms at steps 500, 1,000, 1,500, 2,000, 2,500, 3,000, 3,500, 4,000, 4,500, and the terminal step 4,999.
+Its 110 development cells comprise the complete 50-cell Mendelian and 50-cell Complex Traits trajectories plus the 10-cell CDS-only SGE trajectory.
+It pins all three development datasets, enables complete-group mature-miRNA exclusion only for Mendelian metrics, and does not register a held-out dataset.
 
 After all checkpoints exist, launch the evaluation workflow with:
 

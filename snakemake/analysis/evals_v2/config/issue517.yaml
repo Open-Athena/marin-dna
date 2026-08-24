@@ -11,6 +11,13 @@ datasets:
     hf_revision: 4aed58e50c5dea0b878a665007af2ef9e5108e9f
     score_protocol: minus_llr
     exclude_complete_match_groups_with_subsets: [mature_miRNA_variant]
+  - name: complex_traits
+    hf_revision: 22f86a89c65cb8f3007ac3cc2739f40efefa4340
+    score_protocol: abs_llr
+  - name: sge
+    hf_revision: 225d3d1ea32a4af547891b13c33b5e92a5aae849
+    score_protocol: minus_llr
+    eval_protocol: sge
 
 models:
   - name: exp517-cds-step-500
@@ -56,162 +63,202 @@ models:
   - name: exp517-utr3-step-500
     gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-utr3-v1/2026.08.24/hf/step-500
     window_size: 255
+    datasets: [mendelian_traits, complex_traits]
 
   - name: exp517-utr3-step-1000
     gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-utr3-v1/2026.08.24/hf/step-1000
     window_size: 255
+    datasets: [mendelian_traits, complex_traits]
 
   - name: exp517-utr3-step-1500
     gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-utr3-v1/2026.08.24/hf/step-1500
     window_size: 255
+    datasets: [mendelian_traits, complex_traits]
 
   - name: exp517-utr3-step-2000
     gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-utr3-v1/2026.08.24/hf/step-2000
     window_size: 255
+    datasets: [mendelian_traits, complex_traits]
 
   - name: exp517-utr3-step-2500
     gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-utr3-v1/2026.08.24/hf/step-2500
     window_size: 255
+    datasets: [mendelian_traits, complex_traits]
 
   - name: exp517-utr3-step-3000
     gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-utr3-v1/2026.08.24/hf/step-3000
     window_size: 255
+    datasets: [mendelian_traits, complex_traits]
 
   - name: exp517-utr3-step-3500
     gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-utr3-v1/2026.08.24/hf/step-3500
     window_size: 255
+    datasets: [mendelian_traits, complex_traits]
 
   - name: exp517-utr3-step-4000
     gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-utr3-v1/2026.08.24/hf/step-4000
     window_size: 255
+    datasets: [mendelian_traits, complex_traits]
 
   - name: exp517-utr3-step-4500
     gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-utr3-v1/2026.08.24/hf/step-4500
     window_size: 255
+    datasets: [mendelian_traits, complex_traits]
 
   - name: exp517-utr3-step-4999
     gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-utr3-v1/2026.08.24/hf/step-4999
     window_size: 255
+    datasets: [mendelian_traits, complex_traits]
 
   - name: exp517-tss_region-step-500
     gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-tss_region-v1/2026.08.24/hf/step-500
     window_size: 255
+    datasets: [mendelian_traits, complex_traits]
 
   - name: exp517-tss_region-step-1000
     gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-tss_region-v1/2026.08.24/hf/step-1000
     window_size: 255
+    datasets: [mendelian_traits, complex_traits]
 
   - name: exp517-tss_region-step-1500
     gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-tss_region-v1/2026.08.24/hf/step-1500
     window_size: 255
+    datasets: [mendelian_traits, complex_traits]
 
   - name: exp517-tss_region-step-2000
     gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-tss_region-v1/2026.08.24/hf/step-2000
     window_size: 255
+    datasets: [mendelian_traits, complex_traits]
 
   - name: exp517-tss_region-step-2500
     gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-tss_region-v1/2026.08.24/hf/step-2500
     window_size: 255
+    datasets: [mendelian_traits, complex_traits]
 
   - name: exp517-tss_region-step-3000
     gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-tss_region-v1/2026.08.24/hf/step-3000
     window_size: 255
+    datasets: [mendelian_traits, complex_traits]
 
   - name: exp517-tss_region-step-3500
     gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-tss_region-v1/2026.08.24/hf/step-3500
     window_size: 255
+    datasets: [mendelian_traits, complex_traits]
 
   - name: exp517-tss_region-step-4000
     gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-tss_region-v1/2026.08.24/hf/step-4000
     window_size: 255
+    datasets: [mendelian_traits, complex_traits]
 
   - name: exp517-tss_region-step-4500
     gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-tss_region-v1/2026.08.24/hf/step-4500
     window_size: 255
+    datasets: [mendelian_traits, complex_traits]
 
   - name: exp517-tss_region-step-4999
     gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-tss_region-v1/2026.08.24/hf/step-4999
     window_size: 255
+    datasets: [mendelian_traits, complex_traits]
 
   - name: exp517-ncrna-step-500
     gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-ncrna-v1/2026.08.24/hf/step-500
     window_size: 255
+    datasets: [mendelian_traits, complex_traits]
 
   - name: exp517-ncrna-step-1000
     gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-ncrna-v1/2026.08.24/hf/step-1000
     window_size: 255
+    datasets: [mendelian_traits, complex_traits]
 
   - name: exp517-ncrna-step-1500
     gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-ncrna-v1/2026.08.24/hf/step-1500
     window_size: 255
+    datasets: [mendelian_traits, complex_traits]
 
   - name: exp517-ncrna-step-2000
     gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-ncrna-v1/2026.08.24/hf/step-2000
     window_size: 255
+    datasets: [mendelian_traits, complex_traits]
 
   - name: exp517-ncrna-step-2500
     gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-ncrna-v1/2026.08.24/hf/step-2500
     window_size: 255
+    datasets: [mendelian_traits, complex_traits]
 
   - name: exp517-ncrna-step-3000
     gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-ncrna-v1/2026.08.24/hf/step-3000
     window_size: 255
+    datasets: [mendelian_traits, complex_traits]
 
   - name: exp517-ncrna-step-3500
     gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-ncrna-v1/2026.08.24/hf/step-3500
     window_size: 255
+    datasets: [mendelian_traits, complex_traits]
 
   - name: exp517-ncrna-step-4000
     gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-ncrna-v1/2026.08.24/hf/step-4000
     window_size: 255
+    datasets: [mendelian_traits, complex_traits]
 
   - name: exp517-ncrna-step-4500
     gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-ncrna-v1/2026.08.24/hf/step-4500
     window_size: 255
+    datasets: [mendelian_traits, complex_traits]
 
   - name: exp517-ncrna-step-4999
     gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-ncrna-v1/2026.08.24/hf/step-4999
     window_size: 255
+    datasets: [mendelian_traits, complex_traits]
 
   - name: exp517-enhancer-step-500
     gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-enhancer-v1/2026.08.24/hf/step-500
     window_size: 255
+    datasets: [mendelian_traits, complex_traits]
 
   - name: exp517-enhancer-step-1000
     gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-enhancer-v1/2026.08.24/hf/step-1000
     window_size: 255
+    datasets: [mendelian_traits, complex_traits]
 
   - name: exp517-enhancer-step-1500
     gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-enhancer-v1/2026.08.24/hf/step-1500
     window_size: 255
+    datasets: [mendelian_traits, complex_traits]
 
   - name: exp517-enhancer-step-2000
     gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-enhancer-v1/2026.08.24/hf/step-2000
     window_size: 255
+    datasets: [mendelian_traits, complex_traits]
 
   - name: exp517-enhancer-step-2500
     gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-enhancer-v1/2026.08.24/hf/step-2500
     window_size: 255
+    datasets: [mendelian_traits, complex_traits]
 
   - name: exp517-enhancer-step-3000
     gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-enhancer-v1/2026.08.24/hf/step-3000
     window_size: 255
+    datasets: [mendelian_traits, complex_traits]
 
   - name: exp517-enhancer-step-3500
     gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-enhancer-v1/2026.08.24/hf/step-3500
     window_size: 255
+    datasets: [mendelian_traits, complex_traits]
 
   - name: exp517-enhancer-step-4000
     gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-enhancer-v1/2026.08.24/hf/step-4000
     window_size: 255
+    datasets: [mendelian_traits, complex_traits]
 
   - name: exp517-enhancer-step-4500
     gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-enhancer-v1/2026.08.24/hf/step-4500
     window_size: 255
+    datasets: [mendelian_traits, complex_traits]
 
   - name: exp517-enhancer-step-4999
     gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-enhancer-v1/2026.08.24/hf/step-4999
     window_size: 255
+    datasets: [mendelian_traits, complex_traits]
 
 inference:
   batch_size: 128
