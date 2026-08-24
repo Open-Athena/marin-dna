@@ -218,3 +218,32 @@ Its current anchor path instead creates uniform conservation-selected windows an
   Public publication and held-out even-autosome/Y access remain gated and untouched.
 - Interpretation: The preliminary catalog is biologically plausible, but the corrected 68-job audit must be materialized and reviewed before the real projection smoke.
 - Next action: Push the corrected snapshot, rerun the complete remote audit, inspect every new table and deterministic sample, then launch the real cross-backend smoke only if all reconciliation gates pass.
+
+### 2026-08-24 18:22 UTC - `FAS-517-005` corrected Ensembl audit passes
+
+- Hypothesis: The complete Ensembl release 115 human-anchor catalog passes the corrected preprojection gate without coordinate, purity, conservation, or development-overlap contradictions.
+- Producer: Commit `713a653873511138389133319910259133b84785`, config SHA-256 `ae0a77f634c651f189281faedc50fd5b4cee1f6ce6d0d9bd14dbda76f85d0b55`, pipeline `functional-v1`, tier `full`.
+- Execution: Sky job 3 completed all 68 jobs in 4 minutes 58 seconds on the retained AWS `c6id.12xlarge` worker.
+- Annotation: The complete Ensembl GRCh38 release 115 GTF with all qualifying transcripts remains the sole gene annotation source.
+  RefSeq and canonical-transcript-only filtering are not used.
+- Catalog reconciliation: Counts exactly match the preliminary run.
+  The projection catalog contains 205,131 CDS, 83,766 3′ UTR, 64,349 TSS-region, 48,982 ncRNA, and 202,452 enhancer anchors.
+  The nested training catalog contains 188,830 CDS, 52,099 3′ UTR, 37,608 TSS-region, 28,815 ncRNA, and 117,010 enhancer anchors.
+- Sequence and purity gates: All projection and training anchors have zero ambiguous bases.
+  Retained enhancer exon fraction is identically zero.
+  The complete 2,566,810-row ownership audit has no duplicate `(arm, chrom, start, end)` coordinates and no ownership-gate inconsistencies.
+- Loss audit: Defined-sequence loss is at most 0.0023% in any non-enhancer arm and 0.0016% for enhancers.
+  The expected exon-overlap exclusion removes 285,288 enhancer candidates, or 16.60%, before ownership review.
+  The ownership gate retains 86.21% of CDS candidates, 99.20% of 3′ UTR, 95.48% of TSS-region, 97.45% of ncRNA, and 99.64% of enhancer candidates.
+  CDS losses are 6.80% to enhancer, 4.49% to TSS-region, 2.10% to 3′ UTR, and 0.39% to ncRNA.
+  Lost CDS windows have only 59–81 median CDS-owned bases depending on the winner, versus 170 median bases among retained CDS windows, which is consistent with the fixed window-majority gate.
+  The CDS loss is diffuse rather than locus-concentrated: chromosome loss fractions range from 5.56% on Y to 17.91% on chromosome 22, the largest chromosome enrichment is 1.30×, and the largest one-megabase winner bin contributes 0.26% of all CDS losses.
+- Distribution audit: No arm places more than 10.45% of either catalog on one chromosome.
+  Human GC, repeat masking, source ownership, union-functional coverage, exon coverage, and conservation quantiles are finite and biologically ordered across the five arms.
+- Development-only gate: Four complete mature-miRNA match groups were removed, only odd autosomes and X were present, and the 1-based VEP position was converted to the 0-based half-open point `[pos-1,pos)` at the boundary.
+  The biologically mapped home arm has the highest positive-locus overlap for all eight subsets in both the ≥10% projection and ≥20% training catalogs.
+- Publication decision: The user explicitly approved publishing development artifacts to public Hugging Face and does not want training to read from S3.
+  S3 remains the authoritative workflow owner, while validated arm datasets will be published under `marin-dna`, verified without credentials, and consumed by training at immutable Hub revisions.
+- Interpretation: The 13.79% CDS ownership loss is material but exactly reconciled, low-purity by construction, and broadly distributed rather than biologically concentrated.
+  The corrected preprojection audit passes without weakening the fixed gate.
+- Next action: Run the real cross-backend smoke, then the full bundled projection if smoke accounting and sequence invariants pass.
