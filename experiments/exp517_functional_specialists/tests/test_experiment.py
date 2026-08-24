@@ -57,18 +57,33 @@ def _published_arm(key: str = "cds"):
     return replace(ARMS[key], revision="a" * 40)
 
 
-def test_five_hub_arms_fail_closed_until_publication() -> None:
-    assert {key: arm.hf_repo for key, arm in ARMS.items()} == {
-        "cds": "marin-dna/functional-cds",
-        "utr3": "marin-dna/functional-utr3",
-        "tss_region": "marin-dna/functional-tss",
-        "ncrna": "marin-dna/functional-ncrna",
-        "enhancer": "marin-dna/functional-enhancer",
+def test_five_hub_arms_pin_verified_publication_revisions() -> None:
+    assert {key: (arm.hf_repo, arm.revision) for key, arm in ARMS.items()} == {
+        "cds": (
+            "marin-dna/functional-cds",
+            "eb6bc7737c7f546870020a4e3d4c7a2a20d4c92c",
+        ),
+        "utr3": (
+            "marin-dna/functional-utr3",
+            "790ec0ade6df6dce8e597058fc819dcf13f2eed1",
+        ),
+        "tss_region": (
+            "marin-dna/functional-tss",
+            "90f596e35b9d0a79e3f7a7c889581158472694eb",
+        ),
+        "ncrna": (
+            "marin-dna/functional-ncrna",
+            "ecb7e9480be5e2c18db59b3544a0c61e23fc2a2f",
+        ),
+        "enhancer": (
+            "marin-dna/functional-enhancer",
+            "07fac22abf6d158b8a155150d8aa49e813e6125e",
+        ),
     }
-    assert {arm.revision for arm in ARMS.values()} == {UNPUBLISHED_REVISION}
     for arm in ARMS.values():
+        assert arm.resolved_revision() == arm.revision
         with pytest.raises(ValueError, match="40-character hexadecimal"):
-            arm.resolved_revision()
+            replace(arm, revision=UNPUBLISHED_REVISION).resolved_revision()
         with pytest.raises(ValueError, match="40-character hexadecimal"):
             replace(arm, revision="z" * 40).resolved_revision()
 

@@ -28,7 +28,7 @@ from marin.training.training import LevanterCheckpoint
 from exp517_functional_specialists.formats import DNALmDatasetFormat
 
 MARIN_COMMIT = "53b5b33041f742c7f4991223b0085e41ece4c458"
-PRODUCER_COMMIT = "d06519abc5dc2c6c14d4c9765057a6a363305ee5"
+PRODUCER_COMMIT = "e42a4ea1eca760219e0add91004b45cac59b19c9"
 TOKENIZER_PATH = "tokenizer"
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 MODEL_TOKENIZER_PATH = str(PROJECT_ROOT / TOKENIZER_PATH)
@@ -131,11 +131,31 @@ class Arm:
 ARMS = {
     arm.key: arm
     for arm in (
-        Arm("cds", "marin-dna/functional-cds", UNPUBLISHED_REVISION),
-        Arm("utr3", "marin-dna/functional-utr3", UNPUBLISHED_REVISION),
-        Arm("tss_region", "marin-dna/functional-tss", UNPUBLISHED_REVISION),
-        Arm("ncrna", "marin-dna/functional-ncrna", UNPUBLISHED_REVISION),
-        Arm("enhancer", "marin-dna/functional-enhancer", UNPUBLISHED_REVISION),
+        Arm(
+            "cds",
+            "marin-dna/functional-cds",
+            "eb6bc7737c7f546870020a4e3d4c7a2a20d4c92c",
+        ),
+        Arm(
+            "utr3",
+            "marin-dna/functional-utr3",
+            "790ec0ade6df6dce8e597058fc819dcf13f2eed1",
+        ),
+        Arm(
+            "tss_region",
+            "marin-dna/functional-tss",
+            "90f596e35b9d0a79e3f7a7c889581158472694eb",
+        ),
+        Arm(
+            "ncrna",
+            "marin-dna/functional-ncrna",
+            "ecb7e9480be5e2c18db59b3544a0c61e23fc2a2f",
+        ),
+        Arm(
+            "enhancer",
+            "marin-dna/functional-enhancer",
+            "07fac22abf6d158b8a155150d8aa49e813e6125e",
+        ),
     )
 }
 

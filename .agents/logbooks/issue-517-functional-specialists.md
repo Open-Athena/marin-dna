@@ -355,3 +355,23 @@ Its current anchor path instead creates uniform conservation-selected windows an
 - Interpretation: The complete producer and its Hugging Face release package pass the fixed correctness gates.
   Public development-dataset upload is authorized and in progress; model training remains gated on anonymous verification and exact Hub revision pinning.
 - Next action: Verify all five public datasets without credentials, pin their immutable Hub revisions in the HF-only trainer, then run the CDS canary and development-only evaluation before launching the other four arms.
+
+### 2026-08-24 22:21 UTC - `FAS-517-010` public Hugging Face release
+
+- Hypothesis: The validated five-arm release trees can be published as public, ungated Hugging Face datasets and consumed by the trainer only through immutable Hub revisions.
+- Execution: Sky job 25 published all five development datasets and completed all six publication-DAG steps in 11 minutes 5 seconds.
+- Immutable releases:
+  - `marin-dna/functional-cds` at `eb6bc7737c7f546870020a4e3d4c7a2a20d4c92c`.
+  - `marin-dna/functional-utr3` at `790ec0ade6df6dce8e597058fc819dcf13f2eed1`.
+  - `marin-dna/functional-tss` at `90f596e35b9d0a79e3f7a7c889581158472694eb`.
+  - `marin-dna/functional-ncrna` at `ecb7e9480be5e2c18db59b3544a0c61e23fc2a2f`.
+  - `marin-dna/functional-enhancer` at `07fac22abf6d158b8a155150d8aa49e813e6125e`.
+- Anonymous verification: A token-free Hub client resolved every exact revision as public and ungated.
+  Each repository contains exactly 64 train shards, one validation shard, the generated card, and `.gitattributes`; every data shard has a positive size and a 64-character LFS SHA-256 identifier.
+  The five data trees total 15,440,515,617 compressed bytes.
+- Training gate: The HF-only launcher now pins those five revisions and records the immutable full-data producer commit `e42a4ea1eca760219e0add91004b45cac59b19c9`.
+  The launch documentation targets the user-authorized `open-athena` W&B entity and a dedicated `marin-dna` project.
+- Verification: All nine locked experiment-project tests passed after pinning, with peak local RSS 481,024 KiB under the shared-node resource gate.
+- Evaluation boundary: No held-out even-autosome or chromosome-Y VEP record was read.
+- Interpretation: Public dataset publication is complete and the training input contract no longer has an unpublished or mutable dependency.
+- Next action: Commit the immutable pins, launch CDS as the canary, and require successful Hub download, tokenization, W&B telemetry, and the step-500 checkpoint before starting the other four arms.

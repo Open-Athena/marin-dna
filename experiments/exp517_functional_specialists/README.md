@@ -13,7 +13,7 @@ The global batch is 8,192 sequences of 256 tokens, or 10,485,760,000 token prese
 Hugging Face exports and retained native checkpoints are written every 500 steps.
 
 The project is independently locked to Python 3.12 and Marin source commit `53b5b33041f742c7f4991223b0085e41ece4c458`.
-The workflow producer is commit `d06519abc5dc2c6c14d4c9765057a6a363305ee5`.
+The immutable full-data workflow producer is commit `e42a4ea1eca760219e0add91004b45cac59b19c9`.
 The vendored tokenizer is byte-identical to `marin-dna/tokenizer-char-bos` revision `a73e9d9ee636f722b4c378703c9e2997857809b2` and is hash-checked before graph construction.
 
 ## Dataset boundary
@@ -22,16 +22,15 @@ Training reads only public Hugging Face datasets at immutable 40-character revis
 It never trains from S3.
 S3 is workflow-owned producer storage and is outside the training input contract.
 
-The five intended public datasets are:
+The launcher pins the five anonymously verified public datasets at these immutable Hub revisions:
 
-- `marin-dna/functional-cds`
-- `marin-dna/functional-utr3`
-- `marin-dna/functional-tss`
-- `marin-dna/functional-ncrna`
-- `marin-dna/functional-enhancer`
+- `marin-dna/functional-cds` at `eb6bc7737c7f546870020a4e3d4c7a2a20d4c92c`
+- `marin-dna/functional-utr3` at `790ec0ade6df6dce8e597058fc819dcf13f2eed1`
+- `marin-dna/functional-tss` at `90f596e35b9d0a79e3f7a7c889581158472694eb`
+- `marin-dna/functional-ncrna` at `ecb7e9480be5e2c18db59b3544a0c61e23fc2a2f`
+- `marin-dna/functional-enhancer` at `07fac22abf6d158b8a155150d8aa49e813e6125e`
 
-The launcher currently fails closed because their revisions are `UNPUBLISHED`.
-Replace those placeholders only after public upload, unauthenticated verification, and recording the exact Hub revisions.
+The launcher rejects any missing, mutable, or malformed revision before graph construction.
 
 ## Verify
 
@@ -60,8 +59,8 @@ uv run --python /usr/bin/python3.12 --locked iris --cluster=marin job run \
   --no-wait --no-sync --job-name exp517-cds \
   --cpu 1 --memory 2G --region us-east5 --extra=tpu \
   -e WANDB_API_KEY "$WANDB_API_KEY" \
-  -e WANDB_ENTITY "$WANDB_ENTITY" \
-  -e WANDB_PROJECT marin \
+  -e WANDB_ENTITY open-athena \
+  -e WANDB_PROJECT marin-dna \
   -e MARIN_PREFIX gs://marin-us-east5/MarinDNA/exp517_functional_specialists \
   -e EXP517_TPU_REGION us-east5 \
   -e EXP517_TPU_VARIANT v5p-8 \
