@@ -56,7 +56,7 @@ Launch CDS as the first canary, verify Hub download, tokenization, checkpointing
 
 ```bash
 uv run --python /usr/bin/python3.12 --locked iris --cluster=marin job run \
-  --no-wait --no-sync --job-name exp517-cds \
+  --no-wait --job-name exp517-cds \
   --cpu 1 --memory 2G --region us-east5 --extra=tpu \
   -e WANDB_API_KEY "$WANDB_API_KEY" \
   -e WANDB_ENTITY open-athena \
