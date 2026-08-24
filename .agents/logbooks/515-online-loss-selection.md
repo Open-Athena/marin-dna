@@ -217,3 +217,19 @@ It stops after identical Mendelian missense-plus-splicing evaluation and paired 
 - Publication repair: The first final upload encountered an immutable-key conflict with the pre-amendment budget projection; the completed tree was published under a new snapshot prefix without overwriting the earlier evidence or rerunning training.
 - GitHub: Final result comment `https://github.com/Open-Athena/marin-dna/issues/515#issuecomment-5400440143`.
 - Next action: Stop at the gate and review whether uniform, random-50, and teacher KL should receive any continuation or whether to proceed to the queued RefSeq corpus experiment.
+
+
+### 2026-08-24 20:25 - Uniform CE and teacher KL step-200 preregistration
+
+- Hypothesis: Additional matched-compute training can separate the nearly tied step-100 teacher-KL and uniform-CE AUPRCs while preserving each objective's own optimization trajectory.
+- Commit Hash: `994fcacb5590e513e58938b18c5023041ba2d661`.
+- Parent Run: `364abd024f3c-20260824t1320z`, completed at implementation commit `480e6e17a9097d29f0881cbef5506d244276f89e`.
+- Arms: Continue only `uniform-100` hard CE and `teacher-kl-full` pure `KL(teacher || student)` from local step 100 to local step 200.
+- State: Restore each arm's complete model, AdamW, scheduler, selector, data-position, and global RNG state from its 2,643,245,180-byte or 2,643,245,308-byte checkpoint.
+- Schedule: Keep the restored arm-local constant 1e-3 plateau for all 100 additional steps and do not repeat the completed 20-step warmup.
+- Data: Extend the deterministic plan from 409,600 to 614,400 absolute rows and require byte-identical sequence and species prefixes before training.
+- Evaluation: Reuse the pinned Mendelian train-split pooled missense-plus-splicing endpoint and report missense and splicing separately.
+- Inference: Use a primary two-sided paired match-group test for teacher KL versus uniform at step 200 and exploratory two-sided step-200-versus-step-100 tests with Holm correction across the two arms, all with 20,000 permutations.
+- Validation: All 35 focused no-GPU tests passed in 4.18 seconds and 6.12 seconds wall time with 1,034,564 KiB peak RSS; Ruff, syntax, and whitespace checks passed.
+- Budget: At preregistration, measured training plus evaluation times project the total provider allocation to about $43.64 after a 25% runtime margin, below the $48 GPU stop and $50 all-in ceiling.
+- Next action: Push the immutable snapshot, post and verify the GitHub preregistration comment, then launch the exact commit on the retained A100 and stop after the two step-200 evaluations.
