@@ -6,6 +6,10 @@ import polars as pl
 
 from marin_dna_vertebrate_projection.functional_anchors import FUNCTIONAL_ARMS
 from marin_dna_vertebrate_projection.manifest import read_species_manifest
+from marin_dna_vertebrate_projection.projection.liftover import (
+    read_liftover_chain_manifest,
+    validate_liftover_chain_manifest,
+)
 from marin_dna_vertebrate_projection.mirror import (
     read_mirror_manifest,
     validate_multiz_mirror_contents,
@@ -56,6 +60,7 @@ SPECIES_CANDIDATES = str(config["species_candidates"])
 SPECIES_SELECTED = str(config["species_selected"])
 MIRROR_MANIFEST = str(config["multiz_mirror_manifest"])
 TWOBIT_MANIFEST = str(config["twobit_manifest"])
+LIFTOVER_CHAIN_MANIFEST = str(config["liftover_chain_manifest"])
 mirror_objects = read_mirror_manifest(MIRROR_MANIFEST)
 validate_multiz_mirror_contents(mirror_objects, list(config["standard_chroms"]))
 candidate_manifest = read_species_manifest(SPECIES_CANDIDATES)
@@ -70,6 +75,8 @@ all_non_mammals = selected_manifest.filter(pl.col("backend") == "ucsc_multiz100w
 ].to_list()
 twobit_objects = read_twobit_manifest(TWOBIT_MANIFEST)
 validate_twobit_manifest(twobit_objects, ["hg38", *all_non_mammals])
+liftover_chains = read_liftover_chain_manifest(LIFTOVER_CHAIN_MANIFEST)
+validate_liftover_chain_manifest(liftover_chains, all_non_mammals)
 if TIER == "smoke":
     MAMMALS = list(config["smoke_mammals"])
     NON_MAMMALS = list(config["smoke_non_mammals"])
@@ -82,6 +89,7 @@ else:
 SPECIES_SELECTED_INPUT = local(SPECIES_SELECTED)
 MIRROR_MANIFEST_INPUT = local(MIRROR_MANIFEST)
 TWOBIT_MANIFEST_INPUT = local(TWOBIT_MANIFEST)
+LIFTOVER_CHAIN_MANIFEST_INPUT = local(LIFTOVER_CHAIN_MANIFEST)
 ANCHOR_CATALOG = f"{RESULTS}/anchors/projection.parquet"
 ANCHOR_CATALOG_INPUT = ANCHOR_CATALOG
 TRAINING_CATALOG = f"{RESULTS}/anchors/training.parquet"
@@ -102,6 +110,10 @@ MAMMAL_RE = "|".join(MAMMALS)
 NON_MAMMAL_RE = "|".join(NON_MAMMALS)
 CHROM_RE = "|".join(CHROMS)
 COHORT_RE = "|".join(COHORTS)
+LIFTOVER_MIN_MATCH = float(config["liftover_min_match"])
+assert isinstance(config["liftover_multiple"], bool)
+LIFTOVER_MULTIPLE = config["liftover_multiple"]
+assert 0 < LIFTOVER_MIN_MATCH <= 1
 PUBLICATION_TRAIN_SHARD_COUNT = int(
     config[
         (

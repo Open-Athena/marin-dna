@@ -12,6 +12,8 @@ Its existing S3 and Hugging Face artifacts remain historical records and are not
 This workflow writes `results/<pipeline_version>/<producer_commit>/<config_sha256>/<tier>/`; producer and configuration keys prevent cross-recipe reuse.
 
 The additive issue #517 functional-specialist recipe has its own [annotation, audit, and approval runbook](FUNCTIONAL_ANCHORS.md).
+That recipe uses checksum-pinned UCSC hg38-to-target liftOver chains for its 28 non-mammalian targets.
+The default uniform-anchor workflow retains the existing direct MultiZ MAF path.
 
 Run commands from `snakemake/vertebrate_projection_dataset` so this project uses its own pinned environment and lockfile. Install it with:
 
@@ -73,11 +75,25 @@ Normal projection rules stage only configured chromosomes from S3 to local NVMe 
 
 Target-genome sequence extraction retains the v1 UCSC human and `gbdb` 2bit sources. Each download must match `config/twobit_manifest.tsv`; before MultiZ extraction, every chromosome size used by an accepted MAF mapping must exactly match `twoBitInfo` for that archive. UCSC downloads are capped at four concurrent transfers and retry refused/transient connections so a full-worker startup cannot overload the shared endpoint.
 
+## Issue #517 liftOver chains
+
+`workflow/functional.Snakefile` replaces only the issue-specific non-mammal projection path with official UCSC hg38-to-target pairwise chains.
+`config/liftover_chain_manifest.tsv` pins one chain for each of the 28 selected non-mammal assemblies by source URL, checksum-index URL, byte size, and UCSC-published MD5.
+The complete compressed chain set is 279,346,460 bytes.
+
+The functional workflow downloads and validates each chain independently, submits all center-1 landmarks in one BED6 file per target, and requires every query to appear in exactly one of the mapped or unmapped outputs.
+The default configuration uses `liftOver -minMatch=0.95` without `-multiple`.
+Mapped BED intervals remain 0-based and half-open, must span exactly one base, and join to the matching target 2bit chromosome sizes before entering the shared acceptance and sequence-extraction contract.
+
+The stable dataset value `alignment_source=ucsc_multiz100way` continues to identify the pinned UCSC non-mammal assembly cohort.
+The issue #517 cards state that the projection operation uses the matching pairwise liftOver chain.
+
 ## Projection contract
 
 The request table retains each original 255 bp human anchor for identity and downstream row-random selection, and stores `[source_start + 127, source_start + 128)` as the only interval submitted to HAL or MAF.
 HAL receives all active anchors in one BED and runs one `halLiftover` job per mammal species.
 MultiZ reads each configured chromosome MAF once and emits candidates for all active non-mammal species.
+The issue #517 functional workflow instead runs one batched UCSC `liftOver` job per selected non-mammal species.
 
 The HAL and MAF adapters emit the same fragment schema.
 The shared contract then:
