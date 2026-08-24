@@ -63,8 +63,8 @@ The comparison therefore matches processed input rather than wall time or accele
   The permutation p-values quantify uncertainty across matched evaluation records within this run, not variation across training seeds.
 - The teacher is the final step-16,999 checkpoint from the student's own training lineage.
   Its soft targets provide privileged later-lineage supervision, so the KL result is not evidence for token selection alone.
-- The seven forks changed training objectives and reset optimizer state.
-  The experiment does not isolate selection masks from all other objective-transition effects.
+- Every fork, including uniform CE, reset optimizer and scheduler state and repeated the same warmup.
+  The result is specific to a high-learning-rate objective transition rather than uninterrupted exp58 training.
 - The endpoint used the Mendelian-traits train split and excluded synonymous variants.
   The result may not generalize beyond missense and splicing prediction.
 - The model, animal-CDS corpus, repeat exclusion, 256-base context, and shallow continuation are specific to exp58.
