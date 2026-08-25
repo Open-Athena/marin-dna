@@ -499,3 +499,32 @@ Its current anchor path instead creates uniform conservation-selected windows an
 - Enhancer status: The enhancer trainer remains healthy and resumable after 14 preemptions.
   It saved the durable step-3,000 native and HF-compatible GCS checkpoints and was advancing near step 3,130; no terminal enhancer evaluation has been launched.
 - Next action: Run bounded TSS and UTR3 anchor-policy ablations that preserve ownership while varying conservation and tiling, then separate the ncRNA functional-biotype narrowing from exposure with a matched-token comparison.
+
+### 2026-08-25 15:07 UTC - `FAS-517-016` exact anchor-stage diagnosis and additive grid ablations
+
+- Exact-stage result: Historical functional anchors all begin on the chromosome-wide `start % 128 == 0` grid, while each current arm occupies all 128 start residues because it tiles from each merged owned interval's start.
+  Of 420,134 historical CDS, UTR3, and TSS-region anchors, 418,127, or 99.52%, were never emitted at their exact coordinate by the current candidate builder.
+  Among the 2,007 exact historical coordinates that were emitted, 1,993 remain in the current at-least-20-percent training catalog, 14 CDS coordinates lose the window ownership vote, and zero fall below either conservation threshold.
+- Construction-validity check: The three arms have only six construction-invalid windows genome-wide, all due to undefined sequence, and none matches a historical functional anchor.
+  Exact historical anchors therefore disappear at interval-origin tiling rather than at bounds, defined-sequence, ownership, or conservation checks.
+- Pathogenic anchor trace: The 156 historical-only pathogenic locus/subset cases are covered by 106 unique historical anchors, and all 106 exact anchors are absent because their coordinates were never constructed.
+  At the shifted current-window level, 77 cases have an ownership-passing same-arm candidate below the 20% conservation threshold, 23 have a candidate that loses ownership, and 56 have no current candidate covering the pathogenic base.
+- Annotation-versus-edge refinement: For 55 of those 56 no-candidate cases, the historical anchor still overlaps ownership-passing current same-arm candidate territory.
+  Only one missense case has no current same-arm candidate overlapping the historical anchor.
+  The dominant no-candidate mechanism is therefore interval-edge or terminal coverage created by the shifted lattice, not absent Ensembl annotation.
+- Prior interpretation correction: The `FAS-517-014` phrase "removed by the current conservation gate" applies to shifted current candidates at the locus, not to the exact historical anchor.
+  The exact historical window is never scored in the current pipeline.
+- Additive-rule contract: Every ablation retains the current at-least-20-percent catalog and adds only historical chromosome-grid anchors that themselves satisfy the same at-least-20-percent phyloP-covered-base threshold.
+  Development labels are used only for the post-construction coverage readout, mature-miRNA groups are removed completely, and no held-out even-autosome or chromosome-Y VEP record is read.
+- Upper bound: Adding every historical same-arm grid anchor restores all historical-only pathogenic coverage on top of the current catalog, moving missense from 497 to 528 of 580 positives, splicing from 223 to 253 of 319, synonymous from 35 to 39 of 46, UTR3 from 28 to 49 of 77, 5-prime UTR from 91 to 149 of 210, and TSS-proximal from 84 to 96 of 205.
+  This requires 294,265 additional CDS anchors, 66,695 UTR3 anchors, and 57,181 TSS-region anchors and is an intentionally broad diagnostic upper bound rather than a selected recipe.
+- Novel-base ablations: For UTR3, adding 9,252 grid anchors that overlap any current same-arm candidate and contribute at least 128 bases outside the current training union recovers all 21 historical-only pathogenic loci, while adding coverage of 31 matched negatives instead of the upper bound's 45.
+  For TSS-region, adding 14,510 anchors that overlap ownership-passing territory and contribute at least 128 novel bases recovers 55 of 58 historical-only 5-prime UTR positives and all 12 historical-only TSS-proximal positives, with 177 and 139 newly covered matched negatives respectively.
+  For CDS, the analogous all-candidate 128-base rule adds 29,560 anchors and recovers 15 of 31 missense, 23 of 30 splicing, and 3 of 4 synonymous positives; relaxing to 64 novel bases adds 115,139 anchors and recovers 28, 27, and 3 respectively.
+- Cross-region coverage: The compact 128-base CDS rule also newly covers 2 pathogenic 3-prime UTR, 2 pathogenic 5-prime UTR, 1 pathogenic ncRNA-exon, and 1 pathogenic TSS-proximal locus.
+  The compact UTR3 rule newly covers 10 pathogenic missense, 3 pathogenic splicing, and 1 pathogenic synonymous locus, while the compact TSS rule newly covers 21 missense, 20 splicing, 2 synonymous, and 1 ncRNA-exon locus.
+  These are coordinate-overlap warnings, not model-performance results, and argue against choosing an additive rule from home coverage alone.
+- Interpretation: The material code difference is ordering rather than annotation source, window size, stride, or conservation threshold.
+  A chromosome-global grid was previously scored and then labeled, whereas issue 517 resolves base ownership first and tiles each resulting interval from its own origin.
+  Compact novel-base grid additions can recover most UTR3 and TSS pathogenic coverage, but the CDS missense/splicing tradeoff and cross-region overlaps require an exposure-aware training ablation before any rule is accepted.
+- Next action: Publish this diagnosis and policy table to issue 517, then turn the shortlisted per-arm policies into isolated, reproducible experiment outputs without replacing the current catalog or launching training yet.
