@@ -1,7 +1,6 @@
 import math
 
 import pytest
-
 from marin_dna_linclust_conservation.phylop import (
     REFSEQ_GRCH38_TO_UCSC,
     chromosome_split,

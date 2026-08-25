@@ -4,7 +4,6 @@ import json
 
 import polars as pl
 import pytest
-
 from marin_dna_linclust_conservation.manifest import (
     parse_genome_records,
     parse_taxonomy_orders,

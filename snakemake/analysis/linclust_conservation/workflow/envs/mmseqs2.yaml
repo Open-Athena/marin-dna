@@ -3,4 +3,3 @@ channels:
   - bioconda
 dependencies:
   - mmseqs2=18.8cc5c=hd6d6fdc_0
-

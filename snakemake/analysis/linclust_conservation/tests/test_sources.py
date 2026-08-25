@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import pytest
 from botocore.exceptions import ClientError
-
 from marin_dna_linclust_conservation.sources import audit_existing_genome_mirror
 
 

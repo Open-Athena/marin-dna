@@ -2,4 +2,3 @@ channels:
   - conda-forge
 dependencies:
   - ncbi-datasets-cli=18.36.0=ha770c72_0
-

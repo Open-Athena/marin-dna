@@ -4,7 +4,6 @@ from pathlib import Path
 
 import polars as pl
 import pytest
-
 from marin_dna_linclust_conservation.mmseqs import (
     cluster_membership_features,
     parse_alignments,

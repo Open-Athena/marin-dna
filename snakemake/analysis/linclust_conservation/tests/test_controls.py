@@ -3,7 +3,6 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-
 from marin_dna_linclust_conservation.controls import (
     check_release_gate,
     reverse_complement,
