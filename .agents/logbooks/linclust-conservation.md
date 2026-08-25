@@ -222,3 +222,104 @@ No existing MarinDNA pipeline clusters all retained windows from whole order-ded
   It provides no cross-genome conservation evidence because all retained windows were singletons at the frozen threshold in this sparse random sample.
   That negative signal is preliminary and does not by itself falsify `LINC-CONS-H1`.
 - Next action: publish and independently review the exact canary snapshot, then decide whether the next bounded experiment should increase panel density, sample density, or sensitivity before the full 20-order evaluation.
+
+### 2026-08-25 22:43 UTC - LINC-CONS-007 20-genome calibration smoke
+
+- Hypothesis: Sampling 2,000 candidates from every selected assembly can validate the complete 20-order staging and execution graph and provide a small resource calibration.
+- Commit Hash: [`40651240`](https://github.com/Open-Athena/marin-dna/commit/40651240f32a31c146daa2430276445a4d3dab92)
+- Commands: SkyPilot job 1 ran the 57-job `smoke` target on an AWS `m6i.large` worker in `us-east-2`; local post-run checks validated receipt provenance, 20 unique accessions and orders, staging source counts, exact assignment/alignment pairs, and cross-genome membership; `sky down -y linclust-cons-smoke` terminated the worker.
+- Config: 20 assemblies selected by the fixed one-best-eligible-assembly-per-order rule, rather than by a target count or random draw; 2,000 candidate 255 bp windows per assembly; 128 bp stride; repeat fraction at most 0.5; and MMseqs2 18.8cc5c.
+- Result: All 57 jobs passed at configuration SHA-256 `7814a4787d9436bbdd4ad147642a4f611c04ee79eb3ce71c801be62653ef4f29`.
+  The workflow copied 17 exact mirror objects and downloaded three assemblies from NCBI.
+  It retained 25,401 of 40,000 candidates, or 63.50%, and produced 25,401 singleton clusters with zero cross-genome clusters.
+  MMseqs2 used 17.49 wall seconds, 114,652 KiB peak RSS, and 88,354,410 peak temporary bytes.
+  The immutable receipt is `s3://oa-bolinas/snakemake/analysis/linclust_conservation/runs/panel20-smoke/results/v1/40651240f32a31c146daa2430276445a4d3dab92/7814a4787d9436bbdd4ad147642a4f611c04ee79eb3ce71c801be62653ef4f29/smoke/receipt.json`.
+  SkyPilot confirmed that `linclust-cons-smoke` no longer exists after teardown.
+- Interpretation: The run validates the full-panel contracts and provides a filter-rate and small-input resource calibration.
+  It is not a biological sensitivity test because independently choosing 2,000 of roughly 20 million to 28 million possible tiles per assembly almost never selects homologous loci in two genomes.
+  The user therefore redirected the next experiment to exhaustive tiling of three genomes.
+- Next action: run all retained human, mouse, and opossum tiles through one Linclust database before expanding the panel.
+
+### 2026-08-25 22:49 UTC - LINC-CONS-008 exhaustive three-genome preparation
+
+- Hypothesis: Exhaustive human, mouse, and opossum tiling will place homologous loci in the same database and can reveal whether the frozen Linclust configuration has any cross-genome sensitivity.
+- Commit Hash: [`8468995a`](https://github.com/Open-Athena/marin-dna/commit/8468995ad63e46b7ebd1d4ba51d3be4dc66a0f4f)
+- Commands: `uv run --locked pytest`; credential-free default and 21-job exhaustive Snakemake dry-runs; an exact Conda solve for MMseqs2 and Zstandard; `uv run --locked snakemake --profile workflow/profiles/default --default-storage-provider none --cores 2 --forceall`; and changed-file pre-commit checks.
+- Config: human `GCF_000001405.40`, mouse `GCF_000001635.27`, and opossum `GCF_027887165.2`; every 255 bp tile at stride 128; 250,000-candidate bounded extraction batches; MMseqs2 18.8cc5c; an AWS `r7i.4xlarge` with 128 GB RAM; a 500 GB root disk; and `s3://oa-bolinas/snakemake/analysis/linclust_conservation/runs/canary3-exhaustive/` as the new run prefix.
+- Result: The sequence report contains exactly 24,214,098 human, 21,314,017 mouse, and 28,016,908 opossum candidates, totaling 73,545,023 windows and 18,753,980,865 input bases before filtering.
+  Applying the panel smoke's observed retention rate predicts roughly 46.7 million retained windows, but the run will record exact per-assembly counts.
+  The extractor now streams the exhaustive interval grid without materializing it and limits each temporary BED and raw FASTA batch.
+  The clustering target avoids the representative-to-all reverse-strand search, compresses the complete `createtsv` assignment table with Zstandard, and streams the receipt calculation with bounded memory.
+  The opossum 2bit from `LINC-CONS-006` is now an ETag-guarded reuse source, so all three inputs will be copied into new run-derived staging keys.
+  All 41 tests, pre-commit hooks, both dry-runs, the exact environment solve, and the 11-job synthetic execution passed.
+- Interpretation: Three exhaustive genomes are a substantially better bounded sensitivity test than sparse samples from 20 genomes.
+  The clustering-only receipt is intentional: if cross-genome clusters exist, exact representative-member alignments can be designed around the selected edges without launching an all-representative-to-all-window search dominated by singleton representatives.
+- Next action: publish this preparation snapshot, launch the approved exhaustive EC2 run, monitor extraction and Linclust resource use, validate the durable receipt and compressed assignments, and terminate the worker.
+
+## Background Research Brief - Exhaustive sensitivity pivot
+
+- Effort: low targeted follow-up.
+- Stop rule: stop when the exact three-genome tile count, observed retention rate, upstream Linclust scaling guidance, and a bounded execution design are sufficient to choose one EC2 configuration.
+- Date: 2026-08-25
+
+### Question
+
+Should the next sensitivity experiment use sparse windows from 20 genomes or every window from three genomes?
+
+### Current Marin Context
+
+The three-genome and 20-genome sparse canaries produced only singleton clusters.
+With tens of millions of possible tiles per assembly, independent samples of 2,000 windows have negligible coordinate overlap and cannot reliably expose homologous loci.
+Issue #120 demonstrates that sensitive human-to-mouse MMseqs2 nucleotide search can recover conserved sequence, but that human-anchored result does not establish Linclust sensitivity.
+
+### External Prior Art
+
+The [Linclust paper](https://www.nature.com/articles/s41467-018-04964-5) motivates approximately linear scaling in sequence count through a bounded number of selected k-mers per sequence.
+The [MMseqs2 repository](https://github.com/soedinglab/MMseqs2) describes Linclust as the fast, less-sensitive clustering workflow and documents a nucleotide k-mer scaling option that is more sensitive than the current fixed 20-k-mer baseline.
+The [MMseqs2 user guide](https://github.com/soedinglab/MMseqs2/wiki) gives a minimum clustering memory heuristic near one byte per residue before workflow overhead.
+
+### Negative / Failed Leads
+
+Adding more independently sparse genomes does not fix the missing-locus-pair problem.
+Extrapolating the 25,401-window peak RSS directly would understate the large fixed and per-residue costs of sorting Linclust seeds.
+Running the existing representative-to-all strand search after a mostly singleton Linclust result would approach an unintended all-vs-all workload and is not a suitable first exhaustive step.
+
+### Ranked Recommended Experiments
+
+#### 1. Exhaustive three-genome clustering sensitivity
+
+- Minimum experiment: cluster every retained human, mouse, and opossum tile once under the frozen baseline.
+- Baseline/control: the existing synthetic strand gate and raw singleton rate.
+- Expected signal: nonzero clusters supported by two or three distinct source genomes.
+- Falsifier: no or negligible cross-genome support despite exhaustive locus availability.
+- Cost/risk: tens of millions of records and substantial scratch, bounded to one 128 GB EC2 worker and one configuration.
+
+#### 2. Bounded Linclust sensitivity adjustment
+
+- Minimum experiment: if the exhaustive baseline remains insensitive, repeat a deliberately small real-data fixture with increased k-mer sampling and spaced k-mers before another exhaustive run.
+- Baseline/control: the frozen 20-k-mer, contiguous-k-mer configuration.
+- Expected signal: improved cross-genome support without an unacceptable resource multiple.
+- Falsifier: support remains absent or resource growth is incompatible with panel scale.
+- Cost/risk: one small fixture first; no blind full-scale parameter sweep.
+
+### Hypothesis Update
+
+`LINC-CONS-H1` remains open.
+The sparse singleton results update confidence in the sampling design, not in the biological hypothesis, because corresponding loci were usually absent from the same input database.
+
+### Source Ledger
+
+| Source | Type | Location | Claim used for | Confidence | Notes |
+| --- | --- | --- | --- | --- | --- |
+| Issue #521 | GitHub issue | https://github.com/Open-Athena/marin-dna/issues/521 | Experiment contract and bounded sensitivity decision | High | Coordinating record |
+| Issue #120 | GitHub issue | https://github.com/Open-Athena/marin-dna/issues/120 | Sensitive nucleotide-search precedent | High | Human-anchored, not symmetric Linclust |
+| Linclust paper | External paper | https://www.nature.com/articles/s41467-018-04964-5 | Linear-scaling mechanism | High | Protein-heavy benchmark |
+| MMseqs2 repository | External code | https://github.com/soedinglab/MMseqs2 | Current nucleotide Linclust capabilities | High | Primary upstream source |
+| MMseqs2 user guide | External documentation | https://github.com/soedinglab/MMseqs2/wiki | Memory heuristic and workflow guidance | Medium | Versioned behavior still measured locally |
+| Panel smoke receipt | S3 artifact | `s3://oa-bolinas/snakemake/analysis/linclust_conservation/runs/panel20-smoke/results/v1/40651240f32a31c146daa2430276445a4d3dab92/7814a4787d9436bbdd4ad147642a4f611c04ee79eb3ce71c801be62653ef4f29/smoke/receipt.json` | Retention and small-input resource calibration | High | Immutable producing identity |
+
+### Handoff
+
+- Suggested issue update: record the panel smoke as a calibration result and the exhaustive three-genome run as the next sensitivity experiment.
+- Open questions: exact retained-window count, Linclust peak RSS and scratch, cross-genome cluster count, and whether the frozen 20-k-mer baseline has sufficient sensitivity.
+- Stop reason: the available evidence changes the experiment ordering decisively and supports one bounded exhaustive launch.
