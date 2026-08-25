@@ -14,6 +14,7 @@ from pathlib import Path
 import boto3
 
 from marin_dna_linclust_conservation.sequence_report import (
+    is_primary_nuclear_record,
     read_sequence_report,
     sample_tiled_intervals,
 )
@@ -51,7 +52,7 @@ def _sequence_report_counts(path: Path, accession: str) -> dict[str, int]:
             if record["assembly_accession"] != accession:
                 continue
             counts["reported_sequences"] += 1
-            if record.get("assembly_unit") == "Primary Assembly":
+            if is_primary_nuclear_record(record):
                 counts["primary_assembly_sequences"] += 1
             if record.get("role") in {"alt-scaffold", "fix-patch", "novel-patch"}:
                 counts["excluded_alt_or_patch_sequences"] += 1

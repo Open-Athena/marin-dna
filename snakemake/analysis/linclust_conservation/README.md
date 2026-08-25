@@ -21,7 +21,8 @@ A window is rejected if any character is outside case-insensitive `A`, `C`, `G`,
 A window is rejected if more than 50% of its characters are lowercase.
 Ambiguous bases are never deleted because deletion would join unrelated sequence across assembly gaps.
 Every retained record ID encodes the versioned assembly accession, source sequence name, start, end, and strand.
-Only NCBI sequence-report rows in the `Primary Assembly` unit with role `assembled-molecule`, `unlocalized-scaffold`, or `unplaced-scaffold` are eligible.
+Only NCBI sequence-report rows in a principal nuclear assembly unit with role `assembled-molecule`, `unlocalized-scaffold`, or `unplaced-scaffold` are eligible.
+NCBI may label that unit `Primary Assembly` or with the reference strain name, such as `C57BL/6J`; the role filter plus explicit non-nuclear and mitochondrial exclusions define the invariant.
 Alternate loci, fix patches, novel patches, and the separate non-nuclear mitochondrial unit are excluded from clustering and counted in per-assembly receipts.
 
 The current assembly selector consumes NCBI Datasets genome and taxonomy JSONL reports.

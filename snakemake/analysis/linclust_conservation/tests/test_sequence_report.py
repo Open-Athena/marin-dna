@@ -31,6 +31,7 @@ def test_sequence_filter_keeps_primary_roles_and_excludes_alt_and_mitochondria()
         _record(
             "GCF_1.1", "NC_1.1", unit="Primary Assembly", role="assembled-molecule"
         ),
+        _record("GCF_1.1", "NC_STRAIN.1", unit="C57BL/6J", role="assembled-molecule"),
         _record("GCF_1.1", "NW_1.1", unit="Primary Assembly", role="unplaced-scaffold"),
         _record("GCF_1.1", "NT_1.1", unit="ALT_REF_LOCI_1", role="alt-scaffold"),
         _record(
@@ -44,6 +45,7 @@ def test_sequence_filter_keeps_primary_roles_and_excludes_alt_and_mitochondria()
     selected = parse_sequence_records(records)
     assert [sequence.sequence_accession for sequence in selected] == [
         "NC_1.1",
+        "NC_STRAIN.1",
         "NW_1.1",
     ]
     assert not any(sequence.is_mitochondrial for sequence in selected)

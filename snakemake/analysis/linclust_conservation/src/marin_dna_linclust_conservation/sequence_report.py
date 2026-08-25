@@ -10,10 +10,11 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-ALLOWED_ASSEMBLY_UNIT = "Primary Assembly"
 ALLOWED_ROLES = frozenset(
     {"assembled-molecule", "unlocalized-scaffold", "unplaced-scaffold"}
 )
+NON_NUCLEAR_ASSEMBLY_UNIT = "non-nuclear"
+MITOCHONDRIAL_LOCATION_TYPE = "Mitochondrion"
 
 
 @dataclass(frozen=True, slots=True)
@@ -27,7 +28,7 @@ class SourceSequence:
 
     @property
     def is_mitochondrial(self) -> bool:
-        return self.assigned_molecule_location_type == "Mitochondrion"
+        return self.assigned_molecule_location_type == MITOCHONDRIAL_LOCATION_TYPE
 
 
 @dataclass(frozen=True, slots=True)
@@ -35,6 +36,18 @@ class SampledInterval:
     sequence_accession: str
     start: int
     end: int
+
+
+def is_primary_nuclear_record(record: Mapping[str, Any]) -> bool:
+    """Identify principal nuclear sequence roles across NCBI assembly-unit labels."""
+    role = str(record["role"])
+    assembly_unit = str(record["assembly_unit"])
+    location_type = str(record.get("assigned_molecule_location_type", ""))
+    return (
+        role in ALLOWED_ROLES
+        and assembly_unit != NON_NUCLEAR_ASSEMBLY_UNIT
+        and location_type != MITOCHONDRIAL_LOCATION_TYPE
+    )
 
 
 def parse_sequence_records(
@@ -45,7 +58,7 @@ def parse_sequence_records(
     for record in records:
         assembly_unit = str(record["assembly_unit"])
         role = str(record["role"])
-        if assembly_unit != ALLOWED_ASSEMBLY_UNIT or role not in ALLOWED_ROLES:
+        if not is_primary_nuclear_record(record):
             continue
         sequence_accession = record.get("refseq_accession")
         assert sequence_accession, (
