@@ -69,13 +69,12 @@ WANDB_ENTITY = "eric-czech"
 WANDB_PROJECT = "marin"
 WANDB_GROUP = f"exp472-plantcad2-baseline-train-{TRAIN_STAGE}"
 
-# Provisional selection from completed first-sweep runs on 2026-08-25. The
-# operator will revisit this tuple when the remaining first-sweep runs finish.
+# Final selection from the completed first sweep, frozen on 2026-08-25.
 SOURCE_TRIAL_KEYS = (
-    "lr0p0005-wd0p2",
-    "lr0p0002-wd0p1",
-    "lr0p0001-wd0p8",
     "lr0p0001-wd0p1",
+    "lr0p0005-wd0p1",
+    "lr0p0001-wd0p2",
+    "lr0p0001-wd0p8",
 )
 
 
