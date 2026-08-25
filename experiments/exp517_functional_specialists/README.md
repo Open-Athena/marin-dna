@@ -81,13 +81,13 @@ Each arm has an independent run ID, checkpoint root, tokenized cache, and W&B ru
 ## Evaluation boundary
 
 Evaluate only the development split unless the user separately authorizes held-out access.
-Remove complete mature-miRNA groups before every metric, table, plot, or model-selection decision.
+Remove complete mature-miRNA groups from Mendelian metrics, tables, plots, and model-selection decisions; Complex Traits has no mature-miRNA subset.
 The primary statistic is AUPRC, with paired joint bootstrap uncertainty for whether each home specialist ranks first.
 Do not read, generate, publish, or summarize even-autosome or chromosome-Y held-out labels, predictions, or metrics from this branch.
 
 The dedicated `snakemake/analysis/evals_v2/config/issue517.yaml` config registers only the terminal step 4,999 checkpoint for each of the five arms.
 Its 11 development cells comprise five Mendelian cells, five Complex Traits cells, and one CDS-only SGE cell.
-It pins all three development datasets, enables complete-group mature-miRNA exclusion for Mendelian and Complex Traits metrics, and does not register a held-out dataset.
+It pins all three development datasets, enables complete-group mature-miRNA exclusion for Mendelian metrics, and does not register a held-out dataset.
 The same workflow jointly resamples Mendelian match groups across all five arms and reports terminal `P(home ranks first)` for each of the eight preregistered subsets.
 A single checkpoint cannot establish the previously planned two-consecutive-checkpoint persistence criterion.
 
