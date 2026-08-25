@@ -2,8 +2,9 @@
 
 Reads ``eval/plantcad/loss`` from W&B for every completed trial in the CoreWeave
 state database, fits ``log10(loss) = a*log10(step) + b`` over the pre-cooldown
-window, extrapolates to twice the training length, and re-applies each run's own
-measured cooldown gain. Writes the report table and the figure next to this file.
+window, and extrapolates that trend to twice the training length. Post-cooldown evals are
+plotted for context but take no part in the fit or the projection. Writes the report
+table and the figure next to this file.
 
 Usage: uv run --with matplotlib python project_loss.py
 """
@@ -68,17 +69,15 @@ def fit_all(histories: dict[str, list[tuple[float, float]]]) -> list[dict]:
         def trend(step: float) -> float:
             return float(10 ** (slope * np.log10(step) + intercept))
 
-        final = float(loss[-1])
-        cooldown_gain = final - trend(TOTAL_STEPS)
         fits.append(
             {
                 "trial": trial,
                 "slope": float(slope),
                 "intercept": float(intercept),
                 "r2": float(r2),
-                "final": final,
-                "cooldown_gain": cooldown_gain,
-                "projected": trend(PROJECT_STEP) + cooldown_gain,
+                "final_post_cooldown": float(loss[-1]),
+                "trend_at_10ep": trend(TOTAL_STEPS),
+                "projected": trend(PROJECT_STEP),
                 "steps": steps,
                 "loss": loss,
                 "window": window,
@@ -101,11 +100,9 @@ def plot(fits: list[dict], path: Path) -> None:
     for f in fits:
         color = colors[f["trial"]]
         ax.plot(f["steps"], f["loss"], lw=1.5, color=color)
-        tail = sweep[sweep >= TOTAL_STEPS]
+        tail = sweep[sweep >= FIT_LO]
         ax.plot(tail, 10 ** (f["slope"] * np.log10(tail) + f["intercept"]),
                 lw=0.9, ls="--", color=color, alpha=0.8)
-        ax.plot([TOTAL_STEPS, PROJECT_STEP], [f["final"], f["projected"]],
-                lw=1.1, ls="-.", color=color, alpha=0.55)
         ax.plot(PROJECT_STEP, f["projected"], "o", ms=5, color=color)
     ax.set_xscale("log")
     ax.set_xlim(9_000, PROJECT_STEP * 1.15)
@@ -114,10 +111,10 @@ def plot(fits: list[dict], path: Path) -> None:
     ax.set_ylabel(METRIC)
     ax.set_title(
         "exp472 · observed loss (solid), pre-cooldown power-law fit extrapolated "
-        "(dashed), cooldown-adjusted 20-epoch projection (dot)"
+        "(dashed), 20-epoch projection from that trend alone (dot)"
     )
     ax.text(COOLDOWN_STEP, 1.253, "cooldown\nstarts", fontsize=8, va="top", ha="right")
-    ax.text(TOTAL_STEPS, 1.253, "  10 ep end\n  (measured)", fontsize=8, va="top")
+    ax.text(TOTAL_STEPS, 1.253, "  10 ep end\n  (cooldown done)", fontsize=8, va="top")
     ax.text(PROJECT_STEP, 1.253, "20 ep\nprojected  ", fontsize=8, va="top", ha="right")
     ax.legend(loc="lower left", fontsize=8)
     ax.grid(alpha=0.25)
@@ -137,23 +134,20 @@ def plot(fits: list[dict], path: Path) -> None:
     ax = fig.add_subplot(grid[1, 1])
     ys = np.arange(len(fits))
     edge = [colors[f["trial"]] for f in fits]
-    ax.scatter([f["final"] for f in fits], ys, s=42, facecolors="none",
-               edgecolors=edge, label="measured @10 ep")
+    ax.scatter([f["final_post_cooldown"] for f in fits], ys, s=42, facecolors="none",
+               edgecolors=edge, label="measured @10 ep (post-cooldown, context only)")
     ax.scatter([f["projected"] for f in fits], ys, s=42, marker="D",
-               color=edge, label="projected @20 ep")
-    for i, f in enumerate(fits):
-        ax.plot([f["final"], f["projected"]], [i, i],
-                color=colors[f["trial"]], lw=1, alpha=0.6)
+               color=edge, label="projected @20 ep (pre-cooldown trend)")
     ax.set_yticks(ys)
     ax.set_yticklabels([f["trial"] for f in fits], fontsize=8)
-    low = min(min(f["final"], f["projected"]) for f in fits)
-    high = max(max(f["final"], f["projected"]) for f in fits)
+    low = min(min(f["final_post_cooldown"], f["projected"]) for f in fits)
+    high = max(max(f["final_post_cooldown"], f["projected"]) for f in fits)
     pad = (high - low) * 0.10
     ax.set_xlim(low - pad, high + pad * 2.2)
     ax.set_ylim(len(fits) - 0.3, -0.7)
     ax.set_xlabel(METRIC)
     ax.set_title("ranked by projected 20-epoch loss (best at top)", fontsize=10)
-    ax.legend(fontsize=8, loc="upper right", framealpha=0.9)
+    ax.legend(fontsize=7, loc="upper right", framealpha=0.9)
     ax.grid(alpha=0.25, axis="x")
 
     fig.savefig(path, dpi=150, bbox_inches="tight")
@@ -171,7 +165,8 @@ def main() -> None:
     )
     for rank, f in enumerate(fits, 1):
         print(f"{rank:2d} {f['trial']:16s} slope={f['slope']:+.4f} "
-              f"r2={f['r2']:.3f} final10={f['final']:.4f} proj20={f['projected']:.4f}")
+              f"r2={f['r2']:.3f} final10={f['final_post_cooldown']:.4f} "
+              f"proj20={f['projected']:.4f}")
 
 
 if __name__ == "__main__":
