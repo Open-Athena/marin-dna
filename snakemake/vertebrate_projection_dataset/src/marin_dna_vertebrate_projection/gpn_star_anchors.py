@@ -290,7 +290,8 @@ def write_gpn_selection_outputs(
     *,
     min_selected_bases: int,
     expected_uniform_windows: int | None = None,
-    expected_selected_source_positions: int | None = None,
+    expected_selected_unique_bases: int | None = None,
+    expected_selected_base_observations: int | None = None,
     expected_windows_ge_10pct: int | None = None,
     expected_windows_ge_20pct: int | None = None,
 ) -> dict[str, object]:
@@ -311,14 +312,19 @@ def write_gpn_selection_outputs(
     )
     totals = counts.select(pl.exclude("chrom").sum()).row(0, named=True)
     source_stats = [json.loads(Path(path).read_text()) for path in stats_paths]
-    selected_source_positions = sum(
+    selected_unique_bases = sum(
         int(item["selected_source_positions"]) for item in source_stats
+    )
+    selected_base_observations = int(
+        totals["window_selected_base_observations"]
     )
 
     if expected_uniform_windows is not None:
         assert totals["uniform_windows"] == expected_uniform_windows
-    if expected_selected_source_positions is not None:
-        assert selected_source_positions == expected_selected_source_positions
+    if expected_selected_unique_bases is not None:
+        assert selected_unique_bases == expected_selected_unique_bases
+    if expected_selected_base_observations is not None:
+        assert selected_base_observations == expected_selected_base_observations
     if expected_windows_ge_10pct is not None:
         assert totals["windows_ge_10pct"] == expected_windows_ge_10pct
     if expected_windows_ge_20pct is not None:
@@ -353,7 +359,7 @@ def write_gpn_selection_outputs(
         },
         "totals": {
             **{key: int(value) for key, value in totals.items()},
-            "selected_source_positions": selected_source_positions,
+            "selected_unique_bases": selected_unique_bases,
         },
         "by_chrom": counts.to_dicts(),
         "source_shards": source_stats,

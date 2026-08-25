@@ -164,8 +164,13 @@ rule select_gpn_star_p_windows:
             expected_uniform_windows=(
                 int(config["expected_uniform_windows"]) if TIER == "full" else None
             ),
-            expected_selected_source_positions=(
-                int(config["expected_selected_source_positions"])
+            expected_selected_unique_bases=(
+                int(config["expected_selected_unique_bases"])
+                if TIER == "full"
+                else None
+            ),
+            expected_selected_base_observations=(
+                int(config["expected_selected_base_observations"])
                 if TIER == "full"
                 else None
             ),

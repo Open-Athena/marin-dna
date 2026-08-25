@@ -20,9 +20,13 @@ The full-tier assertions are:
 | audit | expected count |
 | --- | ---: |
 | uniform windows | 22,948,560 |
-| selected source positions | 218,273,080 |
+| selected unique source bases | 109,564,133 |
+| selected base observations across overlapping grid windows | 218,273,080 |
 | windows passing 10% | 2,421,580 |
 | windows passing 20% | 1,627,410 |
+
+The unique-source-base count treats each GPN position once.
+The base-observation count sums selected bases over the overlapping windows and is therefore approximately twice as large.
 
 The chrY result is retained with an explicit interpretation caveat because GPN-Star-P and phyloP agree substantially less well there than on the autosomes and chrX.
 

@@ -15,7 +15,8 @@ gpn_assignment_recipe: exp232-v4-plus-exp326-arm-a-remainder-v1
 
 # Exact full-genome audit gates from the issue #517 cutoff analysis.
 expected_uniform_windows: 22948560
-expected_selected_source_positions: 218273080
+expected_selected_unique_bases: 109564133
+expected_selected_base_observations: 218273080
 expected_windows_ge_10pct: 2421580
 expected_windows_ge_20pct: 1627410
 
