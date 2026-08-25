@@ -75,8 +75,9 @@ def fit_all(histories: dict[str, list[tuple[float, float]]]) -> list[dict]:
                 "slope": float(slope),
                 "intercept": float(intercept),
                 "r2": float(r2),
+                "last_precooldown_step": float(steps[window][-1]),
+                "last_precooldown": float(loss[window][-1]),
                 "final_post_cooldown": float(loss[-1]),
-                "trend_at_10ep": trend(TOTAL_STEPS),
                 "projected": trend(PROJECT_STEP),
                 "steps": steps,
                 "loss": loss,
@@ -134,19 +135,22 @@ def plot(fits: list[dict], path: Path) -> None:
     ax = fig.add_subplot(grid[1, 1])
     ys = np.arange(len(fits))
     edge = [colors[f["trial"]] for f in fits]
-    ax.scatter([f["final_post_cooldown"] for f in fits], ys, s=42, facecolors="none",
-               edgecolors=edge, label="measured @10 ep (post-cooldown, context only)")
+    ax.scatter([f["last_precooldown"] for f in fits], ys, s=42, facecolors="none",
+               edgecolors=edge, label="measured @ cooldown start (step 164,928)")
     ax.scatter([f["projected"] for f in fits], ys, s=42, marker="D",
-               color=edge, label="projected @20 ep (pre-cooldown trend)")
+               color=edge, label="projected @20 ep (same trend, step 412,290)")
+    for i, f in enumerate(fits):
+        ax.plot([f["last_precooldown"], f["projected"]], [i, i],
+                color=colors[f["trial"]], lw=1, alpha=0.5)
     ax.set_yticks(ys)
     ax.set_yticklabels([f["trial"] for f in fits], fontsize=8)
-    low = min(min(f["final_post_cooldown"], f["projected"]) for f in fits)
-    high = max(max(f["final_post_cooldown"], f["projected"]) for f in fits)
+    low = min(min(f["last_precooldown"], f["projected"]) for f in fits)
+    high = max(max(f["last_precooldown"], f["projected"]) for f in fits)
     pad = (high - low) * 0.10
     ax.set_xlim(low - pad, high + pad * 2.2)
     ax.set_ylim(len(fits) - 0.3, -0.7)
     ax.set_xlabel(METRIC)
-    ax.set_title("ranked by projected 20-epoch loss (best at top)", fontsize=10)
+    ax.set_title("ranked by projected 20-epoch loss (best at top)\nboth points are pre-cooldown, so directly comparable", fontsize=9)
     ax.legend(fontsize=7, loc="upper right", framealpha=0.9)
     ax.grid(alpha=0.25, axis="x")
 
@@ -165,7 +169,7 @@ def main() -> None:
     )
     for rank, f in enumerate(fits, 1):
         print(f"{rank:2d} {f['trial']:16s} slope={f['slope']:+.4f} "
-              f"r2={f['r2']:.3f} final10={f['final_post_cooldown']:.4f} "
+              f"r2={f['r2']:.3f} precool={f['last_precooldown']:.4f} "
               f"proj20={f['projected']:.4f}")
 
 
