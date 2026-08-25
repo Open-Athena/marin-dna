@@ -1,5 +1,11 @@
+import hashlib
+import io
+from pathlib import Path
+
+import pytest
 from marin_dna_linclust_conservation.staging import (
     copy_reused_genome,
+    download_staged_genome,
     parse_s3_uri,
 )
 
@@ -36,3 +42,55 @@ def test_copy_reused_genome_checks_and_records_source_identity() -> None:
     assert receipt["source_checksum"] == "old-etag"
     assert receipt["destination_etag"] == "new-etag"
     assert receipt["destination_size_bytes"] == 42
+
+
+class FakeDownloadS3Client:
+    def __init__(self, content: bytes) -> None:
+        self.content = content
+
+    def get_object(self, **kwargs: object) -> dict[str, object]:
+        assert kwargs["Bucket"] == "destination"
+        assert kwargs["Key"] == "new/GCF_1.1.2bit"
+        assert kwargs["IfMatch"] == '"new-etag"'
+        return {
+            "Body": io.BytesIO(self.content),
+            "ContentLength": len(self.content),
+            "ETag": '"new-etag"',
+        }
+
+
+def test_download_staged_genome_conditionally_gets_and_hashes_receipt(
+    tmp_path: Path,
+) -> None:
+    content = b"two-bit-content"
+    sha256 = hashlib.sha256(content).hexdigest()
+    destination = tmp_path / "genome.2bit"
+    observed = download_staged_genome(
+        receipt={
+            "destination_uri": "s3://destination/new/GCF_1.1.2bit",
+            "destination_etag": "new-etag",
+            "destination_size_bytes": len(content),
+            "sequence_sha256": sha256,
+        },
+        destination_path=destination,
+        s3_client=FakeDownloadS3Client(content),
+    )
+    assert observed == (sha256, len(content))
+    assert destination.read_bytes() == content
+
+
+def test_download_staged_genome_rejects_fresh_source_hash_mismatch(
+    tmp_path: Path,
+) -> None:
+    content = b"two-bit-content"
+    with pytest.raises(AssertionError):
+        download_staged_genome(
+            receipt={
+                "destination_uri": "s3://destination/new/GCF_1.1.2bit",
+                "destination_etag": "new-etag",
+                "destination_size_bytes": len(content),
+                "sequence_sha256": "0" * 64,
+            },
+            destination_path=tmp_path / "genome.2bit",
+            s3_client=FakeDownloadS3Client(content),
+        )

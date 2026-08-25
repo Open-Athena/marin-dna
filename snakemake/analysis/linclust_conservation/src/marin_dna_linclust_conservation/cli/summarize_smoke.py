@@ -11,13 +11,13 @@ from marin_dna_linclust_conservation.smoke import summarize_smoke
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--stats", type=Path, action="append", required=True)
+    parser.add_argument("--stats", type=Path, nargs="+", required=True)
     parser.add_argument("--assignments", type=Path, required=True)
     parser.add_argument("--alignments", type=Path, required=True)
     parser.add_argument("--fasta", type=Path, required=True)
     parser.add_argument("--mmseqs-version", type=Path, required=True)
     parser.add_argument("--resources", type=Path, required=True)
-    parser.add_argument("--temporary-bytes", type=Path, required=True)
+    parser.add_argument("--peak-temporary-bytes", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     receipt = summarize_smoke(
@@ -27,7 +27,7 @@ def main() -> None:
         fasta_path=args.fasta,
         mmseqs_version_path=args.mmseqs_version,
         resources_path=args.resources,
-        temporary_bytes_path=args.temporary_bytes,
+        peak_temporary_bytes_path=args.peak_temporary_bytes,
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n")

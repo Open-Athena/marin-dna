@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from pathlib import Path
 
 import polars as pl
@@ -118,14 +119,15 @@ def parse_cluster_assignments(path: str | Path) -> pl.DataFrame:
     representatives = set(assignments["representative"].to_list())
     members = set(assignments["member"].to_list())
     assert representatives.issubset(members), "every representative must be a member"
-    for representative in representatives:
-        assert (
-            assignments.filter(
-                (pl.col("representative") == representative)
-                & (pl.col("member") == representative)
-            ).height
-            == 1
-        ), f"cluster {representative} lacks one self row"
+    self_representatives = set(
+        assignments.filter(pl.col("representative") == pl.col("member"))[
+            "representative"
+        ].to_list()
+    )
+    missing_self_rows = representatives - self_representatives
+    assert not missing_self_rows, (
+        f"clusters lack one self row: {sorted(missing_self_rows)[:10]}"
+    )
     return assignments
 
 
@@ -163,6 +165,76 @@ def parse_alignments(path: str | Path) -> pl.DataFrame:
             (pl.col("qend") < pl.col("qstart")) | (pl.col("tend") < pl.col("tstart"))
         ).alias("reverse_strand"),
     )
+
+
+def validate_alignment_coverage(
+    assignments: pl.DataFrame,
+    alignments: pl.DataFrame,
+) -> None:
+    """Require exactly one representative-member alignment for every assignment."""
+    assert set(CLUSTER_COLUMNS).issubset(assignments.columns)
+    assert {"query", "target"}.issubset(alignments.columns)
+    alignment_pairs = alignments.select(
+        pl.col("query").alias("representative"),
+        pl.col("target").alias("member"),
+    )
+    duplicated = (
+        alignment_pairs.group_by(CLUSTER_COLUMNS).len().filter(pl.col("len") != 1)
+    )
+    assert duplicated.height == 0, "alignment pairs must occur exactly once"
+    missing = assignments.select(CLUSTER_COLUMNS).join(
+        alignment_pairs,
+        on=CLUSTER_COLUMNS,
+        how="anti",
+    )
+    assert missing.height == 0, (
+        "cluster assignments lack strand-aware alignments: "
+        f"{missing.head(10).to_dicts()}"
+    )
+
+
+def filter_cluster_alignments(
+    *,
+    assignments_path: str | Path,
+    alignments_paths: Iterable[str | Path],
+    output_path: str | Path,
+) -> pl.DataFrame:
+    """Keep strand-aware search alignments belonging to Linclust cluster edges."""
+    assignments = parse_cluster_assignments(assignments_path)
+    alignment_frames = [parse_alignments(path) for path in alignments_paths]
+    assert alignment_frames, "at least one alignment table is required"
+    alignments = pl.concat(alignment_frames)
+    alignments = alignments.sort(
+        [
+            "query",
+            "target",
+            "bits",
+            "evalue",
+            "fident",
+            "alnlen",
+            "qcov",
+            "tcov",
+            "reverse_strand",
+        ],
+        descending=[False, False, True, False, True, True, True, True, False],
+    ).unique(subset=["query", "target"], keep="first", maintain_order=True)
+    expected = assignments.select(CLUSTER_COLUMNS)
+    filtered = alignments.join(
+        expected,
+        left_on=["query", "target"],
+        right_on=CLUSTER_COLUMNS,
+        how="semi",
+    )
+    validate_alignment_coverage(assignments, filtered)
+    assert filtered.height == assignments.height
+    output = Path(output_path)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    filtered.select(ALIGNMENT_COLUMNS).write_csv(
+        output,
+        separator="\t",
+        include_header=False,
+    )
+    return filtered
 
 
 def validate_score_features(feature_names: list[str] | tuple[str, ...]) -> None:

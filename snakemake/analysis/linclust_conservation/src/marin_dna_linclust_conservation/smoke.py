@@ -7,7 +7,11 @@ import re
 from collections.abc import Iterable
 from pathlib import Path
 
-from marin_dna_linclust_conservation.mmseqs import parse_cluster_assignments
+from marin_dna_linclust_conservation.mmseqs import (
+    parse_alignments,
+    parse_cluster_assignments,
+    validate_alignment_coverage,
+)
 
 
 def _parse_elapsed(value: str) -> float:
@@ -61,7 +65,7 @@ def summarize_smoke(
     fasta_path: str | Path,
     mmseqs_version_path: str | Path,
     resources_path: str | Path,
-    temporary_bytes_path: str | Path,
+    peak_temporary_bytes_path: str | Path,
 ) -> dict[str, object]:
     """Return the Phase 0 smoke receipt from per-assembly and MMseqs outputs."""
     per_assembly = [json.loads(Path(path).read_text()) for path in stats_paths]
@@ -69,11 +73,11 @@ def summarize_smoke(
     accessions = [row["accession"] for row in per_assembly]
     assert len(accessions) == len(set(accessions))
     assignments = parse_cluster_assignments(assignments_path)
+    alignments = parse_alignments(alignments_path)
+    validate_alignment_coverage(assignments, alignments)
     cluster_sizes = assignments.group_by("representative").len()["len"]
     time_records = parse_time_report(resources_path)
-    alignment_edges = sum(
-        1 for line in Path(alignments_path).read_text().splitlines() if line
-    )
+    alignment_edges = alignments.height
     retained_windows = sum(int(row["retained_windows"]) for row in per_assembly)
     return {
         "accession_count": len(per_assembly),
@@ -99,7 +103,7 @@ def summarize_smoke(
         "retained_windows": retained_windows,
         "singleton_clusters": int((cluster_sizes == 1).sum()),
         "singleton_window_fraction": int((cluster_sizes == 1).sum()) / retained_windows,
-        "temporary_bytes_after_mmseqs": int(
-            Path(temporary_bytes_path).read_text().strip()
+        "peak_temporary_bytes": int(
+            Path(peak_temporary_bytes_path).read_text().strip()
         ),
     }

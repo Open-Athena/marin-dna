@@ -5,7 +5,13 @@ from __future__ import annotations
 import random
 from collections.abc import Mapping
 
-from marin_dna_linclust_conservation.mmseqs import parse_cluster_assignments
+import polars as pl
+
+from marin_dna_linclust_conservation.mmseqs import (
+    parse_alignments,
+    parse_cluster_assignments,
+    validate_alignment_coverage,
+)
 
 COMPLEMENT = str.maketrans("ACGTacgt", "TGCAtgca")
 
@@ -58,7 +64,10 @@ def write_fasta(records: Mapping[str, str], path: str) -> None:
             handle.write(f">{name}\n{sequence}\n")
 
 
-def check_release_gate(assignments_path: str) -> dict[str, object]:
+def check_release_gate(
+    assignments_path: str,
+    alignments_path: str | None = None,
+) -> dict[str, object]:
     """Require exact forward and reverse-complement recovery in one cluster."""
     assignments = parse_cluster_assignments(assignments_path)
     cluster_for = dict(
@@ -77,13 +86,34 @@ def check_release_gate(assignments_path: str) -> dict[str, object]:
         "MMseqs2 release gate failed: exact forward/reverse-complement records "
         f"span clusters {sorted(representatives)}"
     )
-    return {
+    receipt: dict[str, object] = {
         "release_gate_passed": True,
         "required_records": sorted(required),
         "representative": next(iter(representatives)),
         "cluster_count": assignments["representative"].n_unique(),
         "record_count": assignments.height,
     }
+    if alignments_path is not None:
+        alignments = parse_alignments(alignments_path)
+        validate_alignment_coverage(assignments, alignments)
+        representative = next(iter(representatives))
+        opposite_orientation_member = (
+            "base"
+            if representative == "exact_reverse_complement"
+            else "exact_reverse_complement"
+        )
+        opposite_alignment = alignments.filter(
+            (pl.col("query") == representative)
+            & (pl.col("target") == opposite_orientation_member)
+        )
+        assert opposite_alignment.height == 1
+        assert opposite_alignment["reverse_strand"].item(), (
+            "MMseqs2 release gate failed: exact reverse-complement edge was not "
+            "reported on the reverse strand"
+        )
+        receipt["alignment_count"] = alignments.height
+        receipt["reverse_complement_alignment_verified"] = True
+    return receipt
 
 
 def canonical_partition(assignments_path: str) -> tuple[tuple[str, ...], ...]:

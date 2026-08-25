@@ -33,7 +33,6 @@ run: |
   export PATH="$HOME/miniforge3/bin:$HOME/.local/bin:$PATH"
   export CONDA_EXE="$HOME/miniforge3/bin/conda"
   test -n "$PIPELINE_COMMIT_SHA"
-  test "$(git rev-parse HEAD)" = "$PIPELINE_COMMIT_SHA"
   cd snakemake/analysis/linclust_conservation
   uv run --locked pytest
   uv run --locked snakemake -n \

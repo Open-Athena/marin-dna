@@ -17,7 +17,7 @@ from marin_dna_linclust_conservation.sequence_report import (
     read_sequence_report,
     sample_tiled_intervals,
 )
-from marin_dna_linclust_conservation.staging import parse_s3_uri, sha256_file
+from marin_dna_linclust_conservation.staging import download_staged_genome
 from marin_dna_linclust_conservation.windows import RejectedWindow, classify_window
 
 
@@ -76,7 +76,6 @@ def main() -> None:
 
     receipt = json.loads(args.staging_receipt.read_text())
     assert receipt["accession"] == args.accession
-    bucket, key = parse_s3_uri(receipt["destination_uri"])
     sequences = [
         sequence
         for sequence in read_sequence_report(args.sequence_report)
@@ -102,9 +101,12 @@ def main() -> None:
         temporary = Path(directory)
         twobit = temporary / f"{args.accession}.2bit"
         download_started = time.monotonic()
-        boto3.client("s3").download_file(bucket, key, str(twobit))
+        sequence_sha256, source_size_bytes = download_staged_genome(
+            receipt=receipt,
+            destination_path=twobit,
+            s3_client=boto3.client("s3"),
+        )
         download_seconds = time.monotonic() - download_started
-        sequence_sha256 = sha256_file(twobit)
         sizes_result = subprocess.run(
             ["twoBitInfo", str(twobit), "stdout"],
             check=True,
@@ -182,7 +184,7 @@ def main() -> None:
             "repeat_fraction_max": max(retained_repeat_fractions),
             "repeat_fraction_mean": sum(retained_repeat_fractions) / retained,
             "sequence_sha256": sequence_sha256,
-            "source_size_bytes": twobit.stat().st_size,
+            "source_size_bytes": source_size_bytes,
             "download_seconds": download_seconds,
             "wall_seconds": time.monotonic() - started,
             **_sequence_report_counts(args.sequence_report, args.accession),

@@ -6,6 +6,7 @@ import polars as pl
 import pytest
 from marin_dna_linclust_conservation.mmseqs import (
     cluster_membership_features,
+    filter_cluster_alignments,
     parse_alignments,
     parse_cluster_assignments,
     validate_score_features,
@@ -34,6 +35,37 @@ def test_parse_alignments_converts_one_based_coordinates_at_boundary(
     assert (alignment["query_start"], alignment["query_end"]) == (0, 200)
     assert (alignment["target_start"], alignment["target_end"]) == (20, 220)
     assert alignment["reverse_strand"] is True
+
+
+def test_filter_cluster_alignments_requires_and_retains_every_edge(
+    tmp_path: Path,
+) -> None:
+    assignments = tmp_path / "clusters.tsv"
+    assignments.write_text("rep\trep\nrep\tmember\n")
+    raw = tmp_path / "raw.tsv"
+    raw.write_text(
+        "rep\trep\t1\t255\t1\t1\t1\t255\t1\t255\t0\t500\n"
+        "rep\trep\t0.9\t240\t0.9\t0.9\t1\t240\t1\t240\t1e-20\t400\n"
+        "rep\tmember\t1\t255\t1\t1\t1\t255\t255\t1\t0\t500\n"
+        "rep\textra\t0.8\t220\t0.9\t0.9\t1\t220\t1\t220\t1e-10\t100\n"
+    )
+    output = tmp_path / "filtered.tsv"
+    filtered = filter_cluster_alignments(
+        assignments_path=assignments,
+        alignments_paths=[raw],
+        output_path=output,
+    )
+    assert filtered.height == 2
+    assert filtered.filter(pl.col("target") == "member")["reverse_strand"].item()
+    assert len(output.read_text().splitlines()) == 2
+
+    raw.write_text("rep\trep\t1\t255\t1\t1\t1\t255\t1\t255\t0\t500\n")
+    with pytest.raises(AssertionError, match="lack strand-aware alignments"):
+        filter_cluster_alignments(
+            assignments_path=assignments,
+            alignments_paths=[raw],
+            output_path=output,
+        )
 
 
 def test_membership_features_count_distinct_genomes_and_multiplicity() -> None:

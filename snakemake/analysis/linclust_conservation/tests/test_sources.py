@@ -19,6 +19,17 @@ class FakeS3Client:
         return {"ETag": '"abc123"', "ContentLength": 42}
 
 
+class ForbiddenS3Client:
+    def head_object(self, *, Bucket: str, Key: str) -> dict[str, object]:
+        raise ClientError(
+            {
+                "Error": {"Code": "AccessDenied", "Message": "denied"},
+                "ResponseMetadata": {"HTTPStatusCode": 403},
+            },
+            "HeadObject",
+        )
+
+
 def test_audit_existing_mirror_preserves_hits_and_missing_versions() -> None:
     inventory, missing = audit_existing_genome_mirror(
         ["GCF_present.1", "GCF_missing.1"],
@@ -52,4 +63,15 @@ def test_audit_existing_mirror_rejects_empty_selection() -> None:
             prefix="prefix",
             suffix=".2bit",
             s3_client=FakeS3Client(),
+        )
+
+
+def test_audit_existing_mirror_propagates_access_denial() -> None:
+    with pytest.raises(ClientError):
+        audit_existing_genome_mirror(
+            ["GCF_1.1"],
+            bucket="bucket",
+            prefix="prefix",
+            suffix=".2bit",
+            s3_client=ForbiddenS3Client(),
         )

@@ -29,7 +29,7 @@ def audit_existing_genome_mirror(
             metadata = s3_client.head_object(Bucket=bucket, Key=key)
         except ClientError as error:
             status = error.response.get("ResponseMetadata", {}).get("HTTPStatusCode")
-            if status in {403, 404}:
+            if status == 404:
                 missing.append(
                     {
                         "accession": accession,

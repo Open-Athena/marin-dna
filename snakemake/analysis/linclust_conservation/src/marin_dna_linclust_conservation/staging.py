@@ -28,6 +28,43 @@ def sha256_file(path: str | Path) -> str:
     return digest.hexdigest()
 
 
+def download_staged_genome(
+    *,
+    receipt: dict[str, object],
+    destination_path: str | Path,
+    s3_client: Any,
+) -> tuple[str, int]:
+    """Conditionally download and verify the exact S3 object in a staging receipt."""
+    bucket, key = parse_s3_uri(str(receipt["destination_uri"]))
+    expected_etag = str(receipt["destination_etag"])
+    expected_size = int(receipt["destination_size_bytes"])
+    response = s3_client.get_object(
+        Bucket=bucket,
+        Key=key,
+        IfMatch=f'"{expected_etag}"',
+    )
+    assert str(response["ETag"]).strip('"') == expected_etag
+    assert int(response["ContentLength"]) == expected_size
+
+    digest = hashlib.sha256()
+    observed_size = 0
+    body = response["Body"]
+    try:
+        with Path(destination_path).open("wb") as output:
+            for block in iter(lambda: body.read(8 * 1024 * 1024), b""):
+                output.write(block)
+                digest.update(block)
+                observed_size += len(block)
+    finally:
+        body.close()
+    assert observed_size == expected_size
+    observed_sha256 = digest.hexdigest()
+    expected_sha256 = receipt.get("sequence_sha256")
+    if expected_sha256 is not None:
+        assert observed_sha256 == expected_sha256
+    return observed_sha256, observed_size
+
+
 def copy_reused_genome(
     *,
     accession: str,

@@ -25,6 +25,8 @@ linclust-conservation-check-controls = "marin_dna_linclust_conservation.cli.chec
 linclust-conservation-source-inventory = "marin_dna_linclust_conservation.cli.source_inventory:main"
 linclust-conservation-stage-genome = "marin_dna_linclust_conservation.cli.stage_genome:main"
 linclust-conservation-sample-genome = "marin_dna_linclust_conservation.cli.sample_genome:main"
+linclust-conservation-filter-alignments = "marin_dna_linclust_conservation.cli.filter_alignments:main"
+linclust-conservation-record-peak = "marin_dna_linclust_conservation.cli.record_peak:main"
 linclust-conservation-summarize-smoke = "marin_dna_linclust_conservation.cli.summarize_smoke:main"
 
 [dependency-groups]

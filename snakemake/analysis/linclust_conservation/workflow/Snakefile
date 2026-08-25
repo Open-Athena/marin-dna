@@ -7,6 +7,7 @@ import polars as pl
 from marin_dna_linclust_conservation.controls import (
     canonical_partition,
     check_release_gate,
+    synthetic_sequences,
 )
 from marin_dna_linclust_conservation.manifest import (
     MANIFEST_COLUMNS,
@@ -31,6 +32,8 @@ SOURCE_REUSE = {
     row["accession"]: row
     for row in pl.read_csv(SOURCE_REUSE_PATH, separator="\t").to_dicts()
 }
+SMOKE_MAX_WINDOWS = config["smoke"]["candidates_per_assembly"] * len(ACCESSIONS)
+SYNTHETIC_RECORD_COUNT = len(synthetic_sequences())
 STAGING_PREFIX = config["staging"]["destination_prefix"].strip("/")
 STAGING_BUCKET = config["staging"]["destination_bucket"]
 
@@ -174,7 +177,7 @@ rule resolve_pinned_manifest:
 
 rule write_selected_accessions:
     input:
-        SELECTION_PATH,
+        local(SELECTION_PATH),
     output:
         f"{MANIFEST}/selected_accessions.txt",
     run:
@@ -210,8 +213,8 @@ rule query_selected_sequence_report:
 
 rule stage_genome:
     input:
-        selection=SELECTION_PATH,
-        reuse=SOURCE_REUSE_PATH,
+        selection=local(SELECTION_PATH),
+        reuse=local(SOURCE_REUSE_PATH),
     output:
         f"{SMOKE}/staging/{{accession}}.json",
     wildcard_constraints:
@@ -274,7 +277,7 @@ rule combine_smoke_windows:
 
 rule finalize_staged_manifest:
     input:
-        selection=SELECTION_PATH,
+        selection=local(SELECTION_PATH),
         staging=expand(f"{SMOKE}/staging/{{accession}}.json", accession=ACCESSIONS),
         stats=expand(f"{SMOKE}/windows/{{accession}}.json", accession=ACCESSIONS),
     output:
@@ -319,7 +322,7 @@ rule run_smoke_linclust:
         alignments=f"{SMOKE}/alignments.tsv",
         version=f"{SMOKE}/mmseqs_version.txt",
         resources=f"{SMOKE}/resources.txt",
-        temporary_bytes=f"{SMOKE}/temporary_bytes.txt",
+        peak_temporary_bytes=f"{SMOKE}/peak_temporary_bytes.txt",
     conda:
         "envs/mmseqs2.yaml"
     threads: 2
@@ -335,15 +338,22 @@ rule run_smoke_linclust:
         mask_lower=MMSEQS["mask_lower_case"],
         mask=MMSEQS["low_complexity_masking"],
         cluster_mode=MMSEQS["cluster_mode"],
+        max_alignments=SMOKE_MAX_WINDOWS,
+        alignment_kmer=MMSEQS["alignment_kmer_length"],
+        split_memory=MMSEQS["alignment_split_memory_limit"],
     shell:
         r"""
         set -euo pipefail
         TMPDIR=$(mktemp -d -t linclust_smoke_XXXXXX)
         trap 'rm -rf "$TMPDIR"' EXIT
+        linclust-conservation-record-peak \
+            --directory "$TMPDIR" --output {output.peak_temporary_bytes}
         mmseqs version >{output.version}
         /usr/bin/time -v -o {output.resources} \
             mmseqs createdb {input.fasta} "$TMPDIR/sequences" \
             --mask-lower-case {params.mask_lower}
+        linclust-conservation-record-peak \
+            --directory "$TMPDIR" --output {output.peak_temporary_bytes}
         /usr/bin/time -v -a -o {output.resources} mmseqs linclust \
             "$TMPDIR/sequences" "$TMPDIR/clusters" "$TMPDIR/work" \
             --min-seq-id {params.min_id} \
@@ -356,17 +366,51 @@ rule run_smoke_linclust:
             --mask {params.mask} \
             --cluster-mode {params.cluster_mode} \
             --threads {threads}
+        linclust-conservation-record-peak \
+            --directory "$TMPDIR" --output {output.peak_temporary_bytes}
         /usr/bin/time -v -a -o {output.resources} mmseqs createtsv \
             "$TMPDIR/sequences" "$TMPDIR/sequences" "$TMPDIR/clusters" \
             {output.assignments}
+        linclust-conservation-record-peak \
+            --directory "$TMPDIR" --output {output.peak_temporary_bytes}
         /usr/bin/time -v -a -o {output.resources} mmseqs align \
             "$TMPDIR/sequences" "$TMPDIR/sequences" "$TMPDIR/clusters" \
-            "$TMPDIR/alignments" --alignment-mode 3 --threads {threads}
+            "$TMPDIR/forward_alignments" --alignment-mode 3 --threads {threads}
+        linclust-conservation-record-peak \
+            --directory "$TMPDIR" --output {output.peak_temporary_bytes}
+        /usr/bin/time -v -a -o {output.resources} mmseqs createsubdb \
+            "$TMPDIR/clusters" "$TMPDIR/sequences" "$TMPDIR/representatives"
+        linclust-conservation-record-peak \
+            --directory "$TMPDIR" --output {output.peak_temporary_bytes}
+        /usr/bin/time -v -a -o {output.resources} mmseqs search \
+            "$TMPDIR/representatives" "$TMPDIR/sequences" \
+            "$TMPDIR/strand_alignments" "$TMPDIR/search_work" \
+            --search-type 3 --strand 0 --add-self-matches 0 \
+            --min-seq-id {params.min_id} -c {params.coverage} \
+            --cov-mode {params.cov_mode} -e {params.evalue} \
+            --mask-lower-case {params.mask_lower} --mask {params.mask} \
+            -k {params.alignment_kmer} --alignment-mode 3 \
+            --max-seqs {params.max_alignments} \
+            --split-memory-limit {params.split_memory} --threads {threads}
+        linclust-conservation-record-peak \
+            --directory "$TMPDIR" --output {output.peak_temporary_bytes}
         /usr/bin/time -v -a -o {output.resources} mmseqs convertalis \
-            "$TMPDIR/sequences" "$TMPDIR/sequences" "$TMPDIR/alignments" \
-            {output.alignments} \
+            "$TMPDIR/sequences" "$TMPDIR/sequences" \
+            "$TMPDIR/forward_alignments" "$TMPDIR/forward_alignments.tsv" \
             --format-output "query,target,fident,alnlen,qcov,tcov,qstart,qend,tstart,tend,evalue,bits"
-        du -sb "$TMPDIR" | cut -f1 >{output.temporary_bytes}
+        linclust-conservation-record-peak \
+            --directory "$TMPDIR" --output {output.peak_temporary_bytes}
+        /usr/bin/time -v -a -o {output.resources} mmseqs convertalis \
+            "$TMPDIR/representatives" "$TMPDIR/sequences" \
+            "$TMPDIR/strand_alignments" "$TMPDIR/reverse_alignments.tsv" \
+            --format-output "query,target,fident,alnlen,qcov,tcov,qstart,qend,tstart,tend,evalue,bits"
+        linclust-conservation-record-peak \
+            --directory "$TMPDIR" --output {output.peak_temporary_bytes}
+        linclust-conservation-filter-alignments \
+            --assignments {output.assignments} \
+            --alignments "$TMPDIR/forward_alignments.tsv" \
+            "$TMPDIR/reverse_alignments.tsv" \
+            --output {output.alignments}
         """
 
 
@@ -379,19 +423,15 @@ rule summarize_smoke:
         fasta=f"{SMOKE}/windows.fasta",
         version=f"{SMOKE}/mmseqs_version.txt",
         resources=f"{SMOKE}/resources.txt",
-        temporary_bytes=f"{SMOKE}/temporary_bytes.txt",
+        peak_temporary_bytes=f"{SMOKE}/peak_temporary_bytes.txt",
     output:
         f"{SMOKE}/receipt.json",
-    params:
-        stats_options=" ".join(
-            f"--stats {SMOKE}/windows/{accession}.json" for accession in ACCESSIONS
-        ),
     shell:
-        "linclust-conservation-summarize-smoke {params.stats_options} "
+        "linclust-conservation-summarize-smoke --stats {input.stats:q} "
         "--assignments {input.assignments:q} --alignments {input.alignments:q} "
         "--fasta {input.fasta:q} --mmseqs-version {input.version:q} "
         "--resources {input.resources:q} "
-        "--temporary-bytes {input.temporary_bytes:q} --output {output:q}"
+        "--peak-temporary-bytes {input.peak_temporary_bytes:q} --output {output:q}"
 
 
 rule smoke:
@@ -433,6 +473,9 @@ rule run_synthetic_linclust:
         mask_lower=MMSEQS["mask_lower_case"],
         mask=MMSEQS["low_complexity_masking"],
         cluster_mode=MMSEQS["cluster_mode"],
+        max_alignments=SYNTHETIC_RECORD_COUNT,
+        alignment_kmer=MMSEQS["alignment_kmer_length"],
+        split_memory=MMSEQS["alignment_split_memory_limit"],
     shell:
         r"""
         set -euo pipefail
@@ -459,22 +502,44 @@ rule run_synthetic_linclust:
             {output.assignments}
         /usr/bin/time -v -a -o {output.resources} mmseqs align \
             "$TMPDIR/sequences" "$TMPDIR/sequences" "$TMPDIR/clusters" \
-            "$TMPDIR/alignments" --alignment-mode 3 --threads {threads}
+            "$TMPDIR/forward_alignments" --alignment-mode 3 --threads {threads}
+        /usr/bin/time -v -a -o {output.resources} mmseqs createsubdb \
+            "$TMPDIR/clusters" "$TMPDIR/sequences" "$TMPDIR/representatives"
+        /usr/bin/time -v -a -o {output.resources} mmseqs search \
+            "$TMPDIR/representatives" "$TMPDIR/sequences" \
+            "$TMPDIR/strand_alignments" "$TMPDIR/search_work" \
+            --search-type 3 --strand 0 --add-self-matches 0 \
+            --min-seq-id {params.min_id} -c {params.coverage} \
+            --cov-mode {params.cov_mode} -e {params.evalue} \
+            --mask-lower-case {params.mask_lower} --mask {params.mask} \
+            -k {params.alignment_kmer} --alignment-mode 3 \
+            --max-seqs {params.max_alignments} \
+            --split-memory-limit {params.split_memory} --threads {threads}
         /usr/bin/time -v -a -o {output.resources} mmseqs convertalis \
-            "$TMPDIR/sequences" "$TMPDIR/sequences" "$TMPDIR/alignments" \
-            {output.alignments} \
+            "$TMPDIR/sequences" "$TMPDIR/sequences" \
+            "$TMPDIR/forward_alignments" "$TMPDIR/forward_alignments.tsv" \
             --format-output "query,target,fident,alnlen,qcov,tcov,qstart,qend,tstart,tend,evalue,bits"
+        /usr/bin/time -v -a -o {output.resources} mmseqs convertalis \
+            "$TMPDIR/representatives" "$TMPDIR/sequences" \
+            "$TMPDIR/strand_alignments" "$TMPDIR/reverse_alignments.tsv" \
+            --format-output "query,target,fident,alnlen,qcov,tcov,qstart,qend,tstart,tend,evalue,bits"
+        linclust-conservation-filter-alignments \
+            --assignments {output.assignments} \
+            --alignments "$TMPDIR/forward_alignments.tsv" \
+            "$TMPDIR/reverse_alignments.tsv" \
+            --output {output.alignments}
         """
 
 
 rule check_synthetic_linclust:
     input:
         assignments=f"{CONTRACTS}/order_{{order_seed}}/clusters.tsv",
+        alignments=f"{CONTRACTS}/order_{{order_seed}}/alignments.tsv",
         version=f"{CONTRACTS}/order_{{order_seed}}/mmseqs_version.txt",
     output:
         f"{CONTRACTS}/order_{{order_seed}}/release_gate.json",
     run:
-        receipt = check_release_gate(input.assignments)
+        receipt = check_release_gate(input.assignments, input.alignments)
         receipt["mmseqs_version"] = Path(input.version).read_text().strip()
         receipt["order_seed"] = int(wildcards.order_seed)
         receipt["configuration"] = MMSEQS

@@ -39,3 +39,5 @@ mmseqs:
   mask_lower_case: 1
   low_complexity_masking: 1
   cluster_mode: 0
+  alignment_kmer_length: 11
+  alignment_split_memory_limit: 4G

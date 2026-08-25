@@ -59,8 +59,10 @@ The workflow uses the MMseqs2 modules directly:
 1. `createdb` builds the nucleotide database.
 2. `linclust` produces cluster assignments under the recorded configuration.
 3. `createtsv` exports representative-member membership.
-4. `align --alignment-mode 3` realigns only those cluster edges.
-5. `convertalis` exports exact identity, alignment length, coverage, coordinates, E-value, and bit score.
+4. `align --alignment-mode 3` realigns the forward cluster edges and self matches.
+5. `createsubdb` materializes the cluster representatives.
+6. `search --search-type 3 --strand 0` recovers reverse-complement representative-member alignments.
+7. `convertalis` exports exact identity, alignment length, coverage, coordinates, E-value, and bit score, after which the workflow chooses the best orientation and validates exactly one alignment for every cluster edge.
 
 The default candidate configuration is in `config/config.yaml`.
 Passing the synthetic gate does not select the final biological configuration.
@@ -123,7 +125,7 @@ Every staged 2bit receives a full SHA-256 during smoke extraction, and freshly d
 
 ## SkyPilot
 
-The approved contract worker is an `m6i.large` in `us-east-2` with a 50 GB root disk.
+The approved contract worker is an `m6i.large` in `us-east-2` with an 80 GB root disk.
 Launch it from a committed snapshot:
 
 ```bash
@@ -165,6 +167,6 @@ The default target writes:
 - `results/contracts/order_<seed>/release_gate.json`; and
 - `results/contracts/mmseqs2_release_gate.json`, the cross-ordering gate receipt.
 
-The explicit `smoke` target additionally writes a fully pinned staged assembly manifest, per-assembly filtering and checksum receipts, Linclust membership and alignment tables, complete stage resource reports, and `results/smoke/receipt.json`.
+The explicit `smoke` target additionally writes a fully pinned staged assembly manifest, per-assembly filtering and checksum receipts, Linclust membership and alignment tables, complete stage resource reports including peak temporary bytes, and `results/smoke/receipt.json`.
 
 The research chronology and exact milestone commands belong in `.agents/logbooks/linclust-conservation.md` and issue #521.
