@@ -106,7 +106,8 @@ def test_write_gpn_selection_outputs_reports_10_and_20_percent(tmp_path: Path) -
         summary,
         min_selected_bases=51,
         expected_uniform_windows=4,
-        expected_selected_source_positions=7,
+        expected_selected_unique_bases=7,
+        expected_selected_base_observations=152,
         expected_windows_ge_10pct=3,
         expected_windows_ge_20pct=1,
     )
@@ -115,6 +116,8 @@ def test_write_gpn_selection_outputs_reports_10_and_20_percent(tmp_path: Path) -
     with gzip.open(bed, "rt") as handle:
         assert handle.read() == "1\t384\t639\tw3\n"
     assert observed["totals"]["windows_ge_10pct"] == 3
+    assert observed["totals"]["selected_unique_bases"] == 7
+    assert observed["totals"]["window_selected_base_observations"] == 152
 
 
 def _assignment_labels() -> pl.DataFrame:
