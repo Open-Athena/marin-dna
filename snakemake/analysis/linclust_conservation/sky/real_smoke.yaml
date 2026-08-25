@@ -25,15 +25,20 @@ setup: |
   git -C "$CHECKOUT" diff --exit-code
   test -z "$(git -C "$CHECKOUT" status --porcelain --untracked-files=all)"
   if [ ! -d "$HOME/miniforge3" ]; then
-    curl -fsSL -o /tmp/miniforge.sh https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh
+    MINIFORGE_VERSION=26.3.2-3
+    MINIFORGE_SHA256=848194851a98903134187fbb4ab50efe87b003e0c0f808f97644b7524a62bf2c
+    curl -fsSL --retry 5 --retry-all-errors --retry-delay 5 \
+      -o /tmp/miniforge.sh \
+      "https://github.com/conda-forge/miniforge/releases/download/$MINIFORGE_VERSION/Miniforge3-$MINIFORGE_VERSION-Linux-x86_64.sh"
+    printf '%s  %s\n' "$MINIFORGE_SHA256" /tmp/miniforge.sh | sha256sum --check --strict
     bash /tmp/miniforge.sh -b -p "$HOME/miniforge3"
     rm /tmp/miniforge.sh
   fi
   export PATH="$HOME/.local/bin:$PATH"
-  if [ "$(uv --version 2>/dev/null || true)" != "uv 0.12.5" ]; then
+  if [ "$(uv --version 2>/dev/null | awk '{print $2}' || true)" != "0.12.5" ]; then
     curl -LsSf https://astral.sh/uv/0.12.5/install.sh | sh
   fi
-  test "$(uv --version)" = "uv 0.12.5"
+  test "$(uv --version | awk '{print $2}')" = "0.12.5"
   export PATH="$HOME/miniforge3/bin:$HOME/.local/bin:$PATH"
   conda config --set channel_priority strict
   uv sync --project "$CHECKOUT/snakemake/analysis/linclust_conservation" --locked --group dev
@@ -47,13 +52,12 @@ run: |
   test "$(git -C "$CHECKOUT" rev-parse HEAD)" = "$PIPELINE_COMMIT_SHA"
   cd "$CHECKOUT/snakemake/analysis/linclust_conservation"
   uv run --locked pytest
-  uv run --locked snakemake -n \
+  uv run --locked snakemake -n smoke \
     --profile workflow/profiles/default \
-    --default-storage-provider none \
-    smoke
-  uv run --locked snakemake \
+    --default-storage-provider none
+  uv run --locked snakemake smoke \
     --profile workflow/profiles/default \
+    --default-storage-prefix s3://oa-bolinas/snakemake/analysis/linclust_conservation/runs/panel20-smoke/ \
     --cores 2 \
     --resources mem_mb=7000 staging_jobs=1 sampling_jobs=1 \
-    --rerun-incomplete \
-    smoke
+    --rerun-incomplete

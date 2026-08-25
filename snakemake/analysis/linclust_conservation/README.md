@@ -168,6 +168,7 @@ sky launch -c linclust-cons-smoke \
 
 The target samples 2,000 tiled candidates per selected assembly, applies the production 255 bp sequence filters, clusters no more than 40,000 retained windows, and writes receipts under the new workflow-owned S3 prefix.
 It copies the 17 exact mirror hits server-side and downloads and converts only the three missing current assemblies.
+Its workflow outputs live under the separate `s3://oa-bolinas/snakemake/analysis/linclust_conservation/runs/panel20-smoke/` prefix.
 Terminate the worker after the receipt and finalized staged manifest are durable.
 
 ## Current outputs
