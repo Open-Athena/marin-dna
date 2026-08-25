@@ -1,0 +1,209 @@
+"""Parse MMseqs2 Linclust assignments and representative-member alignments."""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+import polars as pl
+
+CLUSTER_COLUMNS = ["representative", "member"]
+CLUSTER_SCHEMA = {"representative": pl.String, "member": pl.String}
+
+ALIGNMENT_COLUMNS = [
+    "query",
+    "target",
+    "fident",
+    "alnlen",
+    "qcov",
+    "tcov",
+    "qstart",
+    "qend",
+    "tstart",
+    "tend",
+    "evalue",
+    "bits",
+]
+ALIGNMENT_SCHEMA = {
+    "query": pl.String,
+    "target": pl.String,
+    "fident": pl.Float64,
+    "alnlen": pl.Int64,
+    "qcov": pl.Float64,
+    "tcov": pl.Float64,
+    "qstart": pl.Int64,
+    "qend": pl.Int64,
+    "tstart": pl.Int64,
+    "tend": pl.Int64,
+    "evalue": pl.Float64,
+    "bits": pl.Float64,
+}
+
+INFERENCE_FEATURES = frozenset(
+    {
+        "cluster_member_count",
+        "distinct_genome_count",
+        "max_members_per_genome",
+        "dominant_genome_fraction",
+        "member_identity_to_representative",
+        "member_query_coverage",
+        "member_target_coverage",
+        "member_bits",
+        "member_evalue",
+        "identity_mean",
+        "identity_median",
+        "identity_min",
+        "identity_max",
+        "identity_q10",
+        "coverage_mean",
+        "coverage_median",
+        "coverage_min",
+        "coverage_max",
+        "coverage_q10",
+        "bits_mean",
+        "bits_median",
+        "bits_min",
+        "bits_max",
+        "bits_q10",
+        "singleton",
+        "assignment_stability",
+    }
+)
+FORBIDDEN_SCORE_INPUTS = frozenset(
+    {
+        "phylop_fraction",
+        "repeat_fraction",
+        "gc_content",
+        "chromosome",
+        "start",
+        "end",
+        "strand",
+        "annotation",
+        "cds",
+        "ccre",
+        "species_tree",
+    }
+)
+
+
+def _read_headerless(
+    path: str | Path,
+    *,
+    columns: list[str],
+    schema: dict[str, pl.DataTypeClass],
+) -> pl.DataFrame:
+    path = Path(path)
+    if path.stat().st_size == 0:
+        return pl.DataFrame(schema=schema)
+    return pl.read_csv(
+        path,
+        separator="\t",
+        has_header=False,
+        new_columns=columns,
+        schema_overrides=schema,
+    )
+
+
+def parse_cluster_assignments(path: str | Path) -> pl.DataFrame:
+    """Read `mmseqs createtsv` output and validate one row per member."""
+    assignments = _read_headerless(
+        path,
+        columns=CLUSTER_COLUMNS,
+        schema=CLUSTER_SCHEMA,
+    )
+    assert assignments.height > 0, "cluster assignment TSV is empty"
+    assert assignments["representative"].str.len_chars().min() > 0
+    assert assignments["member"].str.len_chars().min() > 0
+    duplicated = assignments.group_by("member").len().filter(pl.col("len") != 1)
+    assert duplicated.height == 0, "members must occur in exactly one cluster"
+    representatives = set(assignments["representative"].to_list())
+    members = set(assignments["member"].to_list())
+    assert representatives.issubset(members), "every representative must be a member"
+    for representative in representatives:
+        assert (
+            assignments.filter(
+                (pl.col("representative") == representative)
+                & (pl.col("member") == representative)
+            ).height
+            == 1
+        ), f"cluster {representative} lacks one self row"
+    return assignments
+
+
+def parse_alignments(path: str | Path) -> pl.DataFrame:
+    """Read `convertalis` output and convert MMseqs2 coordinates at the boundary."""
+    alignments = _read_headerless(
+        path,
+        columns=ALIGNMENT_COLUMNS,
+        schema=ALIGNMENT_SCHEMA,
+    )
+    if alignments.height == 0:
+        return alignments.with_columns(
+            pl.lit(None, dtype=pl.Int64).alias("query_start"),
+            pl.lit(None, dtype=pl.Int64).alias("query_end"),
+            pl.lit(None, dtype=pl.Int64).alias("target_start"),
+            pl.lit(None, dtype=pl.Int64).alias("target_end"),
+            pl.lit(None, dtype=pl.Boolean).alias("reverse_strand"),
+        )
+    assert alignments["alnlen"].min() > 0
+    assert alignments["fident"].is_between(0.0, 1.0, closed="both").all()
+    assert alignments["qcov"].is_between(0.0, 1.0, closed="both").all()
+    assert alignments["tcov"].is_between(0.0, 1.0, closed="both").all()
+    assert (alignments["evalue"] >= 0).all()
+    assert (alignments["bits"] >= 0).all()
+    assert (
+        alignments.select("qstart", "qend", "tstart", "tend").min().min_horizontal()
+        >= 1
+    ).item()
+    return alignments.with_columns(
+        (pl.min_horizontal("qstart", "qend") - 1).alias("query_start"),
+        pl.max_horizontal("qstart", "qend").alias("query_end"),
+        (pl.min_horizontal("tstart", "tend") - 1).alias("target_start"),
+        pl.max_horizontal("tstart", "tend").alias("target_end"),
+        (
+            (pl.col("qend") < pl.col("qstart")) | (pl.col("tend") < pl.col("tstart"))
+        ).alias("reverse_strand"),
+    )
+
+
+def validate_score_features(feature_names: list[str] | tuple[str, ...]) -> None:
+    """Require deployed model inputs to be declared Linclust-only features."""
+    normalized = [name.lower() for name in feature_names]
+    assert len(normalized) == len(set(normalized)), "duplicate feature names"
+    forbidden = set(normalized) & FORBIDDEN_SCORE_INPUTS
+    assert not forbidden, f"forbidden score inputs: {sorted(forbidden)}"
+    unknown = set(normalized) - INFERENCE_FEATURES
+    assert not unknown, f"undeclared score inputs: {sorted(unknown)}"
+
+
+def cluster_membership_features(
+    assignments: pl.DataFrame,
+    *,
+    member_to_genome: pl.DataFrame,
+) -> pl.DataFrame:
+    """Build the required membership baselines for every window."""
+    assert set(CLUSTER_COLUMNS).issubset(assignments.columns)
+    assert {"member", "source_genome"}.issubset(member_to_genome.columns)
+    assert member_to_genome["member"].n_unique() == member_to_genome.height
+    joined = assignments.join(member_to_genome, on="member", how="left", validate="m:1")
+    assert joined["source_genome"].is_not_null().all()
+    per_genome = (
+        joined.group_by("representative", "source_genome")
+        .len()
+        .rename({"len": "members_per_genome"})
+    )
+    per_cluster = joined.group_by("representative").agg(
+        pl.len().alias("cluster_member_count"),
+        pl.col("source_genome").n_unique().alias("distinct_genome_count"),
+    )
+    multiplicity = per_genome.group_by("representative").agg(
+        pl.col("members_per_genome").max().alias("max_members_per_genome")
+    )
+    clusters = per_cluster.join(
+        multiplicity, on="representative", validate="1:1"
+    ).with_columns(
+        (pl.col("max_members_per_genome") / pl.col("cluster_member_count")).alias(
+            "dominant_genome_fraction"
+        ),
+        (pl.col("cluster_member_count") == 1).alias("singleton"),
+    )
+    return assignments.join(clusters, on="representative", validate="m:1")

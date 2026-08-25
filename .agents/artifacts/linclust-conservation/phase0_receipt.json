@@ -1,0 +1,65 @@
+{
+  "manifest_audit": {
+    "candidate_assemblies": 268,
+    "fallback_orders": [
+      "Macroscelidea",
+      "Scandentia",
+      "Sirenia",
+      "Tubulidentata"
+    ],
+    "fresh_download_accessions": [
+      "GCF_027887165.2",
+      "GCF_041296235.1",
+      "GCF_054371585.1"
+    ],
+    "mirror_exact_version_hits": 17,
+    "selected_orders": 20,
+    "retrieved_at": "2026-08-25T20:01:25Z"
+  },
+  "mmseqs2_release_gate": {
+    "assignment_partition_stable": true,
+    "cluster_count": 4,
+    "configuration": {
+      "cluster_mode": 0,
+      "coverage": 0.8,
+      "coverage_mode": 0,
+      "evalue": 0.001,
+      "kmers_per_sequence": 20,
+      "low_complexity_masking": 1,
+      "mask_lower_case": 1,
+      "min_sequence_identity": 0.5,
+      "spaced_kmer_mode": 0
+    },
+    "exact_reverse_complement_recovered": true,
+    "mmseqs_version": "18.8cc5c",
+    "order_seeds": [
+      0,
+      1,
+      2
+    ],
+    "peak_rss_kib_by_order_seed": {
+      "0": 21644,
+      "1": 21732,
+      "2": 21728
+    },
+    "record_count": 11,
+    "representatives_by_order_seed": {
+      "0": "exact_duplicate_a",
+      "1": "base",
+      "2": "exact_reverse_complement"
+    }
+  },
+  "validation": {
+    "conda_environment_resolution": "passed",
+    "local_gate_elapsed_seconds": 8.99,
+    "local_gate_peak_rss_kib": 136596,
+    "smoke_dag_jobs": 47,
+    "unit_tests_passed": 25
+  },
+  "window_contract": {
+    "coordinate_system": "0-based half-open",
+    "length": 255,
+    "max_repeat_fraction": 0.5,
+    "stride": 128
+  }
+}

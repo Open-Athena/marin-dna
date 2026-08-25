@@ -1,0 +1,8 @@
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - ncbi-datasets-cli=18.36.0=ha770c72_0
+  - ucsc-fatotwobit=482=hdc0a859_0
+  - ucsc-twobitinfo=482=hdc0a859_0
+  - ucsc-twobittofa=482=hdc0a859_0

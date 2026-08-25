@@ -1,0 +1,49 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "marin-dna-linclust-conservation"
+version = "0.0.1"
+description = "Locked analysis project for Linclust-derived mammalian conservation scores"
+requires-python = ">=3.13,<3.14"
+dependencies = [
+    "boto3",
+    "numpy",
+    "polars",
+    "pyarrow>=21.0.0",
+    "pybigwig",
+    "pyyaml",
+    "snakemake",
+    "snakemake-storage-plugin-s3>=0.3.6",
+]
+
+[project.scripts]
+linclust-conservation-resolve-manifest = "marin_dna_linclust_conservation.cli.resolve_manifest:main"
+linclust-conservation-write-controls = "marin_dna_linclust_conservation.cli.write_controls:main"
+linclust-conservation-check-controls = "marin_dna_linclust_conservation.cli.check_controls:main"
+linclust-conservation-source-inventory = "marin_dna_linclust_conservation.cli.source_inventory:main"
+linclust-conservation-stage-genome = "marin_dna_linclust_conservation.cli.stage_genome:main"
+linclust-conservation-sample-genome = "marin_dna_linclust_conservation.cli.sample_genome:main"
+linclust-conservation-summarize-smoke = "marin_dna_linclust_conservation.cli.summarize_smoke:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.0",
+    "pytest-cov>=7.0.0",
+    "snakemake-storage-plugin-fs>=1.1.3",
+]
+
+[tool.uv]
+required-version = "==0.12.5"
+fork-strategy = "fewest"
+environments = [
+    "sys_platform == 'darwin'",
+    "sys_platform == 'linux'",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/marin_dna_linclust_conservation"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

@@ -1,0 +1,170 @@
+# Linclust conservation analysis
+
+This independent Snakemake project tests whether symmetric clustering of fixed mammalian genome windows recovers human phyloP conservation.
+The coordinating design and evaluation contract are in [issue #521](https://github.com/Open-Athena/marin-dna/issues/521).
+
+The project is in Phase 0.
+Its default target runs the synthetic MMseqs2 release gate under three deterministic input orderings.
+The explicit `smoke` target stages and samples the resolved panel on EC2; whole-panel clustering, scoring, and sealed even-autosome evaluation are not yet default targets.
+
+All maintained behavior, tests, dependency state, workflow rules, profiles, and SkyPilot configuration are owned by this directory.
+The workflow writes only under `s3://oa-bolinas/snakemake/analysis/linclust_conservation/`.
+It does not modify or write through any existing training-dataset S3 path.
+
+## Contracts
+
+Internal genomic coordinates are 0-based and half-open.
+The fixed window length is 255 bp and the stride is 128 bp, matching `vertebrate_projection_dataset` and producing 256 model tokens after BOS.
+A window is rejected if any character is outside case-insensitive `A`, `C`, `G`, or `T`.
+A window is rejected if more than 50% of its characters are lowercase.
+Ambiguous bases are never deleted because deletion would join unrelated sequence across assembly gaps.
+Every retained record ID encodes the versioned assembly accession, source sequence name, start, end, and strand.
+Only NCBI sequence-report rows in the `Primary Assembly` unit with role `assembled-molecule`, `unlocalized-scaffold`, or `unplaced-scaffold` are eligible.
+Alternate loci, fix patches, novel patches, and the separate non-nuclear mitochondrial unit are excluded from clustering and counted in per-assembly receipts.
+
+The current assembly selector consumes NCBI Datasets genome and taxonomy JSONL reports.
+It accepts only current, annotated RefSeq assemblies at `Complete Genome` or `Chromosome` level.
+It keeps one assembly per NCBI order, forces the current human and mouse RefSeq assemblies for Primates and Rodentia, then ranks other candidates by assembly level, contig N50, total length, species, and accession.
+Orders without an eligible assembly remain unselected and are explicitly marked as requiring a fallback decision.
+The selected manifest must record the NCBI Datasets version, UTC retrieval time, source URI, source checksum, and eventual sequence SHA-256.
+
+The query frozen on 2026-08-25 selected 20 orders from 268 current annotated RefSeq reference assemblies.
+Macroscelidea, Scandentia, Sirenia, and Tubulidentata have only scaffold-level reference candidates and remain recorded as fallback decisions.
+Seventeen selected accession versions exist in the prior 2bit mirror; `GCF_027887165.2`, `GCF_041296235.1`, and `GCF_054371585.1` require fresh NCBI downloads.
+
+Human tuning uses odd-numbered canonical autosomes.
+The final held-out evaluation uses even-numbered canonical autosomes once, after the Linclust configuration, feature set, model, and footprint aggregation rule freeze.
+X, Y, and mitochondrial sequence are excluded from the primary split.
+The explicit RefSeq GRCh38.p14 assembled-molecule to UCSC hg38 chromosome dictionary must pass chromosome-length and sampled-sequence equality checks before any phyloP value is read.
+
+The target is `hg38.phyloP447way.bw` at threshold `2.2162`.
+Missing or unaligned values contribute zero to the numerator and the denominator remains 255.
+Track access and assembly-mapping failures are errors.
+
+Deployed score features are allowlisted Linclust membership and representative-member alignment statistics.
+phyloP, repeat fraction, GC content, coordinates, annotations, and species-tree values cannot enter the score.
+
+## Candidate MMseqs2 release gate
+
+MMseqs2 `18.8cc5c` is a candidate release until the committed synthetic target passes.
+The Conda environment pins the exact Bioconda build `18.8cc5c=hd6d6fdc_0`.
+
+The fixture contains exact duplicates, an exact reverse complement, controlled substitutions, controlled indels, low-complexity sequence, 25% soft-masked sequence, and multiple equal candidates.
+It runs Linclust under three deterministic hash orderings.
+The gate requires exact forward and reverse-complement records to share one cluster and requires the complete cluster partition to remain unchanged across orderings.
+Representative identity may change when the partition does not.
+
+The workflow uses the MMseqs2 modules directly:
+
+1. `createdb` builds the nucleotide database.
+2. `linclust` produces cluster assignments under the recorded configuration.
+3. `createtsv` exports representative-member membership.
+4. `align --alignment-mode 3` realigns only those cluster edges.
+5. `convertalis` exports exact identity, alignment length, coverage, coordinates, E-value, and bit score.
+
+The default candidate configuration is in `config/config.yaml`.
+Passing the synthetic gate does not select the final biological configuration.
+
+## Setup and validation
+
+Run commands from this directory:
+
+```bash
+uv sync --locked --group dev
+uv run --locked pytest
+uv run --locked snakemake -n \
+  --profile workflow/profiles/default \
+  --default-storage-provider none
+```
+
+The `--default-storage-provider none` override is for a credential-free graph check.
+Real executions retain the checked-in S3 profile.
+
+The tiny synthetic fixture is permitted on the shared development node after the dry-run:
+
+```bash
+uv run --locked snakemake \
+  --profile workflow/profiles/default \
+  --default-storage-provider none \
+  --cores 2
+```
+
+Do not run real genome windowing, whole-panel clustering, global sorting or grouping, or another data-scale target on the shared development node.
+
+## Live manifest resolution
+
+NCBI Datasets CLI `18.36.0` is pinned in `workflow/envs/ncbi_datasets.yaml`.
+The committed manifest, not a live NCBI query, becomes the input to sequence processing.
+
+The resolver expects:
+
+- genome summary JSONL from an annotated, non-atypical, current RefSeq Mammalia query;
+- taxonomy summary JSONL for every candidate taxonomic ID; and
+- a source-inventory TSV with exact accession, URI, checksum type, and checksum.
+
+`linclust-conservation-source-inventory` checks selected accessions against the existing training-dataset 2bit mirror with S3 `HeadObject` calls.
+Only exact versioned-accession matches are accepted.
+Missing accessions must be fetched from NCBI and added to the source inventory before the final manifest can be pinned.
+The audit writes both the matching inventory and an explicit missing-accession report so available sources remain visible when the panel is only partially mirrored.
+
+Resolve the live query and mirror audit without changing the default synthetic target:
+
+```bash
+uv run --locked snakemake \
+  --profile workflow/profiles/default \
+  --default-storage-provider none \
+  results/manifest/missing_sources.tsv
+```
+
+The matched 2bit objects are copied into this workflow's new S3 namespace only after their ETags and sizes are recorded and rechecked.
+The original objects remain unchanged.
+Sequence reports must still classify each extracted sequence as an assembled molecule, unlocalized scaffold, or unplaced scaffold; alternate loci and patch sequences are excluded.
+Every staged 2bit receives a full SHA-256 during smoke extraction, and freshly downloaded source FASTA files receive a separate SHA-256 in their staging receipts.
+
+## SkyPilot
+
+The approved contract worker is an `m6i.large` in `us-east-2` with a 50 GB root disk.
+Launch it from a committed snapshot:
+
+```bash
+sky launch -c linclust-cons-contracts \
+  snakemake/analysis/linclust_conservation/sky/contracts.yaml \
+  --env PIPELINE_COMMIT_SHA="$(git rev-parse HEAD)"
+```
+
+Inspect the first run's environment setup, MMseqs2 version, rule plan, release-gate receipt, resource report, and S3 uploads.
+Terminate the worker after the receipt is durable:
+
+```bash
+sky down linclust-cons-contracts
+```
+
+The approved smoke does not authorize an unbounded parameter sweep or full-panel production run.
+
+Launch the bounded real-data smoke from the committed branch snapshot:
+
+```bash
+sky launch -c linclust-cons-smoke \
+  snakemake/analysis/linclust_conservation/sky/real_smoke.yaml \
+  --env PIPELINE_COMMIT_SHA="$(git rev-parse HEAD)"
+```
+
+The target samples 2,000 tiled candidates per selected assembly, applies the production 255 bp sequence filters, clusters no more than 40,000 retained windows, and writes receipts under the new workflow-owned S3 prefix.
+It copies the 17 exact mirror hits server-side and downloads and converts only the three missing current assemblies.
+Terminate the worker after the receipt and finalized staged manifest are durable.
+
+## Current outputs
+
+The default target writes:
+
+- `results/contracts/order_<seed>/controls.fasta`;
+- `results/contracts/order_<seed>/clusters.tsv`;
+- `results/contracts/order_<seed>/alignments.tsv`;
+- `results/contracts/order_<seed>/mmseqs_version.txt`;
+- `results/contracts/order_<seed>/resources.txt` with `/usr/bin/time -v` output;
+- `results/contracts/order_<seed>/release_gate.json`; and
+- `results/contracts/mmseqs2_release_gate.json`, the cross-ordering gate receipt.
+
+The explicit `smoke` target additionally writes a fully pinned staged assembly manifest, per-assembly filtering and checksum receipts, Linclust membership and alignment tables, complete stage resource reports, and `results/smoke/receipt.json`.
+
+The research chronology and exact milestone commands belong in `.agents/logbooks/linclust-conservation.md` and issue #521.
