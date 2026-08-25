@@ -171,3 +171,18 @@ No existing MarinDNA pipeline clusters all retained windows from whole order-ded
 - Interpretation: The workflow is ready for the bounded EC2 smoke.
   This remains a software and data-contract result, not evidence for or against biological conservation sensitivity.
 - Next action: push the reviewed snapshot, run the approved EC2 smoke, validate its durable S3 receipts, and terminate the worker.
+
+### 2026-08-25 21:20 UTC - LINC-CONS-004 immutable canary preparation
+
+- Hypothesis: A three-genome canary can exercise both verified S3 reuse and fresh NCBI staging while binding every result and release-gate receipt to an exact code and configuration identity.
+- Commit Hash: [`072e3f56`](https://github.com/Open-Athena/marin-dna/commit/072e3f56)
+- Commands: `uv run --locked pytest`; `uv run --locked snakemake -n smoke --profile workflow/profiles/default --default-storage-provider none --config selection_path=config/assembly_canary3.tsv --forceall`; `uvx --from uv==0.11.31 uv run --locked pre-commit run --all-files --show-diff-on-failure`; and a disposable exact-commit fetch, mixed reset, diff, and untracked-file check matching the Sky setup.
+- Config: human `GCF_000001405.40`, mouse `GCF_000001635.27`, and fresh-download opossum `GCF_027887165.2`; 255 bp windows; 2,000 candidates per assembly; MMseqs2 18.8cc5c; and `s3://oa-bolinas/snakemake/analysis/linclust_conservation/runs/canary3/` as the run prefix.
+- Result: A second independent review found five provenance and gate-completeness problems.
+  Result paths now contain the pipeline version, full producing commit, and resolved-configuration SHA-256.
+  The smoke receipt validates the complete three-ordering release gate, exact MMseqs2 version and configuration, all 11 synthetic controls, reverse-strand recovery, and exact FASTA-to-assignment membership.
+  Sky now rejects a worktree that differs from the requested commit.
+  All 36 tests and repository-wide pre-commit passed, and the forced canary dry-run produced the expected 23-job DAG with two ETag-guarded copies and one NCBI download.
+- Interpretation: The canary is ready to publish and launch on the approved EC2 worker.
+  This remains a software and data-contract test and does not yet measure biological conservation sensitivity.
+- Next action: push the commit and logbook entry, run a clean independent review over the published diff, then launch and validate the three-genome EC2 canary.
