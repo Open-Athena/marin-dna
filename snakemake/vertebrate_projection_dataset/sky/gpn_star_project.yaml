@@ -4,6 +4,10 @@ name: gpn-star-vertebrate-projection
 #
 #   sky launch -c issue-517-gpn-project \
 #     snakemake/vertebrate_projection_dataset/sky/gpn_star_project.yaml \
+#     --env TIER=smoke --env TARGET=tests --env DRY_RUN=0 \
+#     --env PIPELINE_COMMIT_SHA=$(git rev-parse HEAD)
+#   sky exec issue-517-gpn-project \
+#     snakemake/vertebrate_projection_dataset/sky/gpn_star_project.yaml \
 #     --env TIER=full --env TARGET=all --env DRY_RUN=1 \
 #     --env PIPELINE_COMMIT_SHA=$(git rev-parse HEAD)
 #   sky exec issue-517-gpn-project \
@@ -72,12 +76,18 @@ run: |
   test -n "$PIPELINE_COMMIT_SHA"
   test "$TIER" = "smoke" -o "$TIER" = "full"
   case "$TARGET" in
-    all|all_projection) ;;
+    tests|all|all_projection) ;;
     *)
       echo "ERROR: unsupported GPN-Star target $TARGET"
       exit 1
       ;;
   esac
+
+  if [ "$TARGET" = "tests" ]; then
+    cd snakemake/vertebrate_projection_dataset
+    uv run --locked pytest
+    exit 0
+  fi
 
   if ! mountpoint -q /mnt/nvme; then
     sudo apt-get update

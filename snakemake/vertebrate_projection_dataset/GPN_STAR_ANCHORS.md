@@ -62,6 +62,11 @@ Run the chr18 smoke projection through both HAL and MultiZ and inspect the six-a
 ```bash
 sky launch -c issue-517-gpn-project \
   snakemake/vertebrate_projection_dataset/sky/gpn_star_project.yaml \
+  --env TIER=smoke --env TARGET=tests --env DRY_RUN=0 \
+  --env PIPELINE_COMMIT_SHA="$(git rev-parse HEAD)"
+
+sky exec issue-517-gpn-project \
+  snakemake/vertebrate_projection_dataset/sky/gpn_star_project.yaml \
   --env TIER=full --env TARGET=all --env DRY_RUN=1 \
   --env PIPELINE_COMMIT_SHA="$(git rev-parse HEAD)"
 
