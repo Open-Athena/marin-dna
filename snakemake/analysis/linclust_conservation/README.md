@@ -122,6 +122,7 @@ uv run --locked snakemake \
 
 The matched 2bit objects are copied into this workflow's new S3 namespace only after their ETags and sizes are recorded and rechecked.
 The original objects remain unchanged.
+Fresh NCBI archive downloads retry up to four times with bounded exponential backoff, remove any partial archive before retrying, and record the successful attempt number in the staging receipt.
 Sequence reports must still classify each extracted sequence as an assembled molecule, unlocalized scaffold, or unplaced scaffold; alternate loci and patch sequences are excluded.
 Every staged 2bit receives a full SHA-256 during smoke extraction, and freshly downloaded source FASTA files receive a separate SHA-256 in their staging receipts.
 

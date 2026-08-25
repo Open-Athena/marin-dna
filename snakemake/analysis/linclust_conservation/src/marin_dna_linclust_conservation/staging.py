@@ -28,6 +28,35 @@ def sha256_file(path: str | Path) -> str:
     return digest.hexdigest()
 
 
+def _run_with_retries(
+    command: list[str],
+    *,
+    attempts: int,
+    initial_delay_seconds: float,
+    cleanup_paths: tuple[Path, ...] = (),
+) -> int:
+    """Run a fallible external download with bounded exponential backoff."""
+    assert attempts >= 1
+    assert initial_delay_seconds >= 0
+    for attempt in range(1, attempts + 1):
+        try:
+            subprocess.run(command, check=True)
+        except subprocess.CalledProcessError:
+            for path in cleanup_paths:
+                path.unlink(missing_ok=True)
+            if attempt == attempts:
+                raise
+            delay = initial_delay_seconds * 2 ** (attempt - 1)
+            print(
+                f"command failed on attempt {attempt}/{attempts}; "
+                f"retrying in {delay:g} seconds"
+            )
+            time.sleep(delay)
+        else:
+            return attempt
+    raise AssertionError("retry loop exited without returning or raising")
+
+
 def download_staged_genome(
     *,
     receipt: dict[str, object],
@@ -126,7 +155,7 @@ def download_convert_upload_genome(
     with tempfile.TemporaryDirectory(prefix=f"linclust_{accession}_") as directory:
         temporary = Path(directory)
         archive = temporary / "ncbi_dataset.zip"
-        subprocess.run(
+        archive_download_attempts = _run_with_retries(
             [
                 "datasets",
                 "download",
@@ -139,7 +168,9 @@ def download_convert_upload_genome(
                 str(archive),
                 "--no-progressbar",
             ],
-            check=True,
+            attempts=4,
+            initial_delay_seconds=5,
+            cleanup_paths=(archive,),
         )
         archive_sha256 = sha256_file(archive)
         with zipfile.ZipFile(archive) as package:
@@ -175,6 +206,7 @@ def download_convert_upload_genome(
             "source_checksum_type": "sha256",
             "source_checksum": archive_sha256,
             "source_size_bytes": archive.stat().st_size,
+            "source_download_attempts": archive_download_attempts,
             "source_fasta_sha256": fasta_sha256,
             "destination_uri": destination_uri,
             "destination_etag": str(destination["ETag"]).strip('"'),

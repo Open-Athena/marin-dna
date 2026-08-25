@@ -1,13 +1,70 @@
 import hashlib
 import io
+import subprocess
 from pathlib import Path
 
 import pytest
 from marin_dna_linclust_conservation.staging import (
+    _run_with_retries,
     copy_reused_genome,
     download_staged_genome,
     parse_s3_uri,
 )
+
+
+def test_run_with_retries_cleans_partial_download_and_recovers(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    partial = tmp_path / "partial.zip"
+    attempts = 0
+    sleeps: list[float] = []
+
+    def fake_run(command: list[str], *, check: bool) -> None:
+        nonlocal attempts
+        assert command == ["datasets", "download"]
+        assert check
+        attempts += 1
+        if attempts < 3:
+            partial.write_bytes(b"partial")
+            raise subprocess.CalledProcessError(1, command)
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.setattr("time.sleep", sleeps.append)
+
+    completed_attempt = _run_with_retries(
+        ["datasets", "download"],
+        attempts=4,
+        initial_delay_seconds=0.5,
+        cleanup_paths=(partial,),
+    )
+
+    assert completed_attempt == 3
+    assert attempts == 3
+    assert sleeps == [0.5, 1.0]
+    assert not partial.exists()
+
+
+def test_run_with_retries_reraises_after_bound(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    attempts = 0
+
+    def always_fail(command: list[str], *, check: bool) -> None:
+        nonlocal attempts
+        attempts += 1
+        raise subprocess.CalledProcessError(1, command)
+
+    monkeypatch.setattr(subprocess, "run", always_fail)
+    monkeypatch.setattr("time.sleep", lambda _: None)
+
+    with pytest.raises(subprocess.CalledProcessError):
+        _run_with_retries(
+            ["datasets", "download"],
+            attempts=3,
+            initial_delay_seconds=0,
+        )
+    assert attempts == 3
 
 
 class FakeS3Client:
