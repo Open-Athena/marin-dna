@@ -15,6 +15,7 @@ envs:
 setup: |
   set -euxo pipefail
   test "$PIPELINE_COMMIT_SHA" = "$(printf '%s' "$PIPELINE_COMMIT_SHA" | grep -E '^[0-9a-f]{40}$')"
+  if [ -f .git ]; then rm .git; fi
   git init
   git remote remove origin || true
   git remote add origin https://github.com/Open-Athena/marin-dna.git
