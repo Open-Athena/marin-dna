@@ -411,3 +411,65 @@ Its current anchor path instead creates uniform conservation-selected windows an
 - Verification: The focused home-rank tests passed, the complete locked evals_v2 suite passed with 416 tests and five skips, repository hooks passed, and the exact issue-517 development DAG dry-run resolves 272 jobs including the single joint aggregation.
 - Evaluation boundary: No held-out even-autosome or chromosome-Y VEP record was read.
 - Next action: Confirm first optimizer steps for UTR3 and TSS-region, allow ncRNA and enhancer to acquire capacity, and monitor all five through their retained step-4,999 exports.
+
+### 2026-08-25 13:05 UTC - `FAS-517-013` terminal CDS regression, anchor-first diagnosis, and ncRNA contrast
+
+- Evaluation status: The terminal step-4,999 CDS and ncRNA exports completed their authorized development-only evaluations.
+  No held-out even-autosome or chromosome-Y VEP record was read.
+- CDS regression: Relative to the corrected issue-473 center-one CDS endpoint, issue 517 loses 0.0476 Mendelian missense AUPRC, 0.1326 Mendelian splicing, 0.1420 Mendelian synonymous, 0.0262 Complex Traits missense, 0.0557 SGE missense, and 0.1657 SGE splicing.
+  The issue-517 endpoint is lower on all six matched rows.
+- Shared annotation source: Both CDS datasets use Ensembl GRCh38 release 115 rather than RefSeq.
+  The leading difference is anchor construction, not annotation provider or release.
+- Historical anchors: Issue 473 inherits the issue-417 complete 255 bp genome-wide grid at 128 bp stride, filters it by phyloP, and then assigns functional labels by base-priority and window majority.
+  Its CDS training catalog has 295,561 anchors and excludes all chromosome-18 source anchors from training.
+- Current anchors: Issue 517 starts from disjoint owned Ensembl CDS intervals, adds 20 bp splice context, expands intervals shorter than 255 bp, merges, tiles each resulting interval from its own start, and retains a candidate only if CDS wins the 255 bp ownership vote.
+  The current catalog has 188,830 training anchors, 106,731 fewer than issue 473, for a 36.11% reduction.
+- Ownership loss: Of 266,735 construction-valid CDS-origin candidates, 36,773, or 13.79%, lose the ownership vote.
+  Enhancer wins 18,143, TSS-region 11,964, 3-prime UTR 5,613, and ncRNA 1,053.
+  These lost candidates are CDS-sparse but functional-rich: mean CDS fraction 0.2902 and mean union-functional fraction 0.8748.
+- Geometric turnover: Only 1,296 coordinates are exact matches because the tiling origin changed.
+  Nevertheless, 92.58% of the current union base footprint is covered by the historical catalog, while the current catalog covers only 70.42% of the historical footprint; base-level Jaccard is 0.6666.
+  This supports a smaller, shifted subset of mostly the same biological loci rather than a different annotation universe.
+- Distribution shift: Current CDS anchors are more conserved than historical anchors, with mean human phyloP-covered fraction 0.4542 versus 0.4120, and more CDS-dense, with mean CDS fraction 0.6895 versus 0.6063.
+  The issue-517 random row-level validation split also leaves chromosome 18 in training, unlike issue 473.
+- ncRNA result: Issue 517 reaches 0.551602 Mendelian non-coding-transcript-exon AUPRC with SE 0.040600 on 115 match groups and 1,150 rows, versus 0.366257 with SE 0.037725 for the exp232 terminal ncRNA specialist on the exact same rows.
+  The paired 1,000-resample match-group bootstrap gives a delta of +0.185345, SE 0.034926, 95% interval [0.115002, 0.251740], and two-sided p at most 0.001.
+  Issue 517 Complex Traits ncRNA AUPRC is 0.224272 with SE 0.054646 on 37 groups and 370 rows; no exp232 Complex Traits metric artifact is available for a matched comparison.
+- ncRNA attribution caveat: This is not a clean anchor-only comparison.
+  Exp232 trained for about 2.51 row epochs on 16,319,886 rows, whereas issue 517 trains for about 6.60 row epochs on 6,209,692 rows, so the new arm sees roughly 2.63 times as many dataset passes under the same fixed token schedule.
+- Interpretation: Anchor construction is now the primary CDS regression hypothesis, especially the loss of mixed boundary windows and the 29.58% of the historical CDS footprint absent from the current catalog.
+  The contrasting ncRNA gain shows that the five-arm redesign is not uniformly worse, but it cannot yet distinguish a better ncRNA anchor definition from the substantially higher ncRNA row exposure.
+- Next action: Relate old-only and ownership-lost CDS anchors to the development VEP loci, especially splicing and synonymous groups, then run bounded anchor-policy ablations before attributing the regression to liftOver or training dynamics.
+
+### 2026-08-25 13:50 UTC - `FAS-517-014` UTR3 and TSS terminal evaluation plus VEP anchor coverage
+
+- Terminal exports: The 3-prime UTR and TSS-region arms each produced a complete step-4,999 HF-format export in the experiment-owned GCS checkpoint tree.
+  Enhancer has not produced its terminal export yet.
+- Evaluation execution: Managed jobs 34 through 37 completed the Mendelian and Complex Traits development evaluations for both new arms.
+  A delayed first submission made a sequential retry unnecessary; retry job 38 failed on the duplicate target race, and duplicate jobs 39 through 41 were cancelled while the original four remained healthy.
+  All four intended metric artifacts landed successfully.
+- UTR3 home result: Issue 517 reaches Mendelian 3-prime UTR AUPRC 0.156987 with SE 0.025669 on 77 groups and 770 rows, versus exp232 at 0.216933 with SE 0.034839 on the identical support.
+  The paired 1,000-resample match-group bootstrap gives delta -0.059946, SE 0.025113, 95% interval [-0.109282, -0.006289], and two-sided p 0.022.
+  Issue 517 Complex Traits 3-prime UTR AUPRC is 0.171884 with SE 0.038236 on 49 groups and 490 rows; exp232 has no stored Complex Traits metric for a paired comparison.
+- TSS home results: Issue 517 reaches Mendelian 5-prime UTR AUPRC 0.189121 with SE 0.020174, versus exp232 at 0.288954 with SE 0.031648 on 210 groups and 2,100 rows.
+  The paired delta is -0.099833 with SE 0.018897, 95% interval [-0.139274, -0.065439], and two-sided p at most 0.001.
+  On TSS-proximal variants, issue 517 reaches 0.234706 with SE 0.024475 versus exp232 at 0.258743 with SE 0.028388 on 205 groups and 2,050 rows; paired delta -0.024038, SE 0.017297, 95% interval [-0.060142, 0.007030], p 0.124.
+  The TSS-proximal change is inconclusive.
+- Current four-arm diagonal: UTR3 ranks first among the four completed issue-517 arms on 3-prime UTR.
+  TSS-region ranks first on TSS-proximal, but ncRNA ranks first on 5-prime UTR at 0.268308 versus TSS-region at 0.189121.
+  NcRNA also ranks first on its own non-coding-transcript-exon subset at 0.551602.
+  The enhancer arm is still missing, so this is not the final five-way home-rank result.
+- Exposure context: Issue 517 sees about 3.60 row epochs for UTR3 versus exp232's 3.25, and about 5.41 row epochs for TSS-region versus exp232's 3.63.
+  The UTR3 and 5-prime UTR regressions therefore do not have an underexposure explanation under the fixed token schedule.
+- Development VEP anchor coverage: On pathogenic variants, historical versus current CDS training-anchor coverage is 88.45% versus 85.69% for missense, 71.79% versus 69.91% for splicing, and 82.61% versus 76.09% for synonymous.
+  Historical-only positive loci number 31 missense, 30 splicing, and 4 synonymous.
+- Historical-only cause partition: For missense positives, the 31 historical-only loci partition into 4 removed by the current conservation gate, 10 by ownership, and 17 by changed construction geometry.
+  For splicing, 30 partition into 4 conservation, 11 ownership, and 15 construction.
+  For synonymous, 4 partition into 2 conservation, 1 ownership, and 1 construction.
+- Ownership exposure: Current ownership-lost CDS candidate windows touch 9.66% of pathogenic missense, 17.55% of pathogenic splicing, and 15.22% of pathogenic synonymous loci.
+  Across the full matched sets, current-versus-historical coverage is 72.31% versus 75.07% for missense, 53.01% versus 56.96% for splicing, and 78.48% versus 83.04% for synonymous.
+- Interpretation: The direct locus audit strengthens the anchor-construction hypothesis.
+  Construction and ownership explain most historical-only pathogenic missense and splicing coverage, while synonymous is additionally sensitive to the conservation gate.
+  The cross-arm results also show that the redesign concentrates substantial 5-prime UTR signal in the ncRNA arm rather than producing a clean TSS-region diagonal.
+- Evaluation boundary: No held-out even-autosome or chromosome-Y VEP record was read.
+- Next action: Audit ncRNA-versus-TSS ownership at the 5-prime UTR development loci, then evaluate enhancer immediately after its terminal export and compute the preregistered five-way home-rank result.
