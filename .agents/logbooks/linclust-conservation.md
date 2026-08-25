@@ -18,10 +18,10 @@ author: OpenAI Codex
 
 ## Current TL;DR
 
-The project is in Phase 0.
+Phase 0 and the three-genome real-data canary are complete.
 MMseqs2 18.8cc5c passes exact reverse-complement and input-order partition gates at 255 bp.
 The frozen metadata query selects 20 eligible mammalian orders; 17 exact accession versions are reusable from the existing mirror and three require fresh NCBI downloads.
-No real-data result exists.
+The human, mouse, and opossum canary retained 3,900 of 6,000 sampled windows and produced 3,900 singleton clusters, so it validates the workflow but does not yet recover a cross-genome conservation signal.
 
 ## Baseline
 
@@ -63,7 +63,8 @@ None.
 
 ## Negative Results Index
 
-None.
+- `LINC-CONS-006`: The first three-genome canary produced no non-singleton clusters among 3,900 retained windows at the frozen threshold.
+- `LINC-CONS-006`: Sky jobs 1 through 11 exposed checkout, installer, version-parsing, transient-download, and NCBI assembly-unit-schema failures before the successful immutable run.
 
 ## Background Research Brief
 
@@ -199,3 +200,25 @@ No existing MarinDNA pipeline clusters all retained windows from whole order-ded
 - Interpretation: The reviewed canary is ready for the approved EC2 execution after the remediation snapshot is published and independently rechecked.
   This remains a software and data-contract result and does not yet measure biological conservation sensitivity.
 - Next action: publish and re-review the remediation snapshot, launch the three-genome canary, validate the durable S3 receipts, and terminate the worker.
+
+### 2026-08-25 22:09 UTC - LINC-CONS-006 three-genome EC2 canary
+
+- Hypothesis: A bounded human, mouse, and opossum canary can exercise two verified S3 copies and one fresh NCBI download while producing a complete immutable Linclust receipt.
+- Commit Hash: [`633235e4`](https://github.com/Open-Athena/marin-dna/commit/633235e43c64c1ad10a7507b44bf5403296627d1)
+- Commands: SkyPilot job 12 ran `uv run --locked pytest` and the 23-job `smoke` target on an AWS `m6i.large` worker in `us-east-2`; local post-run checks used `jq` for receipt and staging invariants plus an `awk` exact-set comparison of cluster assignments and alignments; `sky down -y linclust-cons-canary3` terminated the worker.
+- Config: human `GCF_000001405.40`, mouse `GCF_000001635.27`, opossum `GCF_027887165.2`, 2,000 candidate 255 bp windows per assembly, 128 bp stride, repeat fraction at most 0.5, and MMseqs2 18.8cc5c.
+- Result: All 39 tests and all 23 Snakemake jobs passed at the exact producing commit and configuration SHA-256 `e148100086879399eefbaf9f9c1a066911b9e2763feb49be2b2903bf36538f19`.
+  The workflow copied the exact human and mouse 2bit objects into run-isolated keys and freshly downloaded the opossum assembly from NCBI.
+  It retained 1,308 human, 1,357 mouse, and 1,235 opossum windows from 6,000 candidates, for 3,900 windows and 994,500 retained bases in total.
+  Linclust produced 3,900 singleton clusters and 3,900 alignment edges.
+  The independently downloaded tables contained exactly the same 3,900 unique representative/member pairs with no missing, extra, or duplicate edge.
+  MMseqs2 used 3.32 CPU seconds, 1.81 wall seconds, 51,612 KiB peak RSS, and 12,713,223 peak temporary bytes for the retained-window input.
+  The immutable receipt is `s3://oa-bolinas/snakemake/analysis/linclust_conservation/runs/canary3/results/v1/633235e43c64c1ad10a7507b44bf5403296627d1/e148100086879399eefbaf9f9c1a066911b9e2763feb49be2b2903bf36538f19/smoke/receipt.json`.
+  SkyPilot confirmed that `linclust-cons-canary3` no longer exists after teardown.
+- Negative results: Jobs 1 through 9 failed before workflow execution because the rsynced worktree Git pointer was not portable, manually expanded commit identifiers were wrong, a tracked symlink was absent from the mixed checkout, the moving Miniforge installer returned HTTP 500, or `uv --version` included a platform suffix.
+  Job 10 reached real data but the fresh NCBI download ended on a transient HTTP/2 error, which led to bounded retries.
+  Job 11 staged all genomes but rejected mouse because NCBI labels its principal assembly unit `C57BL/6J`, which led to accepting strain-labeled principal units while retaining role and mitochondrial exclusions.
+- Interpretation: The canary validates immutable staging, fresh-download retries, NCBI sequence selection, 255 bp sampling, Linclust execution, exact strand-aware alignment export, receipt production, and cleanup on real genomes.
+  It provides no cross-genome conservation evidence because all retained windows were singletons at the frozen threshold in this sparse random sample.
+  That negative signal is preliminary and does not by itself falsify `LINC-CONS-H1`.
+- Next action: publish and independently review the exact canary snapshot, then decide whether the next bounded experiment should increase panel density, sample density, or sensitivity before the full 20-order evaluation.
