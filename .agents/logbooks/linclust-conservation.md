@@ -155,3 +155,19 @@ No existing MarinDNA pipeline clusters all retained windows from whole order-ded
   The source-reuse hypothesis is partially supported and reduces fresh downloads from 20 assemblies to three.
   This is a pipeline contract result, not evidence of biological conservation sensitivity.
 - Next action: publish the snapshot and issue update, then launch the approved 40,000-candidate EC2 smoke through SkyPilot using only the new S3 namespace.
+
+### 2026-08-25 20:53 UTC - LINC-CONS-003 independent review remediation
+
+- Hypothesis: The bounded real-data smoke can preserve the Phase 0 contracts under Snakemake remote storage while retaining one exact, strand-aware alignment for every Linclust assignment.
+- Commit Hash: [`38526851`](https://github.com/Open-Athena/marin-dna/commit/38526851)
+- Commands: `uv run --locked pytest`; `uv run --locked snakemake -n --profile workflow/profiles/default --default-storage-provider none --forceall`; a 47-job smoke dry-run with the filesystem storage provider; `uv run --locked snakemake --profile workflow/profiles/default --default-storage-provider none --cores 2 --forceall`; and `uvx --from uv==0.11.31 uv run --locked pre-commit run --all-files --show-diff-on-failure`.
+- Config: 255 bp windows, 128 bp stride, 2,000 candidates for each of 20 assemblies, MMseqs2 18.8cc5c, and an 11-mer strand-aware search limited to 4 GiB of index memory.
+- Result: An independent review found seven correctness or scaling problems involving remote-path handling, reverse-complement alignment export, quadratic validation and footprint code, staged-object revalidation, and S3 authorization failures.
+  All seven findings were addressed.
+  Thirty-one unit tests, repository-wide pre-commit, the credential-free forced dry-run, and the 47-job remote-storage dry-run passed.
+  The forced synthetic execution again produced four stable clusters under all three orderings, with exactly 11 alignment rows for 11 assignment rows and an explicitly verified reverse-complement alignment in every run.
+  The execution took 9.49 seconds and peaked at 141,160 KiB RSS.
+  MMseqs2's default 15-mer nucleotide index required roughly 6 GiB even for the tiny fixture, while the pinned 11-mer search used roughly 32 MiB and passed the strand gate.
+- Interpretation: The workflow is ready for the bounded EC2 smoke.
+  This remains a software and data-contract result, not evidence for or against biological conservation sensitivity.
+- Next action: push the reviewed snapshot, run the approved EC2 smoke, validate its durable S3 receipts, and terminate the worker.
