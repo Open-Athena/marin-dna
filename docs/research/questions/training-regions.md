@@ -1,7 +1,7 @@
 # Which genomic regions to train on, and how to find them?
 
 > [!NOTE]
-> **TL;DR:** Targeted or conservation-selected corpora often improve functional prediction at current scales, and absolute loss or entropy can proxy conservation; in one shallow CDS continuation, hard loss-ranked half-token objectives harmed Mendelian VEP while full teacher KL beat uniform CE at step 200, but replicated evidence for a default objective change remains absent.
+> **TL;DR:** Targeted or conservation-selected corpora often improve functional prediction at current scales, and absolute loss or entropy can proxy conservation; hard loss-ranked token selection failed in one shallow CDS continuation, while same-lineage teacher distillation outperformed uniform once and repeat downweighting remains untested.
 
 ## Question
 
@@ -26,18 +26,10 @@ Uniform loss is the simpler prior.
 If removing repeat-specific weights preserves performance at the scales and tasks we care about, we should remove them.
 This would eliminate a special-case training heuristic and make likelihoods easier to interpret.
 
-The [conservation and repeat predictability experiment](../experiments/478-conservation-repeat-predictability.md) found that, among nonrepeat human CDS, upstream, and downstream positions, absolute loss and entropy ranked conservation increasingly well with model scale and dominated same-corpus loss deltas at comparable FWD scoring compute.
-Controlled scale-dependent loss reduction remained associated with conservation, but it is distinct from target-distribution reducible loss.
-One orientation preserved the aggregate classification result at half the inference compute without preserving the exact per-base ranking.
-The inference-only audit did not test whether any score improves training and could not separate training exposure or homology effects.
-The [likelihood-dynamics experiment](../experiments/489-likelihood-dynamics.md) found conservation ranking by 21B tokens and terminal loss outperforming the five-checkpoint loss slope in every region.
-Its trajectory groups remain descriptive, and neither score was tested as a training selector.
-
-The [online loss-selection experiment](../experiments/515-online-loss-selection.md) supplied a first causal downstream test in one exp58 animal-CDS continuation.
-Hard masks retaining the current student's low-, middle-, or high-loss half, and a frozen final teacher's lowest-loss half, were all significantly worse than the shared bridge after 100 arm-local steps.
-Pure full-distribution teacher KL reached 0.183331 pooled Mendelian missense-plus-splicing AUPRC at step 200 versus 0.170727 for uniform CE, with a paired within-run p-value of 0.019549.
-The KL arm used privileged later-lineage supervision and more compute per processed input, and neither arm's step-100-to-step-200 change was significant after correction.
-This one seed argues against hard half-token loss ranking in the tested setting and makes teacher distillation a replication candidate rather than a default objective.
+Across the [conservation-predictability](../experiments/478-conservation-repeat-predictability.md) and [likelihood-dynamics](../experiments/489-likelihood-dynamics.md) experiments, absolute loss and entropy ranked conservation better than same-corpus loss deltas or a five-checkpoint loss slope, but these inference results did not establish training value and could not separate exposure or homology effects.
+The [online loss-selection experiment](../experiments/515-online-loss-selection.md) found that this predictive signal did not transfer to hard selection: current-student loss halves and a frozen teacher's low-loss half harmed Mendelian missense-plus-splicing prediction in one shallow animal-CDS continuation.
+Full-distribution distillation from the final same-lineage checkpoint outperformed uniform CE within the paired run, but used privileged later-lineage supervision and more compute.
+With one seed, the result argues against hard half-token ranking in this setting but does not support a default-objective change.
 
 The leading hypothesis is that increasing the density of constrained or correctly annotated sequence improves functional-VEP sample efficiency at fixed compute.
 Whole-genome data may become more useful at larger scale, under weighting that prevents easy background from dominating, or for mutation-process, repeat, phylogeny, and regional-context tasks.
@@ -101,7 +93,6 @@ It should retain a background arm so gains on functional VEP can be weighed agai
 - Compare whole-genome, conservation-filtered, annotation-enriched, and functional-plus-background corpora at matched architecture, tokens, and evaluation, reporting unique loci and realized repetitions.
 - Separate locus selection, exposure frequency, and per-base loss weighting, including data-size- and epoch-matched controls.
 - Test terminal loss or entropy, target-distribution reducible loss, and same-corpus scale-differential loss as distinct selectors; control for repeats, GC, local predictability, training exposure, and homology density.
-- Replicate pure teacher KL against uniform CE across training seeds and matched compute, and separate soft-target distillation from the advantage of a later checkpoint in the same lineage.
 - Measure the footprint tradeoff across Mendelian and complex-trait VEP, region-matched likelihood gaps, frozen probes, and at least one outcome expected to benefit from neutral sequence.
 - Ablate the current 100-fold repeat downweighting across model and token scales while holding footprint and sampling fixed.
 - Compare conservation or whole-genome alignment with direct annotation, cheap local alignment, and learned single-sequence selection only after the target distribution and leakage contract are fixed.
