@@ -473,3 +473,29 @@ Its current anchor path instead creates uniform conservation-selected windows an
   The cross-arm results also show that the redesign concentrates substantial 5-prime UTR signal in the ncRNA arm rather than producing a clean TSS-region diagonal.
 - Evaluation boundary: No held-out even-autosome or chromosome-Y VEP record was read.
 - Next action: Audit ncRNA-versus-TSS ownership at the 5-prime UTR development loci, then evaluate enhancer immediately after its terminal export and compute the preregistered five-way home-rank result.
+
+### 2026-08-25 14:20 UTC - `FAS-517-015` off-diagonal transfer and anchor-stage localization
+
+- Completed-arm matrix: The full four-specialist by eight-subset Mendelian matrix was compared with the matching exp232 terminal specialists on the same development support, excluding mature miRNA.
+  The only material off-diagonal gain is the issue-517 ncRNA specialist on 5-prime UTR, at 0.268308 versus 0.200047 for exp232, delta +0.068261.
+  A paired 1,000-resample match-group bootstrap gives SE 0.017303, 95% interval [0.031221, 0.099889], and two-sided p 0.001.
+- Asymmetry: The ncRNA specialist changes by only +0.003518 on TSS-proximal variants, with 95% interval [-0.005539, 0.014910] and p 0.444.
+  The TSS specialist changes by only +0.002405 on ncRNA-exon variants, with 95% interval [-0.021228, 0.025555] and p 0.828.
+  The 5-prime UTR transfer is therefore specific rather than a broad promoter/ncRNA interchange.
+- Direct leakage audit: Current ncRNA training anchors cover zero of 210 pathogenic 5-prime UTR loci and zero of all 2,100 matched 5-prime UTR rows.
+  The significant ncRNA-to-5-prime-UTR gain is not explained by those benchmark loci being reassigned into, or directly contained by, ncRNA training anchors.
+- TSS anchor-stage localization: Historical TSS anchors cover 147 of 210 pathogenic 5-prime UTR loci, whereas current final TSS anchors cover 91.
+  Current TSS candidates that pass ownership cover 178, while ownership-lost TSS candidates touch only two and both lose to enhancer rather than ncRNA.
+  The missing current coverage therefore appears after ownership, at the shared conservation threshold combined with annotation-first tiling geometry.
+- UTR3 anchor-stage localization: Historical 3-prime UTR anchors cover 49 of 77 pathogenic 3-prime UTR loci, whereas current final UTR3 anchors cover 28.
+  Current ownership-passing UTR3 candidates cover 71, and only two ownership-lost candidates touch positives; both lose to CDS.
+  This independently points to post-ownership conservation and tiling rather than cross-arm reassignment.
+- ncRNA selectivity: The current ncRNA catalog has 28,815 anchors spanning 5.770 million union bases, versus 98,630 historical anchors spanning 18.598 million bases.
+  It retains direct coverage of 75 of 115 pathogenic ncRNA loci versus 81 historically, while matched-negative coverage falls to 40 of 1,035 from 142 historically.
+  This much stronger positive-to-negative coverage enrichment is consistent with a more selective functional-biotype and conservation-filtered anchor set, not raw region leakage.
+- Interpretation: The anchor evidence supports two different mechanisms.
+  UTR3 and TSS regressions localize primarily to how annotation-first candidates interact with the conservation gate and tiling phase, while the ncRNA home gain is plausibly helped by aggressive anchor-set purification and its 2.63-fold greater dataset-pass exposure.
+  The ncRNA-to-5-prime-UTR gain is real transfer, but direct coordinate leakage is falsified by zero current ncRNA-anchor coverage of the 5-prime UTR benchmark rows.
+- Enhancer status: The enhancer trainer remains healthy and resumable after 14 preemptions.
+  It saved the durable step-3,000 native and HF-compatible GCS checkpoints and was advancing near step 3,130; no terminal enhancer evaluation has been launched.
+- Next action: Run bounded TSS and UTR3 anchor-policy ablations that preserve ownership while varying conservation and tiling, then separate the ncRNA functional-biotype narrowing from exposure with a matched-token comparison.
