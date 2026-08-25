@@ -25,7 +25,12 @@ setup: |
   git -C "$CHECKOUT" diff --exit-code
   test -z "$(git -C "$CHECKOUT" status --porcelain --untracked-files=all)"
   if [ ! -d "$HOME/miniforge3" ]; then
-    curl -fsSL -o /tmp/miniforge.sh https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh
+    MINIFORGE_VERSION=26.3.2-3
+    MINIFORGE_SHA256=848194851a98903134187fbb4ab50efe87b003e0c0f808f97644b7524a62bf2c
+    curl -fsSL --retry 5 --retry-all-errors --retry-delay 5 \
+      -o /tmp/miniforge.sh \
+      "https://github.com/conda-forge/miniforge/releases/download/$MINIFORGE_VERSION/Miniforge3-$MINIFORGE_VERSION-Linux-x86_64.sh"
+    printf '%s  %s\n' "$MINIFORGE_SHA256" /tmp/miniforge.sh | sha256sum --check --strict
     bash /tmp/miniforge.sh -b -p "$HOME/miniforge3"
     rm /tmp/miniforge.sh
   fi
