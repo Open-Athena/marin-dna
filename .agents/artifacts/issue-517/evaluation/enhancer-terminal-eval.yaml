@@ -1,0 +1,69 @@
+# Experiment-only recovery task for the issue-517 enhancer terminal evaluation.
+#
+# This mirrors snakemake/analysis/evals_v2/sky/run.yaml but deliberately omits
+# its local ADC file mount. Launch with CLOUDSDK_AUTH_ACCESS_TOKEN as a Sky
+# secret when local SkyPilot file synchronization is unavailable.
+
+name: issue517-enhancer-terminal-eval
+
+resources:
+  infra: aws/us-east-2
+  image_id: ami-0324f0ad73bdcd087
+  accelerators: A10G:1
+  disk_size: 200
+  labels:
+    project: dna
+  any_of:
+    - use_spot: true
+    - use_spot: false
+
+workdir: .
+
+envs:
+  SNAKEMAKE_ARGS: >-
+    --configfile config/issue517.yaml --
+    results/metrics/exp517-enhancer-step-4999/mendelian_traits.parquet
+    results/metrics/exp517-enhancer-step-4999/complex_traits.parquet
+  EXTRA_UV_GROUPS: ""
+
+setup: |
+  set -euxo pipefail
+
+  export PATH="$HOME/google-cloud-sdk/bin:$HOME/.local/bin:$PATH"
+
+  if ! command -v uv >/dev/null 2>&1; then
+      curl -LsSf https://astral.sh/uv/install.sh | sh
+  fi
+  if [[ "$(uv --version | awk '{print $2}')" != "0.11.31" ]]; then
+      uv self update 0.11.31
+  fi
+
+  if ! command -v gcloud >/dev/null 2>&1; then
+      curl -fsSL https://sdk.cloud.google.com > /tmp/gcloud-install.sh
+      bash /tmp/gcloud-install.sh --disable-prompts --install-dir="$HOME"
+  fi
+
+  uv sync --project snakemake/analysis/evals_v2 --locked --group genome-s3 \
+      $EXTRA_UV_GROUPS
+
+  uv run --project snakemake/analysis/evals_v2 --locked --group genome-s3 \
+      $EXTRA_UV_GROUPS evals-gpu-runtime-check \
+      --config snakemake/analysis/evals_v2/config/gpu_runtime_validation.yaml \
+      smoke
+
+  test -n "${CLOUDSDK_AUTH_ACCESS_TOKEN:-}"
+  gcloud storage ls gs://marin-us-east5/MarinDNA/ \
+      | head -3 >/dev/null
+
+run: |
+  set -euxo pipefail
+
+  export PATH="$HOME/google-cloud-sdk/bin:$HOME/.local/bin:$PATH"
+  export WANDB_DISABLED=true
+
+  cd snakemake/analysis/evals_v2
+  uv run --locked --group genome-s3 $EXTRA_UV_GROUPS snakemake \
+      --profile workflow/profiles/default \
+      --printshellcmds \
+      --rerun-incomplete \
+      $SNAKEMAKE_ARGS
