@@ -16,6 +16,11 @@ def main() -> None:
     parser.add_argument("--alignments", type=Path, required=True)
     parser.add_argument("--fasta", type=Path, required=True)
     parser.add_argument("--mmseqs-version", type=Path, required=True)
+    parser.add_argument("--expected-mmseqs-version", required=True)
+    parser.add_argument("--configuration", required=True)
+    parser.add_argument("--release-gate", type=Path, required=True)
+    parser.add_argument("--pipeline-commit", required=True)
+    parser.add_argument("--pipeline-config-sha256", required=True)
     parser.add_argument("--resources", type=Path, required=True)
     parser.add_argument("--peak-temporary-bytes", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
@@ -28,6 +33,11 @@ def main() -> None:
         mmseqs_version_path=args.mmseqs_version,
         resources_path=args.resources,
         peak_temporary_bytes_path=args.peak_temporary_bytes,
+        release_gate_path=args.release_gate,
+        expected_mmseqs_version=args.expected_mmseqs_version,
+        expected_configuration=json.loads(args.configuration),
+        pipeline_commit=args.pipeline_commit,
+        pipeline_config_sha256=args.pipeline_config_sha256,
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n")

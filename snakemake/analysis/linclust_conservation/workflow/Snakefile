@@ -13,6 +13,10 @@ from marin_dna_linclust_conservation.manifest import (
     MANIFEST_COLUMNS,
     validate_pinned_manifest,
 )
+from marin_dna_linclust_conservation.provenance import (
+    configuration_sha256,
+    resolve_pipeline_commit,
+)
 
 
 configfile: "config/config.yaml"
@@ -20,11 +24,17 @@ configfile: "config/config.yaml"
 
 MMSEQS = config["mmseqs"]
 ORDER_SEEDS = [str(seed) for seed in MMSEQS["order_seeds"]]
-CONTRACTS = "results/contracts"
-MANIFEST = "results/manifest"
-SMOKE = "results/smoke"
+PIPELINE_COMMIT = resolve_pipeline_commit()
+PIPELINE_CONFIG_SHA256 = configuration_sha256(config)
+RESULTS = (
+    f"results/{config['pipeline_version']}/{PIPELINE_COMMIT}/"
+    f"{PIPELINE_CONFIG_SHA256}"
+)
+CONTRACTS = f"{RESULTS}/contracts"
+MANIFEST = f"{RESULTS}/manifest"
+SMOKE = f"{RESULTS}/smoke"
 
-SELECTION_PATH = "config/assembly_selection.tsv"
+SELECTION_PATH = config.get("selection_path", "config/assembly_selection.tsv")
 SOURCE_REUSE_PATH = "config/source_reuse_inventory.tsv"
 SELECTION = pl.read_csv(SELECTION_PATH, separator="\t")
 ACCESSIONS = SELECTION["accession"].to_list()
@@ -418,6 +428,7 @@ rule summarize_smoke:
     input:
         stats=expand(f"{SMOKE}/windows/{{accession}}.json", accession=ACCESSIONS),
         manifest=f"{SMOKE}/assembly_manifest.tsv",
+        release_gate=f"{CONTRACTS}/mmseqs2_release_gate.json",
         assignments=f"{SMOKE}/clusters.tsv",
         alignments=f"{SMOKE}/alignments.tsv",
         fasta=f"{SMOKE}/windows.fasta",
@@ -426,10 +437,20 @@ rule summarize_smoke:
         peak_temporary_bytes=f"{SMOKE}/peak_temporary_bytes.txt",
     output:
         f"{SMOKE}/receipt.json",
+    params:
+        expected_version=str(MMSEQS["candidate_release"]),
+        configuration=json.dumps(MMSEQS, sort_keys=True),
+        pipeline_commit=PIPELINE_COMMIT,
+        pipeline_config_sha256=PIPELINE_CONFIG_SHA256,
     shell:
         "linclust-conservation-summarize-smoke --stats {input.stats:q} "
         "--assignments {input.assignments:q} --alignments {input.alignments:q} "
         "--fasta {input.fasta:q} --mmseqs-version {input.version:q} "
+        "--expected-mmseqs-version {params.expected_version:q} "
+        "--configuration {params.configuration:q} "
+        "--release-gate {input.release_gate:q} "
+        "--pipeline-commit {params.pipeline_commit:q} "
+        "--pipeline-config-sha256 {params.pipeline_config_sha256:q} "
         "--resources {input.resources:q} "
         "--peak-temporary-bytes {input.peak_temporary_bytes:q} --output {output:q}"
 
@@ -571,6 +592,8 @@ rule compare_synthetic_orderings:
             "release_gate_passed": True,
             "assignment_partition_stable": True,
             "mmseqs_version": next(iter(versions)),
+            "pipeline_commit": PIPELINE_COMMIT,
+            "pipeline_config_sha256": PIPELINE_CONFIG_SHA256,
             "order_seeds": [int(seed) for seed in ORDER_SEEDS],
             "configuration": MMSEQS,
             "runs": receipts,

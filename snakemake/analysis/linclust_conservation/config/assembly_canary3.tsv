@@ -1,0 +1,4 @@
+accession	tax_id	species	order	assembly_name	assembly_level	contig_n50	total_length	release_date	annotation_name	source_database	datasets_version	retrieved_at	download_uri	source_checksum_type	source_checksum	source_size_bytes	sequence_sha256	fallback_needed	selected	selection_reason
+GCF_000001405.40	9606	Homo sapiens	Primates	GRCh38.p14	Chromosome	57879411	3099441038	2022-02-03	GCF_000001405.40-RS_2025_08	SOURCE_DATABASE_REFSEQ	18.36.0	2026-08-25T20:01:25Z	""	""	""		""	false	true	forced human or mouse
+GCF_000001635.27	10090	Mus musculus	Rodentia	GRCm39	Chromosome	59462871	2728206152	2020-06-24	GCF_000001635.27-RS_2024_02	SOURCE_DATABASE_REFSEQ	18.36.0	2026-08-25T20:01:25Z	""	""	""		""	false	true	forced human or mouse
+GCF_027887165.2	13616	Monodelphis domestica	Didelphimorphia	mMonDom1.pri	Chromosome	3910714	3586166573	2026-02-25	GCF_027887165.2-RS_2026_06	SOURCE_DATABASE_REFSEQ	18.36.0	2026-08-25T20:01:25Z	""	""	""		""	false	true	best eligible assembly for order

@@ -14,6 +14,15 @@ envs:
 
 setup: |
   set -euxo pipefail
+  test "$PIPELINE_COMMIT_SHA" = "$(printf '%s' "$PIPELINE_COMMIT_SHA" | grep -E '^[0-9a-f]{40}$')"
+  git init
+  git remote remove origin || true
+  git remote add origin https://github.com/Open-Athena/marin-dna.git
+  git fetch --depth 1 origin "$PIPELINE_COMMIT_SHA"
+  git reset --mixed FETCH_HEAD
+  test "$(git rev-parse HEAD)" = "$PIPELINE_COMMIT_SHA"
+  git diff --exit-code
+  test -z "$(git status --porcelain --untracked-files=all)"
   if [ ! -d "$HOME/miniforge3" ]; then
     curl -fsSL -o /tmp/miniforge.sh https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh
     bash /tmp/miniforge.sh -b -p "$HOME/miniforge3"
@@ -33,6 +42,7 @@ run: |
   export PATH="$HOME/miniforge3/bin:$HOME/.local/bin:$PATH"
   export CONDA_EXE="$HOME/miniforge3/bin/conda"
   test -n "$PIPELINE_COMMIT_SHA"
+  test "$(git rev-parse HEAD)" = "$PIPELINE_COMMIT_SHA"
   cd snakemake/analysis/linclust_conservation
   uv run --locked pytest
   uv run --locked snakemake -n \

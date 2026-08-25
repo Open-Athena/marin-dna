@@ -1,9 +1,9 @@
-name: linclust-conservation-contracts
+name: linclust-conservation-canary3
 
 resources:
   infra: aws/us-east-2
   instance_type: m6i.large
-  disk_size: 50
+  disk_size: 80
   labels:
     project: dna
 
@@ -45,11 +45,14 @@ run: |
   test "$(git rev-parse HEAD)" = "$PIPELINE_COMMIT_SHA"
   cd snakemake/analysis/linclust_conservation
   uv run --locked pytest
-  uv run --locked snakemake -n \
+  uv run --locked snakemake -n smoke \
     --profile workflow/profiles/default \
-    --default-storage-provider none
-  uv run --locked snakemake \
+    --default-storage-provider none \
+    --config selection_path=config/assembly_canary3.tsv
+  uv run --locked snakemake smoke \
     --profile workflow/profiles/default \
+    --default-storage-prefix s3://oa-bolinas/snakemake/analysis/linclust_conservation/runs/canary3/ \
+    --config selection_path=config/assembly_canary3.tsv \
     --cores 2 \
-    --resources mem_mb=7000 \
+    --resources mem_mb=7000 staging_jobs=1 sampling_jobs=1 \
     --rerun-incomplete

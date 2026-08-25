@@ -10,6 +10,7 @@ The explicit `smoke` target stages and samples the resolved panel on EC2; whole-
 All maintained behavior, tests, dependency state, workflow rules, profiles, and SkyPilot configuration are owned by this directory.
 The workflow writes only under `s3://oa-bolinas/snakemake/analysis/linclust_conservation/`.
 It does not modify or write through any existing training-dataset S3 path.
+Result paths include the pipeline version, producing Git commit, and resolved-configuration SHA-256 so a later code or configuration change cannot silently reuse an earlier result.
 
 ## Contracts
 
@@ -143,6 +144,17 @@ sky down linclust-cons-contracts
 
 The approved smoke does not authorize an unbounded parameter sweep or full-panel production run.
 
+Run the first end-to-end canary on human, mouse, and the freshly downloaded `GCF_027887165.2` assembly:
+
+```bash
+sky launch -c linclust-cons-canary3 \
+  snakemake/analysis/linclust_conservation/sky/canary3.yaml \
+  --env PIPELINE_COMMIT_SHA="$(git rev-parse HEAD)"
+```
+
+The canary exercises two ETag-guarded server-side copies, one current NCBI download and 2bit conversion, 6,000 tiled candidates, and the same strand-aware MMseqs2 receipt contracts as the panel smoke.
+Its workflow outputs live under the separate `s3://oa-bolinas/snakemake/analysis/linclust_conservation/runs/canary3/` prefix.
+
 Launch the bounded real-data smoke from the committed branch snapshot:
 
 ```bash
@@ -159,14 +171,14 @@ Terminate the worker after the receipt and finalized staged manifest are durable
 
 The default target writes:
 
-- `results/contracts/order_<seed>/controls.fasta`;
-- `results/contracts/order_<seed>/clusters.tsv`;
-- `results/contracts/order_<seed>/alignments.tsv`;
-- `results/contracts/order_<seed>/mmseqs_version.txt`;
-- `results/contracts/order_<seed>/resources.txt` with `/usr/bin/time -v` output;
-- `results/contracts/order_<seed>/release_gate.json`; and
-- `results/contracts/mmseqs2_release_gate.json`, the cross-ordering gate receipt.
+- `results/<pipeline-version>/<commit>/<config-sha256>/contracts/order_<seed>/controls.fasta`;
+- `results/<pipeline-version>/<commit>/<config-sha256>/contracts/order_<seed>/clusters.tsv`;
+- `results/<pipeline-version>/<commit>/<config-sha256>/contracts/order_<seed>/alignments.tsv`;
+- `results/<pipeline-version>/<commit>/<config-sha256>/contracts/order_<seed>/mmseqs_version.txt`;
+- `results/<pipeline-version>/<commit>/<config-sha256>/contracts/order_<seed>/resources.txt` with `/usr/bin/time -v` output;
+- `results/<pipeline-version>/<commit>/<config-sha256>/contracts/order_<seed>/release_gate.json`; and
+- `results/<pipeline-version>/<commit>/<config-sha256>/contracts/mmseqs2_release_gate.json`, the cross-ordering gate receipt.
 
-The explicit `smoke` target additionally writes a fully pinned staged assembly manifest, per-assembly filtering and checksum receipts, Linclust membership and alignment tables, complete stage resource reports including peak temporary bytes, and `results/smoke/receipt.json`.
+The explicit `smoke` target additionally writes a fully pinned staged assembly manifest, per-assembly filtering and checksum receipts, Linclust membership and alignment tables, complete stage resource reports including peak temporary bytes, and a versioned `smoke/receipt.json`.
 
 The research chronology and exact milestone commands belong in `.agents/logbooks/linclust-conservation.md` and issue #521.

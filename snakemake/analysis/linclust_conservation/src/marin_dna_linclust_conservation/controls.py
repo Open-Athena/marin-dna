@@ -70,6 +70,13 @@ def check_release_gate(
 ) -> dict[str, object]:
     """Require exact forward and reverse-complement recovery in one cluster."""
     assignments = parse_cluster_assignments(assignments_path)
+    expected_members = set(synthetic_sequences())
+    observed_members = set(assignments["member"].to_list())
+    assert observed_members == expected_members, (
+        "synthetic assignments do not exactly match the fixture: "
+        f"missing={sorted(expected_members - observed_members)}, "
+        f"unexpected={sorted(observed_members - expected_members)}"
+    )
     cluster_for = dict(
         zip(assignments["member"].to_list(), assignments["representative"].to_list())
     )
