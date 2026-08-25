@@ -49,7 +49,10 @@ STAGING_BUCKET = config["staging"]["destination_bucket"]
 
 
 def staging_destination(accession):
-    return f"s3://{STAGING_BUCKET}/{STAGING_PREFIX}/{accession}.2bit"
+    return (
+        f"s3://{STAGING_BUCKET}/{STAGING_PREFIX}/{config['pipeline_version']}/"
+        f"{PIPELINE_COMMIT}/{PIPELINE_CONFIG_SHA256}/{accession}.2bit"
+    )
 
 
 def staging_source_options(accession):

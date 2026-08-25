@@ -9,6 +9,7 @@ from marin_dna_linclust_conservation.mmseqs import (
     filter_cluster_alignments,
     parse_alignments,
     parse_cluster_assignments,
+    validate_alignment_coverage,
     validate_score_features,
 )
 
@@ -65,6 +66,24 @@ def test_filter_cluster_alignments_requires_and_retains_every_edge(
             assignments_path=assignments,
             alignments_paths=[raw],
             output_path=output,
+        )
+
+
+def test_alignment_coverage_rejects_pairs_absent_from_assignments(
+    tmp_path: Path,
+) -> None:
+    assignments_path = tmp_path / "clusters.tsv"
+    assignments_path.write_text("rep\trep\nrep\tmember\n")
+    alignments_path = tmp_path / "alignments.tsv"
+    alignments_path.write_text(
+        "rep\trep\t1\t255\t1\t1\t1\t255\t1\t255\t0\t500\n"
+        "rep\tmember\t1\t255\t1\t1\t1\t255\t1\t255\t0\t500\n"
+        "rep\textra\t1\t255\t1\t1\t1\t255\t1\t255\t0\t500\n"
+    )
+    with pytest.raises(AssertionError, match="absent from cluster assignments"):
+        validate_alignment_coverage(
+            parse_cluster_assignments(assignments_path),
+            parse_alignments(alignments_path),
         )
 
 

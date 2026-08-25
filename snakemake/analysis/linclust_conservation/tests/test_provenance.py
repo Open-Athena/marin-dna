@@ -3,7 +3,6 @@ from __future__ import annotations
 import subprocess
 
 import pytest
-
 from marin_dna_linclust_conservation.provenance import (
     configuration_sha256,
     resolve_pipeline_commit,

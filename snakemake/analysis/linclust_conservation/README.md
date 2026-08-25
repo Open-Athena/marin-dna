@@ -11,6 +11,7 @@ All maintained behavior, tests, dependency state, workflow rules, profiles, and 
 The workflow writes only under `s3://oa-bolinas/snakemake/analysis/linclust_conservation/`.
 It does not modify or write through any existing training-dataset S3 path.
 Result paths include the pipeline version, producing Git commit, and resolved-configuration SHA-256 so a later code or configuration change cannot silently reuse an earlier result.
+Staged genome keys include the same run identity, so a canary, full smoke, or later code revision cannot overwrite an earlier run's input objects.
 
 ## Contracts
 

@@ -191,6 +191,16 @@ def validate_alignment_coverage(
         "cluster assignments lack strand-aware alignments: "
         f"{missing.head(10).to_dicts()}"
     )
+    unexpected = alignment_pairs.join(
+        assignments.select(CLUSTER_COLUMNS),
+        on=CLUSTER_COLUMNS,
+        how="anti",
+    )
+    assert unexpected.height == 0, (
+        "alignments contain pairs absent from cluster assignments: "
+        f"{unexpected.head(10).to_dicts()}"
+    )
+    assert alignment_pairs.height == assignments.height
 
 
 def filter_cluster_alignments(
