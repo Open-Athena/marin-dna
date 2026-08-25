@@ -528,3 +528,22 @@ Its current anchor path instead creates uniform conservation-selected windows an
   A chromosome-global grid was previously scored and then labeled, whereas issue 517 resolves base ownership first and tiles each resulting interval from its own origin.
   Compact novel-base grid additions can recover most UTR3 and TSS pathogenic coverage, but the CDS missense/splicing tradeoff and cross-region overlaps require an exposure-aware training ablation before any rule is accepted.
 - Next action: Publish this diagnosis and policy table to issue 517, then turn the shortlisted per-arm policies into isolated, reproducible experiment outputs without replacing the current catalog or launching training yet.
+
+### 2026-08-25 18:25 UTC - `FAS-517-017` terminal enhancer evaluation
+
+- Terminal export: The enhancer arm produced a complete step-4,999 HF-format export in the experiment-owned GCS checkpoint tree.
+- Evaluation result: The canonical development-only evaluation completed all five intended jobs and stored both score files and both metric files under the standard evals_v2 S3 prefix.
+- Enhancer home result: Issue 517 reaches Mendelian distal AUPRC 0.322690 with SE 0.055261 on 58 match groups and 580 rows.
+  The exp232 terminal enhancer specialist reaches 0.126778 with SE 0.025444 on identical support, for an issue-517 absolute gain of 0.195912.
+- Complex-trait result: Issue 517 reaches Complex Traits distal AUPRC 0.127846 with SE 0.008923 on 616 match groups and 6,160 rows.
+  No exp232 Complex Traits metric artifact is stored for a matched terminal comparison.
+- Five-arm distal comparison: Enhancer ranks first on the Mendelian distal subset at 0.322690, followed by UTR3 at 0.115520, CDS at 0.110572, ncRNA at 0.103049, and TSS-region at 0.096410.
+  Enhancer also ranks first on Complex Traits distal at 0.127846, followed by UTR3 at 0.102944, CDS at 0.099658, TSS-region at 0.098834, and ncRNA at 0.098485.
+- Interpretation: The enhancer specialist has a large, region-specific diagonal advantage on both distal endpoints rather than an off-diagonal specialist winning through apparent region leakage.
+  The result contrasts with the CDS, UTR3, and 5-prime UTR regressions and with the ncRNA home gain, reinforcing that the anchor redesign has strongly region-dependent effects.
+- Analysis defect: The registered joint home-rank bootstrap retrieved all five canonical score inputs but failed because the rule opened unstaged literal `results/scores/...` paths instead of Snakemake storage-backed inputs.
+  The failure did not alter the completed score or metric artifacts, and the exact five-arm AUPRC ordering above comes directly from the canonical metric files.
+- Launch recovery: A stale local SkyPilot API daemon retained a deleted worktree current directory after the desktop/worktree restart and broke runtime-file synchronization before job submission.
+  The evaluation was completed on an isolated A10G VM by running the exact commit-pinned workflow directly, and no model was published to Hugging Face Hub.
+- Evaluation boundary: No held-out even-autosome or chromosome-Y VEP record was read.
+- Next action: Post the terminal enhancer result and five-arm distal ordering to issue 517, repair the home-rank storage-input integration separately, and continue the anchor-policy investigation without selecting the fixed-grid architecture yet.
