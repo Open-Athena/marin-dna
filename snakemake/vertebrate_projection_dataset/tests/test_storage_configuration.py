@@ -99,4 +99,5 @@ def test_gpn_star_profile_is_pinned_additive_and_ec2_only() -> None:
     assert "c6id.12xlarge" in worker
     assert "workflow/gpn_star.Snakefile" in worker
     assert "--profile workflow/profiles/default" in worker
-    assert 'all|all_projection)' in worker
+    assert 'tests|all|all_projection)' in worker
+    assert "uv run --locked pytest" in worker
