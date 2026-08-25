@@ -1,7 +1,7 @@
 # Which genomic regions to train on, and how to find them?
 
 > [!NOTE]
-> **TL;DR:** Targeted or conservation-selected corpora often improve functional prediction at current scales, while loss or entropy from a trained model is a practical conservation proxy; a five-checkpoint loss slope did not improve conservation ranking, and no causal benefit from likelihood-derived weighting or repeat downweighting has been established.
+> **TL;DR:** Targeted or conservation-selected corpora often improve functional prediction at current scales, and absolute loss or entropy can proxy conservation; hard loss-ranked token selection failed in one shallow CDS continuation, while same-lineage teacher distillation outperformed uniform once and repeat downweighting remains untested.
 
 ## Question
 
@@ -26,12 +26,10 @@ Uniform loss is the simpler prior.
 If removing repeat-specific weights preserves performance at the scales and tasks we care about, we should remove them.
 This would eliminate a special-case training heuristic and make likelihoods easier to interpret.
 
-The [conservation and repeat predictability experiment](../experiments/478-conservation-repeat-predictability.md) found that, among nonrepeat human CDS, upstream, and downstream positions, absolute loss and entropy ranked conservation increasingly well with model scale and dominated same-corpus loss deltas at comparable FWD scoring compute.
-Controlled scale-dependent loss reduction remained associated with conservation, but it is distinct from target-distribution reducible loss.
-One orientation preserved the aggregate classification result at half the inference compute without preserving the exact per-base ranking.
-The inference-only audit did not test whether any score improves training and could not separate training exposure or homology effects.
-The [likelihood-dynamics experiment](../experiments/489-likelihood-dynamics.md) found conservation ranking by 21B tokens and terminal loss outperforming the five-checkpoint loss slope in every region.
-Its trajectory groups remain descriptive, and neither score was tested as a training selector.
+Across the [conservation-predictability](../experiments/478-conservation-repeat-predictability.md) and [likelihood-dynamics](../experiments/489-likelihood-dynamics.md) experiments, absolute loss and entropy ranked conservation better than same-corpus loss deltas or a five-checkpoint loss slope, but these inference results did not establish training value and could not separate exposure or homology effects.
+The [online loss-selection experiment](../experiments/515-online-loss-selection.md) found that this predictive signal did not transfer to hard selection: current-student loss halves and a frozen teacher's low-loss half harmed Mendelian missense-plus-splicing prediction in one shallow animal-CDS continuation.
+Full-distribution distillation from the final same-lineage checkpoint outperformed uniform CE within the paired run, but used privileged later-lineage supervision and more compute.
+With one seed, the result argues against hard half-token ranking in this setting but does not support a default-objective change.
 
 The leading hypothesis is that increasing the density of constrained or correctly annotated sequence improves functional-VEP sample efficiency at fixed compute.
 Whole-genome data may become more useful at larger scale, under weighting that prevents easy background from dominating, or for mutation-process, repeat, phylogeny, and regional-context tasks.
@@ -84,6 +82,8 @@ It should retain a background arm so gains on functional VEP can be weighed agai
   FWD-only and RC-only classification AUPRC was nearly identical, while their imperfect endpoint per-base agreement limits a single pass as an exact replacement for averaged weights.
 - [Likelihood-derived token rankings through m1.3 training](../experiments/489-likelihood-dynamics.md) measured one 1B lineage at five cumulative-token checkpoints across five genomic regions, finding that loss and entropy ranked conservation by the earliest checkpoint while terminal loss outperformed a five-checkpoint loss slope globally and in every region.
   The trajectory groups differed in conservation and functional-region composition, but remain descriptive and do not establish a training benefit.
+- [Online loss selection and teacher distillation for CDS continuation](../experiments/515-online-loss-selection.md) compared seven objective forks from one exp58 animal-CDS bridge.
+  All four loss-ranked half-token objectives harmed Mendelian missense-plus-splicing AUPRC, while pure final-checkpoint teacher KL beat uniform CE at step 200 within the paired evaluation records; one seed, privileged later-lineage supervision, and unmatched per-step compute limit the inference.
 
 </details>
 
