@@ -14,6 +14,7 @@ datasets:
   - name: complex_traits
     hf_revision: 22f86a89c65cb8f3007ac3cc2739f40efefa4340
     score_protocol: abs_llr
+    exclude_complete_match_groups_with_subsets: [mature_miRNA_variant]
   - name: sge
     hf_revision: 225d3d1ea32a4af547891b13c33b5e92a5aae849
     score_protocol: minus_llr

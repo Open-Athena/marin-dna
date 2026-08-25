@@ -87,15 +87,23 @@ Do not read, generate, publish, or summarize even-autosome or chromosome-Y held-
 
 The dedicated `snakemake/analysis/evals_v2/config/issue517.yaml` config registers only the terminal step 4,999 checkpoint for each of the five arms.
 Its 11 development cells comprise five Mendelian cells, five Complex Traits cells, and one CDS-only SGE cell.
-It pins all three development datasets, enables complete-group mature-miRNA exclusion only for Mendelian metrics, and does not register a held-out dataset.
+It pins all three development datasets, enables complete-group mature-miRNA exclusion for Mendelian and Complex Traits metrics, and does not register a held-out dataset.
 The same workflow jointly resamples Mendelian match groups across all five arms and reports terminal `P(home ranks first)` for each of the eight preregistered subsets.
 A single checkpoint cannot establish the previously planned two-consecutive-checkpoint persistence criterion.
 
-After all five terminal checkpoints exist, launch the evaluation workflow with:
+Launch each model-dataset cell as soon as the terminal checkpoint for that arm exists.
+Use one target per Sky cluster so each GPU runs one inference cell.
+CDS has Mendelian Traits, Complex Traits, and SGE targets.
+Each other arm has Mendelian and Complex Traits targets.
+
+For example, launch the CDS Mendelian cell with:
 
 ```bash
-sky launch snakemake/analysis/evals_v2/sky/run.yaml \
-  -c evals-v2-exp517 \
-  --env SNAKEMAKE_ARGS="--configfile config/issue517.yaml" \
-  --down
+sky launch snakemake/analysis/evals_v2/sky/run.yaml -c evals-v2-exp517-cds-mendelian --env SNAKEMAKE_ARGS="--configfile config/issue517.yaml -- results/metrics/exp517-cds-step-4999/mendelian_traits.parquet" --down
+```
+
+After all five Mendelian score cells exist, launch the joint terminal home-rank outputs:
+
+```bash
+sky launch snakemake/analysis/evals_v2/sky/run.yaml -c evals-v2-exp517-home-rank --env SNAKEMAKE_ARGS="--configfile config/issue517.yaml -- results/analysis/home_rank_trajectory.parquet results/analysis/home_rank_persistence.parquet" --down
 ```
