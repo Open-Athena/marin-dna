@@ -547,3 +547,22 @@ Its current anchor path instead creates uniform conservation-selected windows an
   The evaluation was completed on an isolated A10G VM by running the exact commit-pinned workflow directly, and no model was published to Hugging Face Hub.
 - Evaluation boundary: No held-out even-autosome or chromosome-Y VEP record was read.
 - Next action: Post the terminal enhancer result and five-arm distal ordering to issue 517, repair the home-rank storage-input integration separately, and continue the anchor-policy investigation without selecting the fixed-grid architecture yet.
+
+### 2026-08-25 20:58 UTC - `FAS-517-018` fixed-grid Arm A and background assignment decision
+
+- Decision: Project every uniform 255 bp / 128 bp-stride anchor with at least 51 bases satisfying the strict GPN-Star-P criterion `entropy_calibrated < 0.081001`, independent of region assignment.
+- Four-arm assignment: Reuse the #232 v4 base-priority and window-majority labels for CDS, 3-prime UTR, protein-coding TSS/5-prime UTR, and ncRNA exon.
+- Enhancer assignment: Use #326 Arm A, `v4_ccre_noexon`, as the initial fifth arm.
+  A window must receive the v4 `ccre_non_promoter` label and have exactly zero CDS, 3-prime UTR, TSS/5-prime UTR, and ncRNA-exon coverage.
+  No dELS+pELS dominance filter is applied.
+- Background assignment: Assign every GPN-selected window outside the other five arms to the sixth arm.
+  This complement includes #232 v4-background windows and cCRE-labeled windows that fail Arm A.
+  The six arms therefore form an exhaustive, mutually exclusive partition of the GPN-selected catalog.
+- Evidence: Arm A reached development Mendelian distal AUPRC 0.299 versus 0.272 for the narrower enhancer-dominant Arm B and 0.127 for the broad #232 cCRE arm.
+  These point estimates do not establish a statistically powered Arm A versus Arm B difference, but zero-other-functional curation has the clearest empirical support and Arm A retains broader non-promoter cCRE coverage.
+- Architecture consequence: Background windows and broad-cCRE windows excluded from Arm A remain in the projected substrate and enter the complement background arm.
+  Arm B and other assignment recipes can therefore be evaluated later without repeating cross-species projection.
+- Interpretation caveat: The complement arm is not the #232 negative-control background.
+  It is a heterogeneous `GPN-constrained but unassigned` arm that may contain unannotated functional sequence and rejected regulatory windows.
+- Status: Human decision recorded in issue #517.
+- Next action: Implement a versioned exhaustive six-arm assignment table, then report the six arm counts, exact catalog reconciliation, disjointness, and chromosome composition on EC2 before projection.

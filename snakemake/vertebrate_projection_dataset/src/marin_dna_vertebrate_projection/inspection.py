@@ -29,6 +29,7 @@ def build_inspection_sample(
     seed: int = 417,
     rows_per_region: int = 3,
     fragmented_rows: int = 5,
+    required_region_labels: tuple[str, ...] = ("cds", "ccre_non_promoter"),
 ) -> pl.DataFrame:
     """Select a reproducible review set with explicit ZRS and clade coverage.
 
@@ -59,6 +60,9 @@ def build_inspection_sample(
     assert not missing, f"inspection rows missing columns: {sorted(missing)}"
     assert rows_per_region > 0
     assert fragmented_rows >= 0
+    assert required_region_labels and len(set(required_region_labels)) == len(
+        required_region_labels
+    )
     assert rows.select("query_name", "species").is_unique().all()
 
     records = rows.to_dicts()
@@ -97,7 +101,7 @@ def build_inspection_sample(
             selected_keys.add(key)
             selection_reasons[key] = "required_zrs_backend_clade"
 
-    for region_label in ["cds", "ccre_non_promoter"]:
+    for region_label in required_region_labels:
         region_rows = [row for row in records if row["region_label"] == region_label]
         assert region_rows, f"inspection requires recovered {region_label} rows"
         for row in sorted(region_rows, key=lambda candidate: _digest(seed, candidate))[
