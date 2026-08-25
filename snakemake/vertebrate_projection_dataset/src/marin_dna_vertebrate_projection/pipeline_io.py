@@ -506,6 +506,7 @@ def write_inspection_files(
     fragmented_rows: int,
     rejected_rows_per_reason: int,
     require_zrs: bool = True,
+    required_region_labels: tuple[str, ...] = ("cds", "ccre_non_promoter"),
 ) -> None:
     """Write bounded-memory deterministic samples and a pending review report."""
     assert rows_per_region > 0
@@ -535,7 +536,10 @@ def write_inspection_files(
     # materialize every species for only those anchors. The existing pure
     # sampler makes the final row choices and computes complete clade counts.
     candidate_multiplier = 4
-    for region_label in ["cds", "ccre_non_promoter"]:
+    assert required_region_labels and len(set(required_region_labels)) == len(
+        required_region_labels
+    )
+    for region_label in required_region_labels:
         candidates = (
             sequences.filter(pl.col("region_label") == region_label)
             .select("query_name", identity_hash.alias("_sample_hash"))
@@ -571,6 +575,7 @@ def write_inspection_files(
         seed=seed,
         rows_per_region=rows_per_region,
         fragmented_rows=fragmented_rows,
+        required_region_labels=required_region_labels,
     )
     assert rejected_paths
     rejected = pl.concat(

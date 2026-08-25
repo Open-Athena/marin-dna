@@ -15,6 +15,9 @@ The additive issue #517 functional-specialist recipe has its own [annotation, au
 That recipe uses checksum-pinned UCSC hg38-to-target liftOver chains for its 28 non-mammalian targets.
 The default uniform-anchor workflow retains the existing direct MultiZ MAF path.
 
+The separate issue #517 GPN-Star-P uniform-grid recipe has its own [selection, assignment, and execution contract](GPN_STAR_ANCHORS.md).
+It keeps only windows that pass the 20% GPN conservation filter, assigns those windows exhaustively to six experimental arms, and projects the same catalog through the existing HAL and MultiZ backends.
+
 Run commands from `snakemake/vertebrate_projection_dataset` so this project uses its own pinned environment and lockfile. Install it with:
 
 ```bash
@@ -34,6 +37,9 @@ the values in `config/config.yaml`: 255 bp windows on hg38 primary chromosomes,
 128 bp step, phyloP-447m threshold 2.2162, and at least 20% conserved bases.
 Anchors retain stable IDs and explicit human source coordinates. Region labels
 use the pinned v4 labeling parameters in the same config.
+
+The additive `workflow/gpn_star.Snakefile` entry point instead reads `config/gpn_star_p.yaml` and never changes the historical phyloP workflow.
+Its exact GPN score-source revision and per-chromosome checksums are pinned independently.
 
 `config/species_candidates.tsv` records all 107 non-human Zoonomia targets and
 38 non-mammal MultiZ candidates. `config/species_selected.tsv` contains the 107
@@ -87,6 +93,32 @@ Mapped BED intervals remain 0-based and half-open, must span exactly one base, a
 
 The stable dataset value `alignment_source=ucsc_multiz100way` continues to identify the pinned UCSC non-mammal assembly cohort.
 The issue #517 cards state that the projection operation uses the matching pairwise liftOver chain.
+
+## Issue #517 GPN-Star-P uniform grid
+
+The GPN entry point reproduces the historical 255 bp, 128 bp-stride grid and scores it with canonical calibrated entropy from the primate `gpn-star-hg38-p243-200m` model.
+A base passes only when `entropy_calibrated < 0.081001`, and a window passes the 20% filter only when at least 51 of its 255 bases pass.
+The full catalog must contain exactly 1,627,410 eligible windows; the same audit also checks the unfiltered grid count, passing source-position count, and 10% window count.
+
+Every eligible window receives exactly one assignment.
+The first four arms are the established v4 CDS, 3′ UTR, protein-coding TSS/5′ UTR, and ncRNA-exon labels from issue #232.
+The enhancer arm is issue #326 Arm A: a v4 `ccre_non_promoter` window with exactly zero priority-resolved coverage from the other four functional classes.
+Background is every remaining window among the 1,627,410 windows that passed the GPN 20% filter, including v4 background and cCRE-labelled windows rejected by Arm A.
+It is an experimental GPN-constrained remainder, not the clean negative-control background from issue #232.
+The six counts are required to be mutually exclusive and exhaustive.
+
+The catalog-only target performs no cross-species projection:
+
+```bash
+uv run --locked snakemake all \
+  --snakefile workflow/gpn_star.Snakefile \
+  --profile workflow/profiles/default \
+  --config tier=full
+```
+
+`all_projection` projects the catalog into all 107 mammal and 28 non-mammal targets and writes projection QC plus deterministic inspection samples for all six arms.
+The GPN entry point deliberately does not include dataset splitting or Hugging Face publication targets.
+Use `sky/gpn_star_project.yaml` for every real or dry-run invocation so scoring and projection stay on the dedicated EC2 worker.
 
 ## Projection contract
 

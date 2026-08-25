@@ -57,3 +57,46 @@ def test_results_are_producer_keyed_and_verification_receipts_are_local() -> Non
     assert "write_maf_candidates" not in projection
     assert 'temp(local(f"{RESULTS}/upload.done/{{region}}"))' in dataset
     assert 'local(expand(f"{RESULTS}/upload.done/{{region}}"' in dataset
+
+
+def test_gpn_star_profile_is_pinned_additive_and_ec2_only() -> None:
+    config = yaml.safe_load((PROJECT_ROOT / "config/gpn_star_p.yaml").read_text())
+    manifest = PROJECT_ROOT / config["gpn_entropy_manifest"]
+    manifest_rows = manifest.read_text().splitlines()
+    snakefile = (PROJECT_ROOT / "workflow/gpn_star.Snakefile").read_text()
+    anchors = (PROJECT_ROOT / "workflow/rules/gpn_star_anchors.smk").read_text()
+    worker = (PROJECT_ROOT / "sky/gpn_star_project.yaml").read_text()
+
+    assert config["pipeline_version"] == "gpn-star-p-uniform-v1"
+    assert config["gpn_dataset_repo"] == "songlab/gpn-star-scores"
+    assert (
+        config["gpn_dataset_revision"]
+        == "5c799b2ec6aa089f0caa8294ae72adb4510f81ae"
+    )
+    assert config["gpn_score_set"] == "gpn-star-hg38-p243-200m"
+    assert config["gpn_entropy_cutoff"] == 0.081001
+    assert config["gpn_min_selected_bases"] == 51
+    assert config["expected_windows_ge_20pct"] == 1_627_410
+    assert config["assignment_arms"] == [
+        "cds",
+        "utr3",
+        "tss_region_and_utr5",
+        "ncrna_exon",
+        "enhancer",
+        "background",
+    ]
+    assert len(manifest_rows) == 25
+    assert set(row.split("\t")[0] for row in manifest_rows[1:]) == set(
+        config["standard_chroms"]
+    )
+    assert all(len(row.split("\t")[4]) == 64 for row in manifest_rows[1:])
+
+    assert 'include: "rules/gpn_star_anchors.smk"' in snakefile
+    assert 'include: "rules/projection.smk"' in snakefile
+    assert 'include: "rules/dataset.smk"' not in snakefile
+    assert "temp(local(" in anchors
+    assert "retries: 3" in anchors
+    assert "c6id.12xlarge" in worker
+    assert "workflow/gpn_star.Snakefile" in worker
+    assert "--profile workflow/profiles/default" in worker
+    assert 'all|all_projection)' in worker
