@@ -95,6 +95,8 @@ def test_gpn_star_profile_is_pinned_additive_and_ec2_only() -> None:
     assert 'include: "rules/projection.smk"' in snakefile
     assert 'include: "rules/dataset.smk"' not in snakefile
     assert "temp(local(" in anchors
+    assert 'labels=local(f"{RESULTS}/anchors/labels.parquet")' in anchors
+    assert 'selected=local(f"{RESULTS}/anchors/selected.parquet")' in anchors
     assert "retries: 3" in anchors
     assert "c6id.12xlarge" in worker
     assert "workflow/gpn_star.Snakefile" in worker

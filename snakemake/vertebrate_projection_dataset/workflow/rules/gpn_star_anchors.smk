@@ -113,7 +113,7 @@ rule stage_gpn_star_p_entropy:
 
 rule score_gpn_star_p_windows:
     input:
-        windows=f"{RESULTS}/anchors/windows/{{chrom}}.bed.gz",
+        windows=local(f"{RESULTS}/anchors/windows/{{chrom}}.bed.gz"),
         entropy=local(f"{RESULTS}/anchors/gpn_source/{{chrom}}.parquet"),
     output:
         scored=temp(local(f"{RESULTS}/anchors/scored/{{chrom}}.parquet")),
@@ -141,10 +141,12 @@ rule score_gpn_star_p_windows:
 
 rule select_gpn_star_p_windows:
     input:
-        scored=expand(
-            f"{RESULTS}/anchors/scored/{{chrom}}.parquet", chrom=CHROMS
+        scored=local(
+            expand(f"{RESULTS}/anchors/scored/{{chrom}}.parquet", chrom=CHROMS)
         ),
-        stats=expand(f"{RESULTS}/anchors/scored/{{chrom}}.json", chrom=CHROMS),
+        stats=local(
+            expand(f"{RESULTS}/anchors/scored/{{chrom}}.json", chrom=CHROMS)
+        ),
     output:
         selected=temp(local(f"{RESULTS}/anchors/selected.parquet")),
         bed=temp(local(f"{RESULTS}/anchors/selected.bare.bed.gz")),
@@ -203,7 +205,7 @@ rule download_gpn_ccre:
 
 rule process_gpn_ccre:
     input:
-        f"{RESULTS}/anchors/ccre.ucsc.bed",
+        local(f"{RESULTS}/anchors/ccre.ucsc.bed"),
     output:
         temp(local(f"{RESULTS}/anchors/ccre.bare.parquet")),
     run:
@@ -229,9 +231,9 @@ rule process_gpn_ccre:
 
 rule label_gpn_star_p_windows:
     input:
-        anchors=f"{RESULTS}/anchors/selected.bare.bed.gz",
+        anchors=local(f"{RESULTS}/anchors/selected.bare.bed.gz"),
         gtf=f"{RESULTS}/anchors/Homo_sapiens.GRCh38.{config['ensembl_release']}.gtf.gz",
-        ccre=f"{RESULTS}/anchors/ccre.bare.parquet",
+        ccre=local(f"{RESULTS}/anchors/ccre.bare.parquet"),
         defined=f"{RESULTS}/anchors/defined.bare.bed",
     output:
         temp(local(f"{RESULTS}/anchors/labels.parquet")),
@@ -267,8 +269,8 @@ rule label_gpn_star_p_windows:
 
 rule gpn_star_p_anchor_catalog:
     input:
-        labels=f"{RESULTS}/anchors/labels.parquet",
-        selected=f"{RESULTS}/anchors/selected.parquet",
+        labels=local(f"{RESULTS}/anchors/labels.parquet"),
+        selected=local(f"{RESULTS}/anchors/selected.parquet"),
     output:
         catalog=ANCHOR_CATALOG,
         assignments=ASSIGNMENTS,
