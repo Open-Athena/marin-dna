@@ -28,6 +28,7 @@ linclust-conservation-sample-genome = "marin_dna_linclust_conservation.cli.sampl
 linclust-conservation-filter-alignments = "marin_dna_linclust_conservation.cli.filter_alignments:main"
 linclust-conservation-record-peak = "marin_dna_linclust_conservation.cli.record_peak:main"
 linclust-conservation-summarize-smoke = "marin_dna_linclust_conservation.cli.summarize_smoke:main"
+linclust-conservation-summarize-clusters = "marin_dna_linclust_conservation.cli.summarize_clusters:main"
 
 [dependency-groups]
 dev = [

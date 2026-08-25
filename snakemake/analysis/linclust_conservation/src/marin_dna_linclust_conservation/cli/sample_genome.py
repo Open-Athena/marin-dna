@@ -1,4 +1,4 @@
-"""Download one staged 2bit and extract deterministic smoke-test windows."""
+"""Download one staged 2bit and extract deterministic sampled or exhaustive windows."""
 
 from __future__ import annotations
 
@@ -9,14 +9,19 @@ import subprocess
 import tempfile
 import time
 from collections import Counter
+from collections.abc import Iterable, Iterator
+from itertools import batched
 from pathlib import Path
 
 import boto3
 
 from marin_dna_linclust_conservation.sequence_report import (
+    SampledInterval,
     is_primary_nuclear_record,
+    iter_tiled_intervals,
     read_sequence_report,
     sample_tiled_intervals,
+    tiled_interval_count,
 )
 from marin_dna_linclust_conservation.staging import download_staged_genome
 from marin_dna_linclust_conservation.windows import RejectedWindow, classify_window
@@ -61,6 +66,15 @@ def _sequence_report_counts(path: Path, accession: str) -> dict[str, int]:
     return dict(counts)
 
 
+def _interval_batches(
+    intervals: Iterable[SampledInterval],
+    *,
+    batch_size: int,
+) -> Iterator[tuple[SampledInterval, ...]]:
+    assert batch_size > 0
+    yield from batched(intervals, batch_size)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--accession", required=True)
@@ -68,7 +82,10 @@ def main() -> None:
     parser.add_argument("--staging-receipt", type=Path, required=True)
     parser.add_argument("--window-length", type=int, required=True)
     parser.add_argument("--stride", type=int, required=True)
-    parser.add_argument("--candidate-count", type=int, required=True)
+    selection = parser.add_mutually_exclusive_group(required=True)
+    selection.add_argument("--candidate-count", type=int)
+    selection.add_argument("--all-windows", action="store_true")
+    parser.add_argument("--batch-size", type=int, default=250_000)
     parser.add_argument("--seed", type=int, required=True)
     parser.add_argument("--max-repeat-fraction", type=float, required=True)
     parser.add_argument("--output-fasta", type=Path, required=True)
@@ -87,13 +104,32 @@ def main() -> None:
         hashlib.sha256(f"{args.seed}:{args.accession}".encode()).digest()[:8],
         "big",
     )
-    intervals = sample_tiled_intervals(
-        sequences,
-        window_length=args.window_length,
-        stride=args.stride,
-        sample_size=args.candidate_count,
-        seed=seed,
-    )
+    assert args.batch_size > 0
+    if args.all_windows:
+        candidate_count = tiled_interval_count(
+            sequences,
+            window_length=args.window_length,
+            stride=args.stride,
+        )
+        intervals = iter_tiled_intervals(
+            sequences,
+            window_length=args.window_length,
+            stride=args.stride,
+        )
+        selection_mode = "all"
+    else:
+        assert args.candidate_count is not None and args.candidate_count > 0
+        candidate_count = args.candidate_count
+        intervals = iter(
+            sample_tiled_intervals(
+                sequences,
+                window_length=args.window_length,
+                stride=args.stride,
+                sample_size=candidate_count,
+                seed=seed,
+            )
+        )
+        selection_mode = "sample"
 
     started = time.monotonic()
     with tempfile.TemporaryDirectory(
@@ -127,63 +163,83 @@ def main() -> None:
                 f"{observed_sizes.get(sequence.sequence_accession)}"
             )
 
-        bed = temporary / "sample.bed"
-        with bed.open("w") as handle:
-            for interval in intervals:
-                handle.write(
-                    f"{interval.sequence_accession}\t{interval.start}\t"
-                    f"{interval.end}\t.\n"
-                )
-        extracted_fasta = temporary / "sample.raw.fasta"
-        subprocess.run(
-            [
-                "twoBitToFa",
-                str(twobit),
-                str(extracted_fasta),
-                f"-bed={bed}",
-                "-bedPos",
-            ],
-            check=True,
-        )
-        extracted = _read_fasta(extracted_fasta)
-        assert len(extracted) == len(intervals)
-
         rejections: Counter[str] = Counter()
-        retained_repeat_fractions: list[float] = []
+        retained = 0
+        repeat_fraction_max = 0.0
+        repeat_fraction_sum = 0.0
+        processed = 0
+        bed = temporary / "windows.bed"
+        extracted_fasta = temporary / "windows.raw.fasta"
         args.output_fasta.parent.mkdir(parents=True, exist_ok=True)
         with args.output_fasta.open("w") as output:
-            for (header, sequence), interval in zip(extracted, intervals, strict=True):
-                expected_header = (
-                    f"{interval.sequence_accession}:{interval.start}-{interval.end}"
+            for interval_batch in _interval_batches(
+                intervals,
+                batch_size=args.batch_size,
+            ):
+                with bed.open("w") as handle:
+                    for interval in interval_batch:
+                        handle.write(
+                            f"{interval.sequence_accession}\t{interval.start}\t"
+                            f"{interval.end}\t.\n"
+                        )
+                subprocess.run(
+                    [
+                        "twoBitToFa",
+                        str(twobit),
+                        str(extracted_fasta),
+                        f"-bed={bed}",
+                        "-bedPos",
+                    ],
+                    check=True,
                 )
-                assert header.split()[0] == expected_header, (header, expected_header)
-                assert len(sequence) == args.window_length
-                classified = classify_window(
-                    sequence,
-                    accession=args.accession,
-                    sequence_name=interval.sequence_accession,
-                    start=interval.start,
-                    max_repeat_fraction=args.max_repeat_fraction,
-                )
-                if isinstance(classified, RejectedWindow):
-                    rejections[classified.reason.value] += 1
-                    continue
-                retained_repeat_fractions.append(classified.repeat_fraction)
-                output.write(f">{classified.record_id}\n{classified.sequence}\n")
+                extracted = _read_fasta(extracted_fasta)
+                assert len(extracted) == len(interval_batch)
+                for (header, sequence), interval in zip(
+                    extracted,
+                    interval_batch,
+                    strict=True,
+                ):
+                    expected_header = (
+                        f"{interval.sequence_accession}:{interval.start}-{interval.end}"
+                    )
+                    assert header.split()[0] == expected_header, (
+                        header,
+                        expected_header,
+                    )
+                    assert len(sequence) == args.window_length
+                    classified = classify_window(
+                        sequence,
+                        accession=args.accession,
+                        sequence_name=interval.sequence_accession,
+                        start=interval.start,
+                        max_repeat_fraction=args.max_repeat_fraction,
+                    )
+                    processed += 1
+                    if isinstance(classified, RejectedWindow):
+                        rejections[classified.reason.value] += 1
+                        continue
+                    retained += 1
+                    repeat_fraction_max = max(
+                        repeat_fraction_max,
+                        classified.repeat_fraction,
+                    )
+                    repeat_fraction_sum += classified.repeat_fraction
+                    output.write(f">{classified.record_id}\n{classified.sequence}\n")
 
-        retained = len(retained_repeat_fractions)
-        assert retained > 0, f"{args.accession}: smoke sampling retained no windows"
+        assert processed == candidate_count
+        assert retained > 0, f"{args.accession}: extraction retained no windows"
         stats: dict[str, object] = {
             "accession": args.accession,
-            "candidate_windows": len(intervals),
+            "candidate_windows": candidate_count,
             "eligible_sequences": len(sequences),
             "excluded_sequences_in_2bit": len(observed_sizes) - len(sequences),
             "rejections": dict(sorted(rejections.items())),
             "retained_bases": retained * args.window_length,
-            "retained_fraction": retained / len(intervals),
+            "retained_fraction": retained / candidate_count,
             "retained_windows": retained,
-            "repeat_fraction_max": max(retained_repeat_fractions),
-            "repeat_fraction_mean": sum(retained_repeat_fractions) / retained,
+            "repeat_fraction_max": repeat_fraction_max,
+            "repeat_fraction_mean": repeat_fraction_sum / retained,
+            "selection_mode": selection_mode,
             "sequence_sha256": sequence_sha256,
             "source_size_bytes": source_size_bytes,
             "download_seconds": download_seconds,
@@ -192,7 +248,7 @@ def main() -> None:
         }
         args.output_stats.parent.mkdir(parents=True, exist_ok=True)
         args.output_stats.write_text(json.dumps(stats, indent=2, sort_keys=True) + "\n")
-        print(f"{args.accession}: retained {retained}/{len(intervals)} smoke windows")
+        print(f"{args.accession}: retained {retained}/{candidate_count} windows")
 
 
 if __name__ == "__main__":

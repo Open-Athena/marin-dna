@@ -5,7 +5,7 @@ from __future__ import annotations
 import bisect
 import json
 import random
-from collections.abc import Iterable, Mapping
+from collections.abc import Iterable, Iterator, Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -109,6 +109,42 @@ def read_sequence_report(path: str | Path) -> list[SourceSequence]:
     return sequences
 
 
+def tiled_interval_count(
+    sequences: Iterable[SourceSequence],
+    *,
+    window_length: int,
+    stride: int,
+) -> int:
+    """Count fixed-grid intervals without materializing them."""
+    assert window_length > 0
+    assert stride > 0
+    return sum(
+        max(0, (sequence.length - window_length) // stride + 1)
+        for sequence in sequences
+    )
+
+
+def iter_tiled_intervals(
+    sequences: Iterable[SourceSequence],
+    *,
+    window_length: int,
+    stride: int,
+) -> Iterator[SampledInterval]:
+    """Yield every fixed-grid interval in deterministic sequence order."""
+    assert window_length > 0
+    assert stride > 0
+    for sequence in sorted(
+        sequences,
+        key=lambda source: source.sequence_accession,
+    ):
+        for start in range(0, sequence.length - window_length + 1, stride):
+            yield SampledInterval(
+                sequence_accession=sequence.sequence_accession,
+                start=start,
+                end=start + window_length,
+            )
+
+
 def sample_tiled_intervals(
     sequences: Iterable[SourceSequence],
     *,
@@ -123,7 +159,11 @@ def sample_tiled_intervals(
     assert sample_size > 0
     normalized = sorted(sequences, key=lambda sequence: sequence.sequence_accession)
     tile_counts = [
-        max(0, (sequence.length - window_length) // stride + 1)
+        tiled_interval_count(
+            [sequence],
+            window_length=window_length,
+            stride=stride,
+        )
         for sequence in normalized
     ]
     cumulative: list[int] = []

@@ -33,6 +33,7 @@ RESULTS = (
 CONTRACTS = f"{RESULTS}/contracts"
 MANIFEST = f"{RESULTS}/manifest"
 SMOKE = f"{RESULTS}/smoke"
+EXHAUSTIVE = f"{RESULTS}/exhaustive"
 
 SELECTION_PATH = config.get("selection_path", "config/assembly_selection.tsv")
 SOURCE_REUSE_PATH = "config/source_reuse_inventory.tsv"
@@ -42,7 +43,12 @@ SOURCE_REUSE = {
     row["accession"]: row
     for row in pl.read_csv(SOURCE_REUSE_PATH, separator="\t").to_dicts()
 }
-SMOKE_MAX_WINDOWS = config["smoke"]["candidates_per_assembly"] * len(ACCESSIONS)
+CANDIDATES_PER_ASSEMBLY = config["smoke"]["candidates_per_assembly"]
+if isinstance(CANDIDATES_PER_ASSEMBLY, int):
+    SMOKE_MAX_WINDOWS = CANDIDATES_PER_ASSEMBLY * len(ACCESSIONS)
+else:
+    assert CANDIDATES_PER_ASSEMBLY == "all"
+    SMOKE_MAX_WINDOWS = int(config["smoke"]["max_alignment_edges"])
 SYNTHETIC_RECORD_COUNT = len(synthetic_sequences())
 STAGING_PREFIX = config["staging"]["destination_prefix"].strip("/")
 STAGING_BUCKET = config["staging"]["destination_bucket"]
@@ -64,6 +70,12 @@ def staging_source_options(accession):
         f"--source-etag {source['source_checksum']} "
         f"--source-size-bytes {source['source_size_bytes']}"
     )
+
+
+def candidate_selection_options():
+    if CANDIDATES_PER_ASSEMBLY == "all":
+        return "--all-windows"
+    return f"--candidate-count {CANDIDATES_PER_ASSEMBLY}"
 
 
 rule all:
@@ -262,7 +274,8 @@ rule sample_genome_windows:
         length=config["window"]["length"],
         stride=config["window"]["stride"],
         repeat=config["window"]["max_repeat_fraction"],
-        candidate_count=config["smoke"]["candidates_per_assembly"],
+        candidate_selection=candidate_selection_options(),
+        batch_size=config["smoke"]["batch_size"],
         seed=config["smoke"]["seed"],
     shell:
         "linclust-conservation-sample-genome "
@@ -270,7 +283,8 @@ rule sample_genome_windows:
         "--sequence-report {input.sequence_report:q} "
         "--staging-receipt {input.staging:q} "
         "--window-length {params.length} --stride {params.stride} "
-        "--candidate-count {params.candidate_count} --seed {params.seed} "
+        "{params.candidate_selection} --batch-size {params.batch_size} "
+        "--seed {params.seed} "
         "--max-repeat-fraction {params.repeat} "
         "--output-fasta {output.fasta:q} --output-stats {output.stats:q}"
 
@@ -461,6 +475,98 @@ rule summarize_smoke:
 rule smoke:
     input:
         f"{SMOKE}/receipt.json",
+        f"{SMOKE}/assembly_manifest.tsv",
+
+
+rule run_exhaustive_linclust:
+    input:
+        fastas=expand(f"{SMOKE}/windows/{{accession}}.fasta", accession=ACCESSIONS),
+        stats=expand(f"{SMOKE}/windows/{{accession}}.json", accession=ACCESSIONS),
+        manifest=f"{SMOKE}/assembly_manifest.tsv",
+        release_gate=f"{CONTRACTS}/mmseqs2_release_gate.json",
+    output:
+        assignments=f"{EXHAUSTIVE}/clusters.tsv.zst",
+        receipt=f"{EXHAUSTIVE}/receipt.json",
+        version=f"{EXHAUSTIVE}/mmseqs_version.txt",
+        resources=f"{EXHAUSTIVE}/resources.txt",
+        peak_temporary_bytes=f"{EXHAUSTIVE}/peak_temporary_bytes.txt",
+    conda:
+        "envs/mmseqs2.yaml"
+    threads: 16
+    resources:
+        mem_mb=110000,
+    params:
+        min_id=MMSEQS["min_sequence_identity"],
+        coverage=MMSEQS["coverage"],
+        cov_mode=MMSEQS["coverage_mode"],
+        evalue=MMSEQS["evalue"],
+        kmers=MMSEQS["kmers_per_sequence"],
+        spaced=MMSEQS["spaced_kmer_mode"],
+        mask_lower=MMSEQS["mask_lower_case"],
+        mask=MMSEQS["low_complexity_masking"],
+        cluster_mode=MMSEQS["cluster_mode"],
+        expected_version=str(MMSEQS["candidate_release"]),
+        configuration=json.dumps(MMSEQS, sort_keys=True),
+        pipeline_commit=PIPELINE_COMMIT,
+        pipeline_config_sha256=PIPELINE_CONFIG_SHA256,
+    shell:
+        r"""
+        set -euo pipefail
+        TMPDIR=$(mktemp -d -t linclust_exhaustive_XXXXXX)
+        trap 'rm -rf "$TMPDIR"' EXIT
+        linclust-conservation-record-peak \
+            --directory "$TMPDIR" --output {output.peak_temporary_bytes}
+        mmseqs version >{output.version}
+        /usr/bin/time -v -o {output.resources} \
+            mmseqs createdb {input.fastas:q} "$TMPDIR/sequences" \
+            --mask-lower-case {params.mask_lower} --threads {threads}
+        linclust-conservation-record-peak \
+            --directory "$TMPDIR" --output {output.peak_temporary_bytes}
+        /usr/bin/time -v -a -o {output.resources} mmseqs linclust \
+            "$TMPDIR/sequences" "$TMPDIR/clusters" "$TMPDIR/work" \
+            --min-seq-id {params.min_id} \
+            -c {params.coverage} \
+            --cov-mode {params.cov_mode} \
+            -e {params.evalue} \
+            --kmer-per-seq {params.kmers} \
+            --spaced-kmer-mode {params.spaced} \
+            --mask-lower-case {params.mask_lower} \
+            --mask {params.mask} \
+            --cluster-mode {params.cluster_mode} \
+            --threads {threads}
+        linclust-conservation-record-peak \
+            --directory "$TMPDIR" --output {output.peak_temporary_bytes}
+        /usr/bin/time -v -a -o {output.resources} mmseqs createtsv \
+            "$TMPDIR/sequences" "$TMPDIR/sequences" "$TMPDIR/clusters" \
+            "$TMPDIR/clusters.tsv" --threads {threads}
+        linclust-conservation-record-peak \
+            --directory "$TMPDIR" --output {output.peak_temporary_bytes}
+        /usr/bin/time -v -a -o {output.resources} \
+            zstd -T{threads} -3 "$TMPDIR/clusters.tsv" -o {output.assignments}
+        linclust-conservation-record-peak \
+            --directory "$TMPDIR" --output {output.peak_temporary_bytes}
+        zstd -dc {output.assignments} \
+            | linclust-conservation-summarize-clusters \
+                --assignments - \
+                --compressed-assignments {output.assignments:q} \
+                --stats {input.stats:q} \
+                --fasta {input.fastas:q} \
+                --mmseqs-version {output.version:q} \
+                --expected-mmseqs-version {params.expected_version:q} \
+                --configuration {params.configuration:q} \
+                --release-gate {input.release_gate:q} \
+                --pipeline-commit {params.pipeline_commit:q} \
+                --pipeline-config-sha256 {params.pipeline_config_sha256:q} \
+                --resources {output.resources:q} \
+                --peak-temporary-bytes {output.peak_temporary_bytes:q} \
+                --output {output.receipt:q}
+        """
+
+
+rule exhaustive:
+    input:
+        f"{EXHAUSTIVE}/receipt.json",
+        f"{EXHAUSTIVE}/clusters.tsv.zst",
         f"{SMOKE}/assembly_manifest.tsv",
 
 

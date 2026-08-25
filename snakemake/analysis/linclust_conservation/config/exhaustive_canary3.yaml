@@ -1,4 +1,5 @@
 pipeline_version: v1
+selection_path: config/assembly_canary3.tsv
 
 window:
   length: 255
@@ -18,9 +19,9 @@ staging:
 
 smoke:
   seed: 521
-  candidates_per_assembly: 2000
+  candidates_per_assembly: all
   batch_size: 250000
-  max_alignment_edges: 100000
+  max_alignment_edges: 100000000
 
 phylop:
   url: https://hgdownload.soe.ucsc.edu/goldenPath/hg38/phyloP447way/hg38.phyloP447way.bw

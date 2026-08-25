@@ -3,9 +3,10 @@
 This independent Snakemake project tests whether symmetric clustering of fixed mammalian genome windows recovers human phyloP conservation.
 The coordinating design and evaluation contract are in [issue #521](https://github.com/Open-Athena/marin-dna/issues/521).
 
-The project is in Phase 0.
+The project is transitioning from Phase 0 into a bounded three-genome sensitivity run.
 Its default target runs the synthetic MMseqs2 release gate under three deterministic input orderings.
-The explicit `smoke` target stages and samples the resolved panel on EC2; whole-panel clustering, scoring, and sealed even-autosome evaluation are not yet default targets.
+The explicit `smoke` target stages and samples the resolved panel on EC2.
+The explicit `exhaustive` target clusters every retained human, mouse, and opossum tile for a sensitivity check; whole-panel clustering, scoring, and sealed even-autosome evaluation are not yet default targets.
 
 All maintained behavior, tests, dependency state, workflow rules, profiles, and SkyPilot configuration are owned by this directory.
 The workflow writes only under `s3://oa-bolinas/snakemake/analysis/linclust_conservation/`.
@@ -33,7 +34,8 @@ The selected manifest must record the NCBI Datasets version, UTC retrieval time,
 
 The query frozen on 2026-08-25 selected 20 orders from 268 current annotated RefSeq reference assemblies.
 Macroscelidea, Scandentia, Sirenia, and Tubulidentata have only scaffold-level reference candidates and remain recorded as fallback decisions.
-Seventeen selected accession versions exist in the prior 2bit mirror; `GCF_027887165.2`, `GCF_041296235.1`, and `GCF_054371585.1` require fresh NCBI downloads.
+Seventeen selected accession versions existed in the prior 2bit mirror at panel resolution; `GCF_027887165.2`, `GCF_041296235.1`, and `GCF_054371585.1` initially required fresh NCBI downloads.
+The completed three-genome canary's immutable opossum 2bit is now an ETag-guarded reuse source, so the exhaustive canary copies all three inputs into a new run-derived namespace.
 
 Human tuning uses odd-numbered canonical autosomes.
 The final held-out evaluation uses even-numbered canonical autosomes once, after the Linclust configuration, feature set, model, and footprint aggregation rule freeze.
@@ -171,6 +173,20 @@ It copies the 17 exact mirror hits server-side and downloads and converts only t
 Its workflow outputs live under the separate `s3://oa-bolinas/snakemake/analysis/linclust_conservation/runs/panel20-smoke/` prefix.
 Terminate the worker after the receipt and finalized staged manifest are durable.
 
+Run the exhaustive three-genome sensitivity canary on an `r7i.4xlarge` with 128 GB RAM and a 500 GB root disk:
+
+```bash
+sky launch -c linclust-cons-exhaustive3 \
+  snakemake/analysis/linclust_conservation/sky/exhaustive_canary3.yaml \
+  --env PIPELINE_COMMIT_SHA="$(git rev-parse HEAD)"
+```
+
+The run enumerates all 73,545,023 candidate 255 bp tiles from human, mouse, and opossum in bounded batches before applying the ambiguity and majority-repeat filters.
+It runs Linclust and exports the complete representative-member assignment table as Zstandard-compressed TSV under the separate `s3://oa-bolinas/snakemake/analysis/linclust_conservation/runs/canary3-exhaustive/` prefix.
+The receipt reports cross-genome clusters without launching the representative-to-all strand search, which would be an unintended all-vs-all-like workload when most windows are singleton representatives.
+Exact representative-member alignments remain a later step after this run establishes that cross-genome cluster sensitivity exists.
+Terminate the worker immediately after the receipt and compressed assignments are durable.
+
 ## Current outputs
 
 The default target writes:
@@ -184,5 +200,7 @@ The default target writes:
 - `results/<pipeline-version>/<commit>/<config-sha256>/contracts/mmseqs2_release_gate.json`, the cross-ordering gate receipt.
 
 The explicit `smoke` target additionally writes a fully pinned staged assembly manifest, per-assembly filtering and checksum receipts, Linclust membership and alignment tables, complete stage resource reports including peak temporary bytes, and a versioned `smoke/receipt.json`.
+
+The explicit `exhaustive` target writes per-assembly exhaustive-filter receipts, a complete compressed Linclust assignment table, stage resource reports, and an `exhaustive/receipt.json` with singleton, cluster-size, and distinct-genome support summaries.
 
 The research chronology and exact milestone commands belong in `.agents/logbooks/linclust-conservation.md` and issue #521.

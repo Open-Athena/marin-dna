@@ -1,7 +1,9 @@
 from marin_dna_linclust_conservation.sequence_report import (
     SourceSequence,
+    iter_tiled_intervals,
     parse_sequence_records,
     sample_tiled_intervals,
+    tiled_interval_count,
 )
 
 
@@ -87,3 +89,49 @@ def test_uniform_grid_sampling_is_deterministic_and_on_stride() -> None:
     assert first == second
     assert all(interval.start % 128 == 0 for interval in first)
     assert all(interval.end - interval.start == 255 for interval in first)
+
+
+def test_exhaustive_grid_is_counted_and_streamed_in_stable_order() -> None:
+    sequences = [
+        SourceSequence(
+            "GCF_1.1",
+            "NC_B.1",
+            511,
+            "assembled-molecule",
+            "Primary Assembly",
+            "Chromosome",
+        ),
+        SourceSequence(
+            "GCF_1.1",
+            "NC_A.1",
+            383,
+            "assembled-molecule",
+            "Primary Assembly",
+            "Chromosome",
+        ),
+    ]
+    assert (
+        tiled_interval_count(
+            sequences,
+            window_length=255,
+            stride=128,
+        )
+        == 5
+    )
+    intervals = list(
+        iter_tiled_intervals(
+            sequences,
+            window_length=255,
+            stride=128,
+        )
+    )
+    assert [
+        (interval.sequence_accession, interval.start, interval.end)
+        for interval in intervals
+    ] == [
+        ("NC_A.1", 0, 255),
+        ("NC_A.1", 128, 383),
+        ("NC_B.1", 0, 255),
+        ("NC_B.1", 128, 383),
+        ("NC_B.1", 256, 511),
+    ]
