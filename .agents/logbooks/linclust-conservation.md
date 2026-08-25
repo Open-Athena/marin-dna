@@ -186,3 +186,16 @@ No existing MarinDNA pipeline clusters all retained windows from whole order-ded
 - Interpretation: The canary is ready to publish and launch on the approved EC2 worker.
   This remains a software and data-contract test and does not yet measure biological conservation sensitivity.
 - Next action: push the commit and logbook entry, run a clean independent review over the published diff, then launch and validate the three-genome EC2 canary.
+
+### 2026-08-25 21:36 UTC - LINC-CONS-005 final review integrity fixes
+
+- Hypothesis: The canary can preserve immutable input identity and exact alignment-table cardinality across independently versioned runs.
+- Commit Hash: [`d1125519`](https://github.com/Open-Athena/marin-dna/commit/d1125519)
+- Commands: `uv run --locked pytest`; `uv run --locked snakemake -n smoke --profile workflow/profiles/default --default-storage-provider none --config selection_path=config/assembly_canary3.tsv --forceall`; and `uvx --from uv==0.11.31 uv run --locked pre-commit run --all-files --show-diff-on-failure`.
+- Config: the `LINC-CONS-004` three-genome canary configuration, with staged 2bit keys additionally namespaced by pipeline version, producing commit, and resolved-configuration SHA-256.
+- Result: The final independent review found two remaining integrity gaps: staging keys shared across run identities and validation that accepted unique alignment pairs absent from the assignment table.
+  Both findings were addressed.
+  The exact alignment pair set and row count are now required, all 37 tests and repository-wide pre-commit pass, and the forced canary dry-run remains a 23-job DAG with three run-isolated staged genome keys.
+- Interpretation: The reviewed canary is ready for the approved EC2 execution after the remediation snapshot is published and independently rechecked.
+  This remains a software and data-contract result and does not yet measure biological conservation sensitivity.
+- Next action: publish and re-review the remediation snapshot, launch the three-genome canary, validate the durable S3 receipts, and terminate the worker.
