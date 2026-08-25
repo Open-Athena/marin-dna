@@ -19,13 +19,14 @@ author: OpenAI Codex
 ## Current TL;DR
 
 The project is in Phase 0.
-The independent workflow and local contract tests are under construction.
+MMseqs2 18.8cc5c passes exact reverse-complement and input-order partition gates at 255 bp.
+The frozen metadata query selects 20 eligible mammalian orders; 17 exact accession versions are reusable from the existing mirror and three require fresh NCBI downloads.
 No real-data result exists.
 
 ## Baseline
 
 - Date: 2026-08-25
-- Code refs: pending first snapshot.
+- Code refs: [`38792946`](https://github.com/Open-Athena/marin-dna/commit/38792946).
 - Baseline numbers: no Linclust conservation baseline exists yet.
 
 ## Hypothesis Queue
@@ -35,12 +36,9 @@ No real-data result exists.
 - `LINC-CONS-H1`: Distinct-genome support ranks human windows monotonically with `phyloP_fraction` after repeat filtering.
   Evidence: [issue design and prior work](https://github.com/Open-Athena/marin-dna/issues/521).
   Next test: pass the synthetic MMseqs2 release gate, resolve the current manifest, and run a chromosome-21 or balanced-sample smoke.
-- `LINC-CONS-H2`: MMseqs2 18.8cc5c recovers exact reverse complements and produces an input-order-stable partition under an explicitly recorded nucleotide Linclust configuration.
-  Evidence: the upstream strand bug remains open for MMseqs2 15.6f452, while 18.8cc5c is the latest published release.
-  Next test: run the deterministic synthetic suite under three hash orderings.
 - `LINC-CONS-H3`: Existing training-dataset 2bit objects cover most or all of the newly selected accessions and can be checksum-verified before copying into the new workflow namespace.
-  Evidence: the existing S3 prefix contains current RefSeq accessions from prior genome-selection work.
-  Next test: resolve the current panel and compare exact accession versions with the mirror inventory.
+  Evidence: the exact-version audit found 17 mirror hits among 20 selected accessions; see `LINC-CONS-002`.
+  Next test: ETag-guarded server-side copies for the 17 hits and fresh NCBI staging for the other three.
 
 ### Blocked
 
@@ -52,7 +50,8 @@ None.
 
 ### Promoted
 
-None.
+- `LINC-CONS-H2`: MMseqs2 18.8cc5c recovers exact reverse complements and produces an input-order-stable canonical partition under the Phase 0 nucleotide configuration.
+  Decision: pin release 18.8cc5c for the bounded real-data smoke; see `LINC-CONS-002`.
 
 ## Decision Log
 
@@ -138,3 +137,21 @@ No existing MarinDNA pipeline clusters all retained windows from whole order-ded
 - Result: branch `codex/issue-521-linclust-conservation` and the independent project boundary were created.
 - Interpretation: the first runnable target should be the synthetic release gate; live manifest resolution follows after the package and workflow dry-run pass.
 - Next action: lock dependencies, run tests, dry-run the DAG, and execute the tiny synthetic fixture locally.
+
+### 2026-08-25 20:16 UTC - LINC-CONS-002 Phase 0 gate and manifest audit
+
+- Hypothesis: MMseqs2 18.8cc5c should recover exact reverse complements without changing the canonical partition across deterministic input orderings, and most current selected assemblies should have exact-version mirror matches.
+- Commit Hash: [`38792946`](https://github.com/Open-Athena/marin-dna/commit/38792946)
+- Commands: `uv run --locked pytest`; `uv run --locked snakemake -n --default-storage-provider none`; `uv run --locked snakemake --default-storage-provider none --forceall`; `uv run --locked snakemake --default-storage-provider none results/manifest/provisional_selected.tsv`; `uv run --locked snakemake --default-storage-provider none results/manifest/missing_sources.tsv`; and `uv run --locked snakemake --default-storage-provider none --conda-create-envs-only smoke`.
+- Config: 255 bp windows, 128 bp stride, 2,000 smoke candidates per assembly, repeat fraction at most 0.5, MMseqs2 18.8cc5c at minimum identity 0.5 and coverage 0.8, and NCBI Datasets 18.36.0.
+- Result: 25 unit tests passed.
+  The 11-record synthetic fixture produced four clusters under each of three orderings.
+  Exact forward and reverse-complement controls remained in one cluster; the representative changed by ordering but the canonical partition did not.
+  The complete local target took 8.99 seconds and peaked at 136,596 KiB RSS, while the largest individual MMseqs stage peaked at 21,732 KiB.
+  The query retrieved 268 current annotated RefSeq reference assemblies and selected 20 eligible orders.
+  Macroscelidea, Scandentia, Sirenia, and Tubulidentata require a scaffold-level fallback decision.
+  Exact 2bit accession matches exist for 17 selected assemblies, totaling 14.01 GiB; `GCF_027887165.2`, `GCF_041296235.1`, and `GCF_054371585.1` require fresh downloads.
+- Interpretation: 18.8cc5c is accepted for the first real-data smoke.
+  The source-reuse hypothesis is partially supported and reduces fresh downloads from 20 assemblies to three.
+  This is a pipeline contract result, not evidence of biological conservation sensitivity.
+- Next action: publish the snapshot and issue update, then launch the approved 40,000-candidate EC2 smoke through SkyPilot using only the new S3 namespace.
