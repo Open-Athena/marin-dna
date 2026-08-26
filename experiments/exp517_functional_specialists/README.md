@@ -115,14 +115,14 @@ After anonymous Hub verification, launch each arm with the following command, su
 
 ```bash
 uv run --python /usr/bin/python3.12 --locked iris --cluster=marin job run \
-  --no-wait --job-name exp517-gpn-uniform-cds \
+  --no-wait --job-name exp517-gpn-uniform-cds-flex \
   --cpu 1 --memory 2G --region us-east5 --extra=tpu \
   -e WANDB_API_KEY "$WANDB_API_KEY" \
   -e WANDB_ENTITY gonzalobenegas \
   -e WANDB_PROJECT marin \
   -e MARIN_PREFIX gs://marin-us-east5/MarinDNA/exp517_gpn_uniform_specialists \
   -e EXP517_TPU_REGION us-east5 \
-  -e EXP517_TPU_VARIANT v5p-8 \
+  -e EXP517_TPU_VARIANT v5p-8,v6e-4 \
   -e EXP517_TPU_RAM 56g \
   -e EXP517_TPU_PREEMPTIBLE true \
   -e EXP517_GPN_ARM cds \
@@ -133,6 +133,7 @@ uv run --python /usr/bin/python3.12 --locked iris --cluster=marin job run \
 ```
 
 The six authorized arms may launch together on preemptible TPUs.
+The ordered `v5p-8,v6e-4` alternatives retain the original v5p preference while allowing the historically validated v6e-4/PDP-1024 route when v5p capacity is unavailable.
 Iris supplies `WANDB_API_KEY` to the coordinator process, and Fray inherits it when the coordinator submits each TPU worker.
 The launcher validates that the key exists but deliberately excludes its value from the durable Marin artifact graph.
 Verify immutable Hub download, complete tokenization, real TPU optimizer steps, W&B telemetry, and checkpoint creation independently for every arm.
