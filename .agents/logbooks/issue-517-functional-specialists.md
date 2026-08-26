@@ -815,3 +815,23 @@ Its current anchor path instead creates uniform conservation-selected windows an
 - ETA: From durable restore points, the four leading arms need about 3.2 hours of optimizer work, background about 3.9 hours, and enhancer Arm A about 4.5 hours at prior steady-state throughput.
   Wall-clock completion remains those runtimes plus an uncertain capacity wait and any further replay.
 - Next action: Keep the existing jobs queued, verify background's next step-2,500 checkpoint if its worker survives, and avoid duplicate submissions.
+
+### 2026-08-26 20:20 UTC - `FAS-517-034` TPU request rationale and continued churn
+
+- Current state: CDS is running at W&B step 2,854 with zero failures and six preemptions.
+  3-prime UTR, TSS/5-prime UTR, ncRNA exon, enhancer Arm A, and background are pending replacement workers; all retain zero failures.
+  Background last reached step 2,337 before its third preemption.
+- Durable state: Restore checkpoints remain step 2,500 for CDS, 3-prime UTR, TSS/5-prime UTR, and ncRNA exon; step 2,000 for background; and step 1,500 for enhancer Arm A.
+- Request contract: The jobs request preemptible TPU capacity in `us-east5` with ordered variants `v5p-8,v6e-4`, 56 GiB host RAM, fixed global batch 8,192, sequence length 256, and per-device parallelism 1,024.
+  This is an enumerated compatibility set rather than a single v6e-only request.
+- Compatibility evidence: Every observed allocation has selected `v6e-4` and exposed four `TPU v6 lite` devices in a `2x2x1` topology.
+  The recipe compiles without OOM, restores its sharded checkpoints, sustains roughly 450,000 tokens per second outside transient evaluation samples, and reports mean MFU around 18%.
+  Issues #303 and #351 previously completed the same 0.25B, batch-8,192, sequence-256 geometry on v6e-4 with per-device parallelism 1,024.
+- Why enumerate variants: Iris capacity is organized by exact TPU generation, slice size, region, and preemptibility, while JAX compilation and batch partitioning depend on the resulting device mesh.
+  Allowing an unvalidated arbitrary slice could change device count, per-device batch, compilation, cost, and checkpoint-restore behavior.
+  Keeping the artifact bucket and TPU in `us-east5` also avoids cross-region checkpoint and input traffic.
+- Optimality caveat: The evidence establishes that v6e-4 is compatible and reproducible; it does not establish that v6e-4 minimizes wall-clock time under current fleet contention.
+  The supplied fleet overview shows every displayed TPU pool at 100% utilization, including v6e-4, v6e-8, v6e-16, v5p-8, and the v5e pools, so widening the request does not imply immediate capacity.
+- Decision: Keep the six existing resumable jobs unchanged during this run.
+  Before a future launch, test an expanded same-region alternative set such as v6e-8 or v6e-16 with an explicit device-mesh, global-batch, checkpoint-restore, throughput, and cost parity gate.
+- Next action: Continue monitoring the current jobs and treat broader TPU-shape support as a separately validated execution optimization.
