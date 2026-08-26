@@ -750,3 +750,13 @@ Its current anchor path instead creates uniform conservation-selected windows an
 - Confidence: The five arms with metrics have finite losses and advancing global steps, and all six W&B runs identify their device as `TPU v6 lite`.
   Enhancer Arm A still needs an advancing W&B step after its rescheduled compilation before it has the same end-to-end verification.
 - Next action: Confirm enhancer Arm A's first optimizer step, continue coarse monitoring through the 5,000-step boundary, and validate final native and Hugging Face checkpoints for every arm.
+
+### 2026-08-26 13:46 UTC - `FAS-517-029` all six optimizer loops advancing
+
+- First-step gate: Enhancer Arm A recovered from its single preemption and reached W&B step 5 at approximately 446,000 tokens per second.
+  Background reached step 50 at approximately 453,000 tokens per second.
+- Concurrent snapshot: CDS was at step 756, 3-prime UTR at 776, TSS/5-prime UTR at 770, and ncRNA exon at 767.
+  All six W&B runs and all six Iris training children remained in `running` state.
+- Interpretation: Every authorized arm now satisfies the end-to-end launch gate of a real TPU allocation, W&B initialization, and an advancing optimizer step.
+  The enhancer loss at step 5 is too early to interpret; its first evaluation occurs later in the schedule.
+- Next action: Monitor at coarse intervals, verify step-500 checkpoints for enhancer Arm A and background, and validate all six terminal step-4,999 exports before evaluation.
