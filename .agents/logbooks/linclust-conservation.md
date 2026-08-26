@@ -446,3 +446,37 @@ The sparse singleton results update confidence in the sampling design, not in th
   Connected components added only two recovered pairs, so graph traversal does not repair the missing-edge problem.
 - Next action: run exhaustive `--prefilter-mode 2` alignment on a deterministic 128-anchor subset and feed the complete accepted-edge graph into set-cover and connected-component clustering.
   This is the smallest direct test of whether MMseqs2 alignment thresholds can recover the projected homologs once k-mer candidate generation is removed.
+
+### 2026-08-26 00:58 UTC - LINC-CONS-014 exhaustive accepted-edge graph result
+
+- Hypothesis: Removing MMseqs2's k-mer prefilter will recover substantially more projected homologs, and connected components may join additional true three-species groups beyond greedy set cover.
+- Commit Hash: [`389b3d8e`](https://github.com/Open-Athena/marin-dna/commit/389b3d8e421d9052f4c82dea3a3954a99c52db79)
+- Commands: launched SkyPilot job 1 on `linclust-cons-exhaustive-graph`, which ran 44 tests, the 11-job dry-run, and `exhaustive_graph_homology` on AWS `r7i.large` in `us-east-2`; after all artifacts uploaded, `sky down -y linclust-cons-exhaustive-graph` terminated the worker.
+- Config: configuration SHA-256 `95b5b340dcb6c027a35e18af2819ba960fc9c512da9a87e7cd5dbc7ccca3f49e`; deterministic first 128 clean anchors from the same human, mouse, and armadillo projection sources; 384 sequences and 384 known within-anchor species pairs; MMseqs2 18.8cc5c; set cover or connected components; and a sensitivity-7.5 k-mer control versus `--prefilter-mode 2` exhaustive pair alignment.
+
+| Variant | Clusters / ideal 128 | Complete anchors | True-pair recall | Pair precision | Impure clusters |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| k-mer search, 0.50 identity / 0.80 coverage, set cover | 281 / 2.195x | 33 / 25.8% | 136 / 35.4% | 100% | 0 |
+| no prefilter, 0.50 / 0.80, set cover | 254 / 1.984x | 49 / 38.3% | 179 / 46.6% | 100% | 0 |
+| no prefilter, 0.50 / 0.80, connected components | 254 / 1.984x | 49 / 38.3% | 179 / 46.6% | 100% | 0 |
+| no prefilter, 0.40 / 0.70, set cover | 241 / 1.883x | 55 / 43.0% | 198 / 51.6% | 100% | 0 |
+
+- Resources: the sensitivity-7.5 k-mer search took 8.60 seconds and peaked at 8,397,440 KiB RSS.
+  Exhaustive no-prefilter search took 0.65 to 0.69 seconds and peaked at 22,272 KiB RSS on this 384-sequence fixture.
+  Graph clustering and direct representative-member alignment each took at most 0.02 seconds.
+- Artifacts: `s3://oa-bolinas/snakemake/analysis/linclust_conservation/runs/homology-exhaustive-graph/results/v1/389b3d8e421d9052f4c82dea3a3954a99c52db79/95b5b340dcb6c027a35e18af2819ba960fc9c512da9a87e7cd5dbc7ccca3f49e/` contains the fixture, accepted-edge assignments and alignments, receipts, resource records, and summaries.
+- Interpretation: removing the k-mer prefilter improves true-pair recall by 11.2 percentage points at fixed thresholds, confirming a material candidate-generation loss.
+  Identical set-cover and connected-component partitions show that graph aggregation is not limiting this subset.
+  The relaxed exhaustive result still misses 48.4% of known true pairs despite perfect observed cluster precision, so the accepted-alignment threshold frontier remains unresolved.
+- Next action: keep the same 128-anchor exhaustive fixture and trace a bounded identity/coverage frontier down to an E-value-only control.
+  Stop lowering thresholds when recall saturates or false cross-anchor merges materially reduce precision; do not launch another whole-genome run yet.
+
+### 2026-08-26 01:02 UTC - LINC-CONS-015 exhaustive threshold-frontier design
+
+- Hypothesis: The remaining missed projected homologs are predominantly below the current 70% bidirectional coverage threshold rather than below 40% identity, so lowering coverage should improve recall before cross-anchor merges damage purity.
+- Minimum experiment: on the deterministic 128-anchor, 384-sequence fixture, run no-prefilter set-cover clustering at 0.40 identity with coverage 0.70, 0.60, and 0.50; then lower identity to 0.35 and 0.30 at 0.50 coverage, test 0.30 identity / 0.30 coverage, and finish with the existing E-value threshold as the only acceptance filter.
+- Baseline/control: reproduce the 0.40 identity / 0.70 coverage result from LINC-CONS-014 in the new commit-addressed namespace.
+- Expected signal: a monotonic recall gain with a visible precision knee identifies the least permissive useful threshold.
+- Falsifier: recall remains far below one even for the E-value-only graph, or improved recall occurs only through broad impure merges.
+- Cost/risk: at most 147,456 directed alignments per variant; the preceding exhaustive search took less than one second and 23 MiB RSS per variant on `r7i.large`.
+- Next action: add the exact Snakemake configuration and a separate SkyPilot/S3 run namespace, validate and snapshot it, then launch one bounded worker.

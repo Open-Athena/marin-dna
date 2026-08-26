@@ -231,6 +231,19 @@ Its no-filter variants use `mmseqs search --prefilter-mode 2` to align every pai
 A sensitivity-7.5 k-mer search on the same subset is the control.
 Each search has a ten-minute timeout, and outputs use the separate `s3://oa-bolinas/snakemake/analysis/linclust_conservation/runs/homology-exhaustive-graph/` prefix.
 
+The threshold-frontier target keeps that 128-anchor exhaustive fixture fixed and lowers bidirectional coverage before identity:
+
+```bash
+uv run --locked snakemake \
+  --snakefile workflow/Snakefile \
+  --configfile config/homology_exhaustive_frontier.yaml \
+  --profile workflow/profiles/default \
+  exhaustive_graph_homology
+```
+
+Seven no-prefilter set-cover variants span 0.40 identity / 0.70 coverage through 0.30 / 0.30, followed by an E-value-only control.
+The control reproduces the preceding relaxed result in a new commit-addressed namespace, and outputs use the separate `s3://oa-bolinas/snakemake/analysis/linclust_conservation/runs/homology-exhaustive-frontier/` prefix.
+
 A 511 bp window with stride 128 remains a useful later geometry test because its worst grid-phase overlap is 447/511 (87.5%), above the current 80% coverage threshold.
 The current projection artifacts contain only 255 bp sequences, so the 511 bp whole-genome run is deferred until the clustering recipe shows adequate recovery on the bounded truth set.
 
