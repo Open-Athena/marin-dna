@@ -32,7 +32,7 @@ From the repository root, fetch `main` and run the deterministic extractor with 
 
 ```bash
 git fetch origin main
-uv run --locked python .agents/skills/draft-weekly-research-update/scripts/draft_weekly_research_update.py \
+python3 .agents/skills/draft-weekly-research-update/scripts/draft_weekly_research_update.py \
   --week-start YYYY-MM-DD
 ```
 
