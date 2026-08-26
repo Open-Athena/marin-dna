@@ -3,10 +3,11 @@
 This independent Snakemake project tests whether symmetric clustering of fixed mammalian genome windows recovers human phyloP conservation.
 The coordinating design and evaluation contract are in [issue #521](https://github.com/Open-Athena/marin-dna/issues/521).
 
-The project is transitioning from Phase 0 into a bounded three-genome sensitivity run.
+The project is transitioning from Phase 0 into bounded biological sensitivity checks.
 Its default target runs the synthetic MMseqs2 release gate under three deterministic input orderings.
 The explicit `smoke` target stages and samples the resolved panel on EC2.
-The explicit `exhaustive` target clusters every retained human, mouse, and opossum tile for a sensitivity check; whole-panel clustering, scoring, and sealed even-autosome evaluation are not yet default targets.
+The explicit `exhaustive` target can cluster every retained human, mouse, and opossum tile, but its first run was deliberately stopped after the Linclust candidate pass showed severe under-clustering.
+The `tune_homology` target instead tests a bounded three-species positive-control fixture before any further whole-genome run; whole-panel clustering, scoring, and sealed even-autosome evaluation are not yet default targets.
 
 All maintained behavior, tests, dependency state, workflow rules, profiles, and SkyPilot configuration are owned by this directory.
 The workflow writes only under `s3://oa-bolinas/snakemake/analysis/linclust_conservation/`.
@@ -181,11 +182,28 @@ sky launch -c linclust-cons-exhaustive3 \
   --env PIPELINE_COMMIT_SHA="$(git rev-parse HEAD)"
 ```
 
-The run enumerates all 73,545,023 candidate 255 bp tiles from human, mouse, and opossum in bounded batches before applying the ambiguity and majority-repeat filters.
-It runs Linclust and exports the complete representative-member assignment table as Zstandard-compressed TSV under the separate `s3://oa-bolinas/snakemake/analysis/linclust_conservation/runs/canary3-exhaustive/` prefix.
-The receipt reports cross-genome clusters without launching the representative-to-all strand search, which would be an unintended all-vs-all-like workload when most windows are singleton representatives.
-Exact representative-member alignments remain a later step after this run establishes that cross-genome cluster sensitivity exists.
-Terminate the worker immediately after the receipt and compressed assignments are durable.
+The stopped run enumerated all 73,545,023 candidate 255 bp tiles from human, mouse, and opossum and retained 47,767,099 after the ambiguity and majority-repeat filters.
+Its first Linclust candidate pass produced 45,500,465 preliminary clusters, only a 4.75% reduction, before entering Linclust's mandatory internal alignment.
+That result is sufficient to reject the current whole-genome recipe, so the run was cancelled and its worker terminated before a complete assignment table was produced.
+The extracted FASTAs and filtering receipts remain durable under the separate `s3://oa-bolinas/snakemake/analysis/linclust_conservation/runs/canary3-exhaustive/` prefix.
+
+The next target uses real projected orthologs from the preserved issue #417 artifacts:
+
+```bash
+uv run --locked snakemake \
+  --snakefile workflow/Snakefile \
+  --configfile config/homology_tuning.yaml \
+  --profile workflow/profiles/default \
+  tune_homology
+```
+
+The fixture takes 512 human anchor IDs that have clean 255 bp rows in human, mouse, and armadillo, for 1,536 sequences total.
+Its bounded diagnostic grid varies nucleotide k-mer scale, spaced k-mers, masking, coverage down to 0.70, and minimum identity down to 0.40.
+Linclust's mandatory alignment and a direct alignment of only the retained cluster edges run on this small fixture; no genome-scale representative-to-all search is launched.
+The receipt reports cluster count relative to the 512-anchor ideal, exact three-species anchor recovery, true-pair recall, and false cross-anchor merges.
+
+A 511 bp window with stride 128 remains a useful later geometry test because its worst grid-phase overlap is 447/511 (87.5%), above the current 80% coverage threshold.
+The current projection artifacts contain only 255 bp sequences, so the 511 bp whole-genome run is deferred until the clustering recipe shows adequate recovery on the bounded truth set.
 
 ## Current outputs
 

@@ -29,6 +29,8 @@ linclust-conservation-filter-alignments = "marin_dna_linclust_conservation.cli.f
 linclust-conservation-record-peak = "marin_dna_linclust_conservation.cli.record_peak:main"
 linclust-conservation-summarize-smoke = "marin_dna_linclust_conservation.cli.summarize_smoke:main"
 linclust-conservation-summarize-clusters = "marin_dna_linclust_conservation.cli.summarize_clusters:main"
+linclust-conservation-build-homology-fixture = "marin_dna_linclust_conservation.cli.build_homology_fixture:main"
+linclust-conservation-evaluate-homology-clusters = "marin_dna_linclust_conservation.cli.evaluate_homology_clusters:main"
 
 [dependency-groups]
 dev = [
