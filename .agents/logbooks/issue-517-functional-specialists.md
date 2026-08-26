@@ -760,3 +760,20 @@ Its current anchor path instead creates uniform conservation-selected windows an
 - Interpretation: Every authorized arm now satisfies the end-to-end launch gate of a real TPU allocation, W&B initialization, and an advancing optimizer step.
   The enhancer loss at step 5 is too early to interpret; its first evaluation occurs later in the schedule.
 - Next action: Monitor at coarse intervals, verify step-500 checkpoints for enhancer Arm A and background, and validate all six terminal step-4,999 exports before evaluation.
+
+### 2026-08-26 17:15 UTC - `FAS-517-030` preemptions and automatic recovery queue
+
+- W&B interruption snapshot: CDS last reported step 2,476; 3-prime UTR 2,459; TSS/5-prime UTR 2,436; ncRNA exon 2,441; enhancer Arm A 1,636; and background 1,584.
+  W&B marked five runs `crashed` and left CDS `running`, but the Iris controller is authoritative for scheduling state.
+- Iris state: All six training jobs remain active with zero failures and pending replacement workers.
+  3-prime UTR, TSS/5-prime UTR, and ncRNA exon have one preemption each; CDS, enhancer Arm A, and background have two each.
+- Recovery points: Native manifests and Hugging Face exports are complete at step 2,000 for CDS, 3-prime UTR, TSS/5-prime UTR, and ncRNA exon, and at step 1,500 for enhancer Arm A and background.
+  The maximum replay from the last W&B step is therefore 476, 459, 436, 441, 136, and 84 steps respectively.
+- Capacity: At 17:15 UTC, the controller was healthy with 738 of 738 workers healthy.
+  The `tpu_v6e-preemptible_4-us-east5-b` group reported 16 booting and two ready workers; the `tpu_v5p-preemptible_8-us-east5-a` group reported two booting and none ready.
+- Action: Do not submit duplicate jobs.
+  The existing independently resumable Iris children are queued to restore their verified checkpoints when replacement TPU capacity becomes available.
+- Monitoring path: No new EC2 launcher was created.
+  Read-only W&B queries ran from the current VM, and Iris state was queried through authenticated GCP access to the controller.
+  The former `aws-claude-code` IP presented a changed SSH host key and no longer resolved to an instance in the authorized AWS account, so the connection was rejected instead of disabling host verification.
+- Next action: Confirm checkpoint restoration and advancing W&B steps after workers allocate, then revise the completion estimate from post-resume throughput.
