@@ -736,3 +736,17 @@ Its current anchor path instead creates uniform conservation-selected windows an
   Their scheduler reason is insufficient immediately available TPUs; at 12:34 UTC, the v6e-4 `us-east5-b` scale group reported 17 ready and nine booting workers, while the v5p-8 `us-east5-a` group reported two booting and none ready.
 - Interpretation: The previous issue records correctly predicted compatibility for this exact training geometry, and the physical worker assignments demonstrate that Iris selected the ordered v6e-4 alternative while v5p capacity was unavailable.
 - Next action: Publish the verified first-step status and queue state to issue #517, leave all six independently resumable training graphs active, and stop the temporary EC2 launcher.
+
+### 2026-08-26 13:44 UTC - `FAS-517-028` all six arms allocated
+
+- Allocation: All six flexible training children are now in Iris `running` state on TPU v6e workers.
+  Enhancer Arm A and background left the capacity queue after the 12:35 UTC snapshot.
+- W&B snapshot: CDS was at step 712, 3-prime UTR at 733, TSS/5-prime UTR at 726, ncRNA exon at 719, background at step 3, and enhancer Arm A was still compiling its first step after rescheduling.
+  Across the four established loops, current training loss was 1.286-1.323, evaluation loss was 1.299-1.354, and throughput was approximately 452,000-459,000 tokens per second.
+- Durability: CDS, 3-prime UTR, TSS/5-prime UTR, and ncRNA exon each have a complete native step-500 manifest and exported Hugging Face checkpoint in the configured GCS root.
+  Enhancer Arm A and background have not yet reached the first 500-step checkpoint boundary.
+- Reliability: The CDS, 3-prime UTR, TSS/5-prime UTR, ncRNA exon, and background training children report zero failures and zero preemptions.
+  Enhancer Arm A reports zero failures and one preemption by a higher-priority Iris job; Iris rescheduled it automatically and its replacement worker is running.
+- Confidence: The five arms with metrics have finite losses and advancing global steps, and all six W&B runs identify their device as `TPU v6 lite`.
+  Enhancer Arm A still needs an advancing W&B step after its rescheduled compilation before it has the same end-to-end verification.
+- Next action: Confirm enhancer Arm A's first optimizer step, continue coarse monitoring through the 5,000-step boundary, and validate final native and Hugging Face checkpoints for every arm.
