@@ -813,3 +813,20 @@ The sparse singleton results update confidence in the sampling design, not in th
 - Validation: all 56 tests, the 55-job dry-run with the 450 GB scheduler resource, scoped pre-commit checks, and the on-demand SkyPilot dry-run passed.
 - Interpretation: memory splitting may increase Linclust time relative to the original 2 TiB design, but it converts the account-quota blocker into a bounded empirical scaling test without expanding the approved budget.
 - Next action: push this fallback snapshot and relaunch once on the bounded on-demand worker.
+
+### 2026-08-26 12:04 UTC - LINC-CONS-028 synthetic-gate failure and separation
+
+- Result: the first on-demand job stopped after approximately three minutes because all three input-order variants failed the synthetic release gate.
+  The 0.40 identity, 0.70 coverage, 148-k-mer biological recipe split the fixture's exact forward and reverse-complement records across clusters.
+- Cost: the worker automatically terminated; estimated compute spend was approximately $0.21, plus a few minutes of temporary-disk allocation.
+- Cause: the full-panel config had replaced the previously passing candidate-release configuration, coupling a software compatibility gate to a biological sensitivity choice.
+  The background-scaling experiment had validated the panel recipe against projected truth and real decoys, but it was never expected to satisfy the stricter tiny-fixture partition contract.
+- Commit: [`3adee1f5`](https://github.com/Open-Athena/marin-dna/commit/3adee1f5a9d18ef52fadb537ae1a9c963bcbeaca).
+- Correction: restore the release gate's 0.50 identity, 0.80 coverage, 20-k-mer configuration and keep every 0.40 identity, 0.70 coverage, 148-k-mer panel parameter in the separate `panel_linclust` block.
+  The panel receipt records both configurations.
+- Reuse: the failed job completed donkey `GCF_041296235.1` staging before shutdown.
+  Its 811,567,905-byte 2bit with ETag `669b069b5455cb82440f43a2ba6bd685-97` is now a pinned reuse source, leaving only giraffe `GCF_054371585.1` to download.
+- Validation: 56 tests and both dry-runs passed; the exact eleven-job synthetic target then executed locally and passed all three input-order gates plus the partition-stability comparison.
+- Budget: the next job retains the same explicit 20-minute setup and four-hour workflow limits.
+  Including the failed job, the cutoff-bound compute total remains approximately $18.54 before temporary disk, within the $20 ceiling.
+- Next action: push the corrected snapshot and perform one final bounded relaunch.
