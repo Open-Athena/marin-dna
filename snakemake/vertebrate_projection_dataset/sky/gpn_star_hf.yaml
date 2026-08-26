@@ -45,6 +45,12 @@ run: |
   test "$DRY_RUN" = "0" -o "$DRY_RUN" = "1"
   if [ "$TARGET" = "all_gpn_hf" ]; then
     test "$ALLOW_HF_UPLOAD" = "1"
+    set +x
+    if [ -z "${HF_TOKEN:-}" ]; then
+      echo "HF_TOKEN is required for the gated upload target" >&2
+      exit 1
+    fi
+    set -x
   fi
 
   cd snakemake/vertebrate_projection_dataset

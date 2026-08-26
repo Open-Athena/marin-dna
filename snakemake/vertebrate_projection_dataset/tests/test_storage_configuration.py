@@ -143,5 +143,6 @@ def test_gpn_star_publication_is_source_pinned_and_upload_gated() -> None:
     assert "gpn_hf_upload_dataset" in rules
     assert 'ALLOW_HF_UPLOAD: "0"' in worker
     assert 'test "$ALLOW_HF_UPLOAD" = "1"' in worker
+    assert 'if [ -z "${HF_TOKEN:-}" ]' in worker
     assert "workflow/gpn_star_publication.Snakefile" in worker
     assert "r6i.8xlarge" in worker
