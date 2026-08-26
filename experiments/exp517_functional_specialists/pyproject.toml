@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "exp517-functional-specialists"
 version = "0.1.0"
-description = "Five annotation-first functional specialist training arms for MarinDNA issue 517"
+description = "Annotation-first and GPN uniform-grid specialist training for MarinDNA issue 517"
 requires-python = ">=3.12,<3.13"
 dependencies = [
     "marin-core @ git+https://github.com/marin-community/marin.git@53b5b33041f742c7f4991223b0085e41ece4c458#subdirectory=lib/marin",

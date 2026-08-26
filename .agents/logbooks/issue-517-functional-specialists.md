@@ -651,3 +651,32 @@ Its current anchor path instead creates uniform conservation-selected windows an
   Every training and evaluation summary must report these effective epochs; this experiment does not isolate region identity from exposure.
 - Launch sequence: Commit the additive publication workflow, run its locked tests and dry-run on a dedicated EC2 worker, materialize and validate all six public artifacts, publish and verify immutable Hub revisions, then launch one CDS canary on Iris before the other five independently resumable arms.
 - Next action: Snapshot the publication workflow and start the EC2 test/dry-run gate.
+
+### 2026-08-26 02:02 UTC - `FAS-517-023` six public GPN datasets and training launch gate
+
+- Materialization: The additive publication workflow completed all 417 EC2 jobs under publication producer commit `1e057b7ee3a22ffe4c07df948fed9a440994b756` and config SHA-256 `6d8c12803f95d6a8c1fb577518119de2ff6081ed6b5ab11a643f921de444873d`.
+  Runtime was 37 minutes 57 seconds, from 2026-08-26 01:04:42 UTC to 01:42:39 UTC on one `r6i.8xlarge` in `us-east-2`.
+  The execution built the six deterministic splits, 390 compressed shards, six dataset cards, and one cross-arm integrity manifest without scheduling projection, GPN scoring, or `halLiftOver` rules.
+- Publication: The explicitly gated upload target completed all six repositories and its aggregate target in 6 minutes 27 seconds, from 01:48:30 UTC to 01:54:57 UTC.
+  Every arm has 64 compressed train shards, one compressed validation shard, one dataset card, and an upload receipt.
+  The rule checked the local manifest before upload and then anonymously verified the exact Hub revision, file inventory, sizes, LFS SHA-256 values, and dataset-card hash.
+- Immutable public inputs:
+
+  | arm | public Hugging Face dataset | immutable revision |
+  | --- | --- | --- |
+  | CDS | `marin-dna/gpn-star-p-uniform-v1-cds` | `4c722c74e4616d8cbf8bce55844ec26da7fc516f` |
+  | 3-prime UTR | `marin-dna/gpn-star-p-uniform-v1-utr3` | `42ac7aed4565d0ec2800c9d8e2b1829daec274bd` |
+  | TSS/5-prime UTR | `marin-dna/gpn-star-p-uniform-v1-tss-utr5` | `c2fdcf05d24856f004be303470183e5fc39188b9` |
+  | ncRNA exon | `marin-dna/gpn-star-p-uniform-v1-ncrna-exon` | `c5cea96abe3ae84dafdb52967b1168a269e01f43` |
+  | enhancer Arm A | `marin-dna/gpn-star-p-uniform-v1-enhancer-arm-a` | `243210a0d93d93423b42e817d82d0abc3de37ef8` |
+  | background | `marin-dna/gpn-star-p-uniform-v1-background` | `24f9ccb7cdc7c242d2ce88783e25db5597466543` |
+
+- Training implementation: A separate `gpn_uniform_experiment` entry point pins these six public revisions and reuses the fixed issue-517 model, tokenizer, optimizer, seed, batch, sequence length, 5,000-step schedule, and 500-step checkpoint cadence.
+  It rejects mutable or malformed revisions, non-MarinDNA repositories, and any S3 training dependency before graph construction.
+  Each arm has its own token cache, W&B run, run ID, and checkpoint root.
+- Validation: The publication workflow passed all 253 locked tests on EC2 under its configured Miniforge environment.
+  The independently locked Python 3.12 training project passed all 12 tests on EC2, including all six pinned inputs, public-only graph provenance, fixed recipe, W&B tags, TPU bounds, and preemptible configuration.
+- Launch decision: The human explicitly authorized public publication, preemptible TPU v5p-8 workers, and simultaneous launch of all six arms without a CDS canary gate.
+  Checkpoint/resume remains enabled, and the almost ninefold cross-arm effective-epoch disparity from `FAS-517-022` remains a mandatory interpretation caveat.
+- Evaluation boundary: No held-out VEP data was read or registered for this launch.
+- Next action: Snapshot the tested pinned launcher, run its plan preflight, submit all six independent Iris jobs, and confirm that each coordinator accepts the immutable input graph.

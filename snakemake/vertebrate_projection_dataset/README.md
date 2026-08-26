@@ -135,6 +135,16 @@ sky launch -c issue-517-gpn-hf \
 ```
 
 The external-write target is `all_gpn_hf` and requires `ALLOW_HF_UPLOAD=1`.
+Pass the credential through SkyPilot's secret channel so it is redacted from task output:
+
+```bash
+sky exec issue-517-gpn-hf \
+  sky/gpn_star_hf.yaml \
+  --env TARGET=all_gpn_hf --env DRY_RUN=0 \
+  --env ALLOW_HF_UPLOAD=1 --secret HF_TOKEN \
+  --env PIPELINE_COMMIT_SHA="<publication-producer-commit>"
+```
+
 After publication, verify every repository without credentials and pin its immutable Hub revision in the training experiment.
 
 ## Projection contract

@@ -3,6 +3,9 @@
 This permanent experiment-branch project trains five annotation-first 0.25B DNA specialists for issue #517.
 It is an experiment, not a merge proposal.
 
+The project also contains a separate entry point for the follow-up six-arm GPN-Star-P uniform-grid experiment.
+That experiment does not replace or resume the original five annotation-first runs.
+
 The arms are CDS, 3′ UTR, TSS region, ncRNA, and enhancer.
 Their anchors come from complete Ensembl GRCh38 release 115 annotation across all qualifying transcripts, without RefSeq and without an Ensembl-canonical-only filter.
 Enhancers are ENCODE SCREEN Registry V4 dELS and pELS elements.
@@ -77,6 +80,61 @@ uv run --python /usr/bin/python3.12 --locked iris --cluster=marin job run \
 
 Use the same command with `utr3`, `tss_region`, `ncrna`, and `enhancer`; verify each arm's Hub revision, token cache, TPU allocation, checkpoint export, and W&B run independently.
 Each arm has an independent run ID, checkpoint root, tokenized cache, and W&B run.
+
+## GPN-Star-P uniform-grid training
+
+The follow-up experiment partitions every projected window that passed the at-least-51-of-255 GPN-Star-P conservation filter into six exhaustive, mutually exclusive arms.
+The arms are CDS, 3′ UTR, protein-coding TSS/5′ UTR, ncRNA exon, issue-326 Arm A enhancer, and the GPN-constrained unassigned background remainder.
+
+The six public datasets are pinned at these immutable Hugging Face revisions:
+
+- `marin-dna/gpn-star-p-uniform-v1-cds` at `4c722c74e4616d8cbf8bce55844ec26da7fc516f`
+- `marin-dna/gpn-star-p-uniform-v1-utr3` at `42ac7aed4565d0ec2800c9d8e2b1829daec274bd`
+- `marin-dna/gpn-star-p-uniform-v1-tss-utr5` at `c2fdcf05d24856f004be303470183e5fc39188b9`
+- `marin-dna/gpn-star-p-uniform-v1-ncrna-exon` at `c5cea96abe3ae84dafdb52967b1168a269e01f43`
+- `marin-dna/gpn-star-p-uniform-v1-enhancer-arm-a` at `243210a0d93d93423b42e817d82d0abc3de37ef8`
+- `marin-dna/gpn-star-p-uniform-v1-background` at `24f9ccb7cdc7c242d2ce88783e25db5597466543`
+
+The launcher rejects the `UNPUBLISHED` placeholder, malformed revisions, non-MarinDNA repositories, and any S3 training input.
+It otherwise reuses the original experiment's fixed model, tokenizer, loss, optimizer, seed, batch, schedule, checkpoint cadence, and bounded TPU resource policy.
+
+Each arm receives 40,960,000 sequence presentations, or 10,485,760,000 tokens including BOS.
+Because the arm sizes differ, effective row epochs range from about 0.31 for enhancer Arm A to 2.80 for TSS/5′ UTR.
+This exposure difference must accompany every comparison of the resulting specialists.
+
+| arm | source rows | reverse-complemented train rows | effective row epochs |
+| --- | ---: | ---: | ---: |
+| CDS | 35,517,702 | 71,002,636 | 0.577 |
+| 3′ UTR | 10,285,758 | 20,538,748 | 1.994 |
+| TSS/5′ UTR | 7,341,817 | 14,650,866 | 2.796 |
+| ncRNA exon | 10,029,795 | 20,026,822 | 2.045 |
+| enhancer Arm A | 65,750,304 | 131,467,840 | 0.312 |
+| background | 38,681,813 | 77,330,858 | 0.530 |
+
+After anonymous Hub verification, launch each arm with the following command, substituting its arm key and job name:
+
+```bash
+uv run --python /usr/bin/python3.12 --locked iris --cluster=marin job run \
+  --no-wait --job-name exp517-gpn-uniform-cds \
+  --cpu 1 --memory 2G --region us-east5 --extra=tpu \
+  -e WANDB_API_KEY "$WANDB_API_KEY" \
+  -e WANDB_ENTITY gonzalobenegas \
+  -e WANDB_PROJECT marin \
+  -e MARIN_PREFIX gs://marin-us-east5/MarinDNA/exp517_gpn_uniform_specialists \
+  -e EXP517_TPU_REGION us-east5 \
+  -e EXP517_TPU_VARIANT v5p-8 \
+  -e EXP517_TPU_RAM 56g \
+  -e EXP517_TPU_PREEMPTIBLE true \
+  -e EXP517_GPN_ARM cds \
+  -e UV_PROJECT /app \
+  -- bash -lc 'cd /app && uv sync --locked --extra tpu && \
+  exec uv run --locked python -m exp517_functional_specialists.gpn_uniform_experiment \
+  --version 2026.08.26 --run'
+```
+
+The six authorized arms may launch together on preemptible TPUs.
+Verify immutable Hub download, complete tokenization, real TPU optimizer steps, W&B telemetry, and checkpoint creation independently for every arm.
+Each GPN arm has an independent run ID, checkpoint root, tokenized cache, and W&B run.
 
 ## Evaluation boundary
 
