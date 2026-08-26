@@ -843,3 +843,19 @@ The sparse singleton results update confidence in the sampling design, not in th
 - Validation: all 57 project tests, the exact 45-job credential-free dry-run, and scoped pre-commit checks pass.
 - Budget: the bounded final retry remains below the approved $20 ceiling at the explicit setup and workflow timeouts, including the two short failed on-demand attempts and temporary disk.
 - Next action: run the complete project tests and dry-run, snapshot the correction, then launch the decoupled exact 20-genome target.
+
+### 2026-08-26 13:05 UTC - LINC-CONS-030 whole-panel split-path failure and no-split retry design
+
+- Result: the exact 20 assemblies produced 469,611,559 candidate 255 bp windows and 298,524,220 retained windows totaling 76,123,676,100 bases.
+  All 20 per-assembly FASTAs and filter receipts are durable under the `panel20-linclust` S3 namespace.
+- Failed recipe: MMseqs2 `18.8cc5c` created a 298,524,220-sequence nucleotide database, then invoked automatic-k Linclust with 148 selected spaced k-mers, hash shift 1, 0.40 identity, 0.70 bidirectional coverage, masking, and a 400 GiB split-memory limit.
+  `kmermatcher` reported that it needed to split and immediately segfaulted while the host still had approximately 478 GiB available RAM; SkyPilot terminated the worker after approximately 45 minutes total wall time.
+- Interpretation: 148 k-mers imply 44.18 billion selected seed records before masking.
+  The failure is consistent with MMseqs2's documented large-database failure regime rather than an EC2 out-of-memory event, so retrying the same density or increasing the split count is not justified.
+- Density bound: the measured five-million-sequence peak-RSS curve was 3.06 GiB at 20 k-mers and 7.53 GiB at 80 k-mers.
+  Linear interpolation predicts 6.34 GiB at 64 k-mers; scaling by the exact 59.70-fold sequence-count ratio predicts approximately 379 GiB, below the configured 400 GiB no-split target.
+  The 80-k-mer result projects to approximately 450 GiB and would force the failed split path.
+- Retry: select 64 automatic-length spaced k-mers while retaining the validated hash, masking, identity, coverage, E-value, and cluster mode.
+  Copy the immutable completed tile set server-side into the distinct `panel20-linclust-m64` S3 namespace instead of re-downloading and re-tiling the genomes.
+- Cost bound: keep the 20-minute setup cap, reduce the complete workflow cap to three hours, cap Linclust itself at two hours 30 minutes, retain automatic teardown, and do not make a further paid retry if this bound fails.
+- Next action: calculate and insert the new configuration hash, run all project tests and the exact dry-run, snapshot and push the retry, then launch it on one on-demand `r7i.16xlarge`.

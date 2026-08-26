@@ -373,11 +373,13 @@ sky launch -c linclust-cons-panel20 \
 ```
 
 The panel contains one explicitly selected assembly from each of 20 mammalian orders and spans 60.1 Gb, corresponding to approximately 469.6 million candidate windows before ambiguity and majority-repeat filtering.
-The recipe uses automatic k-mer length, exactly 148 selected spaced k-mers per sequence, hash shift 1, 0.40 minimum identity, 0.70 bidirectional coverage, lowercase and low-complexity masking, and MMseqs2 `18.8cc5c`.
-The bounded Sky task uses an on-demand `r7i.16xlarge` with 512 GiB RAM, a 1.5 TB root disk, a 400 GiB MMseqs split-memory limit, a 20-minute environment-setup timeout, and a four-hour timeout around tests, dry-run, and execution.
+The first whole-panel attempt used the measured 148-k-mer optimum, but MMseqs2 `18.8cc5c` segfaulted in `kmermatcher` immediately after its 400 GiB memory limit forced database splitting.
+The no-split retry retains automatic k-mer length, spaced seeds, hash shift 1, 0.40 minimum identity, 0.70 bidirectional coverage, and masking, but selects 64 k-mers per sequence.
+Linear interpolation of the measured five-million-sequence memory curve predicts approximately 379 GiB peak RSS for 298.5 million sequences at this density; the measured 80-k-mer arm projects to approximately 450 GiB and would force the failed split path again.
+The bounded Sky task uses an on-demand `r7i.16xlarge` with 512 GiB RAM, a 1.5 TB root disk, a 400 GiB MMseqs split-memory limit, a 20-minute environment-setup timeout, and a three-hour timeout around input reuse, tests, dry-run, and execution.
 The initial 2 TiB spot request was rejected before provisioning because the AWS account's spot-vCPU quota was too low.
-The 2026-08-26 SkyPilot catalog estimate for the fallback was $4.23 per compute hour, so the explicit timeouts leave the total compute and temporary-disk charge below the approved $20 ceiling.
-The task reuses 19 exact staged or mirrored 2bit inputs, downloads the remaining current giraffe assembly, writes all results under the separate `s3://oa-bolinas/snakemake/analysis/linclust_conservation/runs/panel20-linclust/` prefix, and requests automatic teardown after completion or job failure.
+The 2026-08-26 SkyPilot catalog estimate is $4.23 per compute hour, so the reduced retry timeout leaves cumulative compute and temporary-disk charges below the approved $20 ceiling.
+The retry server-side copies the already completed manifest, 20 filter receipts, and 20 all-tile FASTAs into the new `s3://oa-bolinas/snakemake/analysis/linclust_conservation/runs/panel20-linclust-m64/` namespace, then requests automatic teardown after completion or job failure.
 The candidate-release diagnostic retains its 0.50 identity, 0.80 coverage, and 20-k-mer synthetic configuration, but it is not a prerequisite for the full-panel target because its tiny input-order partition is nondeterministic at 64 threads.
 The `panel_linclust` target performs only Linclust's mandatory internal verification; it does not launch the rejected whole-panel representative-to-all alignment stage.
 
