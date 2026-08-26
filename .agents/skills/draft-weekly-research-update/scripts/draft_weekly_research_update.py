@@ -19,7 +19,8 @@ TLDR_RE = re.compile(r"^>\s*\*\*TL;DR:\*\*\s*(.*)$")
 EXPERIMENT_NUMBER_RE = re.compile(r"^(\d+)-")
 REPORT_TIMEZONE = ZoneInfo("UTC")
 BLURB_PLACEHOLDER = (
-    "> **Weekly blurb:** _Add a short human-written introduction before publishing._"
+    "> **Blurb:** _Add a short human-written note about this experiment before "
+    "publishing._"
 )
 
 
@@ -205,14 +206,12 @@ def format_draft(
         return ""
 
     date_label = f"{week_start.strftime('%B')} {week_start.day}, {week_start.year}"
-    blocks = [
-        f"# MarinDNA research updates — week of {date_label}",
-        BLURB_PLACEHOLDER,
-    ]
+    blocks = [f"# MarinDNA research updates — week of {date_label}"]
     for page in pages:
         url = canonical_page_url(repository_url, branch, page.path)
         blocks.append(
-            f"**[{page.title} (#{page.issue_number})]({url})**\n\n{page.tldr}"
+            f"**[{page.title} (#{page.issue_number})]({url})**\n\n"
+            f"{page.tldr}\n\n{BLURB_PLACEHOLDER}"
         )
     return "\n\n".join(blocks) + "\n"
 

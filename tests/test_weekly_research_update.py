@@ -226,11 +226,11 @@ def test_format_draft_no_content_and_links_canonical_page() -> None:
         "main",
     ) == (
         "# MarinDNA research updates — week of August 17, 2026\n\n"
-        "> **Weekly blurb:** _Add a short human-written introduction before "
-        "publishing._\n\n"
         "**[Second result (#20)](https://github.com/Open-Athena/marin-dna/blob/main/"
         "docs/research/experiments/20-second.md)**\n\n"
-        "A result.\n"
+        "A result.\n\n"
+        "> **Blurb:** _Add a short human-written note about this experiment before "
+        "publishing._\n"
     )
 
 
