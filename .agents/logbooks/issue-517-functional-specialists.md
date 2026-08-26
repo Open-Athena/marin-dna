@@ -797,3 +797,21 @@ Its current anchor path instead creates uniform conservation-selected windows an
 - Telemetry: The existing CDS W&B run changed back to `running` under the same run ID after the replacement worker restored step 2,500.
   Its latest global step remains 2,531, so resumed telemetry is connected but a post-restore optimizer step has not yet been observed.
 - Next action: Treat the restore as operationally healthy after W&B advances beyond step 2,531.
+
+### 2026-08-26 19:16 UTC - `FAS-517-033` durable progress through repeated preemptions
+
+- Current allocation: Background is running at W&B step 2,307.
+  CDS, 3-prime UTR, TSS/5-prime UTR, ncRNA exon, and enhancer Arm A are pending replacement workers after additional short allocations.
+- Latest W&B steps: CDS reached 2,581, 3-prime UTR 2,639, TSS/5-prime UTR 2,940, ncRNA exon 2,716, enhancer Arm A 1,915, and background 2,307.
+  Current train and evaluation losses remain finite for all arms with evaluation history.
+- Reliability: Every training child still reports zero failures.
+  Preemption counts are four for CDS, three for enhancer Arm A, and two for each of 3-prime UTR, TSS/5-prime UTR, ncRNA exon, and background.
+- Durable progress: Native and Hugging Face checkpoints are complete at step 2,500 for CDS, 3-prime UTR, TSS/5-prime UTR, and ncRNA exon; step 2,000 for background; and step 1,500 for enhancer Arm A.
+  The leading four therefore gained a durable 500-step checkpoint since `FAS-517-030`, and background gained the same.
+- Capacity: Iris is healthy with 670 of 670 workers healthy, but the v6e-4 `us-east5-b` pool reports one ready and 28 booting workers against demand of 69.
+  The v5p-8 `us-east5-a` pool reports two booting and none ready.
+- Interpretation: Preemptible capacity churn is delaying wall-clock completion, while checkpointing continues to preserve progress.
+  There is no evidence of a model, data, checkpoint, or launcher failure.
+- ETA: From durable restore points, the four leading arms need about 3.2 hours of optimizer work, background about 3.9 hours, and enhancer Arm A about 4.5 hours at prior steady-state throughput.
+  Wall-clock completion remains those runtimes plus an uncertain capacity wait and any further replay.
+- Next action: Keep the existing jobs queued, verify background's next step-2,500 checkpoint if its worker survives, and avoid duplicate submissions.
