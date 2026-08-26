@@ -1,0 +1,122 @@
+pipeline_version: v1
+selection_path: config/assembly_canary3.tsv
+
+window:
+  length: 255
+  stride: 128
+  max_repeat_fraction: 0.5
+
+manifest:
+  taxon: mammalia
+  datasets_version: 18.36.0
+  query_reference_only: true
+  source_bucket: oa-bolinas
+  source_prefix: snakemake/training_dataset/dataset_creation/results/genome
+
+staging:
+  destination_bucket: oa-bolinas
+  destination_prefix: snakemake/analysis/linclust_conservation/inputs/genomes
+
+smoke:
+  seed: 521
+  candidates_per_assembly: 2000
+  batch_size: 250000
+  max_alignment_edges: 100000
+
+phylop:
+  url: https://hgdownload.soe.ucsc.edu/goldenPath/hg38/phyloP447way/hg38.phyloP447way.bw
+  threshold: 2.2162
+
+mmseqs:
+  candidate_release: 18.8cc5c
+  order_seeds: [0, 1, 2]
+  min_sequence_identity: 0.5
+  coverage: 0.8
+  coverage_mode: 0
+  evalue: 0.001
+  kmers_per_sequence: 20
+  spaced_kmer_mode: 0
+  mask_lower_case: 1
+  low_complexity_masking: 1
+  cluster_mode: 0
+  alignment_kmer_length: 11
+  alignment_split_memory_limit: 4G
+
+homology_fixture:
+  max_anchors: 128
+  candidate_anchors: 1024
+  sources:
+    - label: human
+      species: Homo sapiens
+      assembly: hg38
+      uri: s3://oa-bolinas/staging/vertebrate_projection_dataset/v1/06549d8f7f3ba76151b9c54a5e52d3e3f4402a2d/full/sequences/human_reference.parquet
+      etag: ed35649b61c39215f25b183f941b94f7-10
+      size_bytes: 81423428
+    - label: mouse
+      species: Mus musculus
+      assembly: GCF_000001635.26
+      uri: s3://oa-bolinas/staging/vertebrate_projection_dataset/v1/06549d8f7f3ba76151b9c54a5e52d3e3f4402a2d/full/sequences/hal/Mus_musculus.parquet
+      etag: 736d7b520b21362c5a1fc4cdf00f06eb-10
+      size_bytes: 79942737
+    - label: armadillo
+      species: Dasypus novemcinctus
+      assembly: GCF_000208655.1
+      uri: s3://oa-bolinas/staging/vertebrate_projection_dataset/v1/06549d8f7f3ba76151b9c54a5e52d3e3f4402a2d/full/sequences/hal/Dasypus_novemcinctus.parquet
+      etag: e5fab8d96ea494d36efae82884387b32-10
+      size_bytes: 78728906
+
+background_scaling:
+  sources:
+    - label: human
+      accession: GCF_000001405.40
+      uri: s3://oa-bolinas/snakemake/analysis/linclust_conservation/runs/canary3-exhaustive/results/v1/a64725bf2ce623c1097e4b56c1b8ad1cfbec9dfe/27136f290026a996f45ab3e18363d8e07e4af4293559aa3b69284691ae29c128/smoke/windows/GCF_000001405.40.fasta
+      etag: 0f60af2db5f7e7a746953481b625168f-577
+      size_bytes: 4832718483
+      record_count: 15718463
+    - label: mouse
+      accession: GCF_000001635.27
+      uri: s3://oa-bolinas/snakemake/analysis/linclust_conservation/runs/canary3-exhaustive/results/v1/a64725bf2ce623c1097e4b56c1b8ad1cfbec9dfe/27136f290026a996f45ab3e18363d8e07e4af4293559aa3b69284691ae29c128/smoke/windows/GCF_000001635.27.fasta
+      etag: 833d1ddeb914aa2c37b025d1dbf74049-532
+      size_bytes: 4459012400
+      record_count: 14551154
+    - label: opossum
+      accession: GCF_027887165.2
+      uri: s3://oa-bolinas/snakemake/analysis/linclust_conservation/runs/canary3-exhaustive/results/v1/a64725bf2ce623c1097e4b56c1b8ad1cfbec9dfe/27136f290026a996f45ab3e18363d8e07e4af4293559aa3b69284691ae29c128/smoke/windows/GCF_027887165.2.fasta
+      etag: 1a97bafb42c7e1724949f24e1db14056-640
+      size_bytes: 5362193865
+      record_count: 17497482
+  samples:
+    "100000":
+      human: 33334
+      mouse: 33333
+      opossum: 33333
+    "1000000":
+      human: 333334
+      mouse: 333333
+      opossum: 333333
+    "5000000":
+      human: 1666667
+      mouse: 1666667
+      opossum: 1666666
+  variants:
+    m20: &density_variant
+      min_sequence_identity: 0.4
+      coverage: 0.7
+      kmers_per_sequence: 20
+      kmer_per_sequence_scale: 0.0
+      kmer_length: 0
+      hash_shift: 1
+      spaced_kmer_mode: 1
+      mask_lower_case: 1
+      low_complexity_masking: 1
+      split_memory_limit: 100G
+      timeout: 45m
+    m80:
+      <<: *density_variant
+      kmers_per_sequence: 80
+    m148:
+      <<: *density_variant
+      kmers_per_sequence: 148
+    m239:
+      <<: *density_variant
+      kmers_per_sequence: 239
