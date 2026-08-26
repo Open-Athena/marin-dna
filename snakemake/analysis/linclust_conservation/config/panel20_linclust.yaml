@@ -30,12 +30,12 @@ phylop:
 mmseqs:
   candidate_release: 18.8cc5c
   order_seeds: [0, 1, 2]
-  min_sequence_identity: 0.4
-  coverage: 0.7
+  min_sequence_identity: 0.5
+  coverage: 0.8
   coverage_mode: 0
   evalue: 0.001
-  kmers_per_sequence: 148
-  spaced_kmer_mode: 1
+  kmers_per_sequence: 20
+  spaced_kmer_mode: 0
   mask_lower_case: 1
   low_complexity_masking: 1
   cluster_mode: 0
@@ -44,9 +44,17 @@ mmseqs:
 
 panel_linclust:
   expected_accession_count: 20
+  min_sequence_identity: 0.4
+  coverage: 0.7
+  coverage_mode: 0
+  evalue: 0.001
   kmers_per_sequence: 148
   kmer_per_sequence_scale: 0.0
   kmer_length: 0
   hash_shift: 1
+  spaced_kmer_mode: 1
+  mask_lower_case: 1
+  low_complexity_masking: 1
+  cluster_mode: 0
   split_memory_limit: 400G
   timeout: 5h

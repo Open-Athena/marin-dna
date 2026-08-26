@@ -26,9 +26,12 @@ def test_panel20_linclust_uses_measured_best_scalable_recipe() -> None:
     config = yaml.safe_load((PROJECT_ROOT / "config/panel20_linclust.yaml").read_text())
     recipe = config["panel_linclust"]
 
-    assert config["mmseqs"]["min_sequence_identity"] == 0.4
-    assert config["mmseqs"]["coverage"] == 0.7
-    assert config["mmseqs"]["spaced_kmer_mode"] == 1
+    assert config["mmseqs"]["min_sequence_identity"] == 0.5
+    assert config["mmseqs"]["coverage"] == 0.8
+    assert config["mmseqs"]["spaced_kmer_mode"] == 0
+    assert recipe["min_sequence_identity"] == 0.4
+    assert recipe["coverage"] == 0.7
+    assert recipe["spaced_kmer_mode"] == 1
     assert recipe["kmers_per_sequence"] == 148
     assert recipe["kmer_per_sequence_scale"] == 0.0
     assert recipe["kmer_length"] == 0

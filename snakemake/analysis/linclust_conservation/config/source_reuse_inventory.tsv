@@ -15,5 +15,6 @@ GCF_030445035.2	s3://oa-bolinas/snakemake/training_dataset/dataset_creation/resu
 GCF_033115175.1	s3://oa-bolinas/snakemake/training_dataset/dataset_creation/results/genome/GCF_033115175.1.2bit	s3_etag	3881ca945be296d9dcc844fced7e71b4-101	838958417
 GCF_037893015.1	s3://oa-bolinas/snakemake/training_dataset/dataset_creation/results/genome/GCF_037893015.1.2bit	s3_etag	7fe379adec6f769f881a7410f4de335e-132	1104503514
 GCF_040802235.1	s3://oa-bolinas/snakemake/training_dataset/dataset_creation/results/genome/GCF_040802235.1.2bit	s3_etag	972c4ad3adf059af8db9e3ac547243ef-89	739003290
+GCF_041296235.1	s3://oa-bolinas/snakemake/analysis/linclust_conservation/inputs/genomes/v1/cfa05bfc50be395010d55d7d30f2fc41c4bf28df/9a2dc618efd25d281db9b65ec397edf451cb471ce48bc5419ce2036bfb368af4/GCF_041296235.1.2bit	s3_etag	669b069b5455cb82440f43a2ba6bd685-97	811567905
 GCF_050624435.1	s3://oa-bolinas/snakemake/training_dataset/dataset_creation/results/genome/GCF_050624435.1.2bit	s3_etag	a2c92d04c173a09f0b72f525de02b6a2-134	1120580788
 GCF_902635505.1	s3://oa-bolinas/snakemake/training_dataset/dataset_creation/results/genome/GCF_902635505.1.2bit	s3_etag	22913f80ad2dda915b5efcdd77cbe1b8-113	942507571

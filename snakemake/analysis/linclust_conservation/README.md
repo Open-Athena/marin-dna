@@ -377,7 +377,8 @@ The recipe uses automatic k-mer length, exactly 148 selected spaced k-mers per s
 The bounded Sky task uses an on-demand `r7i.16xlarge` with 512 GiB RAM, a 1.5 TB root disk, a 400 GiB MMseqs split-memory limit, a 20-minute environment-setup timeout, and a four-hour timeout around tests, dry-run, and execution.
 The initial 2 TiB spot request was rejected before provisioning because the AWS account's spot-vCPU quota was too low.
 The 2026-08-26 SkyPilot catalog estimate for the fallback was $4.23 per compute hour, so the explicit timeouts leave the total compute and temporary-disk charge below the approved $20 ceiling.
-The task reuses 18 exact staged or mirrored 2bit inputs, downloads the two remaining current assemblies, writes all results under the separate `s3://oa-bolinas/snakemake/analysis/linclust_conservation/runs/panel20-linclust/` prefix, and requests automatic teardown after completion or job failure.
+The task reuses 19 exact staged or mirrored 2bit inputs, downloads the remaining current giraffe assembly, writes all results under the separate `s3://oa-bolinas/snakemake/analysis/linclust_conservation/runs/panel20-linclust/` prefix, and requests automatic teardown after completion or job failure.
+The candidate-release gate retains its previously passing 0.50 identity, 0.80 coverage, and 20-k-mer synthetic configuration; the receipt records that configuration separately from the 0.40 identity, 0.70 coverage, and 148-k-mer panel recipe.
 The `panel_linclust` target performs only Linclust's mandatory internal verification; it does not launch the rejected whole-panel representative-to-all alignment stage.
 
 ## Current outputs
