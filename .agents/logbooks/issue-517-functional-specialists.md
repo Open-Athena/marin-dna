@@ -777,3 +777,17 @@ Its current anchor path instead creates uniform conservation-selected windows an
   Read-only W&B queries ran from the current VM, and Iris state was queried through authenticated GCP access to the controller.
   The former `aws-claude-code` IP presented a changed SSH host key and no longer resolved to an instance in the authorized AWS account, so the connection was rejected instead of disabling host verification.
 - Next action: Confirm checkpoint restoration and advancing W&B steps after workers allocate, then revise the completion estimate from post-resume throughput.
+
+### 2026-08-26 17:50 UTC - `FAS-517-031` first replacement worker and CDS restore
+
+- Allocation: CDS moved from pending through building to running on replacement attempt 2 with zero failures and two recorded preemptions.
+  The other five training tasks remain pending with their previous zero-failure preemption counts.
+- Restore verification: CDS completed both native and Hugging Face step-2,500 checkpoints before its previous worker loss.
+  The replacement worker restored 2.85 GiB across 48 arrays from TensorStore in 1.8 seconds and entered the 5,000-step training loop.
+- First-step state: The CDS log showed `Progress on:train -/5000`, so checkpoint restoration is complete and first-step compilation is still in progress.
+  W&B has not yet logged a post-restore step; its latest durable history is step 2,531 and currently displays `crashed` from the prior worker exit.
+- Capacity: At 17:48 UTC, Iris reported 807 of 807 workers healthy.
+  The v6e-4 `us-east5-b` group had 11 ready and seven booting workers against demand of 59, so allocation order and wait time for the remaining five are uncertain.
+- ETA: CDS has approximately 2,500 optimizer steps remaining after restore, or about 3.2 hours at its prior steady-state throughput plus compilation and evaluation overhead.
+  The other arms retain the previous estimate of approximately 4-5 hours after allocation; their wall-clock completion remains capacity-dependent.
+- Next action: Confirm a post-restore CDS W&B step, continue waiting on the existing five queued jobs, and avoid duplicate submissions.
