@@ -1,6 +1,6 @@
 ---
 name: draft-weekly-research-update
-description: Create a reviewable weekly MarinDNA public-research draft from experiment interpretation pages first added to main. Use for the scheduled Monday research update or an explicit request for that draft; do not use for issue activity, infrastructure, bugs, or edits to existing experiment pages.
+description: Create a reviewable weekly MarinDNA public-research draft as a temporary Markdown file from experiment interpretation pages first added to main. Use for the scheduled Monday research update or an explicit request for that draft; do not use for issue activity, infrastructure, bugs, or edits to existing experiment pages.
 ---
 
 # Draft Weekly Research Update
@@ -19,11 +19,12 @@ Do not summarize or reinterpret the research.
 ## Draft Contract
 
 - Sort pages by the leading experiment number in the filename.
-- Link each experiment title to its canonical page on `main`.
+- Add a visible `Weekly blurb` placeholder after the heading for a human to replace before publishing; do not generate the blurb.
+- Append the originating issue number from the filename to each title, as `Title (#123)`, inside the same link to the canonical page on `main`.
 - Copy the text from the page's `> **TL;DR:**` callout without rewriting it.
 - Do not add an overview, synthesis, author credit, interpretation, supporting-artifact link, or future-work section.
 - Keep the voice neutral by preserving the canonical TL;DR text.
-- Produce a reviewable draft only.
+- Produce a reviewable draft as a temporary Markdown file.
 
 ## Generate The Draft
 
@@ -35,7 +36,8 @@ python3 .agents/skills/draft-weekly-research-update/scripts/draft_weekly_researc
   --week-start YYYY-MM-DD
 ```
 
-Return the script's standard output unchanged as the publishable draft.
-If standard output is empty, report internally that no publishable draft was produced.
-Relay any standard-error warnings as an internal note after the draft.
-A missing title or TL;DR omits that page and emits a warning; do not synthesize replacement text.
+The script writes the draft to a private temporary Markdown file and prints its absolute path.
+Return a clickable link to that file without pasting its contents into the task.
+If standard output is empty, report internally that no draft file was produced.
+Relay any standard-error warnings as an internal note alongside the file link.
+A missing issue-number filename, title, or TL;DR omits that page and emits a warning; do not synthesize replacement text.

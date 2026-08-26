@@ -70,6 +70,7 @@ Ignored.
 
     assert page == weekly.ExperimentPage(
         path="docs/research/experiments/123-example.md",
+        issue_number=123,
         title="Example experiment",
         tldr="The first sentence is retained.\nThe second sentence is retained too.",
     )
@@ -78,6 +79,13 @@ Ignored.
 def test_extract_page_requires_title_and_tldr() -> None:
     assert weekly.extract_page("missing-title.md", "> **TL;DR:** Result.\n") is None
     assert weekly.extract_page("missing-tldr.md", "# Result\n") is None
+    assert (
+        weekly.extract_page(
+            "docs/research/experiments/unnumbered.md",
+            "# Result\n\n> **TL;DR:** Result.\n",
+        )
+        is None
+    )
 
 
 def test_weekly_boundaries_requires_monday() -> None:
@@ -205,6 +213,7 @@ def test_format_draft_no_content_and_links_canonical_page() -> None:
     pages = [
         weekly.ExperimentPage(
             path="docs/research/experiments/20-second.md",
+            issue_number=20,
             title="Second result",
             tldr="A result.",
         )
@@ -217,10 +226,23 @@ def test_format_draft_no_content_and_links_canonical_page() -> None:
         "main",
     ) == (
         "# MarinDNA research updates — week of August 17, 2026\n\n"
-        "**[Second result](https://github.com/Open-Athena/marin-dna/blob/main/"
+        "> **Weekly blurb:** _Add a short human-written introduction before "
+        "publishing._\n\n"
+        "**[Second result (#20)](https://github.com/Open-Athena/marin-dna/blob/main/"
         "docs/research/experiments/20-second.md)**\n\n"
         "A result.\n"
     )
+
+
+def test_write_temporary_draft_creates_markdown_file(tmp_path: Path) -> None:
+    draft = "# Weekly draft\n"
+
+    output = weekly.write_temporary_draft(date(2026, 8, 17), draft, directory=tmp_path)
+
+    assert output.parent == tmp_path
+    assert output.name.startswith("marindna-research-updates-2026-08-17-")
+    assert output.suffix == ".md"
+    assert output.read_text() == draft
     assert (
         weekly.format_draft(
             date(2026, 8, 17), [], "https://github.com/Open-Athena/marin-dna", "main"

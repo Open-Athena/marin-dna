@@ -6,6 +6,7 @@ import argparse
 import re
 import subprocess
 import sys
+import tempfile
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 from pathlib import Path, PurePosixPath
@@ -17,6 +18,9 @@ TITLE_RE = re.compile(r"^#\s+(.+?)\s*$")
 TLDR_RE = re.compile(r"^>\s*\*\*TL;DR:\*\*\s*(.*)$")
 EXPERIMENT_NUMBER_RE = re.compile(r"^(\d+)-")
 REPORT_TIMEZONE = ZoneInfo("UTC")
+BLURB_PLACEHOLDER = (
+    "> **Weekly blurb:** _Add a short human-written introduction before publishing._"
+)
 
 
 @dataclass(frozen=True)
@@ -24,6 +28,7 @@ class ExperimentPage:
     """The public fields extracted from one canonical experiment page."""
 
     path: str
+    issue_number: int
     title: str
     tldr: str
 
@@ -136,6 +141,10 @@ def experiment_sort_key(path: str) -> tuple[int, int | str]:
 def extract_page(path: str, markdown: str) -> ExperimentPage | None:
     """Extract the H1 title and canonical TL;DR callout text."""
 
+    issue_match = EXPERIMENT_NUMBER_RE.match(PurePosixPath(path).name)
+    if issue_match is None:
+        return None
+
     lines = markdown.splitlines()
     title = next(
         (match.group(1) for line in lines if (match := TITLE_RE.match(line))), None
@@ -160,7 +169,12 @@ def extract_page(path: str, markdown: str) -> ExperimentPage | None:
             tldr_lines.pop()
         tldr = "\n".join(tldr_lines).strip()
         if tldr:
-            return ExperimentPage(path=path, title=title, tldr=tldr)
+            return ExperimentPage(
+                path=path,
+                issue_number=int(issue_match.group(1)),
+                title=title,
+                tldr=tldr,
+            )
         return None
 
     return None
@@ -191,11 +205,35 @@ def format_draft(
         return ""
 
     date_label = f"{week_start.strftime('%B')} {week_start.day}, {week_start.year}"
-    blocks = [f"# MarinDNA research updates — week of {date_label}"]
+    blocks = [
+        f"# MarinDNA research updates — week of {date_label}",
+        BLURB_PLACEHOLDER,
+    ]
     for page in pages:
         url = canonical_page_url(repository_url, branch, page.path)
-        blocks.append(f"**[{page.title}]({url})**\n\n{page.tldr}")
+        blocks.append(
+            f"**[{page.title} (#{page.issue_number})]({url})**\n\n{page.tldr}"
+        )
     return "\n\n".join(blocks) + "\n"
+
+
+def write_temporary_draft(
+    week_start: date,
+    draft: str,
+    directory: Path | None = None,
+) -> Path:
+    """Write a draft to a private temporary Markdown file."""
+
+    with tempfile.NamedTemporaryFile(
+        mode="w",
+        encoding="utf-8",
+        prefix=f"marindna-research-updates-{week_start.isoformat()}-",
+        suffix=".md",
+        dir=directory,
+        delete=False,
+    ) as output:
+        output.write(draft)
+        return Path(output.name)
 
 
 def parse_args() -> argparse.Namespace:
@@ -218,7 +256,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> int:
-    """Generate the draft and print omissions to standard error."""
+    """Write the draft to a temporary file and print its path."""
 
     args = parse_args()
     start, end = weekly_boundaries(args.week_start)
@@ -229,20 +267,21 @@ def main() -> int:
         page = extract_page(path, read_page_at_commit(args.repo_root, end_commit, path))
         if page is None:
             print(
-                f"WARNING: omitted {path}: missing H1 title or TL;DR callout",
+                f"WARNING: omitted {path}: missing issue-number filename, H1 title, "
+                "or TL;DR callout",
                 file=sys.stderr,
             )
             continue
         pages.append(page)
 
-    sys.stdout.write(
-        format_draft(
-            week_start=args.week_start,
-            pages=pages,
-            repository_url=args.repository_url,
-            branch=args.branch,
-        )
+    draft = format_draft(
+        week_start=args.week_start,
+        pages=pages,
+        repository_url=args.repository_url,
+        branch=args.branch,
     )
+    if draft:
+        print(write_temporary_draft(args.week_start, draft))
     return 0
 
 
