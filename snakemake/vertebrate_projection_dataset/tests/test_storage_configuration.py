@@ -138,6 +138,8 @@ def test_gpn_star_publication_is_source_pinned_and_upload_gated() -> None:
     assert 'include: "rules/gpn_star_publication.smk"' in snakefile
     assert "SOURCE_PRODUCER_MANIFEST" in common
     assert "validate_producer_manifest" in rules
+    assert "uv --version 2>/dev/null | awk '{print $1, $2}'" in worker
+    assert "uv --version | awk '{print $1, $2}'" in worker
     assert "gpn_hf_upload_dataset" in rules
     assert 'ALLOW_HF_UPLOAD: "0"' in worker
     assert 'test "$ALLOW_HF_UPLOAD" = "1"' in worker
