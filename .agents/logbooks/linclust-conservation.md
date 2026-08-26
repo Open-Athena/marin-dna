@@ -782,3 +782,21 @@ The sparse singleton results update confidence in the sampling design, not in th
   The scalable architecture remains attractive—sparse candidate generation followed by bounded verification—but this exact-seed candidate generator does not provide a useful recall/precision frontier.
 - Next action: stop tuning this recipe.
   Further work should start from a different source of candidate evidence, such as positional or syntenic context, rather than more short-seed hashes, denser sampling, or broader alignment.
+
+### 2026-08-26 11:50 UTC - LINC-CONS-026 full 20-genome Linclust design
+
+- Hypothesis: the measured best scalable Linclust recipe can complete on every retained 255 bp tile from the exact 20-order panel within the approved $20 budget and produce a useful empirical distribution of singleton, within-genome, and cross-genome clusters.
+- Commit: [`21c3528f`](https://github.com/Open-Athena/marin-dna/commit/21c3528f014a15aa40e4a1858f3e22dfd26b7a87).
+- Data: exactly the 20 selected assemblies in `config/assembly_selection.tsv`, one per mammalian order, totaling 60.112 Gb and approximately 469.6 million candidate windows before ambiguity and majority-repeat filtering.
+- Reuse: 18 exact versioned 2bit inputs have pinned S3 sources; giraffe `GCF_054371585.1` and donkey `GCF_041296235.1` require fresh NCBI staging into this run's commit- and configuration-derived namespace.
+- Recipe: 255 bp windows at stride 128; automatic k-mer length; exactly 148 selected spaced k-mers per sequence; hash shift 1; 0.40 minimum identity; 0.70 bidirectional coverage; lowercase and low-complexity masking; and MMseqs2 `18.8cc5c`.
+- Compute: one spot AWS `x2iedn.16xlarge` in `us-east-2` with 64 vCPUs, 2 TiB RAM, a 1.5 TB root disk, a 1.4 TB MMseqs split-memory limit, and a five-hour Linclust timeout.
+- Cost bound: SkyPilot reported $1.91 per compute hour on 2026-08-26, making the five-hour Linclust phase at most $9.55 in compute before setup and receipt time; the task uses `--down` and the total approved ceiling remains $20.
+- Scale estimate: applying the measured three-genome 65.0% retention rate predicts about 305 million retained windows.
+  Linear extrapolation from the five-million-window 148-k-mer run predicts approximately 770 GiB peak RSS and 2.7 hours of Linclust wall time at 16 vCPUs, before the 64-vCPU machine's additional parallelism.
+- Outputs: the complete compressed assignment table, per-assembly filter receipts, staged manifest, resource reports, and bounded-memory cluster summary will use the separate `s3://oa-bolinas/snakemake/analysis/linclust_conservation/runs/panel20-linclust/` prefix.
+- Alignment scope: the target performs Linclust's mandatory internal verification only and does not launch a genome-scale representative-to-all alignment.
+- Validation: 56 project tests, the exact 55-job credential-free dry-run, scoped pre-commit checks, and the SkyPilot resource dry-run passed.
+- Falsifier: the run exceeds the five-hour Linclust cutoff, exceeds the memory or disk bounds, cannot acquire the configured spot instance, or projects above $20 before completion.
+- Command: `sky launch -y --down -c linclust-cons-panel20 snakemake/analysis/linclust_conservation/sky/panel20_linclust.yaml --env PIPELINE_COMMIT_SHA="$(git rev-parse HEAD)"`.
+- Next action: push the snapshot, launch the bounded task, inspect the first completed staging and tiling jobs, then monitor the full clustering receipt and terminate any residual cloud state.
