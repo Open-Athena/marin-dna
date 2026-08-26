@@ -133,6 +133,8 @@ uv run --python /usr/bin/python3.12 --locked iris --cluster=marin job run \
 ```
 
 The six authorized arms may launch together on preemptible TPUs.
+Iris supplies `WANDB_API_KEY` to the coordinator process, and Fray inherits it when the coordinator submits each TPU worker.
+The launcher validates that the key exists but deliberately excludes its value from the durable Marin artifact graph.
 Verify immutable Hub download, complete tokenization, real TPU optimizer steps, W&B telemetry, and checkpoint creation independently for every arm.
 Each GPN arm has an independent run ID, checkpoint root, tokenized cache, and W&B run.
 
