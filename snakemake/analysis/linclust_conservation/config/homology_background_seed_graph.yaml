@@ -1,26 +1,25 @@
 seed_graph:
   samples: ["100000"]
   variants:
-    k9_s128_f8_m2: &seed_graph_variant
-      kmer_length: 9
-      selected_seeds_per_sequence: 128
-      max_seed_frequency: 8
-      min_shared_seeds: 2
+    k17_s239_f2_m1: &seed_graph_variant
+      kmer_length: 17
+      selected_seeds_per_sequence: 239
+      max_seed_frequency: 2
+      min_shared_seeds: 1
       hash_seed: 521
       timeout: 20m
-    k13_s128_f8_m2:
+    k17_s239_f4_m1:
       <<: *seed_graph_variant
-      kmer_length: 13
-    k13_s128_f32_m2:
+      max_seed_frequency: 4
+    k17_s239_f8_m1:
       <<: *seed_graph_variant
-      kmer_length: 13
-      max_seed_frequency: 32
-    k15_s128_f8_m1:
+      max_seed_frequency: 8
+    k17_s239_f8_m2:
       <<: *seed_graph_variant
-      kmer_length: 15
-      min_shared_seeds: 1
-    k17_s148_f8_m1:
+      max_seed_frequency: 8
+      min_shared_seeds: 2
+    k19_s237_f8_m1:
       <<: *seed_graph_variant
-      kmer_length: 17
-      selected_seeds_per_sequence: 148
-      min_shared_seeds: 1
+      kmer_length: 19
+      selected_seeds_per_sequence: 237
+      max_seed_frequency: 8

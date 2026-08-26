@@ -59,7 +59,7 @@ run: |
     --resources mem_mb=110000
   uv run --locked snakemake background_seed_graph \
     --profile workflow/profiles/default \
-    --default-storage-prefix s3://oa-bolinas/snakemake/analysis/linclust_conservation/runs/homology-background-seed-graph/ \
+    --default-storage-prefix s3://oa-bolinas/snakemake/analysis/linclust_conservation/runs/homology-background-seed-graph-refinement/ \
     --configfile config/homology_background_density.yaml config/homology_background_seed_graph.yaml \
     --cores 16 \
     --resources mem_mb=110000 \
