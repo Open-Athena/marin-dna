@@ -170,6 +170,37 @@ def test_new_experiment_paths_excludes_restored_page(tmp_path: Path) -> None:
     assert paths == []
 
 
+def test_new_experiment_paths_excludes_rename_with_detection_disabled(
+    tmp_path: Path,
+) -> None:
+    run_git(tmp_path, "init", "--initial-branch=main")
+    run_git(tmp_path, "config", "user.name", "Test User")
+    run_git(tmp_path, "config", "user.email", "test@example.com")
+    run_git(tmp_path, "config", "diff.renames", "false")
+
+    old_path = "docs/research/experiments/100-old-name.md"
+    new_path = "docs/research/experiments/100-new-name.md"
+    commit_file(
+        tmp_path,
+        old_path,
+        "# Renamed\n\n> **TL;DR:** Already announced.\n",
+        "2026-08-16T12:00:00+00:00",
+    )
+    run_git(tmp_path, "mv", old_path, new_path)
+    run_git(
+        tmp_path,
+        "commit",
+        "-m",
+        "Rename experiment page",
+        commit_date="2026-08-18T12:00:00+00:00",
+    )
+
+    start, end = weekly.weekly_boundaries(date(2026, 8, 17))
+    _, paths = weekly.new_experiment_paths(tmp_path, "HEAD", start, end)
+
+    assert paths == []
+
+
 def test_format_draft_no_content_and_links_canonical_page() -> None:
     pages = [
         weekly.ExperimentPage(

@@ -83,6 +83,7 @@ def new_experiment_paths(
         repo_root,
         "diff",
         "--name-status",
+        "--find-renames",
         "--diff-filter=A",
         start_commit,
         end_commit,
