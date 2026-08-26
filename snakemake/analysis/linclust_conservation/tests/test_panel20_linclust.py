@@ -37,3 +37,23 @@ def test_panel20_linclust_uses_measured_best_scalable_recipe() -> None:
     assert recipe["kmer_length"] == 0
     assert recipe["hash_shift"] == 1
     assert recipe["split_memory_limit"] == "400G"
+
+
+def test_panel20_linclust_rule_uses_panel_recipe_without_release_gate() -> None:
+    snakefile = (PROJECT_ROOT / "workflow/Snakefile").read_text()
+    rule = snakefile.split("rule run_panel_linclust:", 1)[1].split(
+        "rule panel_linclust:", 1
+    )[0]
+
+    for field in (
+        "min_sequence_identity",
+        "coverage",
+        "coverage_mode",
+        "evalue",
+        "spaced_kmer_mode",
+        "mask_lower_case",
+        "low_complexity_masking",
+        "cluster_mode",
+    ):
+        assert f'PANEL_LINCLUST_CONFIG["{field}"]' in rule
+    assert "release_gate" not in rule

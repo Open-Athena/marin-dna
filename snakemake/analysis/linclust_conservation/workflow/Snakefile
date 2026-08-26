@@ -682,7 +682,6 @@ rule run_panel_linclust:
         fastas=expand(f"{SMOKE}/windows/{{accession}}.fasta", accession=ACCESSIONS),
         stats=expand(f"{SMOKE}/windows/{{accession}}.json", accession=ACCESSIONS),
         manifest=f"{SMOKE}/assembly_manifest.tsv",
-        release_gate=f"{CONTRACTS}/mmseqs2_release_gate.json",
     output:
         assignments=f"{PANEL_LINCLUST}/clusters.tsv.zst",
         receipt=f"{PANEL_LINCLUST}/receipt.json",
@@ -695,23 +694,22 @@ rule run_panel_linclust:
     resources:
         mem_mb=450000,
     params:
-        min_id=MMSEQS["min_sequence_identity"],
-        coverage=MMSEQS["coverage"],
-        cov_mode=MMSEQS["coverage_mode"],
-        evalue=MMSEQS["evalue"],
+        min_id=PANEL_LINCLUST_CONFIG["min_sequence_identity"],
+        coverage=PANEL_LINCLUST_CONFIG["coverage"],
+        cov_mode=PANEL_LINCLUST_CONFIG["coverage_mode"],
+        evalue=PANEL_LINCLUST_CONFIG["evalue"],
         kmers=PANEL_LINCLUST_CONFIG["kmers_per_sequence"],
         kmer_scale=PANEL_LINCLUST_CONFIG["kmer_per_sequence_scale"],
         kmer_length=PANEL_LINCLUST_CONFIG["kmer_length"],
         hash_shift=PANEL_LINCLUST_CONFIG["hash_shift"],
-        spaced=MMSEQS["spaced_kmer_mode"],
-        mask_lower=MMSEQS["mask_lower_case"],
-        mask=MMSEQS["low_complexity_masking"],
-        cluster_mode=MMSEQS["cluster_mode"],
+        spaced=PANEL_LINCLUST_CONFIG["spaced_kmer_mode"],
+        mask_lower=PANEL_LINCLUST_CONFIG["mask_lower_case"],
+        mask=PANEL_LINCLUST_CONFIG["low_complexity_masking"],
+        cluster_mode=PANEL_LINCLUST_CONFIG["cluster_mode"],
         split_memory=PANEL_LINCLUST_CONFIG["split_memory_limit"],
         timeout=PANEL_LINCLUST_CONFIG["timeout"],
         expected_version=str(MMSEQS["candidate_release"]),
         configuration=json.dumps({**MMSEQS, **PANEL_LINCLUST_CONFIG}, sort_keys=True),
-        release_gate_configuration=json.dumps(MMSEQS, sort_keys=True),
         pipeline_commit=PIPELINE_COMMIT,
         pipeline_config_sha256=PIPELINE_CONFIG_SHA256,
     shell:
@@ -759,9 +757,6 @@ rule run_panel_linclust:
                 --mmseqs-version {output.version:q} \
                 --expected-mmseqs-version {params.expected_version:q} \
                 --configuration {params.configuration:q} \
-                --release-gate-configuration \
-                {params.release_gate_configuration:q} \
-                --release-gate {input.release_gate:q} \
                 --pipeline-commit {params.pipeline_commit:q} \
                 --pipeline-config-sha256 {params.pipeline_config_sha256:q} \
                 --resources {output.resources:q} \

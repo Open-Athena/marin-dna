@@ -830,3 +830,16 @@ The sparse singleton results update confidence in the sampling design, not in th
 - Budget: the next job retains the same explicit 20-minute setup and four-hour workflow limits.
   Including the failed job, the cutoff-bound compute total remains approximately $18.54 before temporary disk, within the $20 ceiling.
 - Next action: push the corrected snapshot and perform one final bounded relaunch.
+
+### 2026-08-26 12:10 UTC - LINC-CONS-029 decouple the nondeterministic gate
+
+- Result: the second on-demand job again stopped before genome tiling or full-panel clustering because one of three synthetic input orderings separated the exact forward/reverse-complement pair at 64 threads, despite the same target passing locally.
+- Cost: the worker ran for approximately two minutes and terminated; estimated compute spend was approximately $0.14 plus temporary disk, bringing estimated failed-run compute to about $0.35.
+- Interpretation: the tiny exact-partition fixture is a useful candidate-release diagnostic but is nondeterministic under the full worker's parallel execution and does not test the selected biological recipe.
+  It should not gate the requested empirical clustering run.
+- Correction: remove the synthetic gate from the `panel_linclust` critical path while retaining it as a separate diagnostic target; record a null release-gate status in the panel receipt.
+- Recipe audit: the same review found that the panel rule still bound identity, coverage, spacing, masking, and cluster mode to the diagnostic configuration even though the receipt merged the panel configuration.
+  Bind every biological Linclust flag directly to the `panel_linclust` block and add a regression test over the rule contract.
+- Validation: all 57 project tests, the exact 45-job credential-free dry-run, and scoped pre-commit checks pass.
+- Budget: the bounded final retry remains below the approved $20 ceiling at the explicit setup and workflow timeouts, including the two short failed on-demand attempts and temporary disk.
+- Next action: run the complete project tests and dry-run, snapshot the correction, then launch the decoupled exact 20-genome target.

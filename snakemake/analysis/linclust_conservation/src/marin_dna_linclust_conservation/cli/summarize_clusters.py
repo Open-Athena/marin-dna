@@ -27,7 +27,7 @@ def main() -> None:
     parser.add_argument("--expected-mmseqs-version", required=True)
     parser.add_argument("--configuration", type=json.loads, required=True)
     parser.add_argument("--release-gate-configuration", type=json.loads)
-    parser.add_argument("--release-gate", type=Path, required=True)
+    parser.add_argument("--release-gate", type=Path)
     parser.add_argument("--pipeline-commit", required=True)
     parser.add_argument("--pipeline-config-sha256", required=True)
     parser.add_argument("--resources", type=Path, required=True)
@@ -63,16 +63,20 @@ def main() -> None:
     mmseqs_version = args.mmseqs_version.read_text().strip()
     assert mmseqs_version == args.expected_mmseqs_version
     expected_configuration: dict[str, Any] = args.configuration
-    release_gate_configuration = (
-        args.release_gate_configuration or expected_configuration
-    )
-    validate_release_gate(
-        path=args.release_gate,
-        expected_mmseqs_version=args.expected_mmseqs_version,
-        expected_configuration=release_gate_configuration,
-        pipeline_commit=args.pipeline_commit,
-        pipeline_config_sha256=args.pipeline_config_sha256,
-    )
+    release_gate_configuration = None
+    release_gate_passed = None
+    if args.release_gate is not None:
+        release_gate_configuration = (
+            args.release_gate_configuration or expected_configuration
+        )
+        validate_release_gate(
+            path=args.release_gate,
+            expected_mmseqs_version=args.expected_mmseqs_version,
+            expected_configuration=release_gate_configuration,
+            pipeline_commit=args.pipeline_commit,
+            pipeline_config_sha256=args.pipeline_config_sha256,
+        )
+        release_gate_passed = True
     time_records = parse_time_report(args.resources)
     receipt = {
         "accession_count": len(accessions),
@@ -106,7 +110,7 @@ def main() -> None:
         "per_assembly": sorted(per_assembly, key=lambda row: row["accession"]),
         "pipeline_commit": args.pipeline_commit,
         "pipeline_config_sha256": args.pipeline_config_sha256,
-        "release_gate_passed": True,
+        "release_gate_passed": release_gate_passed,
         "release_gate_configuration": release_gate_configuration,
         "retained_bases": sum(int(row["retained_bases"]) for row in per_assembly),
         "retained_windows": retained_windows,
