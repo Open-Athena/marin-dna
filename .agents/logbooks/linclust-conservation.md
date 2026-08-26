@@ -859,3 +859,12 @@ The sparse singleton results update confidence in the sampling design, not in th
   Copy the immutable completed tile set server-side into the distinct `panel20-linclust-m64` S3 namespace instead of re-downloading and re-tiling the genomes.
 - Cost bound: keep the 20-minute setup cap, reduce the complete workflow cap to three hours, cap Linclust itself at two hours 30 minutes, retain automatic teardown, and do not make a further paid retry if this bound fails.
 - Next action: calculate and insert the new configuration hash, run all project tests and the exact dry-run, snapshot and push the retry, then launch it on one on-demand `r7i.16xlarge`.
+
+### 2026-08-26 13:10 UTC - LINC-CONS-031 fresh-worker prefix-copy correction
+
+- Result: the first no-split submission failed setup because the submitted full commit SHA was mistyped; the corrected submission cloned and verified commit `8d267af7` but then stopped before data work because the fresh Sky image does not provide an `aws` executable.
+- Cost: both failures occurred on the same provisioned worker within its first few minutes and performed no S3 copy, Snakemake work, or clustering.
+- Correction: replace the ambient AWS CLI assumption with the project-local `linclust-conservation-copy-s3-prefix` command backed by the already locked boto3 dependency.
+  The command uses boto3's managed copy operation for objects above the single-copy size limit, preserves relative keys, verifies destination sizes, and reuses complete destination objects after an interrupted attempt.
+- Validation: all 59 project tests pass, including a fake-S3 contract for relative keys, multipart transfer configuration, destination verification, and idempotent reuse.
+- Next action: snapshot and push the correction, then resubmit the same bounded job with the exact pushed SHA.

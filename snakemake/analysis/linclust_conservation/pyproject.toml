@@ -24,6 +24,7 @@ linclust-conservation-write-controls = "marin_dna_linclust_conservation.cli.writ
 linclust-conservation-check-controls = "marin_dna_linclust_conservation.cli.check_controls:main"
 linclust-conservation-source-inventory = "marin_dna_linclust_conservation.cli.source_inventory:main"
 linclust-conservation-stage-genome = "marin_dna_linclust_conservation.cli.stage_genome:main"
+linclust-conservation-copy-s3-prefix = "marin_dna_linclust_conservation.cli.copy_s3_prefix:main"
 linclust-conservation-sample-genome = "marin_dna_linclust_conservation.cli.sample_genome:main"
 linclust-conservation-filter-alignments = "marin_dna_linclust_conservation.cli.filter_alignments:main"
 linclust-conservation-record-peak = "marin_dna_linclust_conservation.cli.record_peak:main"

@@ -66,4 +66,4 @@ def test_panel20_sky_task_reuses_tiles_under_current_config_hash() -> None:
 
     assert configuration_sha256(config) in sky_task
     assert "/runs/panel20-linclust-m64/" in sky_task
-    assert "aws s3 sync" in sky_task
+    assert "linclust-conservation-copy-s3-prefix" in sky_task
