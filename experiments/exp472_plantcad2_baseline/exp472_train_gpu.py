@@ -65,6 +65,7 @@ SOURCE_RESUME_STEP = SOURCE_CHECKPOINT_STEP + 1
 ADDITIONAL_TRAIN_STEPS = DEFAULT_TRAIN_STEPS
 TRAIN_STAGE = "s01"
 TRAIN_RECIPE_VERSION = "v1"
+TRAIN_ARTIFACT_VERSION = "2026.08.25"
 WANDB_ENTITY = "eric-czech"
 WANDB_PROJECT = "marin"
 WANDB_GROUP = f"exp472-plantcad2-baseline-train-{TRAIN_STAGE}"
@@ -424,7 +425,7 @@ def build_run(
             step,
             override_path=marin_temp_bucket(1, f"checkpoints/{shape.run_id}"),
         )
-    return _apply_training_overrides(
+    step = _apply_training_overrides(
         step,
         source=source,
         shape=shape,
@@ -434,6 +435,29 @@ def build_run(
         nodes=nodes,
         smoke=smoke,
     )
+    if _truthy_env("EXP472_FORCE_RERUN"):
+        if smoke:
+            raise ValueError("EXP472_FORCE_RERUN is only valid for production recovery")
+        if step.version != TRAIN_ARTIFACT_VERSION:
+            raise ValueError(
+                "forced production recovery requires artifact version "
+                f"{TRAIN_ARTIFACT_VERSION}, got {step.version}"
+            )
+        # A remote worker can fail after Marin has already observed a terminal
+        # success from Iris. In that case the immutable artifact status would
+        # prune the next recovery attempt. Mark only the driver step mutable so
+        # the runner rebuilds, while pinning output to the original production
+        # directory. This preserves W&B and checkpoint identity and does not
+        # overwrite the production artifact record.
+        step = replace(
+            step,
+            version="dev",
+            override_path=prefix_join(
+                EXPERIMENT_PREFIX,
+                f"checkpoints/{shape.run_id}/{TRAIN_ARTIFACT_VERSION}",
+            ),
+        )
+    return step
 
 
 @click.command(help=__doc__)
