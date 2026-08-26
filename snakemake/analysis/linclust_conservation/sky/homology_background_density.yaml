@@ -27,7 +27,12 @@ setup: |
   export PATH="$HOME/.local/bin:$PATH"
   test "$(uv --version | awk '{print $2}')" = "0.12.5"
   export PATH="$HOME/miniforge3/bin:$HOME/miniconda3/bin:$HOME/.local/bin:$PATH"
-  export CONDA_EXE="$(command -v conda)"
+  if [ -x "$HOME/miniforge3/bin/conda" ]; then
+    export CONDA_EXE="$HOME/miniforge3/bin/conda"
+  else
+    export CONDA_EXE="$HOME/miniconda3/bin/conda"
+  fi
+  test -x "$CONDA_EXE"
   "$CONDA_EXE" install --name base --yes conda=25.7.0
   test "$("$CONDA_EXE" --version | awk '{print $2}')" = "25.7.0"
   uv sync --project "$CHECKOUT/snakemake/analysis/linclust_conservation" --locked --group dev
@@ -35,7 +40,12 @@ setup: |
 run: |
   set -euxo pipefail
   export PATH="$HOME/miniforge3/bin:$HOME/miniconda3/bin:$HOME/.local/bin:$PATH"
-  export CONDA_EXE="$(command -v conda)"
+  if [ -x "$HOME/miniforge3/bin/conda" ]; then
+    export CONDA_EXE="$HOME/miniforge3/bin/conda"
+  else
+    export CONDA_EXE="$HOME/miniconda3/bin/conda"
+  fi
+  test -x "$CONDA_EXE"
   test -n "$PIPELINE_COMMIT_SHA"
   CHECKOUT="$HOME/marin-dna-checkout-$PIPELINE_COMMIT_SHA"
   test "$(git -C "$CHECKOUT" rev-parse HEAD)" = "$PIPELINE_COMMIT_SHA"
