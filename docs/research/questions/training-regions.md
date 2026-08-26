@@ -103,6 +103,6 @@ It should retain a background arm so gains on functional VEP can be weighed agai
 - Measure the footprint tradeoff across Mendelian and complex-trait VEP, region-matched likelihood gaps, frozen probes, and at least one outcome expected to benefit from neutral sequence.
 - Ablate the current 100-fold repeat downweighting across model and token scales while holding footprint and sampling fixed.
 - Compare conservation or whole-genome alignment with direct annotation, targeted local alignment, and learned single-sequence selection only after the target distribution and leakage contract are fixed.
-- Do not revisit symmetric clustering of independently tiled 255 or 511 bp whole genomes without materially new positional, syntenic, or candidate-representation evidence.
+- Do not revisit symmetric clustering of independently tiled 255 bp whole genomes without materially new positional, syntenic, or candidate-representation evidence; the bounded 511 bp projected-center diagnostic provides no reason to lengthen the window.
 
 </details>

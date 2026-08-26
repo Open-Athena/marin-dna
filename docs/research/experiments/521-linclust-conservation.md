@@ -1,7 +1,7 @@
 # Anchor-free clustering of mammalian genome windows
 
 > [!NOTE]
-> **TL;DR:** Symmetric clustering of independently tiled 255 or 511 bp mammalian genome windows did not provide a viable conservation selector: candidate generation missed many known homologs, exhaustive alignment exposed a separate short-window recovery ceiling, alternative seed graphs lost precision or recall, and monolithic Linclust crashed on the exact 298.5-million-window panel.
+> **TL;DR:** Symmetric clustering of independently tiled 255 bp mammalian genome windows, plus a bounded 511 bp projected-center diagnostic, did not provide a viable conservation selector: candidate generation missed many known homologs, the tested exhaustive MMseqs2 control still missed 28.1% of projected pairs, alternative seed graphs lost precision or recall, and monolithic Linclust crashed on the exact 298.5-million-window panel.
 
 ## Findings
 
@@ -13,6 +13,7 @@ Four independent hash shifts raised recall by only 1.3 percentage points for app
 The missed pairs were not solely a Linclust prefilter problem.
 An exhaustive no-prefilter graph recovered 71.9% of known pairs at 100% observed pair precision on the bounded 255 bp fixture, leaving 28.1% unrecovered even with only an E-value acceptance threshold.
 On the 123 anchors shared between window-length fixtures, the same exhaustive control recovered 71.3% of pairs at 255 bp but only 37.7% at 511 bp.
+The 511 bp experiment was limited to a 384-sequence projected-center diagnostic and did not tile whole genomes.
 Longer windows around a projected center therefore diluted rather than strengthened the homologous signal in this construction.
 
 The alternative scalable recipes did not yield a useful precision-recall tradeoff.
@@ -46,7 +47,7 @@ This refuted the expectation that clustering would approach the number of sequen
 The exhaustive controls separated candidate loss from accepted-alignment loss.
 Removing the k-mer prefilter raised recall from 35.4% to 46.6% at the original 0.50 identity and 0.80 coverage gate.
 Relaxing coverage raised it further, but only the E-value-only graph reached 71.9% recall, still with 100% observed precision.
-Changing minimum identity from 0.40 to 0.30 at 0.50 coverage changed no pairs, identifying coverage and short-window alignability rather than identity as the operative acceptance limits.
+Changing minimum identity from 0.40 to 0.30 at 0.50 coverage changed no pairs, identifying coverage rather than identity as the operative acceptance limit within this MMseqs2 control.
 
 The 20-genome run used exactly one selected assembly from each of 20 mammalian orders and all retained tiles from each assembly.
 Both paid full-panel attempts completed database creation before failing in `kmermatcher` seed-list generation.
@@ -57,7 +58,10 @@ The five on-demand panel attempts, including setup and workflow corrections, use
 - The truth fixture used projected human, mouse, and armadillo loci.
   It measures recovery of known homologous groups rather than direct classification of phyloP-defined conservation.
 - The bounded fixture contained 128 anchors, and five anchors had to be replaced in the 511 bp construction because expansion introduced ambiguity or majority-masked sequence.
+- The 511 bp experiment contained 384 projected-center sequences and did not tile or cluster whole genomes.
 - The independently sampled genomic background is appropriate for measuring collisions and singleton behavior but rarely includes the exact cross-species counterpart of a background window.
+- The 71.9% result is the observed recovery limit for MMseqs2 18.8cc5c no-prefilter search with E-value at most 0.001, masking, and set-cover clustering on one 128-anchor fixture.
+  No other aligner or looser E-value threshold was tested, so this is not a general ceiling for aligning 255 bp sequences.
 - The full 20-genome clustering did not complete, so the experiment produced no whole-panel cluster statistics or held-out human phyloP evaluation.
 - The scaling failure applies to MMseqs2 18.8cc5c and the tested monolithic nucleotide Linclust recipes.
   It does not establish that every sharded, distributed, or position-aware clustering algorithm must fail.
@@ -73,6 +77,3 @@ The five on-demand panel attempts, including setup and workflow corrections, use
 ## Research record
 
 - [Experiment issue #521](https://github.com/Open-Athena/marin-dna/issues/521)
-- [Complete standalone workflow at the final code snapshot](https://github.com/Open-Athena/marin-dna/tree/e02d1637dc41f886ffdc5dd071228314f2a58631/snakemake/analysis/linclust_conservation)
-- [Final append-only experiment logbook](https://github.com/Open-Athena/marin-dna/blob/efdd8e2b7c96230851d315cdbeaf1dd51fbb2fb1/.agents/logbooks/linclust-conservation.md)
-- [Commit-pinned code index and artifact disposition](https://github.com/Open-Athena/marin-dna/issues/521#issuecomment-5427008645)
