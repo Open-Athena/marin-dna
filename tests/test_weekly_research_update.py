@@ -94,43 +94,43 @@ def test_new_experiment_paths_uses_weekly_main_snapshots(tmp_path: Path) -> None
         tmp_path,
         "docs/research/experiments/100-existing.md",
         "# Existing\n\n> **TL;DR:** Old.\n",
-        "2026-08-16T20:00:00-04:00",
+        "2026-08-16T23:00:00+00:00",
     )
     commit_file(
         tmp_path,
         "docs/research/experiments/201-at-start.md",
         "# At start\n\n> **TL;DR:** At start.\n",
-        "2026-08-17T00:00:00-04:00",
+        "2026-08-17T00:00:00+00:00",
     )
     commit_file(
         tmp_path,
         "docs/research/experiments/200-new.md",
         "# New\n\n> **TL;DR:** New.\n",
-        "2026-08-18T12:00:00-04:00",
+        "2026-08-18T12:00:00+00:00",
     )
     commit_file(
         tmp_path,
         "docs/research/experiments/100-existing.md",
         "# Existing\n\n> **TL;DR:** Edited.\n",
-        "2026-08-19T12:00:00-04:00",
+        "2026-08-19T12:00:00+00:00",
     )
     commit_file(
         tmp_path,
         "docs/research/experiments/figures/200/plot.svg",
         "<svg />\n",
-        "2026-08-20T12:00:00-04:00",
+        "2026-08-20T12:00:00+00:00",
     )
     commit_file(
         tmp_path,
         "docs/research/experiments/299-at-end.md",
         "# At end\n\n> **TL;DR:** At end.\n",
-        "2026-08-24T00:00:00-04:00",
+        "2026-08-24T00:00:00+00:00",
     )
     commit_file(
         tmp_path,
         "docs/research/experiments/300-late.md",
         "# Late\n\n> **TL;DR:** Late.\n",
-        "2026-08-24T01:00:00-04:00",
+        "2026-08-24T01:00:00+00:00",
     )
 
     start, end = weekly.weekly_boundaries(date(2026, 8, 17))

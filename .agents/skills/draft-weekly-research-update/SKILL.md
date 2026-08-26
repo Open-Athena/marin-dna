@@ -10,7 +10,7 @@ Do not summarize or reinterpret the research.
 
 ## Selection Contract
 
-- Run on Monday at 08:00 in `America/New_York` for the preceding Monday-through-Sunday local-time window.
+- Run on Monday at 08:00 in `America/New_York` for the preceding Monday-through-Sunday UTC window.
 - Fetch `origin/main` before selecting files.
 - Include every Markdown file first added under `docs/research/experiments/` between the two weekly boundary snapshots on `origin/main`.
 - Do not include modified existing experiment pages, issues, pull requests, infrastructure work, bugs, or research-question pages.

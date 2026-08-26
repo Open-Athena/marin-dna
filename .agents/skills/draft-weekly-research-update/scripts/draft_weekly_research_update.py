@@ -16,7 +16,7 @@ EXPERIMENTS_DIR = PurePosixPath("docs/research/experiments")
 TITLE_RE = re.compile(r"^#\s+(.+?)\s*$")
 TLDR_RE = re.compile(r"^>\s*\*\*TL;DR:\*\*\s*(.*)$")
 EXPERIMENT_NUMBER_RE = re.compile(r"^(\d+)-")
-REPORT_TIMEZONE = ZoneInfo("America/New_York")
+REPORT_TIMEZONE = ZoneInfo("UTC")
 
 
 @dataclass(frozen=True)
@@ -41,7 +41,7 @@ def run_git(repo_root: Path, *args: str) -> str:
 
 
 def weekly_boundaries(week_start: date) -> tuple[datetime, datetime]:
-    """Return the inclusive start and exclusive end of a New York week."""
+    """Return the inclusive start and exclusive end of a UTC week."""
 
     if week_start.weekday() != 0:
         raise ValueError(f"Week start must be a Monday: {week_start.isoformat()}")
