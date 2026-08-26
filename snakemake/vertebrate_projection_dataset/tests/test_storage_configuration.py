@@ -103,3 +103,43 @@ def test_gpn_star_profile_is_pinned_additive_and_ec2_only() -> None:
     assert "--profile workflow/profiles/default" in worker
     assert 'tests|all|all_projection)' in worker
     assert "uv run --locked pytest" in worker
+
+
+def test_gpn_star_publication_is_source_pinned_and_upload_gated() -> None:
+    config = yaml.safe_load(
+        (PROJECT_ROOT / "config/gpn_star_p_publication.yaml").read_text()
+    )
+    snakefile = (PROJECT_ROOT / "workflow/gpn_star_publication.Snakefile").read_text()
+    common = (
+        PROJECT_ROOT / "workflow/rules/gpn_star_publication_common.smk"
+    ).read_text()
+    rules = (PROJECT_ROOT / "workflow/rules/gpn_star_publication.smk").read_text()
+    worker = (PROJECT_ROOT / "sky/gpn_star_hf.yaml").read_text()
+
+    assert config["source_pipeline_commit"] == (
+        "65b7806ea56a270124c9973af0366f5ab412c665"
+    )
+    assert config["source_config_sha256"] == (
+        "28cb7786197945ef1798c3581873e4b3d68b7bf91189a59585b0dcabcad7a5e4"
+    )
+    assert config["source_rows"] == 167_607_189
+    assert sum(config["source_arm_rows"].values()) == config["source_rows"]
+    assert config["region_cohorts"] == [
+        "cds",
+        "utr3",
+        "tss_region_and_utr5",
+        "ncrna_exon",
+        "enhancer",
+        "background",
+    ]
+    assert len(set(config["hf_repo_names"].values())) == 6
+    assert config["validation_rows"] == 16_384
+    assert config["add_rc"] is True
+    assert 'include: "rules/gpn_star_publication.smk"' in snakefile
+    assert "SOURCE_PRODUCER_MANIFEST" in common
+    assert "validate_producer_manifest" in rules
+    assert "gpn_hf_upload_dataset" in rules
+    assert 'ALLOW_HF_UPLOAD: "0"' in worker
+    assert 'test "$ALLOW_HF_UPLOAD" = "1"' in worker
+    assert "workflow/gpn_star_publication.Snakefile" in worker
+    assert "r6i.8xlarge" in worker
