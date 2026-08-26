@@ -52,12 +52,13 @@ def weekly_boundaries(week_start: date) -> tuple[datetime, datetime]:
 def commit_before(repo_root: Path, ref: str, boundary: datetime) -> str:
     """Resolve the last first-parent commit before a time boundary."""
 
+    latest_included = boundary - timedelta(seconds=1)
     commit = run_git(
         repo_root,
         "rev-list",
         "-1",
         "--first-parent",
-        f"--before={boundary.isoformat()}",
+        f"--before={latest_included.isoformat()}",
         ref,
     ).strip()
     if not commit:

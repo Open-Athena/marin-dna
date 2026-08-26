@@ -98,6 +98,12 @@ def test_new_experiment_paths_uses_weekly_main_snapshots(tmp_path: Path) -> None
     )
     commit_file(
         tmp_path,
+        "docs/research/experiments/201-at-start.md",
+        "# At start\n\n> **TL;DR:** At start.\n",
+        "2026-08-17T00:00:00-04:00",
+    )
+    commit_file(
+        tmp_path,
         "docs/research/experiments/200-new.md",
         "# New\n\n> **TL;DR:** New.\n",
         "2026-08-18T12:00:00-04:00",
@@ -116,6 +122,12 @@ def test_new_experiment_paths_uses_weekly_main_snapshots(tmp_path: Path) -> None
     )
     commit_file(
         tmp_path,
+        "docs/research/experiments/299-at-end.md",
+        "# At end\n\n> **TL;DR:** At end.\n",
+        "2026-08-24T00:00:00-04:00",
+    )
+    commit_file(
+        tmp_path,
         "docs/research/experiments/300-late.md",
         "# Late\n\n> **TL;DR:** Late.\n",
         "2026-08-24T01:00:00-04:00",
@@ -124,7 +136,10 @@ def test_new_experiment_paths_uses_weekly_main_snapshots(tmp_path: Path) -> None
     start, end = weekly.weekly_boundaries(date(2026, 8, 17))
     end_commit, paths = weekly.new_experiment_paths(tmp_path, "HEAD", start, end)
 
-    assert paths == ["docs/research/experiments/200-new.md"]
+    assert paths == [
+        "docs/research/experiments/200-new.md",
+        "docs/research/experiments/201-at-start.md",
+    ]
     assert (
         weekly.read_page_at_commit(tmp_path, end_commit, paths[0])
         == "# New\n\n> **TL;DR:** New.\n"
