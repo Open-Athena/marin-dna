@@ -1,4 +1,4 @@
-"""Write truth-set metrics for one bounded Linclust configuration."""
+"""Write truth-set metrics for one bounded MMseqs2 clustering configuration."""
 
 from __future__ import annotations
 
@@ -20,6 +20,7 @@ def main() -> None:
     parser.add_argument("--mmseqs-version", type=Path, required=True)
     parser.add_argument("--pipeline-commit", required=True)
     parser.add_argument("--pipeline-config-sha256", required=True)
+    parser.add_argument("--run-kind", default="projected_homology_linclust_tuning")
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
 
@@ -34,7 +35,7 @@ def main() -> None:
             "mmseqs_version": args.mmseqs_version.read_text().strip(),
             "pipeline_commit": args.pipeline_commit,
             "pipeline_config_sha256": args.pipeline_config_sha256,
-            "run_kind": "projected_homology_linclust_tuning",
+            "run_kind": args.run_kind,
         }
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)

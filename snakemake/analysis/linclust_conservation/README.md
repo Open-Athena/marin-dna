@@ -202,6 +202,21 @@ Its bounded diagnostic grid varies nucleotide k-mer scale, spaced k-mers, maskin
 Linclust's mandatory alignment and a direct alignment of only the retained cluster edges run on this small fixture; no genome-scale representative-to-all search is launched.
 The receipt reports cluster count relative to the 512-anchor ideal, exact three-species anchor recovery, true-pair recall, and false cross-anchor merges.
 
+The follow-up target holds that truth fixture fixed and replaces Linclust candidate generation with the more sensitive MMseqs2 clustering workflow:
+
+```bash
+uv run --locked snakemake \
+  --snakefile workflow/Snakefile \
+  --configfile config/homology_search_clustering.yaml \
+  --profile workflow/profiles/default \
+  search_cluster_homology
+```
+
+The four bounded variants compare cascaded and single-step clustering, greedy set cover and connected components, and one relaxed single-step threshold.
+Every variant uses sensitivity 7.5, permits all 1,536 prefilter results per query, and aligns only the resulting representative-member edges for diagnostics.
+The committed SkyPilot task uses a two-core, 16 GiB `r7i.large` because the nucleotide search prefilter exceeds the shared development node's local memory budget even for the small fixture.
+Its outputs use the separate `s3://oa-bolinas/snakemake/analysis/linclust_conservation/runs/homology-search-clustering/` prefix.
+
 A 511 bp window with stride 128 remains a useful later geometry test because its worst grid-phase overlap is 447/511 (87.5%), above the current 80% coverage threshold.
 The current projection artifacts contain only 255 bp sequences, so the 511 bp whole-genome run is deferred until the clustering recipe shows adequate recovery on the bounded truth set.
 

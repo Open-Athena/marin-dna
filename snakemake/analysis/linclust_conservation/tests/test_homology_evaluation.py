@@ -1,5 +1,9 @@
+import json
+import sys
 from pathlib import Path
 
+import pytest
+from marin_dna_linclust_conservation.cli.evaluate_homology_clusters import main
 from marin_dna_linclust_conservation.homology_evaluation import (
     evaluate_homology_clusters,
 )
@@ -62,3 +66,53 @@ def test_homology_evaluation_measures_pair_recall(tmp_path: Path) -> None:
     assert result["impure_cluster_count"] == 0
     assert result["false_clustered_pair_count"] == 0
     assert result["aligned_true_representative_member_edges"] == 3
+
+
+def test_evaluation_cli_records_explicit_run_kind(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    truth = tmp_path / "truth.tsv"
+    truth.write_text(
+        "anchor_index\tquery_name\trecord_id\tsource_label\tspecies\tassembly\t"
+        "region_label\tsource_chrom\tsource_start\tsource_end\n"
+        "0\tq0\ta0h\th\thuman\thg\tcds\tchr1\t0\t255\n"
+        "0\tq0\ta0m\tm\tmouse\tmm\tcds\tchr1\t0\t255\n"
+    )
+    assignments = tmp_path / "clusters.tsv"
+    assignments.write_text("a0h\ta0h\na0h\ta0m\n")
+    alignments = tmp_path / "alignments.tsv"
+    alignments.write_text(_alignment("a0h", "a0h") + _alignment("a0h", "a0m", 0.8))
+    version = tmp_path / "version.txt"
+    version.write_text("18.8cc5c\n")
+    output = tmp_path / "receipt.json"
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "evaluate",
+            "--truth",
+            str(truth),
+            "--assignments",
+            str(assignments),
+            "--alignments",
+            str(alignments),
+            "--configuration",
+            '{"workflow":"single_step"}',
+            "--mmseqs-version",
+            str(version),
+            "--pipeline-commit",
+            "abc",
+            "--pipeline-config-sha256",
+            "def",
+            "--run-kind",
+            "projected_homology_search_clustering",
+            "--output",
+            str(output),
+        ],
+    )
+
+    main()
+
+    receipt = json.loads(output.read_text())
+    assert receipt["run_kind"] == "projected_homology_search_clustering"
+    assert receipt["mmseqs_configuration"] == {"workflow": "single_step"}
