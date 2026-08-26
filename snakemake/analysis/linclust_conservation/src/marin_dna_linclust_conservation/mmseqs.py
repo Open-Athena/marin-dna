@@ -1,9 +1,10 @@
-"""Parse MMseqs2 Linclust assignments and representative-member alignments."""
+"""Parse, validate, and combine MMseqs2 clustering outputs."""
 
 from __future__ import annotations
 
 from collections.abc import Iterable
 from pathlib import Path
+from typing import TextIO
 
 import polars as pl
 
@@ -129,6 +130,115 @@ def parse_cluster_assignments(path: str | Path) -> pl.DataFrame:
         f"clusters lack one self row: {sorted(missing_self_rows)[:10]}"
     )
     return assignments
+
+
+def _iter_assignment_rows(handle: TextIO) -> Iterable[tuple[str, str]]:
+    for line_number, line in enumerate(handle, start=1):
+        fields = line.rstrip("\n").split("\t")
+        assert len(fields) == 2 and all(fields), (
+            f"invalid cluster assignment at line {line_number}"
+        )
+        yield fields[0], fields[1]
+
+
+def merge_cluster_assignments(
+    *,
+    assignment_paths: Iterable[str | Path],
+    output_path: str | Path,
+) -> dict[str, object]:
+    """Union several complete partitions into deterministic components.
+
+    Every representative-member relation is treated as an undirected edge.
+    Input files are streamed, while the member universe and union-find state use
+    memory linear in the number of sequences.
+    """
+    paths = [Path(path) for path in assignment_paths]
+    assert len(paths) >= 2, "an ensemble requires at least two assignments"
+
+    parent: dict[str, str] = {}
+    member_order: list[str] = []
+
+    def find(member: str) -> str:
+        root = member
+        while parent[root] != root:
+            root = parent[root]
+        while parent[member] != member:
+            next_member = parent[member]
+            parent[member] = root
+            member = next_member
+        return root
+
+    def union(left: str, right: str) -> None:
+        left_root = find(left)
+        right_root = find(right)
+        if left_root == right_root:
+            return
+        canonical, other = sorted((left_root, right_root))
+        parent[other] = canonical
+
+    input_receipts: list[dict[str, int]] = []
+    universe: set[str] | None = None
+    for index, path in enumerate(paths):
+        seen_members: set[str] = set()
+        representatives: set[str] = set()
+        self_representatives: set[str] = set()
+        with path.open() as handle:
+            for representative, member in _iter_assignment_rows(handle):
+                assert member not in seen_members, (
+                    f"member {member!r} occurs more than once in {path}"
+                )
+                seen_members.add(member)
+                representatives.add(representative)
+                if representative == member:
+                    self_representatives.add(representative)
+                if index == 0:
+                    parent[member] = member
+                    member_order.append(member)
+                else:
+                    assert universe is not None
+                    assert member in universe, f"unexpected member {member!r} in {path}"
+
+        if index == 0:
+            assert seen_members, "cluster assignment TSV is empty"
+            universe = seen_members
+        else:
+            assert seen_members == universe, (
+                f"assignment member universe differs in {path}"
+            )
+        assert representatives.issubset(seen_members), (
+            f"every representative in {path} must be a member"
+        )
+        assert representatives == self_representatives, (
+            f"every cluster in {path} must contain one representative self row"
+        )
+
+        with path.open() as handle:
+            for representative, member in _iter_assignment_rows(handle):
+                union(representative, member)
+        input_receipts.append(
+            {
+                "cluster_count": len(representatives),
+                "edge_count": len(seen_members) - len(representatives),
+                "sequence_count": len(seen_members),
+            }
+        )
+
+    output = Path(output_path)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    roots: set[str] = set()
+    with output.open("w") as handle:
+        for member in member_order:
+            root = find(member)
+            roots.add(root)
+            handle.write(f"{root}\t{member}\n")
+
+    return {
+        "algorithm": "union_find_connected_components",
+        "input_assignment_count": len(paths),
+        "input_assignments": input_receipts,
+        "output_cluster_count": len(roots),
+        "sequence_count": len(member_order),
+    }
 
 
 def parse_alignments(path: str | Path) -> pl.DataFrame:

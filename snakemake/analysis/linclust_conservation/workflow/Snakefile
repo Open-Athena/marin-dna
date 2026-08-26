@@ -101,6 +101,17 @@ BACKGROUND_SAMPLES = {
 BACKGROUND_SAMPLE_NAMES = sorted(BACKGROUND_SAMPLES, key=int)
 BACKGROUND_VARIANTS = BACKGROUND_SCALING_CONFIG.get("variants", {})
 BACKGROUND_VARIANT_NAMES = sorted(BACKGROUND_VARIANTS)
+BACKGROUND_ENSEMBLE_CONFIG = BACKGROUND_SCALING_CONFIG.get("ensemble", {})
+BACKGROUND_ENSEMBLE_VARIANTS = BACKGROUND_ENSEMBLE_CONFIG.get("variants", [])
+BACKGROUND_ENSEMBLE_ENABLED = bool(BACKGROUND_ENSEMBLE_VARIANTS)
+assert set(BACKGROUND_ENSEMBLE_VARIANTS).issubset(BACKGROUND_VARIANT_NAMES)
+BACKGROUND_SUMMARY_VARIANT_NAMES = [
+    *BACKGROUND_VARIANT_NAMES,
+    *(["ensemble"] if BACKGROUND_ENSEMBLE_ENABLED else []),
+]
+BACKGROUND_SUMMARY_RECEIPT_BASE = BACKGROUND_SCALING_CONFIG.get(
+    "summary_receipt_base", BACKGROUND_SCALING
+)
 
 SELECTION_PATH = config.get("selection_path", "config/assembly_selection.tsv")
 SOURCE_REUSE_PATH = "config/source_reuse_inventory.tsv"
@@ -921,12 +932,82 @@ rule evaluate_background_scaling_linclust:
         "--output {output:q}"
 
 
+rule merge_background_scaling_ensemble:
+    input:
+        assignments=lambda wc: expand(
+            f"{BACKGROUND_SCALING}/{{sample}}/{{variant}}/clusters.tsv",
+            sample=wc.sample,
+            variant=BACKGROUND_ENSEMBLE_VARIANTS,
+        ),
+        resources=lambda wc: expand(
+            f"{BACKGROUND_SCALING}/{{sample}}/{{variant}}/resources.txt",
+            sample=wc.sample,
+            variant=BACKGROUND_ENSEMBLE_VARIANTS,
+        ),
+        versions=lambda wc: expand(
+            f"{BACKGROUND_SCALING}/{{sample}}/{{variant}}/mmseqs_version.txt",
+            sample=wc.sample,
+            variant=BACKGROUND_ENSEMBLE_VARIANTS,
+        ),
+    output:
+        assignments=f"{BACKGROUND_SCALING}/{{sample}}/ensemble/clusters.tsv",
+        resources=f"{BACKGROUND_SCALING}/{{sample}}/ensemble/resources.txt",
+        version=f"{BACKGROUND_SCALING}/{{sample}}/ensemble/mmseqs_version.txt",
+        receipt=f"{BACKGROUND_SCALING}/{{sample}}/ensemble/merge_receipt.json",
+    wildcard_constraints:
+        sample="|".join(BACKGROUND_SAMPLE_NAMES) or "(?!)",
+    shell:
+        "linclust-conservation-merge-cluster-assignments "
+        "--assignments {input.assignments:q} "
+        "--resources {input.resources:q} "
+        "--versions {input.versions:q} "
+        "--output-assignments {output.assignments:q} "
+        "--output-resources {output.resources:q} "
+        "--output-version {output.version:q} "
+        "--output-receipt {output.receipt:q}"
+
+
+rule evaluate_background_scaling_ensemble:
+    input:
+        truth=f"{HOMOLOGY_TUNING}/fixture/truth.tsv",
+        assignments=f"{BACKGROUND_SCALING}/{{sample}}/ensemble/clusters.tsv",
+        fixture_receipt=f"{BACKGROUND_SCALING}/{{sample}}/fixture/receipt.json",
+        resources=f"{BACKGROUND_SCALING}/{{sample}}/ensemble/resources.txt",
+        version=f"{BACKGROUND_SCALING}/{{sample}}/ensemble/mmseqs_version.txt",
+        merge_receipt=(f"{BACKGROUND_SCALING}/{{sample}}/ensemble/merge_receipt.json"),
+    output:
+        f"{BACKGROUND_SCALING}/{{sample}}/ensemble/receipt.json",
+    wildcard_constraints:
+        sample="|".join(BACKGROUND_SAMPLE_NAMES) or "(?!)",
+    params:
+        configuration=json.dumps(
+            {
+                **MMSEQS,
+                **BACKGROUND_ENSEMBLE_CONFIG.get("configuration", {}),
+                "ensemble_variants": BACKGROUND_ENSEMBLE_VARIANTS,
+            },
+            sort_keys=True,
+        ),
+        pipeline_commit=PIPELINE_COMMIT,
+        pipeline_config_sha256=PIPELINE_CONFIG_SHA256,
+    shell:
+        "linclust-conservation-evaluate-background-scaling "
+        "--truth {input.truth:q} --assignments {input.assignments:q} "
+        "--fixture-receipt {input.fixture_receipt:q} "
+        "--resources {input.resources:q} "
+        "--configuration {params.configuration:q} "
+        "--mmseqs-version {input.version:q} "
+        "--pipeline-commit {params.pipeline_commit:q} "
+        "--pipeline-config-sha256 {params.pipeline_config_sha256:q} "
+        "--output {output:q}"
+
+
 rule summarize_background_scaling:
     input:
         expand(
-            f"{BACKGROUND_SCALING}/{{sample}}/{{variant}}/receipt.json",
+            f"{BACKGROUND_SUMMARY_RECEIPT_BASE}/{{sample}}/{{variant}}/receipt.json",
             sample=BACKGROUND_SAMPLE_NAMES,
-            variant=BACKGROUND_VARIANT_NAMES,
+            variant=BACKGROUND_SUMMARY_VARIANT_NAMES,
         ),
     output:
         json=f"{BACKGROUND_SCALING}/summary.json",
@@ -935,7 +1016,7 @@ rule summarize_background_scaling:
         labels = [
             (sample, variant)
             for sample in BACKGROUND_SAMPLE_NAMES
-            for variant in BACKGROUND_VARIANT_NAMES
+            for variant in BACKGROUND_SUMMARY_VARIANT_NAMES
         ]
         rows = summarize_background_scaling_receipts(
             receipt_paths=input,
@@ -965,6 +1046,12 @@ rule summarize_background_scaling:
 
 
 rule background_scaling:
+    input:
+        f"{BACKGROUND_SCALING}/summary.json",
+        f"{BACKGROUND_SCALING}/summary.tsv",
+
+
+rule background_ensemble:
     input:
         f"{BACKGROUND_SCALING}/summary.json",
         f"{BACKGROUND_SCALING}/summary.tsv",

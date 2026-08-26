@@ -280,6 +280,21 @@ The configured backgrounds contain 100,000, 1,000,000, and 5,000,000 real tiles.
 Receipts distinguish truth-to-truth false merges from truth clusters contaminated by unrelated genomic tiles and record total clustering time, CPU time, peak RSS, cluster count, and singleton fraction.
 Outputs use the separate `s3://oa-bolinas/snakemake/analysis/linclust_conservation/runs/homology-background-scaling/` prefix.
 
+The hash-shift ensemble keeps automatic scale-aware k-mer selection and repeats the linear Linclust pass under four deterministic hash shifts:
+
+```bash
+uv run --locked snakemake \
+  --snakefile workflow/Snakefile \
+  --configfile config/homology_background_ensemble.yaml \
+  --profile workflow/profiles/default \
+  background_ensemble
+```
+
+The target tests 1,000,000 and 5,000,000 real-tile backgrounds.
+It streams each complete representative-member partition into a linear-memory union-find and evaluates the resulting connected components against the same truth and decoy contracts.
+Its reported runtime is the sum of all constituent MMseqs2 stages; merge work is recorded separately and does not masquerade as MMseqs2 time.
+Outputs use the new `s3://oa-bolinas/snakemake/analysis/linclust_conservation/runs/homology-background-ensemble/` prefix.
+
 ## Current outputs
 
 The default target writes:

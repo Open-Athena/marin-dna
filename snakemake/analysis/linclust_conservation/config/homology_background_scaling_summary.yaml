@@ -1,0 +1,13 @@
+pipeline_version: v1
+
+background_scaling:
+  summary_receipt_base: results/v1/2732c8847a666b27a9a4dec47a5027bb257259fb/dba172739b490b90a1d032bfd65d9002a926ad2dcb2b311a15d772d5708054bb/background_scaling
+  samples:
+    "100000": {}
+    "1000000": {}
+    "5000000": {}
+  variants:
+    auto: {}
+    k13: {}
+    k11: {}
+    k9: {}

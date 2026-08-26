@@ -7,11 +7,53 @@ import pytest
 from marin_dna_linclust_conservation.mmseqs import (
     cluster_membership_features,
     filter_cluster_alignments,
+    merge_cluster_assignments,
     parse_alignments,
     parse_cluster_assignments,
     validate_alignment_coverage,
     validate_score_features,
 )
+
+
+def test_merge_cluster_assignments_unions_transitive_edges_deterministically(
+    tmp_path: Path,
+) -> None:
+    first = tmp_path / "first.tsv"
+    first.write_text("b\tb\nb\ta\nc\tc\nd\td\n")
+    second = tmp_path / "second.tsv"
+    second.write_text("a\ta\na\tc\nb\tb\nd\td\n")
+    output = tmp_path / "ensemble.tsv"
+
+    receipt = merge_cluster_assignments(
+        assignment_paths=[first, second],
+        output_path=output,
+    )
+
+    assert output.read_text().splitlines() == [
+        "a\tb",
+        "a\ta",
+        "a\tc",
+        "d\td",
+    ]
+    assert receipt["sequence_count"] == 4
+    assert receipt["output_cluster_count"] == 2
+    parsed = parse_cluster_assignments(output)
+    assert parsed["representative"].n_unique() == 2
+
+
+def test_merge_cluster_assignments_rejects_a_different_member_universe(
+    tmp_path: Path,
+) -> None:
+    first = tmp_path / "first.tsv"
+    first.write_text("a\ta\nb\tb\n")
+    second = tmp_path / "second.tsv"
+    second.write_text("a\ta\nc\tc\n")
+
+    with pytest.raises(AssertionError, match="unexpected member"):
+        merge_cluster_assignments(
+            assignment_paths=[first, second],
+            output_path=tmp_path / "ensemble.tsv",
+        )
 
 
 def test_parse_cluster_assignments_requires_one_self_row_per_cluster(
