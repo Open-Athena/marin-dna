@@ -96,10 +96,30 @@ def new_experiment_paths(
         if status != "A" or not separator:
             continue
         path = PurePosixPath(raw_path)
-        if path.parent == EXPERIMENTS_DIR and path.suffix == ".md":
+        if (
+            path.parent == EXPERIMENTS_DIR
+            and path.suffix == ".md"
+            and not path_was_previously_added(repo_root, start_commit, raw_path)
+        ):
             paths.append(raw_path)
 
     return end_commit, sorted(paths, key=experiment_sort_key)
+
+
+def path_was_previously_added(repo_root: Path, commit: str, path: str) -> bool:
+    """Return whether a path was added anywhere in the snapshot's ancestry."""
+
+    additions = run_git(
+        repo_root,
+        "log",
+        "--first-parent",
+        "--diff-filter=A",
+        "--format=%H",
+        commit,
+        "--",
+        path,
+    )
+    return bool(additions.strip())
 
 
 def experiment_sort_key(path: str) -> tuple[int, int | str]:

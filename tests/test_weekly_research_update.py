@@ -146,6 +146,30 @@ def test_new_experiment_paths_uses_weekly_main_snapshots(tmp_path: Path) -> None
     )
 
 
+def test_new_experiment_paths_excludes_restored_page(tmp_path: Path) -> None:
+    run_git(tmp_path, "init", "--initial-branch=main")
+    run_git(tmp_path, "config", "user.name", "Test User")
+    run_git(tmp_path, "config", "user.email", "test@example.com")
+
+    path = "docs/research/experiments/100-restored.md"
+    content = "# Restored\n\n> **TL;DR:** Already announced.\n"
+    commit_file(tmp_path, path, content, "2026-08-10T12:00:00+00:00")
+    run_git(tmp_path, "rm", path)
+    run_git(
+        tmp_path,
+        "commit",
+        "-m",
+        "Remove experiment page",
+        commit_date="2026-08-16T12:00:00+00:00",
+    )
+    commit_file(tmp_path, path, content, "2026-08-18T12:00:00+00:00")
+
+    start, end = weekly.weekly_boundaries(date(2026, 8, 17))
+    _, paths = weekly.new_experiment_paths(tmp_path, "HEAD", start, end)
+
+    assert paths == []
+
+
 def test_format_draft_no_content_and_links_canonical_page() -> None:
     pages = [
         weekly.ExperimentPage(
