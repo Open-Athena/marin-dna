@@ -211,7 +211,7 @@ def format_draft(
         url = canonical_page_url(repository_url, branch, page.path)
         blocks.append(
             f"**[{page.title} (#{page.issue_number})]({url})**\n\n"
-            f"{page.tldr}\n\n{BLURB_PLACEHOLDER}"
+            f"{BLURB_PLACEHOLDER}\n\n{page.tldr}"
         )
     return "\n\n".join(blocks) + "\n"
 

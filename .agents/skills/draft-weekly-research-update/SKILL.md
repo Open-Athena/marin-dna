@@ -19,7 +19,7 @@ Do not summarize or reinterpret the research.
 ## Draft Contract
 
 - Sort pages by the leading experiment number in the filename.
-- Add a visible `Blurb` placeholder after each experiment's copied TL;DR for a human to replace before publishing; do not generate the blurb.
+- Add a visible `Blurb` placeholder after each experiment title and before its copied TL;DR for a human to replace before publishing; do not generate the blurb.
 - Append the originating issue number from the filename to each title, as `Title (#123)`, inside the same link to the canonical page on `main`.
 - Copy the text from the page's `> **TL;DR:**` callout without rewriting it.
 - Do not add an overview, synthesis, author credit, interpretation, supporting-artifact link, or future-work section.
