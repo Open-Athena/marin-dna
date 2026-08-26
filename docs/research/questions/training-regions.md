@@ -1,7 +1,7 @@
 # Which genomic regions to train on, and how to find them?
 
 > [!NOTE]
-> **TL;DR:** Targeted or conservation-selected corpora often improve functional prediction at current scales, and absolute loss or entropy can proxy conservation; hard loss-ranked token selection failed in one shallow CDS continuation, while same-lineage teacher distillation outperformed uniform once and repeat downweighting remains untested.
+> **TL;DR:** Targeted or conservation-selected corpora often improve functional prediction at current scales, and absolute loss or entropy can proxy conservation; hard loss-ranked token selection and anchor-free clustering of short mammalian genome windows both failed as practical selectors, while same-lineage teacher distillation outperformed uniform once and repeat downweighting remains untested.
 
 ## Question
 
@@ -30,6 +30,11 @@ Across the [conservation-predictability](../experiments/478-conservation-repeat-
 The [online loss-selection experiment](../experiments/515-online-loss-selection.md) found that this predictive signal did not transfer to hard selection: current-student loss halves and a frozen teacher's low-loss half harmed Mendelian missense-plus-splicing prediction in one shallow animal-CDS continuation.
 Full-distribution distillation from the final same-lineage checkpoint outperformed uniform CE within the paired run, but used privileged later-lineage supervision and more compute.
 With one seed, the result argues against hard half-token ranking in this setting but does not support a default-objective change.
+
+The [anchor-free clustering experiment](../experiments/521-linclust-conservation.md) did not recover a viable conservation selector from independently tiled mammalian genomes.
+On a projected three-species control in a five-million-window background, the best scalable Linclust recipe recovered 54.9% of known pairs at 99.1% strict precision, while an exhaustive no-prefilter control still recovered only 71.9%.
+Extending windows from 255 to 511 bp reduced matched-anchor exhaustive recall, alternative seed and graph recipes traded away precision or recall, and monolithic Linclust segfaulted on the exact 298.5-million-window 20-genome panel.
+This argues against further tuning of unordered short-window clustering for this purpose, while leaving targeted local alignment and methods with positional, syntenic, or anchor evidence as distinct directions.
 
 The leading hypothesis is that increasing the density of constrained or correctly annotated sequence improves functional-VEP sample efficiency at fixed compute.
 Whole-genome data may become more useful at larger scale, under weighting that prevents easy background from dominating, or for mutation-process, repeat, phylogeny, and regional-context tasks.
@@ -84,6 +89,8 @@ It should retain a background arm so gains on functional VEP can be weighed agai
   The trajectory groups differed in conservation and functional-region composition, but remain descriptive and do not establish a training benefit.
 - [Online loss selection and teacher distillation for CDS continuation](../experiments/515-online-loss-selection.md) compared seven objective forks from one exp58 animal-CDS bridge.
   All four loss-ranked half-token objectives harmed Mendelian missense-plus-splicing AUPRC, while pure final-checkpoint teacher KL beat uniform CE at step 200 within the paired evaluation records; one seed, privileged later-lineage supervision, and unmatched per-step compute limit the inference.
+- [Anchor-free clustering of mammalian genome windows](../experiments/521-linclust-conservation.md) tested Linclust, exhaustive alignment controls, longer windows, hash ensembles, denser seeds, DECIPHER, and a source-aware seed graph against projected homology.
+  The tested symmetric short-window recipes missed too many known pairs or admitted too many genomic decoys, and monolithic Linclust failed at the exact 20-genome scale, so this path was stopped without a phyloP selector or training run.
 
 </details>
 
@@ -95,6 +102,7 @@ It should retain a background arm so gains on functional VEP can be weighed agai
 - Test terminal loss or entropy, target-distribution reducible loss, and same-corpus scale-differential loss as distinct selectors; control for repeats, GC, local predictability, training exposure, and homology density.
 - Measure the footprint tradeoff across Mendelian and complex-trait VEP, region-matched likelihood gaps, frozen probes, and at least one outcome expected to benefit from neutral sequence.
 - Ablate the current 100-fold repeat downweighting across model and token scales while holding footprint and sampling fixed.
-- Compare conservation or whole-genome alignment with direct annotation, cheap local alignment, and learned single-sequence selection only after the target distribution and leakage contract are fixed.
+- Compare conservation or whole-genome alignment with direct annotation, targeted local alignment, and learned single-sequence selection only after the target distribution and leakage contract are fixed.
+- Do not revisit symmetric clustering of independently tiled 255 or 511 bp whole genomes without materially new positional, syntenic, or candidate-representation evidence.
 
 </details>
