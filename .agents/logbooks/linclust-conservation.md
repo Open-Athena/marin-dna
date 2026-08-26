@@ -474,9 +474,50 @@ The sparse singleton results update confidence in the sampling design, not in th
 ### 2026-08-26 01:02 UTC - LINC-CONS-015 exhaustive threshold-frontier design
 
 - Hypothesis: The remaining missed projected homologs are predominantly below the current 70% bidirectional coverage threshold rather than below 40% identity, so lowering coverage should improve recall before cross-anchor merges damage purity.
+- Commit Hash: [`c6489dce`](https://github.com/Open-Athena/marin-dna/commit/c6489dced976f11c59cba275c250006aca981379)
 - Minimum experiment: on the deterministic 128-anchor, 384-sequence fixture, run no-prefilter set-cover clustering at 0.40 identity with coverage 0.70, 0.60, and 0.50; then lower identity to 0.35 and 0.30 at 0.50 coverage, test 0.30 identity / 0.30 coverage, and finish with the existing E-value threshold as the only acceptance filter.
 - Baseline/control: reproduce the 0.40 identity / 0.70 coverage result from LINC-CONS-014 in the new commit-addressed namespace.
 - Expected signal: a monotonic recall gain with a visible precision knee identifies the least permissive useful threshold.
 - Falsifier: recall remains far below one even for the E-value-only graph, or improved recall occurs only through broad impure merges.
 - Cost/risk: at most 147,456 directed alignments per variant; the preceding exhaustive search took less than one second and 23 MiB RSS per variant on `r7i.large`.
+- Validation: 44 project tests passed; the new 17-job dry-run and all scoped pre-commit hooks passed.
 - Next action: add the exact Snakemake configuration and a separate SkyPilot/S3 run namespace, validate and snapshot it, then launch one bounded worker.
+
+### 2026-08-26 01:08 UTC - LINC-CONS-016 exhaustive threshold-frontier result
+
+- Hypothesis: Lowering bidirectional coverage will improve recall before lower identity becomes relevant or impure cross-anchor merges appear.
+- Commit Hash: [`c6489dce`](https://github.com/Open-Athena/marin-dna/commit/c6489dced976f11c59cba275c250006aca981379)
+- Commands: launched SkyPilot job 1 on `linclust-cons-threshold-frontier`, which ran 44 tests, the 17-job dry-run, and `exhaustive_graph_homology` on AWS `r7i.large` in `us-east-2`; after all artifacts uploaded, `sky down -y linclust-cons-threshold-frontier` terminated the worker.
+- Config: configuration SHA-256 `6f9c7edff869d3cfb93509ce9091f165eefd4aac71cd691d3fba8b6c885610a1`; the same 128-anchor, 384-sequence fixture; MMseqs2 18.8cc5c; no k-mer prefilter; set-cover clustering; E-value 0.001; and identity/coverage thresholds from 0.40/0.70 through an E-value-only endpoint.
+
+| Threshold | Clusters / ideal 128 | Complete anchors | True-pair recall | Pair precision | Impure clusters |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| identity 0.40 / coverage 0.70 | 241 / 1.883x | 55 / 43.0% | 198 / 51.6% | 100% | 0 |
+| 0.40 / 0.60 | 223 / 1.742x | 65 / 50.8% | 226 / 58.9% | 100% | 0 |
+| 0.40 / 0.50 | 211 / 1.648x | 72 / 56.2% | 245 / 63.8% | 100% | 0 |
+| 0.35 / 0.50 | 211 / 1.648x | 72 / 56.2% | 245 / 63.8% | 100% | 0 |
+| 0.30 / 0.50 | 211 / 1.648x | 72 / 56.2% | 245 / 63.8% | 100% | 0 |
+| 0.30 / 0.30 | 194 / 1.516x | 83 / 64.8% | 273 / 71.1% | 100% | 0 |
+| E-value 0.001 only | 192 / 1.500x | 84 / 65.6% | 276 / 71.9% | 100% | 0 |
+
+- Artifacts: `s3://oa-bolinas/snakemake/analysis/linclust_conservation/runs/homology-exhaustive-frontier/results/v1/c6489dced976f11c59cba275c250006aca981379/6f9c7edff869d3cfb93509ce9091f165eefd4aac71cd691d3fba8b6c885610a1/` contains the fixture, assignments, retained-edge alignments, receipts, resource records, and summaries.
+- Interpretation: the hypothesis is supported for coverage and falsified for identity in the measured range.
+  Lowering coverage from 0.70 to 0.50 gains 12.2 percentage points of recall, while lowering identity from 0.40 to 0.30 at 0.50 coverage changes nothing.
+  The E-value-only graph still misses 28.1% of true pairs and produces 1.5 times the ideal cluster count despite perfect observed purity.
+  The 255 bp representation therefore has an alignability ceiling in addition to candidate-generation loss.
+- Communication: posted the sensitive-search, exhaustive-graph, and threshold-frontier metrics, S3 paths, commits, run details, conclusion, and next action to issue #521 at https://github.com/Open-Athena/marin-dna/issues/521#issuecomment-5419212244 and re-fetched the stored comment.
+- Next action: extract 511 bp windows around the exact same projected centers from the three compatible cached 2bit genomes, then compare the previous best Linclust recipe with fixed-threshold and E-value-only exhaustive controls.
+
+### 2026-08-26 01:16 UTC - LINC-CONS-017 bounded 511 bp geometry design
+
+- Hypothesis: Extending each projected-center window from 255 to 511 bp will improve both k-mer candidate discovery and the exhaustive alignment ceiling without introducing cross-anchor merges.
+- Data lineage: reuse the exact human, mouse, and armadillo projection Parquets and the companion `hg38`, `Mus_musculus`, and `Dasypus_novemcinctus` 2bit genomes from the immutable issue #417 staging namespace.
+  The projection contract maps a one- or two-base orthologous center and pads adjacent target-genome sequence, so the 511 bp fixture can be produced by re-centering each accepted target interval without rerunning HAL.
+- Coordinate contract: preserve 0-based half-open target coordinates; use each row's pre-resize projected midpoint; require each 511 bp interval to remain within its recorded target sequence size; pass BED6 to pinned UCSC `twoBitToFa` 482 so negative-strand sequences are reverse complemented into human-anchor orientation.
+- Fixture: select from the same deterministic 1,024-anchor prefix under the original 255 bp cleanliness gate, extract all eligible 511 bp candidates, filter ambiguous or majority-lowercase expanded sequences, retain 128 complete three-species groups, and report how many match the original clean 128-anchor prefix.
+- Candidate comparison: run the frozen Linclust baseline, the previous best spaced-k-mer/scale-0.5 recipe, and a spaced-k-mer/scale-1.0 arm.
+- Alignment ceiling: compare sensitivity-7.5 k-mer search, no-prefilter 0.50/0.80 and 0.40/0.70 graphs, and an E-value-only no-prefilter graph.
+- Expected signal: lower clusters-per-ideal and higher exact-anchor and true-pair recovery than the matched 255 bp controls while pair precision remains at least 95%.
+- Falsifier: 511 bp fails to improve candidate or exhaustive recall, or gains arise only through impure cross-anchor merges.
+- Cost/risk: one bounded 384-sequence run; source download is approximately 2.85 GB of immutable in-region inputs, outputs use a new namespace, and no whole-genome clustering is authorized by this design.
+- Next action: implement and unit-test the expanded-center fixture builder, validate the combined Snakemake DAG, snapshot it, and run it on one `r7i.large`.

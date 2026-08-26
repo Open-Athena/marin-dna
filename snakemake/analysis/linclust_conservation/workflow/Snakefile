@@ -44,6 +44,8 @@ HOMOLOGY_MAX_ANCHORS = int(HOMOLOGY_FIXTURE.get("max_anchors", 256))
 HOMOLOGY_CANDIDATE_ANCHORS = int(
     HOMOLOGY_FIXTURE.get("candidate_anchors", HOMOLOGY_MAX_ANCHORS * 8)
 )
+HOMOLOGY_SEQUENCE_MODE = HOMOLOGY_FIXTURE.get("sequence_mode", "embedded")
+HOMOLOGY_SELECTION_WINDOW_LENGTH = HOMOLOGY_FIXTURE.get("selection_window_length")
 TUNING_VARIANTS = config.get("tuning", {}).get(
     "variants",
     {
@@ -627,15 +629,24 @@ rule build_homology_fixture:
         fasta=f"{HOMOLOGY_TUNING}/fixture/windows.fasta",
         truth=f"{HOMOLOGY_TUNING}/fixture/truth.tsv",
         receipt=f"{HOMOLOGY_TUNING}/fixture/receipt.json",
+    conda:
+        "envs/genome_tools.yaml"
     params:
         sources=json.dumps(HOMOLOGY_SOURCES, sort_keys=True),
         max_anchors=HOMOLOGY_MAX_ANCHORS,
         candidate_anchors=HOMOLOGY_CANDIDATE_ANCHORS,
+        sequence_mode=HOMOLOGY_SEQUENCE_MODE,
+        selection_window=(
+            f"--selection-window-length {HOMOLOGY_SELECTION_WINDOW_LENGTH}"
+            if HOMOLOGY_SELECTION_WINDOW_LENGTH is not None
+            else ""
+        ),
         window_length=int(config["window"]["length"]),
     shell:
         "linclust-conservation-build-homology-fixture "
         "--sources {params.sources:q} --max-anchors {params.max_anchors} "
         "--candidate-anchors {params.candidate_anchors} "
+        "--sequence-mode {params.sequence_mode:q} {params.selection_window} "
         "--window-length {params.window_length} --fasta {output.fasta:q} "
         "--truth {output.truth:q} --receipt {output.receipt:q}"
 

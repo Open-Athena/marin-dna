@@ -244,8 +244,20 @@ uv run --locked snakemake \
 Seven no-prefilter set-cover variants span 0.40 identity / 0.70 coverage through 0.30 / 0.30, followed by an E-value-only control.
 The control reproduces the preceding relaxed result in a new commit-addressed namespace, and outputs use the separate `s3://oa-bolinas/snakemake/analysis/linclust_conservation/runs/homology-exhaustive-frontier/` prefix.
 
-A 511 bp window with stride 128 remains a useful later geometry test because its worst grid-phase overlap is 447/511 (87.5%), above the current 80% coverage threshold.
-The current projection artifacts contain only 255 bp sequences, so the 511 bp whole-genome run is deferred until the clustering recipe shows adequate recovery on the bounded truth set.
+The bounded 511 bp target reuses the same projected centers and compatible cached 2bit genomes without rerunning HAL:
+
+```bash
+uv run --locked snakemake \
+  --snakefile workflow/Snakefile \
+  --configfile config/homology_window511.yaml \
+  --profile workflow/profiles/default \
+  tune_homology exhaustive_graph_homology
+```
+
+It expands the accepted target-center intervals to 511 bp with 0-based half-open coordinates, extracts strand-aware soft-masked sequence with pinned UCSC `twoBitToFa` 482, and retains 128 complete clean groups.
+Three Linclust recipes measure candidate discovery, while sensitivity-7.5 and no-prefilter graphs measure the alignment ceiling.
+Its outputs use the separate `s3://oa-bolinas/snakemake/analysis/linclust_conservation/runs/homology-window511/` prefix.
+A 511 bp whole-genome run remains deferred until this bounded comparison shows adequate recovery.
 
 ## Current outputs
 
