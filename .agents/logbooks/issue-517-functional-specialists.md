@@ -566,3 +566,62 @@ Its current anchor path instead creates uniform conservation-selected windows an
   It is a heterogeneous `GPN-constrained but unassigned` arm that may contain unannotated functional sequence and rejected regulatory windows.
 - Status: Human decision recorded in issue #517.
 - Next action: Implement a versioned exhaustive six-arm assignment table, then report the six arm counts, exact catalog reconciliation, disjointness, and chromosome composition on EC2 before projection.
+
+### 2026-08-25 21:44 UTC - `FAS-517-019` GPN-Star-P full catalog and six-arm assignment
+
+- Execution: The additive `workflow/gpn_star.Snakefile` full catalog completed on the retained `c6id.12xlarge` EC2 worker under producer commit `65b7806ea56a270124c9973af0366f5ab412c665` and config SHA-256 `28cb7786197945ef1798c3581873e4b3d68b7bf91189a59585b0dcabcad7a5e4`.
+  The locked EC2 test suite passed 251 tests, and the resumed execution graph contained no scoring jobs after reusing the 24 checksum-validated score shards whose producer code and immutable inputs were unchanged by the audit fix.
+- Threshold audit: The strict full-genome results reproduce 22,948,560 uniform windows, 2,421,580 windows with at least 26 passing bases, and 1,627,410 windows with at least 51 passing bases.
+  The projection universe is therefore exactly the windows passing the agreed 20% GPN conservation filter.
+- Source-count clarification: The strict cutoff selects 109,564,133 unique GPN source bases.
+  Those bases contribute 218,273,080 observations when summed over the overlapping 255 bp / 128 bp-stride grid windows.
+  The previous aggregation failure came from treating the observation count as a unique-position assertion, and the corrected workflow now gates both quantities independently.
+- Exhaustive arm counts: The catalog assigns 306,369 CDS, 99,802 3-prime UTR, 74,691 protein-coding TSS/5-prime UTR, 98,789 ncRNA exon, 653,017 issue-326 Arm A enhancer, and 394,742 background windows.
+  All six arms are nonempty, mutually exclusive, and sum exactly to 1,627,410.
+- Background decomposition: The background complement contains 321,123 v4-background windows and 73,619 cCRE-labelled windows rejected by Arm A.
+  No window outside the 20%-filtered universe is assigned.
+- Durable storage: The commit/config-keyed catalog, assignments, threshold audit, assignment audit, and producer manifest are stored below `s3://oa-bolinas/snakemake/vertebrate_projection_dataset/results/gpn-star-p-uniform-v1/65b7806ea56a270124c9973af0366f5ab412c665/28cb7786197945ef1798c3581873e4b3d68b7bf91189a59585b0dcabcad7a5e4/full/`.
+- Reporting: The result and next execution gate were posted at https://github.com/Open-Athena/marin-dna/issues/517#issuecomment-5417208531.
+- Next action: Complete the chr18 four-windows-per-arm HAL/MultiZ smoke projection and inspect its QC before launching the full 135-target projection.
+
+### 2026-08-25 22:38 UTC - `FAS-517-020` chr18 projection smoke gate and full launch
+
+- Smoke completion: The chr18 `all_projection` smoke workflow completed all 76 jobs under producer commit `65b7806ea56a270124c9973af0366f5ab412c665` and smoke config SHA-256 `722734369b5b4eb6e362472fe28bc82da878e379a3c32fdcdb1d7b7f224bf24d`.
+  Its 24 anchors contain exactly four windows from each of the six arms, and every anchor satisfies the agreed at-least-51-of-255 GPN gate; the minimum observed count was 53 selected bases.
+- Smoke projection contract: The smoke requested two Zoonomia/HAL mammals and five UCSC MultiZ non-mammals in addition to the human reference.
+  The combined artifact has 93 unique query/species rows: 24 human-reference rows and 69 accepted non-human projections from 168 requests.
+  All sequences and target spans are 255 bp, all coordinates are 0-based half-open and in bounds, all strings pass IUPAC validation, and there are no duplicate query/species pairs.
+- Smoke recovery: The other 99 requests are `no_mapping`; no projection-contract or sequence-extraction rejection was observed.
+  Accepted non-human projections by arm were 9 background, 20 CDS, 8 enhancer, 14 ncRNA exon, 7 TSS/5-prime UTR, and 11 3-prime UTR.
+  Every arm recovered at least three of four anchors in a non-human species, and all four background anchors recovered.
+- Inspection: The deterministic manual-inspection sidecar contains three rows per arm and includes both strands and both projection backends.
+  Its sequence, coordinate, IUPAC, and extraction-orientation prechecks passed.
+  The common 1-of-255 alignment-coverage display is expected because the contract uniquely projects the central human nucleotide and then extracts the centered target-genome window.
+- HAL staging: The immutable 1,262,706,573,453-byte Zoonomia HAL is resident on the EC2 NVMe array and passed the workflow's size and genome-compatibility checks.
+  It is reused by the full run without another S3 transfer.
+- Reporting: The smoke gate was posted at https://github.com/Open-Athena/marin-dna/issues/517#issuecomment-5417760838.
+- Full dry-run: The full `all_projection` DAG passed with 1,645 jobs and schedules no GPN scoring, tiling, catalog aggregation, or arm assignment.
+  It consumes the durable 1,627,410-window catalog and expands to 107 HAL mammals plus 28 MultiZ non-mammals, or 219,700,350 non-human projection requests.
+- Full launch: SkyPilot job 13 started successfully on the retained `c6id.12xlarge` worker, using full config SHA-256 `28cb7786197945ef1798c3581873e4b3d68b7bf91189a59585b0dcabcad7a5e4` and the existing canonical S3 result prefix.
+  The launch was posted at https://github.com/Open-Athena/marin-dna/issues/517#issuecomment-5417805367.
+- Next action: Monitor the full backend/species milestones, preserve resumability and NVMe capacity, then inspect the final combined sequence and QC artifacts before stopping the worker.
+
+### 2026-08-26 00:39 UTC - `FAS-517-021` full projection completion and exhaustive audit
+
+- Completion: SkyPilot job 13 completed all 1,645 jobs successfully under producer commit `65b7806ea56a270124c9973af0366f5ab412c665` and full config SHA-256 `28cb7786197945ef1798c3581873e4b3d68b7bf91189a59585b0dcabcad7a5e4`.
+  End-to-end runtime was 1 hour 45 minutes 17 seconds, from 2026-08-25 22:36:02 UTC to 2026-08-26 00:21:19 UTC.
+- HAL measurement: The full run made exactly 107 batched `halLiftover` invocations with no retries.
+  The first invocation began at 22:37:29 UTC and the last completed at 23:18:59 UTC, a 41-minute-30-second HAL interval.
+  Linear scaling by the 14.10-fold unfiltered-to-filtered window ratio gives a 9-hour-45-minute and $23.60 point estimate on the same node, with an 8–12-hour / $19–29 planning range.
+- Output: The combined table contains 167,607,189 rows: 1,627,410 human references, 154,654,979 accepted HAL projections, and 11,324,800 accepted MultiZ projections.
+  Accepted non-human output is 165,979,779 rows across all 135 target species.
+- Exact accounting: `165,979,779 accepted + 52,947,632 no mapping + 726,471 target window out of bounds + 46,468 target chromosome too short = 219,700,350 requests`.
+- Exhaustive audit: A bounded-memory EC2 scan covered all 1,970 row groups and all 167,607,189 rows.
+  It confirmed unique query/species keys, the exact 136-species set including human, 255 bp source and output spans, target bounds, valid IUPAC strings, valid strands, catalog/assignment/request parity, and every per-anchor and aggregate reconciliation.
+  The 18-row deterministic inspection sample contains three rows per arm and covers both backends and both strands; all automated prechecks pass, while biological/browser review remains pending human review.
+- ZRS caveat: The conservation-filtered GPN catalog intentionally excludes the two ZRS anchors, and neither the GPN full namespace nor the chr18 smoke namespace contains the separate ZRS sidecar referenced by the generated inspection report.
+  This is recorded as an outstanding QC-coverage/reporting caveat rather than a projection-accounting failure.
+- Durable audit: The exact audit summary is stored at `qc/final_audit_summary.json` under the canonical full result prefix with SHA-256 `246cc85fdba7bfbc7ca13b7fd99f79f677cfc7b7f4d45429215a0e3d21790a34`.
+- Follow-up: Issue https://github.com/Open-Athena/marin-dna/issues/523 tracks a separate benchmark of projecting all 22,948,560 uniform windows before conservation filtering, including format, compression, streaming, disk, and downstream-stage optimization before a larger-run approval request.
+- Reporting: The completed run and final audit were posted at https://github.com/Open-Athena/marin-dna/issues/517#issuecomment-5418953835.
+- Next action: Commit and publish this append-only result record, then terminate the retained EC2 worker after verifying the durable S3 audit object.
