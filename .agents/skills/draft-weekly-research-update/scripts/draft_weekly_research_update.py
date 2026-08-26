@@ -19,8 +19,8 @@ TLDR_RE = re.compile(r"^>\s*\*\*TL;DR:\*\*\s*(.*)$")
 EXPERIMENT_NUMBER_RE = re.compile(r"^(\d+)-")
 REPORT_TIMEZONE = ZoneInfo("UTC")
 BLURB_PLACEHOLDER = (
-    "> **Blurb:** _Add a short human-written note about this experiment before "
-    "publishing._"
+    "> **Blurb (replace with contributor name):** _Add a short human-written note "
+    "about this experiment before publishing._"
 )
 
 

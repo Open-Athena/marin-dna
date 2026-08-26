@@ -228,8 +228,8 @@ def test_format_draft_no_content_and_links_canonical_page() -> None:
         "# MarinDNA research updates — week of August 17, 2026\n\n"
         "**[Second result (#20)](https://github.com/Open-Athena/marin-dna/blob/main/"
         "docs/research/experiments/20-second.md)**\n\n"
-        "> **Blurb:** _Add a short human-written note about this experiment before "
-        "publishing._\n\n"
+        "> **Blurb (replace with contributor name):** _Add a short human-written "
+        "note about this experiment before publishing._\n\n"
         "A result.\n"
     )
 
