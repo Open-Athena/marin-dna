@@ -10,7 +10,7 @@ Do not summarize or reinterpret the research.
 
 ## Selection Contract
 
-- Run on Monday at 08:00 in `America/New_York` for the preceding Monday-through-Sunday UTC window.
+- Select the preceding Monday-through-Sunday UTC window.
 - Fetch `origin/main` before selecting files.
 - Include every Markdown file first added under `docs/research/experiments/` between the two weekly boundary snapshots on `origin/main`.
 - Do not include modified existing experiment pages, issues, pull requests, infrastructure work, bugs, or research-question pages.
@@ -24,11 +24,10 @@ Do not summarize or reinterpret the research.
 - Do not add an overview, synthesis, author credit, interpretation, supporting-artifact link, or future-work section.
 - Keep the voice neutral by preserving the canonical TL;DR text.
 - Produce a reviewable draft only.
-- Do not publish to Discord, X, GitHub, or another external destination.
 
 ## Generate The Draft
 
-From the repository root, fetch `main` and run the deterministic extractor with the previous Monday's date:
+From the repository root, fetch `main` and run the deterministic extractor with the reporting week's Monday date:
 
 ```bash
 git fetch origin main
