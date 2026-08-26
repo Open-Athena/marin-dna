@@ -733,3 +733,52 @@ The sparse singleton results update confidence in the sampling design, not in th
 - Cost/risk: five candidate-only 100,000-background arms, each hard-capped at 20 minutes, on one approved `r7i.4xlarge`; no sequence alignment and a separate `homology-background-seed-graph` S3 namespace.
 - Validation: 53 project tests passed and the 14-job credential-free dry-run succeeded.
 - Next action: snapshot and push the exact target, launch one EC2 worker, inspect every completed arm before considering any larger scale, and terminate the worker after the durable summary lands.
+
+### 2026-08-26 05:14 UTC - LINC-CONS-024 repeat-capped species-aware seed-graph result
+
+- Hypothesis: repeat caps and source-unique components will retain short-seed sensitivity while avoiding both representative dilution and giant mixed components.
+- Commits: [`8ee311ed`](https://github.com/Open-Athena/marin-dna/commit/8ee311ede108f9f93b6b43063fb3826923f5a11c) implemented the graph; [`aa5f89e0`](https://github.com/Open-Athena/marin-dna/commit/aa5f89e0f570ffe76bc37183f4234337e9c2bd4b) made the fresh-worker Conda setup reproducible; [`9f9aee5a`](https://github.com/Open-Athena/marin-dna/commit/9f9aee5a2aae5b0a07461b994b5d8b100ec321f4) refined the repeat caps and seed lengths; and [`e860986c`](https://github.com/Open-Athena/marin-dna/commit/e860986cd86fe43026ad8db57eb97cefe8f77cd1) scaled the best 100,000-background arm to one million.
+- Configs: initial SHA-256 `eb748c96deca704580cb58a119aa44240e3a2d092130892d61a5e12cc9ba0ed0`; refinement SHA-256 `1de6a571dc11a2324b6eb6a0fed4bf91a60a2bde8d0d60cb01efdf9447caaff1`; scaling SHA-256 `d3bc2ddff5f94e4753062541cd7daf00d9f2ccafb9406ebdb8f3758de6746d62`.
+- Execution: three successful SkyPilot jobs ran on AWS `r7i.4xlarge` in `us-east-2`; every component contained at most one record from each of the four effective source labels, no alignment was performed, and each worker was terminated after its durable summary landed.
+
+| Background | Variant | Candidate recall | Graph recall | Strict precision | Exact anchors | Decoy contamination | Wall time | Peak RSS |
+| ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 100,000 | k13, 128 seeds, cap 32, support 2 | 87.8% | 74.7% | 37.9% | 18.0% | 75.8% | 32.04 s | 1.63 GiB |
+| 100,000 | k17, 148 seeds, cap 8, support 1 | 76.8% | 73.7% | 56.0% | 41.4% | 38.5% | 31.54 s | 1.64 GiB |
+| 100,000 | k17, 239 seeds, cap 2, support 1 | 31.0% | 35.7% | 62.0% | 19.5% | 13.8% | 35.76 s | 2.67 GiB |
+| 100,000 | k17, 239 seeds, cap 8, support 2 | 75.0% | 72.1% | 66.4% | 49.2% | 25.5% | 35.77 s | 2.71 GiB |
+| 100,000 | k19, 237 seeds, cap 8, support 1 | 71.4% | 69.8% | 76.4% | 53.9% | 15.1% | 35.43 s | 2.71 GiB |
+| 1,000,000 | k19, 237 seeds, cap 8, support 1 | 71.4% | 70.1% | 50.9% | 33.6% | 45.6% | 362.39 s | 25.6 GiB |
+
+- Negative controls: the 100,000-background k9/support-2 arm recovered no true pairs, while the k13 and k15 arms contaminated at least 75.3% of truth records.
+  Increasing k17 density from 148 to 239 seeds raised candidate recall but also raised truth-decoy competition unless support or repeat caps became strict enough to erase much of the truth signal.
+- Artifacts: the initial sweep is at `s3://oa-bolinas/snakemake/analysis/linclust_conservation/runs/homology-background-seed-graph/results/v1/aa5f89e0f570ffe76bc37183f4234337e9c2bd4b/eb748c96deca704580cb58a119aa44240e3a2d092130892d61a5e12cc9ba0ed0/`.
+  The refinement is at `s3://oa-bolinas/snakemake/analysis/linclust_conservation/runs/homology-background-seed-graph-refinement/results/v1/9f9aee5a2aae5b0a07461b994b5d8b100ec321f4/1de6a571dc11a2324b6eb6a0fed4bf91a60a2bde8d0d60cb01efdf9447caaff1/`.
+  The one-million scaling arm is at `s3://oa-bolinas/snakemake/analysis/linclust_conservation/runs/homology-background-seed-graph-scaling/results/v1/e860986cd86fe43026ad8db57eb97cefe8f77cd1/d3bc2ddff5f94e4753062541cd7daf00d9f2ccafb9406ebdb8f3758de6746d62/`.
+- Interpretation: the graph implementation has approximately linear runtime and memory, and its source-set invariant prevents giant components.
+  The scientific hypothesis is nevertheless falsified because weak exact-seed links increasingly replace true partners with genomic decoys as the background grows.
+  The promising 100,000-background exact-anchor result does not survive one-million-background competition.
+- Next action: align only the graph pairs in truth-containing one-million-background components to test whether verification can remove decoys without erasing the candidate-recall gain.
+
+### 2026-08-26 05:25 UTC - LINC-CONS-025 bounded seed-graph alignment diagnostic
+
+- Hypothesis: exhaustive nucleotide alignment of the small set of graph pairs in truth-containing components will remove seed-only decoys while retaining enough true pairs to beat the 54.9% Linclust recall baseline.
+- Commit: [`1167295a`](https://github.com/Open-Athena/marin-dna/commit/1167295ae01ae842572aae64314b9f45fed1fe42).
+- Config: configuration SHA-256 `aee07d35701d33142b728fbb54ab3fa8a81f9338558eee53a4f188f0abe79f7d`; exact one-million-background k19 graph inputs; MMseqs2 18.8cc5c no-filter nucleotide search; and E-value-only, 0.40 identity/0.70 coverage, or 0.50 identity/0.80 coverage gates.
+- Scope: streaming the one-million assignment table selected 496 records in 185 truth-containing components.
+  Those components contained 269 true pairs, 13 false truth-to-truth pairs, 214 truth-decoy pairs, and 33 background-background pairs.
+  Only this 496-record subset was aligned.
+
+| Alignment gate | Global truth recall | Graph true-pair retention | Truth-decoy retention | Retained-pair precision |
+| --- | ---: | ---: | ---: | ---: |
+| E-value <= 0.001 | 52.3% | 74.7% | 0.0% | 100.0% |
+| identity >= 0.40, coverage >= 0.70, E-value <= 0.001 | 41.1% | 58.7% | 0.0% | 100.0% |
+| identity >= 0.50, coverage >= 0.80, E-value <= 0.001 | 37.2% | 53.2% | 0.0% | 100.0% |
+
+- Resources: the 496-record MMseqs2 diagnostic took 0.44 seconds wall time, 1.42 CPU seconds, and 22,016 KiB peak RSS on an AWS `r7i.2xlarge`; the worker was terminated immediately after success.
+- Artifacts: `s3://oa-bolinas/snakemake/analysis/linclust_conservation/runs/homology-seed-alignment-diagnostic/results/v1/1167295ae01ae842572aae64314b9f45fed1fe42/aee07d35701d33142b728fbb54ab3fa8a81f9338558eee53a4f188f0abe79f7d/` contains the selected FASTA, labeled graph pairs, alignments, resource record, version, and evaluation receipt.
+- Interpretation: alignment verification perfectly removes false and decoy graph pairs in this diagnostic, but even the E-value-only gate lowers global recall to 52.3%, below the 54.9% Linclust baseline.
+  The hypothesis is falsified, and adding the intended coverage gate makes the deficit larger.
+  The scalable architecture remains attractive—sparse candidate generation followed by bounded verification—but this exact-seed candidate generator does not provide a useful recall/precision frontier.
+- Next action: stop tuning this recipe.
+  Further work should start from a different source of candidate evidence, such as positional or syntenic context, rather than more short-seed hashes, denser sampling, or broader alignment.

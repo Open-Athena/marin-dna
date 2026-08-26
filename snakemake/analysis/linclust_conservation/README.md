@@ -341,8 +341,27 @@ uv run --locked snakemake \
 
 It selects canonical seeds deterministically, removes every seed bucket above a fixed document-frequency cap, emits only cross-genome candidate pairs, and requires configured shared-seed support.
 Greedy components may contain at most one record from each source genome, including after accession-to-species aliasing of the injected truth records.
-The first target compares 9-, 13-, 15-, and 17-mer candidates on 100,000 real background tiles and performs no sequence alignment.
-Outputs use the separate `s3://oa-bolinas/snakemake/analysis/linclust_conservation/runs/homology-background-seed-graph/` prefix.
+The initial target compared 9-, 13-, 15-, and 17-mer candidates on 100,000 real background tiles and performed no sequence alignment.
+A refinement found that a 19-mer graph with all 237 seeds, frequency cap 8, and one-seed support recovered 69.8% of truth pairs and 53.9% of exact anchors at 100,000 backgrounds, but strict precision was only 76.4%.
+At one million backgrounds, recall remained 70.1% while exact-anchor recovery fell to 33.6%, strict precision fell to 50.9%, and truth-decoy contamination rose to 45.6%.
+Runtime and peak memory scaled approximately linearly from 35.4 seconds and 2.71 GiB to 362 seconds and 25.6 GiB, so the implementation scales but the seed-only evidence does not remain specific.
+Outputs use separate `homology-background-seed-graph`, `homology-background-seed-graph-refinement`, and `homology-background-seed-graph-scaling` S3 prefixes.
+
+The bounded alignment diagnostic tests only graph pairs from truth-containing one-million-background components:
+
+```bash
+uv run --locked snakemake \
+  --snakefile workflow/Snakefile \
+  --configfile config/homology_seed_alignment_diagnostic.yaml \
+  --profile workflow/profiles/default \
+  seed_alignment_diagnostic
+```
+
+The diagnostic selected 496 records from the million-sequence partition and aligned them exhaustively in 0.44 seconds.
+An E-value threshold of 0.001 rejected every labeled false or decoy graph pair but retained only 52.3% of all truth pairs, below the 54.9% Linclust baseline.
+Adding the 0.40 identity and 0.70 coverage gate lowered recall to 41.1%.
+This seed graph is therefore useful as evidence that sparse candidate generation plus verification can be computationally cheap, but not as a replacement clustering recipe.
+Diagnostic outputs use the separate `s3://oa-bolinas/snakemake/analysis/linclust_conservation/runs/homology-seed-alignment-diagnostic/` prefix.
 
 ## Current outputs
 
