@@ -680,3 +680,14 @@ Its current anchor path instead creates uniform conservation-selected windows an
   Checkpoint/resume remains enabled, and the almost ninefold cross-arm effective-epoch disparity from `FAS-517-022` remains a mandatory interpretation caveat.
 - Evaluation boundary: No held-out VEP data was read or registered for this launch.
 - Next action: Snapshot the tested pinned launcher, run its plan preflight, submit all six independent Iris jobs, and confirm that each coordinator accepts the immutable input graph.
+
+### 2026-08-26 02:24 UTC - `FAS-517-024` graph preflight credential finding
+
+- Preflight: The commit-pinned CDS plan resolved both expected artifacts and the exact immutable Hub revision without starting either step.
+- Finding: Marin's `train_lm(..., env_vars=...)` includes that mapping in the durable artifact fingerprint.
+  Passing `WANDB_API_KEY` through this mapping therefore serialized the credential into plan output, even though Sky had delivered it to the coordinator through a redacted secret channel.
+- Containment: No Iris training job was submitted and no TPU was allocated.
+  The launcher now requires the credential in the coordinator process but excludes its value from the artifact configuration; Fray's environment constructor inherits it only when the coordinator submits the TPU worker.
+  A regression assertion rejects the credential name and test value in the resolved training pod.
+- Authentication gate: The first credential-free Iris presence probe reached the Marin controller but was rejected because the EC2 host lacked application-default IAP credentials.
+  Resolve the already-authorized unattended Iris authentication path before rerunning the sanitized graph preflight.

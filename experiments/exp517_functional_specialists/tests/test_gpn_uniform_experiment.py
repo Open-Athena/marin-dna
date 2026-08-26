@@ -134,6 +134,8 @@ def test_gpn_fixed_specialist_recipe(monkeypatch) -> None:
     )
     assert len(step.deps) == 1
     assert all("s3://" not in repr(dep) for dep in step.deps)
+    assert "WANDB_API_KEY" not in pod.env_vars
+    assert "test-key" not in repr(pod)
     assert "gpn-star-p" in training_tags(arm)
     assert "uniform-grid" in training_tags(arm)
     assert f"hf_revision={'a' * 40}" in training_tags(arm)

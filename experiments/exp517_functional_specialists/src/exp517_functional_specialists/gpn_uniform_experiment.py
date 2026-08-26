@@ -201,13 +201,16 @@ def build_training(arm: GpnUniformArm) -> ArtifactStep[LevanterCheckpoint]:
     """Build one independently resumable GPN uniform-grid training artifact."""
     cache = tokenized_dataset(arm)
     run_id = f"dna-exp517-gpn-uniform-0p25b-{arm.key}-v1"
+    # Iris passes this credential to the coordinator process, and Fray inherits it
+    # when the coordinator submits the TPU worker.  Do not add the value to
+    # ``env_vars`` below: that mapping is part of the durable artifact fingerprint.
+    required_env("WANDB_API_KEY")
     tpu_region = selected_tpu_region()
     tpu_variants = selected_tpu_variants(tpu_region)
     tpu_ram = selected_tpu_ram()
     tpu_preemptible = selected_tpu_preemptible()
     marin_prefix = validated_marin_prefix(tpu_region)
     forwarded_env = {
-        "WANDB_API_KEY": required_env("WANDB_API_KEY"),
         "WANDB_ENTITY": required_env("WANDB_ENTITY"),
         "WANDB_PROJECT": required_env("WANDB_PROJECT"),
         "MARIN_PREFIX": marin_prefix,
