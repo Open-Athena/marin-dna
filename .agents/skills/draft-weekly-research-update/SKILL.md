@@ -22,7 +22,7 @@ Do not summarize or reinterpret the research.
 - Add a visible `Blurb (replace with contributor name)` placeholder after each experiment title and before its copied TL;DR; the human contributor replaces the bold label with their name and writes the blurb before publishing.
 - Append the originating issue number from the filename to each title, as `Title (#123)`, inside the same link to the canonical page on `main`.
 - Copy the text from the page's `> **TL;DR:**` callout without rewriting it.
-- Do not add an overview, synthesis, author credit, interpretation, supporting-artifact link, or future-work section.
+- Do not add an overview, synthesis, interpretation, supporting-artifact link, or future-work section.
 - Keep the voice neutral by preserving the canonical TL;DR text.
 - Produce a reviewable draft as a temporary Markdown file.
 
