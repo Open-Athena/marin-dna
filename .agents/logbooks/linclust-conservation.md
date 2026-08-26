@@ -904,3 +904,15 @@ The sparse singleton results update confidence in the sampling design, not in th
 - Decision: stop seed-density retries against one monolithic MMseqs database.
   Preserve the exact panel inputs for a future design that partitions the sequence-ID space and adds explicit cross-shard reconciliation, or replace Linclust candidate generation.
 - Next action: publish the negative result and durable inputs to issue #521, then design the smallest truth-backed sharding experiment before any further paid full-panel run.
+
+### 2026-08-26 14:44 UTC - LINC-CONS-034 final negative disposition and artifact deletion
+
+- Disposition: stop this investigation.
+  The combined results do not support further tuning or scaling of anchor-free symmetric clustering over overlapping short mammalian genome windows as a conservation-selection recipe.
+- Evidence: bounded projected-homology controls found a candidate-generation recall limit and a separate 255 bp alignability ceiling; 511 bp windows reduced exhaustive true-pair recall; hash ensembles, denser seed sampling, DECIPHER clustering, and a source-aware seed graph did not produce a useful precision-recall tradeoff; and both 148-seed and 64-seed monolithic Linclust runs segfaulted at 298,524,220 sequences.
+- Durable record: all experiment code, configurations, manifests, environments, tests, SkyPilot definitions, and the append-only logbook are preserved on the permanent experimental branch and indexed in [issue comment 5427008645](https://github.com/Open-Athena/marin-dna/issues/521#issuecomment-5427008645).
+- Deleted storage: removed the complete workflow-owned `s3://oa-bolinas/snakemake/analysis/linclust_conservation/` prefix containing 955 S3 Standard objects and 361,313,795,184 bytes (336.50 GiB).
+  The bucket had versioning disabled and no unfinished multipart uploads under the prefix before deletion.
+  A post-deletion recursive listing reported zero objects and zero bytes, and a second multipart-upload check remained empty.
+- Savings: the deletion stops approximately $7.74 per month of `us-east-2` S3 Standard storage charges at the current $0.023 per GB-month rate.
+- Next action: publish only the accepted negative interpretation to the research knowledge base through a clean branch and pull request from `main`; leave the standalone workflow on this permanent experimental branch.
