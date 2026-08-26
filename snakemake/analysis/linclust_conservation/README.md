@@ -363,7 +363,7 @@ Adding the 0.40 identity and 0.70 coverage gate lowered recall to 41.1%.
 This seed graph is therefore useful as evidence that sparse candidate generation plus verification can be computationally cheap, but not as a replacement clustering recipe.
 Diagnostic outputs use the separate `s3://oa-bolinas/snakemake/analysis/linclust_conservation/runs/homology-seed-alignment-diagnostic/` prefix.
 
-The full-panel target applies the measured best scalable Linclust recipe to every retained 255 bp tile from exactly the 20 assemblies in `config/assembly_selection.tsv`:
+The full-panel target attempted the measured best scalable Linclust recipe on every retained 255 bp tile from exactly the 20 assemblies in `config/assembly_selection.tsv`:
 
 ```bash
 sky launch -c linclust-cons-panel20 \
@@ -373,13 +373,19 @@ sky launch -c linclust-cons-panel20 \
 ```
 
 The panel contains one explicitly selected assembly from each of 20 mammalian orders and spans 60.1 Gb, corresponding to approximately 469.6 million candidate windows before ambiguity and majority-repeat filtering.
+The filters retained exactly 298,524,220 windows totaling 76,123,676,100 bases.
 The first whole-panel attempt used the measured 148-k-mer optimum, but MMseqs2 `18.8cc5c` segfaulted in `kmermatcher` immediately after its 400 GiB memory limit forced database splitting.
-The no-split retry retains automatic k-mer length, spaced seeds, hash shift 1, 0.40 minimum identity, 0.70 bidirectional coverage, and masking, but selects 64 k-mers per sequence.
+The no-split retry retained automatic k-mer length, spaced seeds, hash shift 1, 0.40 minimum identity, 0.70 bidirectional coverage, and masking, but selected 64 k-mers per sequence.
 Linear interpolation of the measured five-million-sequence memory curve predicts approximately 379 GiB peak RSS for 298.5 million sequences at this density; the measured 80-k-mer arm projects to approximately 450 GiB and would force the failed split path again.
+MMseqs planned one in-memory split for the 64-seed run, then segfaulted during seed-list generation at a sampled 325,828,228 KiB RSS while the worker still had approximately 192 GiB available.
+This falsifies the no-split retry hypothesis and rules out further seed-density tuning against one monolithic 298.5-million-sequence MMseqs database.
+The next full-panel design must partition the sequence-ID space and reconcile cross-shard evidence explicitly, or use a different candidate generator.
 The bounded Sky task uses an on-demand `r7i.16xlarge` with 512 GiB RAM, a 1.5 TB root disk, a 400 GiB MMseqs split-memory limit, a 20-minute environment-setup timeout, and a three-hour timeout around input reuse, tests, dry-run, and execution.
 The initial 2 TiB spot request was rejected before provisioning because the AWS account's spot-vCPU quota was too low.
-The 2026-08-26 SkyPilot catalog estimate is $4.23 per compute hour, so the reduced retry timeout leaves cumulative compute and temporary-disk charges below the approved $20 ceiling.
-The retry server-side copies the already completed manifest, 20 filter receipts, and 20 all-tile FASTAs into the new `s3://oa-bolinas/snakemake/analysis/linclust_conservation/runs/panel20-linclust-m64/` namespace, then requests automatic teardown after completion or job failure.
+The 2026-08-26 SkyPilot catalog estimate was $4.23 per compute hour.
+The five on-demand panel attempts used an estimated $8.11 of compute and every worker automatically terminated.
+The retry server-side copied the completed manifest, 20 filter receipts, and 20 all-tile FASTAs into the new `s3://oa-bolinas/snakemake/analysis/linclust_conservation/runs/panel20-linclust-m64/` namespace.
+That namespace contains exactly 61 reusable objects totaling 91,302,435,426 bytes; the failed rule published no partial assignment table or success receipt.
 The candidate-release diagnostic retains its 0.50 identity, 0.80 coverage, and 20-k-mer synthetic configuration, but it is not a prerequisite for the full-panel target because its tiny input-order partition is nondeterministic at 64 threads.
 The `panel_linclust` target performs only Linclust's mandatory internal verification; it does not launch the rejected whole-panel representative-to-all alignment stage.
 

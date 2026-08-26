@@ -18,10 +18,11 @@ author: OpenAI Codex
 
 ## Current TL;DR
 
-Phase 0 and the three-genome real-data canary are complete.
-MMseqs2 18.8cc5c passes exact reverse-complement and input-order partition gates at 255 bp.
-The frozen metadata query selects 20 eligible mammalian orders; 17 exact accession versions are reusable from the existing mirror and three require fresh NCBI downloads.
-The human, mouse, and opossum canary retained 3,900 of 6,000 sampled windows and produced 3,900 singleton clusters, so it validates the workflow but does not yet recover a cross-genome conservation signal.
+The exact 20-order panel retained 298,524,220 of 469,611,559 candidate 255 bp windows.
+MMseqs2 18.8cc5c `kmermatcher` segfaulted on the monolithic database with both the measured 148-seed optimum and a 64-seed no-split recipe.
+The 64-seed run planned one in-memory split and reached a sampled 325,828,228 KiB RSS while the worker still had approximately 192 GiB available, so memory splitting and host memory pressure do not explain the second failure.
+The 20 complete FASTAs and receipts remain durable in distinct S3 namespaces, but no full-panel assignment table or cluster metrics were produced.
+Further full-panel work requires sequence-ID sharding or a different candidate generator; seed-density tuning within one 298.5-million-sequence MMseqs database is stopped.
 
 ## Baseline
 
@@ -35,10 +36,7 @@ The human, mouse, and opossum canary retained 3,900 of 6,000 sampled windows and
 
 - `LINC-CONS-H1`: Distinct-genome support ranks human windows monotonically with `phyloP_fraction` after repeat filtering.
   Evidence: [issue design and prior work](https://github.com/Open-Athena/marin-dna/issues/521).
-  Next test: pass the synthetic MMseqs2 release gate, resolve the current manifest, and run a chromosome-21 or balanced-sample smoke.
-- `LINC-CONS-H3`: Existing training-dataset 2bit objects cover most or all of the newly selected accessions and can be checksum-verified before copying into the new workflow namespace.
-  Evidence: the exact-version audit found 17 mirror hits among 20 selected accessions; see `LINC-CONS-002`.
-  Next test: ETag-guarded server-side copies for the 17 hits and fresh NCBI staging for the other three.
+  Next test: design a sharded candidate-generation experiment that preserves cross-shard evidence and stays below the MMseqs large-sequence-ID failure regime.
 
 ### Blocked
 
@@ -46,12 +44,15 @@ None.
 
 ### Falsified / Dead End
 
-None.
+- `LINC-CONS-H4`: A monolithic 298.5-million-sequence MMseqs2 18.8cc5c Linclust run can complete after lowering selected seed density enough to avoid memory splitting.
+  Why stopped: `LINC-CONS-030` and `LINC-CONS-033` both segfaulted in `kmermatcher`; the 64-seed run planned one split and retained approximately 192 GiB of available host memory.
 
 ### Promoted
 
 - `LINC-CONS-H2`: MMseqs2 18.8cc5c recovers exact reverse complements and produces an input-order-stable canonical partition under the Phase 0 nucleotide configuration.
   Decision: pin release 18.8cc5c for the bounded real-data smoke; see `LINC-CONS-002`.
+- `LINC-CONS-H3`: Existing training-dataset 2bit objects cover most of the selected accessions and can be checksum-verified before copying into the new workflow namespace.
+  Decision: reuse exact pinned inputs and stage only missing accessions; all 20 complete panel FASTAs are now durable.
 
 ## Decision Log
 
@@ -60,11 +61,15 @@ None.
 - 2026-08-25: Treat MMseqs2 18.8cc5c as a candidate release until it passes the synthetic strand and input-order gate.
 - 2026-08-25: Paid SkyPilot EC2 execution is approved for the bounded smoke.
 - 2026-08-25: Use 255 bp windows with a 128 bp stride to match `vertebrate_projection_dataset`; 255 sequence bases plus BOS produce 256 model tokens.
+- 2026-08-26: Stop monolithic full-panel MMseqs2 Linclust attempts after both split and no-split `kmermatcher` paths segfaulted on 298,524,220 sequence IDs.
+- 2026-08-26: Preserve the exact 20-genome FASTAs and receipts for a future sharded candidate-generation design; do not spend the remaining approved budget on another seed-density retry.
 
 ## Negative Results Index
 
 - `LINC-CONS-006`: The first three-genome canary produced no non-singleton clusters among 3,900 retained windows at the frozen threshold.
 - `LINC-CONS-006`: Sky jobs 1 through 11 exposed checkout, installer, version-parsing, transient-download, and NCBI assembly-unit-schema failures before the successful immutable run.
+- `LINC-CONS-030`: The 148-seed full-panel recipe forced memory splitting and segfaulted in `kmermatcher` with approximately 478 GiB available host memory.
+- `LINC-CONS-033`: The 64-seed full-panel recipe planned one split and still segfaulted in `kmermatcher` at a sampled 325,828,228 KiB RSS with approximately 192 GiB available host memory.
 
 ## Background Research Brief
 
@@ -878,3 +883,24 @@ The sparse singleton results update confidence in the sampling design, not in th
 - Cost control: the failed worker auto-terminated immediately.
   Retain the existing three-hour complete-workflow cap and automatic teardown for one syntax-corrected attempt; no algorithmic parameter changed.
 - Next action: calculate the new configuration hash, update the destination prefix, validate, snapshot, push, and relaunch once.
+
+### 2026-08-26 14:14 UTC - LINC-CONS-033 full-panel no-split failure
+
+- Hypothesis: reducing the selected-seed count from 148 to 64 will keep `kmermatcher` in one in-memory split and allow MMseqs2 18.8cc5c Linclust to complete over all retained tiles from the exact 20-genome panel.
+- Commit: [`a8adaced`](https://github.com/Open-Athena/marin-dna/commit/a8adaced19c54145c41c7492154b1257dcde258c).
+- Command: `sky launch -y --down -c linclust-cons-panel20 snakemake/analysis/linclust_conservation/sky/panel20_linclust.yaml --env PIPELINE_COMMIT_SHA=a8adaced19c54145c41c7492154b1257dcde258c`.
+- Config: configuration SHA-256 `5d59f65650a15e42ec86c04f8db07e986b87403dcc60b38111b11f72472ad25b`; 298,524,220 retained 255 bp windows from exactly 20 assemblies; automatic k-mer length; 64 selected spaced k-mers; hash shift 1; 0.40 minimum identity; 0.70 bidirectional coverage; masking; MMseqs2 18.8cc5c; and a 400 GiB split-memory limit.
+- Input reuse: the project-local S3 copy transferred exactly 61 objects and 91,302,435,426 bytes into the new commit- and configuration-derived namespace.
+  All 59 tests passed on the worker, and execution reused the 20 complete FASTAs and their receipts without rerunning genome download or tiling.
+- Result: `createdb` completed for all 298,524,220 sequences in 17 minutes 34 seconds.
+  `kmermatcher` reported `Generate k-mers list for 1 split`, then segfaulted during seed-list generation and returned `Error: kmermatcher died`.
+- Resources: a live sample immediately before the crash measured 325,828,228 KiB RSS, approximately 192 GiB available host memory, and approximately 1.3 TiB free disk on the on-demand AWS `r7i.16xlarge`.
+  The run lasted 31 minutes 15 seconds and SkyPilot estimated $2.21 compute.
+  The five on-demand panel attempts total an estimated $8.11 compute; the rejected spot request provisioned no instance.
+- Artifacts: `s3://oa-bolinas/snakemake/analysis/linclust_conservation/runs/panel20-linclust-m64/results/v1/a8adaced19c54145c41c7492154b1257dcde258c/5d59f65650a15e42ec86c04f8db07e986b87403dcc60b38111b11f72472ad25b/` contains exactly the 61 reusable manifest, staging, filter, and FASTA objects totaling 91,302,435,426 bytes.
+  Snakemake published no partial assignment table or success receipt after the failure.
+- Interpretation: the no-split memory hypothesis is falsified.
+  The failure at 298.5 million sequence IDs persists after removing the split path and while the host retains substantial memory, which is consistent with MMseqs2's large-database failure regime rather than an out-of-memory event.
+- Decision: stop seed-density retries against one monolithic MMseqs database.
+  Preserve the exact panel inputs for a future design that partitions the sequence-ID space and adds explicit cross-shard reconciliation, or replace Linclust candidate generation.
+- Next action: publish the negative result and durable inputs to issue #521, then design the smallest truth-backed sharding experiment before any further paid full-panel run.
