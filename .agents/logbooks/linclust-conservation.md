@@ -573,3 +573,17 @@ The sparse singleton results update confidence in the sampling design, not in th
   A masked 9-mer at the existing 0.40/0.70 acceptance gate comes within 4.4 percentage points of the 71.9% exhaustive E-value-only ceiling while retaining perfect observed purity.
   However, a 9-mer has only 262,144 possible keys, so clean-fixture accuracy alone cannot establish scalability across 47.8 million real tiles.
 - Next action: inject the 384 truth sequences into increasing real-background samples from the already extracted three-genome FASTAs, then measure recovery, impurity, runtime, and peak memory for short-seed Linclust variants.
+
+### 2026-08-26 01:47 UTC - LINC-CONS-020 real-background seed-scaling design
+
+- Hypothesis: explicit 9- to 13-mer Linclust will retain most of its bounded projected-homology recovery as unrelated real genomic tiles are added, while the fixed 0.40 identity / 0.70 coverage gate prevents decoy contamination.
+- Data lineage: reuse the immutable 15.7 million human, 14.6 million mouse, and 17.5 million opossum retained-tile FASTAs from LINC-CONS-009 by ETag- and size-guarded streaming reads.
+  Do not re-extract or copy the source genomes and do not alter the existing all-tiles namespace.
+- Fixtures: balanced deterministic FASTA prefixes containing 100,000, 1,000,000, or 5,000,000 background records, followed by the unchanged 128-anchor, 384-sequence human/mouse/armadillo truth fixture.
+- Variants: automatic nucleotide k-mer length and explicit 13-, 11-, and 9-mers; all use MMseqs2 18.8cc5c, hash shift 1, spaced k-mers, lowercase and low-complexity masking, 20 base k-mers plus scale 0.5, 0.40 identity, 0.70 bidirectional coverage, E-value 0.001, and greedy set cover.
+- Evaluation: require every combined sequence to occur exactly once in the assignment table; report truth-pair recall and precision, exact three-species recovery, truth-to-truth false merges, truth clusters contaminated by decoys, singleton fraction, total clusters, wall/CPU time, and peak RSS.
+- Expected signal: the shorter seed retains at least 60% truth-pair recall at one million background tiles with no truth-to-truth false pair and less than 5% truth-record contamination.
+- Falsifier: recovery collapses toward the automatic-k baseline, truth clusters acquire material decoy contamination, or time/memory grows too rapidly to extrapolate to the 47.8-million-tile input.
+- Cost/risk: twelve Linclust runs on one `r7i.4xlarge`, each capped at 45 minutes, using an estimated 2 GB of newly materialized input FASTAs and a separate `homology-background-scaling` S3 prefix.
+  The user authorized up to $20 of EC2 spend for the overnight scalable-clustering investigation.
+- Next action: run all project tests and the credential-free DAG, commit and push the exact target, launch the EC2 worker, inspect the 100,000-record results before trusting the larger arms, and terminate the worker when the complete summary is durable.

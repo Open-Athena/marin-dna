@@ -37,6 +37,7 @@ EXHAUSTIVE = f"{RESULTS}/exhaustive"
 HOMOLOGY_TUNING = f"{RESULTS}/homology_tuning"
 HOMOLOGY_SEARCH_CLUSTERING = f"{RESULTS}/homology_search_clustering"
 HOMOLOGY_EXHAUSTIVE_GRAPH = f"{RESULTS}/homology_exhaustive_graph"
+BACKGROUND_SCALING = f"{RESULTS}/background_scaling"
 
 HOMOLOGY_FIXTURE = config.get("homology_fixture", {})
 HOMOLOGY_SOURCES = HOMOLOGY_FIXTURE.get("sources", [])
@@ -88,6 +89,15 @@ EXHAUSTIVE_GRAPH_VARIANTS = config.get("exhaustive_graph", {}).get(
     },
 )
 EXHAUSTIVE_GRAPH_NAMES = sorted(EXHAUSTIVE_GRAPH_VARIANTS)
+BACKGROUND_SCALING_CONFIG = config.get("background_scaling", {})
+BACKGROUND_SOURCES = BACKGROUND_SCALING_CONFIG.get("sources", [])
+BACKGROUND_SAMPLES = {
+    str(name): counts
+    for name, counts in BACKGROUND_SCALING_CONFIG.get("samples", {}).items()
+}
+BACKGROUND_SAMPLE_NAMES = sorted(BACKGROUND_SAMPLES, key=int)
+BACKGROUND_VARIANTS = BACKGROUND_SCALING_CONFIG.get("variants", {})
+BACKGROUND_VARIANT_NAMES = sorted(BACKGROUND_VARIANTS)
 
 SELECTION_PATH = config.get("selection_path", "config/assembly_selection.tsv")
 SOURCE_REUSE_PATH = "config/source_reuse_inventory.tsv"
@@ -795,6 +805,172 @@ rule summarize_homology_tuning:
             "mean_true_edge_query_coverage",
             "mean_true_edge_target_coverage",
         ).write_csv(output.tsv, separator="\t")
+
+
+rule build_background_scaling_fixture:
+    input:
+        truth_fasta=f"{HOMOLOGY_TUNING}/fixture/windows.fasta",
+    output:
+        fasta=f"{BACKGROUND_SCALING}/{{sample}}/fixture/windows.fasta",
+        receipt=f"{BACKGROUND_SCALING}/{{sample}}/fixture/receipt.json",
+    wildcard_constraints:
+        sample="|".join(BACKGROUND_SAMPLE_NAMES) or "(?!)",
+    params:
+        sources=json.dumps(BACKGROUND_SOURCES, sort_keys=True),
+        records=lambda wc: json.dumps(BACKGROUND_SAMPLES[wc.sample], sort_keys=True),
+    shell:
+        "linclust-conservation-build-background-fixture "
+        "--sources {params.sources:q} --records-per-source {params.records:q} "
+        "--truth-fasta {input.truth_fasta:q} --output-fasta {output.fasta:q} "
+        "--receipt {output.receipt:q}"
+
+
+rule run_background_scaling_linclust:
+    input:
+        fasta=f"{BACKGROUND_SCALING}/{{sample}}/fixture/windows.fasta",
+    output:
+        assignments=(f"{BACKGROUND_SCALING}/{{sample}}/{{variant}}/clusters.tsv"),
+        version=(f"{BACKGROUND_SCALING}/{{sample}}/{{variant}}/mmseqs_version.txt"),
+        resources=(f"{BACKGROUND_SCALING}/{{sample}}/{{variant}}/resources.txt"),
+    wildcard_constraints:
+        sample="|".join(BACKGROUND_SAMPLE_NAMES) or "(?!)",
+        variant="|".join(BACKGROUND_VARIANT_NAMES) or "(?!)",
+    conda:
+        "envs/mmseqs2.yaml"
+    threads: 16
+    resources:
+        mem_mb=110000,
+    params:
+        min_id=lambda wc: BACKGROUND_VARIANTS[wc.variant]["min_sequence_identity"],
+        coverage=lambda wc: BACKGROUND_VARIANTS[wc.variant]["coverage"],
+        cov_mode=lambda wc: BACKGROUND_VARIANTS[wc.variant].get(
+            "coverage_mode", MMSEQS["coverage_mode"]
+        ),
+        evalue=lambda wc: BACKGROUND_VARIANTS[wc.variant].get(
+            "evalue", MMSEQS["evalue"]
+        ),
+        kmers=lambda wc: BACKGROUND_VARIANTS[wc.variant]["kmers_per_sequence"],
+        kmer_scale=lambda wc: BACKGROUND_VARIANTS[wc.variant]["kmer_per_sequence_scale"],
+        kmer_length=lambda wc: BACKGROUND_VARIANTS[wc.variant]["kmer_length"],
+        hash_shift=lambda wc: BACKGROUND_VARIANTS[wc.variant]["hash_shift"],
+        spaced=lambda wc: BACKGROUND_VARIANTS[wc.variant]["spaced_kmer_mode"],
+        mask_lower=lambda wc: BACKGROUND_VARIANTS[wc.variant]["mask_lower_case"],
+        mask=lambda wc: BACKGROUND_VARIANTS[wc.variant]["low_complexity_masking"],
+        cluster_mode=lambda wc: BACKGROUND_VARIANTS[wc.variant].get(
+            "cluster_mode", MMSEQS["cluster_mode"]
+        ),
+        split_memory=lambda wc: BACKGROUND_VARIANTS[wc.variant]["split_memory_limit"],
+        timeout=lambda wc: BACKGROUND_VARIANTS[wc.variant]["timeout"],
+    shell:
+        r"""
+        set -euo pipefail
+        TMPDIR=$(mktemp -d -t linclust_background_XXXXXX)
+        trap 'rm -rf "$TMPDIR"' EXIT
+        mmseqs version >{output.version}
+        /usr/bin/time -v -o {output.resources} mmseqs createdb \
+            {input.fasta} "$TMPDIR/sequences" \
+            --mask-lower-case {params.mask_lower}
+        /usr/bin/time -v -a -o {output.resources} \
+            timeout --signal=TERM {params.timeout} mmseqs linclust \
+            "$TMPDIR/sequences" "$TMPDIR/clusters" "$TMPDIR/work" \
+            --min-seq-id {params.min_id} -c {params.coverage} \
+            --cov-mode {params.cov_mode} -e {params.evalue} \
+            --kmer-per-seq {params.kmers} \
+            --kmer-per-seq-scale {params.kmer_scale} \
+            -k {params.kmer_length} --hash-shift {params.hash_shift} \
+            --spaced-kmer-mode {params.spaced} \
+            --mask-lower-case {params.mask_lower} --mask {params.mask} \
+            --cluster-mode {params.cluster_mode} \
+            --split-memory-limit {params.split_memory} --threads {threads}
+        /usr/bin/time -v -a -o {output.resources} mmseqs createtsv \
+            "$TMPDIR/sequences" "$TMPDIR/sequences" "$TMPDIR/clusters" \
+            {output.assignments}
+        """
+
+
+rule evaluate_background_scaling_linclust:
+    input:
+        truth=f"{HOMOLOGY_TUNING}/fixture/truth.tsv",
+        assignments=(f"{BACKGROUND_SCALING}/{{sample}}/{{variant}}/clusters.tsv"),
+        fixture_receipt=(f"{BACKGROUND_SCALING}/{{sample}}/fixture/receipt.json"),
+        resources=(f"{BACKGROUND_SCALING}/{{sample}}/{{variant}}/resources.txt"),
+        version=(f"{BACKGROUND_SCALING}/{{sample}}/{{variant}}/mmseqs_version.txt"),
+    output:
+        f"{BACKGROUND_SCALING}/{{sample}}/{{variant}}/receipt.json",
+    wildcard_constraints:
+        sample="|".join(BACKGROUND_SAMPLE_NAMES) or "(?!)",
+        variant="|".join(BACKGROUND_VARIANT_NAMES) or "(?!)",
+    params:
+        configuration=lambda wc: json.dumps(
+            {**MMSEQS, **BACKGROUND_VARIANTS[wc.variant]}, sort_keys=True
+        ),
+        pipeline_commit=PIPELINE_COMMIT,
+        pipeline_config_sha256=PIPELINE_CONFIG_SHA256,
+    shell:
+        "linclust-conservation-evaluate-background-scaling "
+        "--truth {input.truth:q} --assignments {input.assignments:q} "
+        "--fixture-receipt {input.fixture_receipt:q} "
+        "--resources {input.resources:q} "
+        "--configuration {params.configuration:q} "
+        "--mmseqs-version {input.version:q} "
+        "--pipeline-commit {params.pipeline_commit:q} "
+        "--pipeline-config-sha256 {params.pipeline_config_sha256:q} "
+        "--output {output:q}"
+
+
+rule summarize_background_scaling:
+    input:
+        expand(
+            f"{BACKGROUND_SCALING}/{{sample}}/{{variant}}/receipt.json",
+            sample=BACKGROUND_SAMPLE_NAMES,
+            variant=BACKGROUND_VARIANT_NAMES,
+        ),
+    output:
+        json=f"{BACKGROUND_SCALING}/summary.json",
+        tsv=f"{BACKGROUND_SCALING}/summary.tsv",
+    run:
+        rows = []
+        for sample in BACKGROUND_SAMPLE_NAMES:
+            for variant in BACKGROUND_VARIANT_NAMES:
+                path = f"{BACKGROUND_SCALING}/{sample}/{variant}/receipt.json"
+                receipt = json.loads(Path(path).read_text())
+                configuration = receipt.pop("mmseqs_configuration")
+                rows.append(
+                    {
+                        "sample": sample,
+                        "variant": variant,
+                        "kmer_length": configuration["kmer_length"],
+                        "hash_shift": configuration["hash_shift"],
+                        **receipt,
+                    }
+                )
+        Path(output.json).write_text(
+            json.dumps(rows, indent=2, sort_keys=True) + "\n"
+        )
+        pl.DataFrame(rows).select(
+            "sample",
+            "variant",
+            "kmer_length",
+            "hash_shift",
+            "combined_sequence_count",
+            "cluster_count",
+            "singleton_sequence_fraction",
+            "exact_anchor_recovery_fraction",
+            "true_pair_recall",
+            "pair_precision",
+            "strict_truth_cluster_pair_precision",
+            "truth_record_decoy_contamination_fraction",
+            "impure_truth_cluster_count",
+            "mmseqs_wall_seconds",
+            "mmseqs_cpu_seconds",
+            "mmseqs_peak_rss_kib",
+        ).write_csv(output.tsv, separator="\t")
+
+
+rule background_scaling:
+    input:
+        f"{BACKGROUND_SCALING}/summary.json",
+        f"{BACKGROUND_SCALING}/summary.tsv",
 
 
 rule tune_homology:

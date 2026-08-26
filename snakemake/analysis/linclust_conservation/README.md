@@ -265,6 +265,21 @@ At the fixed 0.40 identity and 0.70 bidirectional-coverage gate, an explicit mas
 This clean-fixture result is not yet a deployable setting because a 9-mer has only 262,144 possible keys and may lose specificity or representative stability against tens of millions of background tiles.
 The next target injects the truth fixture into increasing samples of the already extracted three-genome tile FASTAs and measures that scaling behavior.
 
+Run the decoy-injection scaling target with:
+
+```bash
+uv run --locked snakemake \
+  --snakefile workflow/Snakefile \
+  --configfile config/homology_background_scaling.yaml \
+  --profile workflow/profiles/default \
+  background_scaling
+```
+
+The target streams ETag- and size-pinned prefixes from the completed human, mouse, and opossum all-tiles FASTAs, balances each background across the three assemblies, appends the 128-anchor human/mouse/armadillo truth fixture, and compares automatic, 13-, 11-, and 9-mer Linclust candidates.
+The configured backgrounds contain 100,000, 1,000,000, and 5,000,000 real tiles.
+Receipts distinguish truth-to-truth false merges from truth clusters contaminated by unrelated genomic tiles and record total clustering time, CPU time, peak RSS, cluster count, and singleton fraction.
+Outputs use the separate `s3://oa-bolinas/snakemake/analysis/linclust_conservation/runs/homology-background-scaling/` prefix.
+
 ## Current outputs
 
 The default target writes:

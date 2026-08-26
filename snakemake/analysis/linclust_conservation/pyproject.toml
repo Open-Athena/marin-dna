@@ -31,6 +31,8 @@ linclust-conservation-summarize-smoke = "marin_dna_linclust_conservation.cli.sum
 linclust-conservation-summarize-clusters = "marin_dna_linclust_conservation.cli.summarize_clusters:main"
 linclust-conservation-build-homology-fixture = "marin_dna_linclust_conservation.cli.build_homology_fixture:main"
 linclust-conservation-evaluate-homology-clusters = "marin_dna_linclust_conservation.cli.evaluate_homology_clusters:main"
+linclust-conservation-build-background-fixture = "marin_dna_linclust_conservation.cli.build_background_fixture:main"
+linclust-conservation-evaluate-background-scaling = "marin_dna_linclust_conservation.cli.evaluate_background_scaling:main"
 
 [dependency-groups]
 dev = [
