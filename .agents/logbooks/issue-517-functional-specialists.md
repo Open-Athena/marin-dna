@@ -691,3 +691,21 @@ Its current anchor path instead creates uniform conservation-selected windows an
   A regression assertion rejects the credential name and test value in the resolved training pod.
 - Authentication gate: The first credential-free Iris presence probe reached the Marin controller but was rejected because the EC2 host lacked application-default IAP credentials.
   Resolve the already-authorized unattended Iris authentication path before rerunning the sanitized graph preflight.
+
+### 2026-08-26 11:48 UTC - `FAS-517-025` six-arm Iris launch
+
+- Credential decision: The human explicitly authorized the established launch path in which `WANDB_API_KEY` is passed to Iris and may be visible in Iris job metadata.
+  The credential remains excluded from the `train_lm` artifact configuration and fingerprint, and it was not printed in the launcher output.
+- Authentication: The previously authorized cached Marin IAP credential was copied from the `aws-claude-code` SSH host to the dedicated EC2 launcher with mode `0600`.
+  The launcher then reached the Marin controller successfully.
+- Snapshot: All launches use tested and pushed MarinDNA commit `c2bfe6e53d6e1b792683371d83a8ca75da2df81b` and the six immutable public Hugging Face revisions recorded in `FAS-517-023`.
+- Launches: Six independent Iris coordinators were accepted between 11:42:48 and 11:43:05 UTC:
+  `/ubuntu/exp517-gpn-uniform-cds`, `/ubuntu/exp517-gpn-uniform-utr3`, `/ubuntu/exp517-gpn-uniform-tss-utr5`, `/ubuntu/exp517-gpn-uniform-ncrna-exon`, `/ubuntu/exp517-gpn-uniform-enhancer-arm-a`, and `/ubuntu/exp517-gpn-uniform-background`.
+- Runtime contract: Each arm retains the Qwen3-like 0.25B model, sequence length 256, batch 8,192, 5,000 steps, seed 0, and 500-step checkpoint cadence.
+  Training workers request preemptible TPU v5p-8 capacity in `us-east5`; no CPU training fallback is configured.
+- Initial health: At 11:47 UTC all six coordinators and all six tokenization subtrees were running with no reported failures or preemptions.
+  The CDS tokenization worker group had 64 tasks, with 59 running and five building at the sampled instant.
+  This confirms graph construction and child scheduling, but TPU training and W&B telemetry had not yet started because tokenization was still in progress.
+- Interpretation and evaluation: Each arm still receives approximately 10.486 billion token presentations, while effective row exposure differs by almost ninefold across arms.
+  No held-out VEP data was read or registered.
+- Next action: Monitor tokenization completion, verify each preemptible v5p-8 training descendant and its W&B telemetry, publish the launch status to issue #517, and terminate the temporary EC2 launcher once the independent Iris jobs no longer depend on it.
