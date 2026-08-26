@@ -11,10 +11,6 @@ resources:
 
 workdir: .
 
-file_mounts:
-  ~/.cache/huggingface/token: ~/.cache/huggingface/token
-  ~/.cache/huggingface/stored_tokens: ~/.cache/huggingface/stored_tokens
-
 envs:
   PIPELINE_COMMIT_SHA: ""
   TARGET: all_gpn_hf_files
