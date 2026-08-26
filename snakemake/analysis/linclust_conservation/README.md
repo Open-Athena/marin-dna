@@ -217,6 +217,20 @@ Every variant uses sensitivity 7.5, permits all 1,536 prefilter results per quer
 The committed SkyPilot task uses a two-core, 16 GiB `r7i.large` because the nucleotide search prefilter exceeds the shared development node's local memory budget even for the small fixture.
 Its outputs use the separate `s3://oa-bolinas/snakemake/analysis/linclust_conservation/runs/homology-search-clustering/` prefix.
 
+The exhaustive-graph control removes k-mer candidate generation on a deterministic 128-anchor subset:
+
+```bash
+uv run --locked snakemake \
+  --snakefile workflow/Snakefile \
+  --configfile config/homology_exhaustive_graph.yaml \
+  --profile workflow/profiles/default \
+  exhaustive_graph_homology
+```
+
+Its no-filter variants use `mmseqs search --prefilter-mode 2` to align every pair among 384 sequences before applying the same identity and coverage criteria and clustering the accepted-edge graph.
+A sensitivity-7.5 k-mer search on the same subset is the control.
+Each search has a ten-minute timeout, and outputs use the separate `s3://oa-bolinas/snakemake/analysis/linclust_conservation/runs/homology-exhaustive-graph/` prefix.
+
 A 511 bp window with stride 128 remains a useful later geometry test because its worst grid-phase overlap is 447/511 (87.5%), above the current 80% coverage threshold.
 The current projection artifacts contain only 255 bp sequences, so the 511 bp whole-genome run is deferred until the clustering recipe shows adequate recovery on the bounded truth set.
 

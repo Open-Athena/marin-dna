@@ -36,6 +36,7 @@ SMOKE = f"{RESULTS}/smoke"
 EXHAUSTIVE = f"{RESULTS}/exhaustive"
 HOMOLOGY_TUNING = f"{RESULTS}/homology_tuning"
 HOMOLOGY_SEARCH_CLUSTERING = f"{RESULTS}/homology_search_clustering"
+HOMOLOGY_EXHAUSTIVE_GRAPH = f"{RESULTS}/homology_exhaustive_graph"
 
 HOMOLOGY_FIXTURE = config.get("homology_fixture", {})
 HOMOLOGY_SOURCES = HOMOLOGY_FIXTURE.get("sources", [])
@@ -71,6 +72,20 @@ SEARCH_CLUSTERING_VARIANTS = config.get("search_clustering", {}).get(
     },
 )
 SEARCH_CLUSTERING_NAMES = sorted(SEARCH_CLUSTERING_VARIANTS)
+EXHAUSTIVE_GRAPH_VARIANTS = config.get("exhaustive_graph", {}).get(
+    "variants",
+    {
+        "nofilter_setcover": {
+            "prefilter_mode": 2,
+            "sensitivity": 7.5,
+            "cluster_mode": 0,
+            "min_sequence_identity": MMSEQS["min_sequence_identity"],
+            "coverage": MMSEQS["coverage"],
+            "max_sequences": HOMOLOGY_MAX_ANCHORS * len(HOMOLOGY_SOURCES),
+        }
+    },
+)
+EXHAUSTIVE_GRAPH_NAMES = sorted(EXHAUSTIVE_GRAPH_VARIANTS)
 
 SELECTION_PATH = config.get("selection_path", "config/assembly_selection.tsv")
 SOURCE_REUSE_PATH = "config/source_reuse_inventory.tsv"
@@ -944,6 +959,170 @@ rule search_cluster_homology:
     input:
         f"{HOMOLOGY_SEARCH_CLUSTERING}/summary.json",
         f"{HOMOLOGY_SEARCH_CLUSTERING}/summary.tsv",
+        f"{HOMOLOGY_TUNING}/fixture/receipt.json",
+
+
+rule run_homology_exhaustive_graph:
+    input:
+        fasta=f"{HOMOLOGY_TUNING}/fixture/windows.fasta",
+    output:
+        assignments=f"{HOMOLOGY_EXHAUSTIVE_GRAPH}/{{variant}}/clusters.tsv",
+        alignments=f"{HOMOLOGY_EXHAUSTIVE_GRAPH}/{{variant}}/alignments.tsv",
+        version=f"{HOMOLOGY_EXHAUSTIVE_GRAPH}/{{variant}}/mmseqs_version.txt",
+        resources=f"{HOMOLOGY_EXHAUSTIVE_GRAPH}/{{variant}}/resources.txt",
+    wildcard_constraints:
+        variant="|".join(EXHAUSTIVE_GRAPH_NAMES),
+    conda:
+        "envs/mmseqs2.yaml"
+    threads: 2
+    resources:
+        mem_mb=14000,
+    params:
+        prefilter_mode=lambda wc: EXHAUSTIVE_GRAPH_VARIANTS[wc.variant][
+            "prefilter_mode"
+        ],
+        sensitivity=lambda wc: EXHAUSTIVE_GRAPH_VARIANTS[wc.variant]["sensitivity"],
+        cluster_mode=lambda wc: EXHAUSTIVE_GRAPH_VARIANTS[wc.variant]["cluster_mode"],
+        min_id=lambda wc: EXHAUSTIVE_GRAPH_VARIANTS[wc.variant]["min_sequence_identity"],
+        coverage=lambda wc: EXHAUSTIVE_GRAPH_VARIANTS[wc.variant]["coverage"],
+        max_sequences=lambda wc: EXHAUSTIVE_GRAPH_VARIANTS[wc.variant]["max_sequences"],
+        cov_mode=MMSEQS["coverage_mode"],
+        evalue=MMSEQS["evalue"],
+        spaced=lambda wc: EXHAUSTIVE_GRAPH_VARIANTS[wc.variant].get(
+            "spaced_kmer_mode", 1
+        ),
+        mask_lower=lambda wc: EXHAUSTIVE_GRAPH_VARIANTS[wc.variant].get(
+            "mask_lower_case", MMSEQS["mask_lower_case"]
+        ),
+        mask=lambda wc: EXHAUSTIVE_GRAPH_VARIANTS[wc.variant].get(
+            "low_complexity_masking", MMSEQS["low_complexity_masking"]
+        ),
+        split_memory=lambda wc: EXHAUSTIVE_GRAPH_VARIANTS[wc.variant][
+            "split_memory_limit"
+        ],
+        timeout=lambda wc: EXHAUSTIVE_GRAPH_VARIANTS[wc.variant].get("timeout", "10m"),
+    shell:
+        r"""
+        set -euo pipefail
+        TMPDIR=$(mktemp -d -t exhaustive_graph_homology_XXXXXX)
+        trap 'rm -rf "$TMPDIR"' EXIT
+        mmseqs version >{output.version}
+        /usr/bin/time -v -o {output.resources} mmseqs createdb \
+            {input.fasta} "$TMPDIR/sequences" \
+            --mask-lower-case {params.mask_lower}
+        /usr/bin/time -v -a -o {output.resources} \
+            timeout --signal=TERM {params.timeout} mmseqs search \
+            "$TMPDIR/sequences" "$TMPDIR/sequences" \
+            "$TMPDIR/search" "$TMPDIR/work" \
+            --search-type 3 --strand 1 --add-self-matches 1 \
+            --prefilter-mode {params.prefilter_mode} \
+            --min-seq-id {params.min_id} -c {params.coverage} \
+            --cov-mode {params.cov_mode} -e {params.evalue} \
+            -s {params.sensitivity} --max-seqs {params.max_sequences} \
+            --spaced-kmer-mode {params.spaced} \
+            --mask-lower-case {params.mask_lower} --mask {params.mask} \
+            --alignment-mode 3 --split-memory-limit {params.split_memory} \
+            --threads {threads}
+        /usr/bin/time -v -a -o {output.resources} mmseqs clust \
+            "$TMPDIR/sequences" "$TMPDIR/search" "$TMPDIR/clusters" \
+            --cluster-mode {params.cluster_mode} --threads {threads}
+        /usr/bin/time -v -a -o {output.resources} mmseqs createtsv \
+            "$TMPDIR/sequences" "$TMPDIR/sequences" "$TMPDIR/clusters" \
+            {output.assignments}
+        /usr/bin/time -v -a -o {output.resources} mmseqs align \
+            "$TMPDIR/sequences" "$TMPDIR/sequences" "$TMPDIR/clusters" \
+            "$TMPDIR/cluster_alignments" --alignment-mode 3 --threads {threads}
+        /usr/bin/time -v -a -o {output.resources} mmseqs convertalis \
+            "$TMPDIR/sequences" "$TMPDIR/sequences" \
+            "$TMPDIR/cluster_alignments" {output.alignments} \
+            --format-output \
+            "query,target,fident,alnlen,qcov,tcov,qstart,qend,tstart,tend,evalue,bits"
+        """
+
+
+rule evaluate_homology_exhaustive_graph:
+    input:
+        truth=f"{HOMOLOGY_TUNING}/fixture/truth.tsv",
+        assignments=f"{HOMOLOGY_EXHAUSTIVE_GRAPH}/{{variant}}/clusters.tsv",
+        alignments=f"{HOMOLOGY_EXHAUSTIVE_GRAPH}/{{variant}}/alignments.tsv",
+        version=f"{HOMOLOGY_EXHAUSTIVE_GRAPH}/{{variant}}/mmseqs_version.txt",
+    output:
+        f"{HOMOLOGY_EXHAUSTIVE_GRAPH}/{{variant}}/receipt.json",
+    wildcard_constraints:
+        variant="|".join(EXHAUSTIVE_GRAPH_NAMES),
+    params:
+        configuration=lambda wc: json.dumps(
+            {**MMSEQS, **EXHAUSTIVE_GRAPH_VARIANTS[wc.variant]}, sort_keys=True
+        ),
+        pipeline_commit=PIPELINE_COMMIT,
+        pipeline_config_sha256=PIPELINE_CONFIG_SHA256,
+    shell:
+        "linclust-conservation-evaluate-homology-clusters "
+        "--truth {input.truth:q} --assignments {input.assignments:q} "
+        "--alignments {input.alignments:q} "
+        "--configuration {params.configuration:q} "
+        "--mmseqs-version {input.version:q} "
+        "--pipeline-commit {params.pipeline_commit:q} "
+        "--pipeline-config-sha256 {params.pipeline_config_sha256:q} "
+        "--run-kind projected_homology_exhaustive_graph "
+        "--output {output:q}"
+
+
+rule summarize_homology_exhaustive_graph:
+    input:
+        expand(
+            f"{HOMOLOGY_EXHAUSTIVE_GRAPH}/{{variant}}/receipt.json",
+            variant=EXHAUSTIVE_GRAPH_NAMES,
+        ),
+    output:
+        json=f"{HOMOLOGY_EXHAUSTIVE_GRAPH}/summary.json",
+        tsv=f"{HOMOLOGY_EXHAUSTIVE_GRAPH}/summary.tsv",
+    run:
+        rows = []
+        for variant, path in zip(EXHAUSTIVE_GRAPH_NAMES, input, strict=True):
+            receipt = json.loads(Path(path).read_text())
+            configuration = receipt.pop("mmseqs_configuration")
+            rows.append(
+                {
+                    "variant": variant,
+                    "prefilter_mode": configuration["prefilter_mode"],
+                    "sensitivity": configuration["sensitivity"],
+                    "cluster_mode": configuration["cluster_mode"],
+                    "min_sequence_identity": configuration["min_sequence_identity"],
+                    "coverage": configuration["coverage"],
+                    "max_sequences": configuration["max_sequences"],
+                    **receipt,
+                }
+            )
+        Path(output.json).write_text(
+            json.dumps(rows, indent=2, sort_keys=True) + "\n"
+        )
+        pl.DataFrame(rows).select(
+            "variant",
+            "prefilter_mode",
+            "sensitivity",
+            "cluster_mode",
+            "min_sequence_identity",
+            "coverage",
+            "max_sequences",
+            "anchor_count",
+            "sequence_count",
+            "cluster_count",
+            "cluster_count_over_ideal",
+            "exact_anchor_recovery_fraction",
+            "true_pair_recall",
+            "pair_precision",
+            "impure_cluster_count",
+            "mean_true_edge_identity",
+            "mean_true_edge_query_coverage",
+            "mean_true_edge_target_coverage",
+        ).write_csv(output.tsv, separator="\t")
+
+
+rule exhaustive_graph_homology:
+    input:
+        f"{HOMOLOGY_EXHAUSTIVE_GRAPH}/summary.json",
+        f"{HOMOLOGY_EXHAUSTIVE_GRAPH}/summary.tsv",
         f"{HOMOLOGY_TUNING}/fixture/receipt.json",
 
 

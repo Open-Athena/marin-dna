@@ -422,3 +422,27 @@ The sparse singleton results update confidence in the sampling design, not in th
 
 - Hypothesis queue update: add `LINC-CONS-H2`, that sensitive single-step search will improve true-pair recall over the 58.4% Linclust best while retaining at least 95% pair precision.
 - Next action: launch the exact committed target on one `r7i.large`, inspect the first variant's memory and progress, publish the result to the separate workflow-owned S3 prefix, and terminate the worker.
+
+### 2026-08-26 00:51 UTC - LINC-CONS-013 sensitive MMseqs2 clustering result
+
+- Hypothesis: MMseqs2 clustering at sensitivity 7.5 will improve true-pair recall over the 58.4% best Linclust variant while retaining at least 95% pair precision.
+- Commit Hash: [`2008742a`](https://github.com/Open-Athena/marin-dna/commit/2008742a5ad678efd591cbcd7c563d84c23adaea)
+- Commands: launched SkyPilot job 1 on `linclust-cons-search-cluster`, which ran 44 tests, the 11-job dry-run, and `search_cluster_homology` on AWS `r7i.large` in `us-east-2`; after all artifacts uploaded, `sky down -y linclust-cons-search-cluster` terminated the worker.
+- Config: configuration SHA-256 `c4445d3d61d5011c6a4d58ff44ec25197cebc9f440ae850b9394e11056ae6428`; MMseqs2 18.8cc5c; sensitivity 7.5; spaced k-mers; lowercase and low-complexity masking; up to 1,536 prefilter results per query; and the unchanged 512-anchor, 1,536-sequence truth fixture.
+
+| Variant | Clusters / ideal 512 | Complete anchors | True-pair recall | Pair precision | Impure clusters |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| cascaded set cover, 0.50 identity / 0.80 coverage | 956 / 1.867× | 207 / 40.4% | 786 / 51.2% | 98.99% | 2 |
+| single-step set cover, 0.50 / 0.80 | 956 / 1.867× | 207 / 40.4% | 786 / 51.2% | 98.99% | 2 |
+| single-step connected components, 0.50 / 0.80 | 955 / 1.865× | 208 / 40.6% | 788 / 51.3% | 98.99% | 2 |
+| single-step set cover, 0.40 / 0.70 | 923 / 1.803× | 223 / 43.6% | 835 / 54.4% | 99.05% | 2 |
+
+- Resources: one single-step set-cover variant took 10.02 seconds for `mmseqs cluster` and peaked at 8,398,384 KiB RSS.
+  The sensitive prefilter dominated memory; direct representative-member alignment took 0.04 seconds and 22,016 KiB RSS.
+- Artifacts: `s3://oa-bolinas/snakemake/analysis/linclust_conservation/runs/homology-search-clustering/results/v1/2008742a5ad678efd591cbcd7c563d84c23adaea/c4445d3d61d5011c6a4d58ff44ec25197cebc9f440ae850b9394e11056ae6428/` contains the fixture, per-variant assignments and alignments, receipts, resource records, and summaries.
+- Interpretation: `LINC-CONS-H2` is falsified for these settings.
+  The best sensitive-clustering variant recovered 54.4% of true pairs, below the 58.4% best Linclust variant, and remained at 1.80 times the ideal cluster count.
+  Identical cascaded and single-step set-cover results show that the cascade itself is not the limiting step on this fixture.
+  Connected components added only two recovered pairs, so graph traversal does not repair the missing-edge problem.
+- Next action: run exhaustive `--prefilter-mode 2` alignment on a deterministic 128-anchor subset and feed the complete accepted-edge graph into set-cover and connected-component clustering.
+  This is the smallest direct test of whether MMseqs2 alignment thresholds can recover the projected homologs once k-mer candidate generation is removed.
