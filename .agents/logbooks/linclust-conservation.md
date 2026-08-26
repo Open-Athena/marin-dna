@@ -391,3 +391,34 @@ The sparse singleton results update confidence in the sampling design, not in th
 - Interpretation: The result is durable and reproducible enough to reject further whole-genome work with this recipe.
   Alignment was deliberately confined to retained edges in the 1,536-sequence positive control; no whole-genome alignment, 511 bp run, remote worker, or EC2 instance was launched.
 - Next action: stop this experiment here unless a subsequent decision explicitly selects a different, more sensitive candidate-generation or graph-construction method for the same bounded fixture.
+
+### 2026-08-26 00:46 UTC - LINC-CONS-012 sensitive-search clustering design
+
+- Effort: low targeted background-research follow-up after the Linclust recipe failed on the projected-homology truth fixture.
+- Stop rule: stop foraging once primary MMseqs2 guidance and Marin's prior nucleotide-search benchmark identify one bounded clustering workflow that directly tests the candidate-sensitivity hypothesis.
+- Question: Can the sensitive MMseqs2 search-and-cluster workflow recover substantially more known projected homologs than Linclust while preserving cluster purity?
+- Current Marin context: LINC-CONS-010 recovered 45.5% of true pairs at baseline and 58.4% in the best Linclust variant, with pair precision above 99%.
+  Issue #120 found that MMseqs2 nucleotide search at sensitivity 7.5 recovered 70.6% of conserved human-to-mouse cCRE partners at 96.6% precision, establishing a higher-recall pairwise-search precedent without establishing symmetric clustering behavior.
+- External prior art: the official MMseqs2 guide describes `cluster` as a sensitive prefilter, alignment, and graph-clustering workflow and describes Linclust as faster and less sensitive.
+  `--single-step-clustering` avoids the initial Linclust cascade and exposes the sensitive all-vs-all prefilter directly.
+  Greedy set cover forms representative-centered clusters, while connected components uses transitive graph reachability and can therefore improve recall at greater false-merge risk.
+- Negative leads: another whole-genome Linclust threshold sweep would repeat the measured candidate bottleneck.
+  Minimap2 was dominated by MMseqs2 in issue #120, and LASTZ offered higher recall at roughly 11 times the CPU cost; neither is the smallest next discriminator.
+  The pinned MMseqs2 nucleotide prefilter exceeds the shared node's 500 MiB local-work ceiling even on the 1,536-sequence fixture, so the actual search belongs on a small memory-optimized EC2 worker.
+- Recommended experiment: hold the 512-anchor, 1,536-sequence truth fixture fixed and compare four MMseqs2 18.8cc5c variants at sensitivity 7.5 and `--max-seqs 1536`: cascaded set cover with reassignment; single-step set cover; single-step connected components; and single-step set cover at identity 0.40 and coverage 0.70.
+  Primary metrics are cluster count versus the 512 ideal, complete-anchor recovery, true-pair recall, pair precision, and impure-cluster count.
+  The experiment is falsified as a useful replacement if recall remains near Linclust or if improved recall comes from broad cross-anchor merging.
+- Commit Hash: [`29d03a86`](https://github.com/Open-Athena/marin-dna/commit/29d03a86177148322b87648fa5a823f257489247)
+- Validation: 44 project tests passed; the default 11-job, Linclust-tuning 19-job, and new search-clustering 11-job dry-runs passed; all scoped pre-commit hooks passed.
+- Source ledger:
+
+| Source | Type | Location | Claim used for | Confidence | Notes |
+| --- | --- | --- | --- | --- | --- |
+| Issue #521 | GitHub issue | https://github.com/Open-Athena/marin-dna/issues/521#issuecomment-5418934791 | Linclust baseline and stopped whole-genome recipe | High | Coordinating record |
+| Issue #120 | GitHub issue | https://github.com/Open-Athena/marin-dna/issues/120 | MMseqs2, minimap2, and LASTZ recall/compute comparison | High | Different human-to-mouse top-hit task |
+| MMseqs2 guide | Official docs | https://github.com/soedinglab/MMseqs2/wiki#clustering-databases-using-mmseqs-cluster-or-mmseqs-linclust | Search, simple clustering, cascade, and cluster-mode semantics | High | Current guide; execution remains pinned to 18.8cc5c |
+| Marin interval alignment | Marin code | https://github.com/Open-Athena/marin-dna/blob/29d03a86177148322b87648fa5a823f257489247/snakemake/training_dataset/dataset_creation/workflow/rules/interval_alignment.smk#L125-L181 | Maintained nucleotide-search flags and sensitivity 7.5 precedent | High | Pairwise projection workflow |
+| Search-clustering config | Marin code | https://github.com/Open-Athena/marin-dna/blob/29d03a86177148322b87648fa5a823f257489247/snakemake/analysis/linclust_conservation/config/homology_search_clustering.yaml | Exact bounded experiment matrix | High | Permanent experiment branch |
+
+- Hypothesis queue update: add `LINC-CONS-H2`, that sensitive single-step search will improve true-pair recall over the 58.4% Linclust best while retaining at least 95% pair precision.
+- Next action: launch the exact committed target on one `r7i.large`, inspect the first variant's memory and progress, publish the result to the separate workflow-owned S3 prefix, and terminate the worker.
