@@ -693,7 +693,7 @@ rule run_panel_linclust:
         "envs/mmseqs2.yaml"
     threads: 64
     resources:
-        mem_mb=1800000,
+        mem_mb=450000,
     params:
         min_id=MMSEQS["min_sequence_identity"],
         coverage=MMSEQS["coverage"],

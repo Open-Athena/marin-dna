@@ -374,8 +374,9 @@ sky launch -c linclust-cons-panel20 \
 
 The panel contains one explicitly selected assembly from each of 20 mammalian orders and spans 60.1 Gb, corresponding to approximately 469.6 million candidate windows before ambiguity and majority-repeat filtering.
 The recipe uses automatic k-mer length, exactly 148 selected spaced k-mers per sequence, hash shift 1, 0.40 minimum identity, 0.70 bidirectional coverage, lowercase and low-complexity masking, and MMseqs2 `18.8cc5c`.
-The bounded Sky task uses a spot `x2iedn.16xlarge` with 2 TiB RAM, a 1.5 TB root disk, a 1.4 TB MMseqs split-memory limit, and a five-hour Linclust timeout.
-The 2026-08-26 SkyPilot catalog estimate was $1.91 per compute hour, so the clustering timeout leaves room under the approved $20 total budget for setup, window generation, storage, compression, and receipt generation.
+The bounded Sky task uses an on-demand `r7i.16xlarge` with 512 GiB RAM, a 1.5 TB root disk, a 400 GiB MMseqs split-memory limit, a 20-minute environment-setup timeout, and a four-hour timeout around tests, dry-run, and execution.
+The initial 2 TiB spot request was rejected before provisioning because the AWS account's spot-vCPU quota was too low.
+The 2026-08-26 SkyPilot catalog estimate for the fallback was $4.23 per compute hour, so the explicit timeouts leave the total compute and temporary-disk charge below the approved $20 ceiling.
 The task reuses 18 exact staged or mirrored 2bit inputs, downloads the two remaining current assemblies, writes all results under the separate `s3://oa-bolinas/snakemake/analysis/linclust_conservation/runs/panel20-linclust/` prefix, and requests automatic teardown after completion or job failure.
 The `panel_linclust` target performs only Linclust's mandatory internal verification; it does not launch the rejected whole-panel representative-to-all alignment stage.
 

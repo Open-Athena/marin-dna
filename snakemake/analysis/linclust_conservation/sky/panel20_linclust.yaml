@@ -2,8 +2,8 @@ name: linclust-conservation-panel20-linclust
 
 resources:
   infra: aws/us-east-2
-  instance_type: x2iedn.16xlarge
-  use_spot: true
+  instance_type: r7i.16xlarge
+  use_spot: false
   disk_size: 1500
   labels:
     project: dna
@@ -42,7 +42,8 @@ setup: |
   test "$(uv --version | awk '{print $2}')" = "0.12.5"
   export PATH="$HOME/miniforge3/bin:$HOME/.local/bin:$PATH"
   conda config --set channel_priority strict
-  uv sync --project "$CHECKOUT/snakemake/analysis/linclust_conservation" --locked --group dev
+  timeout --signal=TERM --kill-after=1m 20m \
+    uv sync --project "$CHECKOUT/snakemake/analysis/linclust_conservation" --locked --group dev
 
 run: |
   set -euxo pipefail
@@ -52,17 +53,22 @@ run: |
   CHECKOUT="$HOME/marin-dna-checkout-$PIPELINE_COMMIT_SHA"
   test "$(git -C "$CHECKOUT" rev-parse HEAD)" = "$PIPELINE_COMMIT_SHA"
   cd "$CHECKOUT/snakemake/analysis/linclust_conservation"
-  uv run --locked pytest
-  uv run --locked snakemake -n panel_linclust \
-    --profile workflow/profiles/default \
-    --default-storage-provider none \
-    --configfile config/panel20_linclust.yaml \
-    --cores 64 \
-    --resources mem_mb=1800000 staging_jobs=8 sampling_jobs=8
-  uv run --locked snakemake panel_linclust \
-    --profile workflow/profiles/default \
-    --default-storage-prefix s3://oa-bolinas/snakemake/analysis/linclust_conservation/runs/panel20-linclust/ \
-    --configfile config/panel20_linclust.yaml \
-    --cores 64 \
-    --resources mem_mb=1800000 staging_jobs=8 sampling_jobs=8 \
-    --rerun-incomplete
+  run_panel20() {
+    set -euxo pipefail
+    uv run --locked pytest
+    uv run --locked snakemake -n panel_linclust \
+      --profile workflow/profiles/default \
+      --default-storage-provider none \
+      --configfile config/panel20_linclust.yaml \
+      --cores 64 \
+      --resources mem_mb=450000 staging_jobs=8 sampling_jobs=8
+    uv run --locked snakemake panel_linclust \
+      --profile workflow/profiles/default \
+      --default-storage-prefix s3://oa-bolinas/snakemake/analysis/linclust_conservation/runs/panel20-linclust/ \
+      --configfile config/panel20_linclust.yaml \
+      --cores 64 \
+      --resources mem_mb=450000 staging_jobs=8 sampling_jobs=8 \
+      --rerun-incomplete
+  }
+  export -f run_panel20
+  timeout --signal=TERM --kill-after=5m 4h bash -c run_panel20

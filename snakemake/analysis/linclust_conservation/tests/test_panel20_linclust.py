@@ -33,4 +33,4 @@ def test_panel20_linclust_uses_measured_best_scalable_recipe() -> None:
     assert recipe["kmer_per_sequence_scale"] == 0.0
     assert recipe["kmer_length"] == 0
     assert recipe["hash_shift"] == 1
-    assert recipe["split_memory_limit"] == "1400G"
+    assert recipe["split_memory_limit"] == "400G"

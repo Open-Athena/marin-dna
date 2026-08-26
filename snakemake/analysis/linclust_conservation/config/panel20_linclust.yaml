@@ -48,5 +48,5 @@ panel_linclust:
   kmer_per_sequence_scale: 0.0
   kmer_length: 0
   hash_shift: 1
-  split_memory_limit: 1400G
+  split_memory_limit: 400G
   timeout: 5h
