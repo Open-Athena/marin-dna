@@ -117,8 +117,25 @@ uv run --locked snakemake all \
 ```
 
 `all_projection` projects the catalog into all 107 mammal and 28 non-mammal targets and writes projection QC plus deterministic inspection samples for all six arms.
-The GPN entry point deliberately does not include dataset splitting or Hugging Face publication targets.
+The projection entry point deliberately does not include dataset splitting or Hugging Face publication targets.
 Use `sky/gpn_star_project.yaml` for every real or dry-run invocation so scoring and projection stay on the dedicated EC2 worker.
+
+After the complete projection passes QC, `workflow/gpn_star_publication.Snakefile` reads the immutable source projection from its producer-keyed S3 namespace and builds six independent training datasets.
+It never schedules projection rules.
+Each arm receives a deterministic 16,384-row original-orientation validation split before training-only reverse-complement augmentation.
+The publication repositories and exact source producer/configuration are pinned in `config/gpn_star_p_publication.yaml`.
+
+Build and validate the public-format files on the dedicated high-memory EC2 worker before upload:
+
+```bash
+sky launch -c issue-517-gpn-hf \
+  sky/gpn_star_hf.yaml \
+  --env TARGET=all_gpn_hf_files --env DRY_RUN=0 \
+  --env PIPELINE_COMMIT_SHA="$(git rev-parse HEAD)"
+```
+
+The external-write target is `all_gpn_hf` and requires `ALLOW_HF_UPLOAD=1`.
+After publication, verify every repository without credentials and pin its immutable Hub revision in the training experiment.
 
 ## Projection contract
 

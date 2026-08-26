@@ -625,3 +625,29 @@ Its current anchor path instead creates uniform conservation-selected windows an
 - Follow-up: Issue https://github.com/Open-Athena/marin-dna/issues/523 tracks a separate benchmark of projecting all 22,948,560 uniform windows before conservation filtering, including format, compression, streaming, disk, and downstream-stage optimization before a larger-run approval request.
 - Reporting: The completed run and final audit were posted at https://github.com/Open-Athena/marin-dna/issues/517#issuecomment-5418953835.
 - Next action: Commit and publish this append-only result record, then terminate the retained EC2 worker after verifying the durable S3 audit object.
+
+### 2026-08-26 00:56 UTC - `FAS-517-022` six-arm GPN training authorization and publication design
+
+- Human decision: Proceed with training the new uniform-grid GPN-Star-P experiment.
+  The experiment contains the six exhaustive arms selected in `FAS-517-018`: CDS, 3-prime UTR, protein-coding TSS/5-prime UTR, ncRNA exon, issue-326 Arm A enhancer, and the GPN-constrained remainder background.
+- Fixed training contract: Reuse the issue-232-compatible Qwen3-like 0.25B model, character-plus-BOS tokenizer, source-case-aware loss, optimizer, seed 0, 5,000 steps, batch 8,192, and 500-step native/Hugging Face checkpoint cadence.
+  Each arm receives 40,960,000 sequence presentations, or 10,485,760,000 tokens including BOS.
+- Input boundary: Training remains public-Hugging-Face-only at immutable revisions.
+  The authoritative source stays at the audited workflow-owned S3 projection prefix produced by `65b7806ea56a270124c9973af0366f5ab412c665` with config SHA-256 `28cb7786197945ef1798c3581873e4b3d68b7bf91189a59585b0dcabcad7a5e4`.
+- Publication design: A separate additive `gpn_star_publication` workflow reads that immutable 167,607,189-row projection table without scheduling projection rules.
+  It creates one dataset per arm, selects 16,384 original-orientation validation rows with seed 517 before augmentation, reverse-complements training rows only, builds 64 train shards and one validation shard, validates every file and split manifest, then uploads through an explicit gated target.
+- Expected exposure after the deterministic split and reverse-complement augmentation:
+
+  | arm | source rows | training rows | effective row epochs |
+  | --- | ---: | ---: | ---: |
+  | CDS | 35,517,702 | 71,002,636 | 0.577 |
+  | 3-prime UTR | 10,285,758 | 20,538,748 | 1.994 |
+  | TSS/5-prime UTR | 7,341,817 | 14,650,866 | 2.796 |
+  | ncRNA exon | 10,029,795 | 20,026,822 | 2.045 |
+  | enhancer Arm A | 65,750,304 | 131,467,840 | 0.312 |
+  | background | 38,681,813 | 77,330,858 | 0.530 |
+
+- Interpretation constraint: Compute remains fixed across arms, so dataset exposure differs by almost ninefold between enhancer and TSS/5-prime UTR.
+  Every training and evaluation summary must report these effective epochs; this experiment does not isolate region identity from exposure.
+- Launch sequence: Commit the additive publication workflow, run its locked tests and dry-run on a dedicated EC2 worker, materialize and validate all six public artifacts, publish and verify immutable Hub revisions, then launch one CDS canary on Iris before the other five independently resumable arms.
+- Next action: Snapshot the publication workflow and start the EC2 test/dry-run gate.
