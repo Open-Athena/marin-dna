@@ -1,0 +1,60 @@
+name: Claude Code Review
+
+# Automatic correctness + CLAUDE.md-compliance review of pull requests, after
+# marin-community/marin's ops-claude-review.yaml.
+#
+# One review per PR lifecycle event (opened / ready_for_review / reopened),
+# never per push. Ask for a re-review with an `@claude` comment (claude.yml).
+#
+# The author gate is load-bearing: this repo is public and the review spends
+# CLAUDE_CODE_OAUTH_TOKEN quota, so only PRs opened by repo writers run. That
+# also excludes dependabot (CONTRIBUTOR) and fork PRs, which never receive the
+# secret. `pull_request` (not `pull_request_target`) checks out the merge ref
+# — what would actually land — without exposing credentials to PR code.
+
+on:
+  pull_request:
+    types: [opened, ready_for_review, reopened]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    if: >-
+      github.event.pull_request.draft == false &&
+      (
+        github.event.pull_request.author_association == 'OWNER' ||
+        github.event.pull_request.author_association == 'MEMBER' ||
+        github.event.pull_request.author_association == 'COLLABORATOR'
+      )
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pull-requests: write   # the skill posts with `gh pr comment`
+      issues: write
+      id-token: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 1
+
+      # consult-agent wraps anthropics/claude-code-action and classifies a 429 /
+      # weekly-limit exit as a skipped consultation (a warning), not a red check.
+      # Pinned by commit like every other action in this repo.
+      - name: Run Claude review
+        id: claude
+        uses: marin-community/marin-style/actions/consult-agent@4b2fc2b0ec0bb9ad1304ef76936eb68e97f893cb # 2026-08-24
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          allowed_bots: 'claude[bot]'
+          track_progress: true
+          prompt: |
+            /review-pr --comment ${{ github.event.pull_request.number }}
+          claude_args: |
+            --model claude-opus-5
+            --max-turns 200
+            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh issue view:*),Bash(gh search:*),Bash(gh issue list:*),Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr list:*),Bash(gh pr review:*)"
