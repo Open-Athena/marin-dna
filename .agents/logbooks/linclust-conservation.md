@@ -800,3 +800,16 @@ The sparse singleton results update confidence in the sampling design, not in th
 - Falsifier: the run exceeds the five-hour Linclust cutoff, exceeds the memory or disk bounds, cannot acquire the configured spot instance, or projects above $20 before completion.
 - Command: `sky launch -y --down -c linclust-cons-panel20 snakemake/analysis/linclust_conservation/sky/panel20_linclust.yaml --env PIPELINE_COMMIT_SHA="$(git rev-parse HEAD)"`.
 - Next action: push the snapshot, launch the bounded task, inspect the first completed staging and tiling jobs, then monitor the full clustering receipt and terminate any residual cloud state.
+
+### 2026-08-26 11:55 UTC - LINC-CONS-027 spot-quota failure and bounded fallback
+
+- Result: the first launch attempted `x2iedn.16xlarge` spot capacity in all three `us-east-2` availability zones and failed before provisioning with AWS `MaxSpotInstanceCountExceeded`.
+  No instance started and no compute charge was incurred.
+- Cause: the account's standard spot-vCPU quota is lower than the requested 64 vCPUs; this was a quota rejection rather than market unavailability or a workflow failure.
+- Commit: [`73086754`](https://github.com/Open-Athena/marin-dna/commit/73086754174e820ba67e975c40f820adbdfe9714).
+- Fallback: on-demand `r7i.16xlarge` with 64 vCPUs, 512 GiB RAM, 1.5 TB temporary root storage, and a 400 GiB MMseqs split-memory limit.
+- Cost controls: SkyPilot reports $4.23 per compute hour; environment setup is capped at 20 minutes; tests, dry-run, and execution share one four-hour timeout; and `--down` remains enabled.
+  The compute maximum is $18.33 across those explicit timeouts, leaving approximately $1.67 for the temporary disk within the approved $20 ceiling.
+- Validation: all 56 tests, the 55-job dry-run with the 450 GB scheduler resource, scoped pre-commit checks, and the on-demand SkyPilot dry-run passed.
+- Interpretation: memory splitting may increase Linclust time relative to the original 2 TiB design, but it converts the account-quota blocker into a bounded empirical scaling test without expanding the approved budget.
+- Next action: push this fallback snapshot and relaunch once on the bounded on-demand worker.
