@@ -868,3 +868,13 @@ The sparse singleton results update confidence in the sampling design, not in th
   The command uses boto3's managed copy operation for objects above the single-copy size limit, preserves relative keys, verifies destination sizes, and reuses complete destination objects after an interrupted attempt.
 - Validation: all 59 project tests pass, including a fake-S3 contract for relative keys, multipart transfer configuration, destination verification, and idempotent reuse.
 - Next action: snapshot and push the correction, then resubmit the same bounded job with the exact pushed SHA.
+
+### 2026-08-26 13:42 UTC - LINC-CONS-032 timeout-syntax correction
+
+- Result: commit `a74451b6` copied all 61 source objects and 91,302,435,426 bytes exactly into its new namespace, passed all 59 remote tests, reused all 20 tile FASTAs, and completed MMseqs `createdb` for 298,524,220 sequences in 17 minutes 53 seconds.
+  Linclust did not start because GNU `timeout` rejected the compound duration `2h30m`.
+- Cause: the configuration preserved a human-readable compound duration, while GNU coreutils accepts only one numeric value plus one unit per duration argument.
+- Correction: express the identical bound as `150m` and assert the accepted single-unit syntax in the panel configuration contract test.
+- Cost control: the failed worker auto-terminated immediately.
+  Retain the existing three-hour complete-workflow cap and automatic teardown for one syntax-corrected attempt; no algorithmic parameter changed.
+- Next action: calculate the new configuration hash, update the destination prefix, validate, snapshot, push, and relaunch once.

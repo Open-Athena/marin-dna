@@ -57,4 +57,4 @@ panel_linclust:
   low_complexity_masking: 1
   cluster_mode: 0
   split_memory_limit: 400G
-  timeout: 2h30m
+  timeout: 150m

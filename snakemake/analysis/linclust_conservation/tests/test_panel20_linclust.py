@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 
 import polars as pl
@@ -38,6 +39,7 @@ def test_panel20_linclust_uses_no_split_scalable_recipe() -> None:
     assert recipe["kmer_length"] == 0
     assert recipe["hash_shift"] == 1
     assert recipe["split_memory_limit"] == "400G"
+    assert re.fullmatch(r"[1-9][0-9]*[smhd]", recipe["timeout"])
 
 
 def test_panel20_linclust_rule_uses_panel_recipe_without_release_gate() -> None:

@@ -56,7 +56,7 @@ run: |
   run_panel20() {
     set -euxo pipefail
     SOURCE_SMOKE=s3://oa-bolinas/snakemake/analysis/linclust_conservation/runs/panel20-linclust/results/v1/cbd8908de8d65068cdf6bf6c39d9c4d2aa6f98e5/84bb5c1fa72f844aa561d9fe763228be58205b3f7c8090612ca9190dfbc6ea67/smoke/
-    DESTINATION_SMOKE=s3://oa-bolinas/snakemake/analysis/linclust_conservation/runs/panel20-linclust-m64/results/v1/$PIPELINE_COMMIT_SHA/e3b55671f9c2afe155a9e5d8c6ec02e968fa9692f4467389204e7ac115e0c091/smoke/
+    DESTINATION_SMOKE=s3://oa-bolinas/snakemake/analysis/linclust_conservation/runs/panel20-linclust-m64/results/v1/$PIPELINE_COMMIT_SHA/5d59f65650a15e42ec86c04f8db07e986b87403dcc60b38111b11f72472ad25b/smoke/
     uv run --locked linclust-conservation-copy-s3-prefix \
       --source-uri "$SOURCE_SMOKE" \
       --destination-uri "$DESTINATION_SMOKE"
