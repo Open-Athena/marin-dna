@@ -378,3 +378,16 @@ The sparse singleton results update confidence in the sampling design, not in th
   Lowering identity from 0.50 to 0.40 did nothing at the otherwise matched setting, while stronger k-mer sampling produced the largest improvement; the heuristic candidate stage is therefore the clearest current bottleneck.
 - Next action: do not launch the prepared 511 bp whole-genome run.
   Decide whether to test a fundamentally more sensitive search/graph construction on the same truth fixture or to stop the Linclust approach for this conservation representation.
+
+### 2026-08-26 00:16 UTC - LINC-CONS-011 durable homology-tuning run
+
+- Hypothesis: The committed 19-job Snakemake target should reproduce the exploratory projected-homology results and publish every fixture, cluster assignment, retained-edge alignment, receipt, and summary under a commit- and configuration-addressed S3 prefix.
+- Commit Hash: [`0a44c10f`](https://github.com/Open-Athena/marin-dna/commit/0a44c10f9d03833a64db0d355e6d0e7568f1193e)
+- Commands: ran `uv run --locked snakemake --snakefile workflow/Snakefile --configfile config/homology_tuning.yaml --profile workflow/profiles/default tune_homology` locally under the shared-node heavy-work guard.
+- Result: all 19 jobs completed in 59.57 seconds with exit status 0 and peak RSS 403,864 KiB.
+  The durable summary exactly reproduced the eight exploratory configurations, including 1,014 clusters, 35.2% complete-anchor recovery, and 45.5% true-pair recall at baseline versus 885 clusters, 48.8% complete-anchor recovery, and 58.4% true-pair recall for the best-recall setting.
+  Pair precision remained 99.34% or higher for those two endpoints.
+- Artifacts: `s3://oa-bolinas/snakemake/analysis/linclust_conservation/results/v1/0a44c10f9d03833a64db0d355e6d0e7568f1193e/8e82a80f8811aada7e0ec514ae14182676c0fc386d087811cda24bd11b28c30c/homology_tuning/` contains the fixture, per-variant assignments and retained-edge alignments, receipts, resource records, `summary.tsv`, and `summary.json`.
+- Interpretation: The result is durable and reproducible enough to reject further whole-genome work with this recipe.
+  Alignment was deliberately confined to retained edges in the 1,536-sequence positive control; no whole-genome alignment, 511 bp run, remote worker, or EC2 instance was launched.
+- Next action: stop this experiment here unless a subsequent decision explicitly selects a different, more sensitive candidate-generation or graph-construction method for the same bounded fixture.
