@@ -853,3 +853,13 @@ Its current anchor path instead creates uniform conservation-selected windows an
   The other arms need approximately 2.6, 3.2, 3.2, 4.5, and 3.9 hours of optimizer work from their durable restore points, respectively, after allocation.
   Wall-clock completion remains capacity- and preemption-dependent.
 - Next action: Keep the existing resumable jobs active, verify the CDS terminal native and HF exports, and continue coarse monitoring of the five queued workers without duplicate submissions.
+
+### 2026-08-26 22:58 UTC - `FAS-517-036` Iris dashboard attribution correction
+
+- Finding: The active issue 517 job paths begin with `/ubuntu/` because the EC2 launcher ran as the Linux user `ubuntu` and did not set Iris `--user` or `IRIS_USER`.
+  Iris resolves a new top-level job user from an explicit override, then `IRIS_USER`, then the enclosing job, and then the operating-system user.
+- Dashboard reconciliation: The `ubuntu` row's 12 active jobs are the six experiment coordinators and six training children.
+  Its seven running and five pending tasks match six live coordinators, one allocated CDS worker, and five queued training workers at the sampled instant.
+- Separate identity: `gonzalobenegas` is the W&B entity and does not control Iris quota attribution.
+- Decision: Leave the active resumable jobs unchanged because Iris does not support in-place owner renaming.
+  Set `--user gonzalo` or `IRIS_USER=gonzalo` explicitly on future top-level launches.
