@@ -1,0 +1,52 @@
+pipeline_version: v1
+selection_path: config/assembly_selection.tsv
+
+window:
+  length: 255
+  stride: 128
+  max_repeat_fraction: 0.5
+
+manifest:
+  taxon: mammalia
+  datasets_version: 18.36.0
+  query_reference_only: true
+  source_bucket: oa-bolinas
+  source_prefix: snakemake/training_dataset/dataset_creation/results/genome
+
+staging:
+  destination_bucket: oa-bolinas
+  destination_prefix: snakemake/analysis/linclust_conservation/inputs/genomes
+
+smoke:
+  seed: 521
+  candidates_per_assembly: all
+  batch_size: 250000
+  max_alignment_edges: 100000
+
+phylop:
+  url: https://hgdownload.soe.ucsc.edu/goldenPath/hg38/phyloP447way/hg38.phyloP447way.bw
+  threshold: 2.2162
+
+mmseqs:
+  candidate_release: 18.8cc5c
+  order_seeds: [0, 1, 2]
+  min_sequence_identity: 0.4
+  coverage: 0.7
+  coverage_mode: 0
+  evalue: 0.001
+  kmers_per_sequence: 148
+  spaced_kmer_mode: 1
+  mask_lower_case: 1
+  low_complexity_masking: 1
+  cluster_mode: 0
+  alignment_kmer_length: 11
+  alignment_split_memory_limit: 4G
+
+panel_linclust:
+  expected_accession_count: 20
+  kmers_per_sequence: 148
+  kmer_per_sequence_scale: 0.0
+  kmer_length: 0
+  hash_shift: 1
+  split_memory_limit: 1400G
+  timeout: 5h

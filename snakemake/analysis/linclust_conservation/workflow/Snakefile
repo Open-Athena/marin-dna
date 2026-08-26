@@ -37,6 +37,7 @@ CONTRACTS = f"{RESULTS}/contracts"
 MANIFEST = f"{RESULTS}/manifest"
 SMOKE = f"{RESULTS}/smoke"
 EXHAUSTIVE = f"{RESULTS}/exhaustive"
+PANEL_LINCLUST = f"{RESULTS}/panel20_linclust"
 HOMOLOGY_TUNING = f"{RESULTS}/homology_tuning"
 HOMOLOGY_SEARCH_CLUSTERING = f"{RESULTS}/homology_search_clustering"
 HOMOLOGY_EXHAUSTIVE_GRAPH = f"{RESULTS}/homology_exhaustive_graph"
@@ -134,11 +135,17 @@ SEED_GRAPH_SOURCE_ALIASES = {
 }
 SEED_ALIGNMENT_CONFIG = config.get("seed_alignment_diagnostic", {})
 SEED_ALIGNMENT_THRESHOLDS = SEED_ALIGNMENT_CONFIG.get("thresholds", [])
+PANEL_LINCLUST_CONFIG = config.get("panel_linclust", {})
 
 SELECTION_PATH = config.get("selection_path", "config/assembly_selection.tsv")
 SOURCE_REUSE_PATH = "config/source_reuse_inventory.tsv"
 SELECTION = pl.read_csv(SELECTION_PATH, separator="\t")
 ACCESSIONS = SELECTION["accession"].to_list()
+if PANEL_LINCLUST_CONFIG:
+    assert len(ACCESSIONS) == int(PANEL_LINCLUST_CONFIG["expected_accession_count"])
+    assert SELECTION["selected"].all()
+    assert SELECTION["order"].n_unique() == len(ACCESSIONS)
+    assert config["smoke"]["candidates_per_assembly"] == "all"
 SOURCE_REUSE = {
     row["accession"]: row
     for row in pl.read_csv(SOURCE_REUSE_PATH, separator="\t").to_dicts()
@@ -667,6 +674,107 @@ rule exhaustive:
     input:
         f"{EXHAUSTIVE}/receipt.json",
         f"{EXHAUSTIVE}/clusters.tsv.zst",
+        f"{SMOKE}/assembly_manifest.tsv",
+
+
+rule run_panel_linclust:
+    input:
+        fastas=expand(f"{SMOKE}/windows/{{accession}}.fasta", accession=ACCESSIONS),
+        stats=expand(f"{SMOKE}/windows/{{accession}}.json", accession=ACCESSIONS),
+        manifest=f"{SMOKE}/assembly_manifest.tsv",
+        release_gate=f"{CONTRACTS}/mmseqs2_release_gate.json",
+    output:
+        assignments=f"{PANEL_LINCLUST}/clusters.tsv.zst",
+        receipt=f"{PANEL_LINCLUST}/receipt.json",
+        version=f"{PANEL_LINCLUST}/mmseqs_version.txt",
+        resources=f"{PANEL_LINCLUST}/resources.txt",
+        peak_temporary_bytes=f"{PANEL_LINCLUST}/peak_temporary_bytes.txt",
+    conda:
+        "envs/mmseqs2.yaml"
+    threads: 64
+    resources:
+        mem_mb=1800000,
+    params:
+        min_id=MMSEQS["min_sequence_identity"],
+        coverage=MMSEQS["coverage"],
+        cov_mode=MMSEQS["coverage_mode"],
+        evalue=MMSEQS["evalue"],
+        kmers=PANEL_LINCLUST_CONFIG["kmers_per_sequence"],
+        kmer_scale=PANEL_LINCLUST_CONFIG["kmer_per_sequence_scale"],
+        kmer_length=PANEL_LINCLUST_CONFIG["kmer_length"],
+        hash_shift=PANEL_LINCLUST_CONFIG["hash_shift"],
+        spaced=MMSEQS["spaced_kmer_mode"],
+        mask_lower=MMSEQS["mask_lower_case"],
+        mask=MMSEQS["low_complexity_masking"],
+        cluster_mode=MMSEQS["cluster_mode"],
+        split_memory=PANEL_LINCLUST_CONFIG["split_memory_limit"],
+        timeout=PANEL_LINCLUST_CONFIG["timeout"],
+        expected_version=str(MMSEQS["candidate_release"]),
+        configuration=json.dumps({**MMSEQS, **PANEL_LINCLUST_CONFIG}, sort_keys=True),
+        release_gate_configuration=json.dumps(MMSEQS, sort_keys=True),
+        pipeline_commit=PIPELINE_COMMIT,
+        pipeline_config_sha256=PIPELINE_CONFIG_SHA256,
+    shell:
+        r"""
+        set -euo pipefail
+        TMPDIR=$(mktemp -d -t linclust_panel20_XXXXXX)
+        trap 'rm -rf "$TMPDIR"' EXIT
+        linclust-conservation-record-peak \
+            --directory "$TMPDIR" --output {output.peak_temporary_bytes}
+        mmseqs version >{output.version}
+        /usr/bin/time -v -o {output.resources} \
+            mmseqs createdb {input.fastas:q} "$TMPDIR/sequences" \
+            --mask-lower-case {params.mask_lower} --threads {threads}
+        linclust-conservation-record-peak \
+            --directory "$TMPDIR" --output {output.peak_temporary_bytes}
+        /usr/bin/time -v -a -o {output.resources} \
+            timeout --signal=TERM {params.timeout} mmseqs linclust \
+            "$TMPDIR/sequences" "$TMPDIR/clusters" "$TMPDIR/work" \
+            --min-seq-id {params.min_id} -c {params.coverage} \
+            --cov-mode {params.cov_mode} -e {params.evalue} \
+            --kmer-per-seq {params.kmers} \
+            --kmer-per-seq-scale {params.kmer_scale} \
+            -k {params.kmer_length} --hash-shift {params.hash_shift} \
+            --spaced-kmer-mode {params.spaced} \
+            --mask-lower-case {params.mask_lower} --mask {params.mask} \
+            --cluster-mode {params.cluster_mode} \
+            --split-memory-limit {params.split_memory} --threads {threads}
+        linclust-conservation-record-peak \
+            --directory "$TMPDIR" --output {output.peak_temporary_bytes}
+        /usr/bin/time -v -a -o {output.resources} mmseqs createtsv \
+            "$TMPDIR/sequences" "$TMPDIR/sequences" "$TMPDIR/clusters" \
+            "$TMPDIR/clusters.tsv" --threads {threads}
+        linclust-conservation-record-peak \
+            --directory "$TMPDIR" --output {output.peak_temporary_bytes}
+        /usr/bin/time -v -a -o {output.resources} \
+            zstd -T{threads} -3 "$TMPDIR/clusters.tsv" -o {output.assignments}
+        linclust-conservation-record-peak \
+            --directory "$TMPDIR" --output {output.peak_temporary_bytes}
+        zstd -dc {output.assignments} \
+            | linclust-conservation-summarize-clusters \
+                --assignments - \
+                --compressed-assignments {output.assignments:q} \
+                --stats {input.stats:q} \
+                --fasta {input.fastas:q} \
+                --mmseqs-version {output.version:q} \
+                --expected-mmseqs-version {params.expected_version:q} \
+                --configuration {params.configuration:q} \
+                --release-gate-configuration \
+                {params.release_gate_configuration:q} \
+                --release-gate {input.release_gate:q} \
+                --pipeline-commit {params.pipeline_commit:q} \
+                --pipeline-config-sha256 {params.pipeline_config_sha256:q} \
+                --resources {output.resources:q} \
+                --peak-temporary-bytes {output.peak_temporary_bytes:q} \
+                --run-kind panel20_linclust \
+                --output {output.receipt:q}
+        """
+
+
+rule panel_linclust:
+    input:
+        f"{PANEL_LINCLUST}/receipt.json",
+        f"{PANEL_LINCLUST}/clusters.tsv.zst",
         f"{SMOKE}/assembly_manifest.tsv",
 
 

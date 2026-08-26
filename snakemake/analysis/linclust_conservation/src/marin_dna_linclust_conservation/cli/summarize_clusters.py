@@ -26,11 +26,13 @@ def main() -> None:
     parser.add_argument("--mmseqs-version", type=Path, required=True)
     parser.add_argument("--expected-mmseqs-version", required=True)
     parser.add_argument("--configuration", type=json.loads, required=True)
+    parser.add_argument("--release-gate-configuration", type=json.loads)
     parser.add_argument("--release-gate", type=Path, required=True)
     parser.add_argument("--pipeline-commit", required=True)
     parser.add_argument("--pipeline-config-sha256", required=True)
     parser.add_argument("--resources", type=Path, required=True)
     parser.add_argument("--peak-temporary-bytes", type=Path, required=True)
+    parser.add_argument("--run-kind", default="exhaustive_clustering_sensitivity")
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
 
@@ -61,10 +63,13 @@ def main() -> None:
     mmseqs_version = args.mmseqs_version.read_text().strip()
     assert mmseqs_version == args.expected_mmseqs_version
     expected_configuration: dict[str, Any] = args.configuration
+    release_gate_configuration = (
+        args.release_gate_configuration or expected_configuration
+    )
     validate_release_gate(
         path=args.release_gate,
         expected_mmseqs_version=args.expected_mmseqs_version,
-        expected_configuration=expected_configuration,
+        expected_configuration=release_gate_configuration,
         pipeline_commit=args.pipeline_commit,
         pipeline_config_sha256=args.pipeline_config_sha256,
     )
@@ -102,9 +107,10 @@ def main() -> None:
         "pipeline_commit": args.pipeline_commit,
         "pipeline_config_sha256": args.pipeline_config_sha256,
         "release_gate_passed": True,
+        "release_gate_configuration": release_gate_configuration,
         "retained_bases": sum(int(row["retained_bases"]) for row in per_assembly),
         "retained_windows": retained_windows,
-        "run_kind": "exhaustive_clustering_sensitivity",
+        "run_kind": args.run_kind,
         "singleton_cluster_count": summary.singleton_cluster_count,
         "singleton_window_fraction": summary.singleton_cluster_count / retained_windows,
     }
