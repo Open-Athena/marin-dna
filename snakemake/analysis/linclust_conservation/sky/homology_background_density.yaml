@@ -28,6 +28,8 @@ setup: |
   test "$(uv --version | awk '{print $2}')" = "0.12.5"
   export PATH="$HOME/miniforge3/bin:$HOME/.local/bin:$PATH"
   export CONDA_EXE="$HOME/miniforge3/bin/conda"
+  "$CONDA_EXE" install --name base --yes conda=25.7.0
+  test "$("$CONDA_EXE" --version | awk '{print $2}')" = "25.7.0"
   uv sync --project "$CHECKOUT/snakemake/analysis/linclust_conservation" --locked --group dev
 
 run: |
