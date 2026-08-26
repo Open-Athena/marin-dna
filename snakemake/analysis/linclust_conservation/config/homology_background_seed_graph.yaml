@@ -1,25 +1,10 @@
 seed_graph:
-  samples: ["100000"]
+  samples: ["1000000"]
   variants:
-    k17_s239_f2_m1: &seed_graph_variant
-      kmer_length: 17
-      selected_seeds_per_sequence: 239
-      max_seed_frequency: 2
-      min_shared_seeds: 1
-      hash_seed: 521
-      timeout: 20m
-    k17_s239_f4_m1:
-      <<: *seed_graph_variant
-      max_seed_frequency: 4
-    k17_s239_f8_m1:
-      <<: *seed_graph_variant
-      max_seed_frequency: 8
-    k17_s239_f8_m2:
-      <<: *seed_graph_variant
-      max_seed_frequency: 8
-      min_shared_seeds: 2
     k19_s237_f8_m1:
-      <<: *seed_graph_variant
       kmer_length: 19
       selected_seeds_per_sequence: 237
       max_seed_frequency: 8
+      min_shared_seeds: 1
+      hash_seed: 521
+      timeout: 20m
