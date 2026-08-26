@@ -835,3 +835,21 @@ Its current anchor path instead creates uniform conservation-selected windows an
 - Decision: Keep the six existing resumable jobs unchanged during this run.
   Before a future launch, test an expanded same-region alternative set such as v6e-8 or v6e-16 with an explicit device-mesh, global-batch, checkpoint-restore, throughput, and cost parity gate.
 - Next action: Continue monitoring the current jobs and treat broader TPU-shape support as a separately validated execution optimization.
+
+### 2026-08-26 22:55 UTC - `FAS-517-035` CDS passes step 4,000 during continued capacity churn
+
+- Commands: Query the six live children with `iris job describe`; query the six deterministic W&B run IDs in `gonzalobenegas/marin`; list the native and HF step directories under `gs://marin-us-east5/MarinDNA/exp517_gpn_uniform_specialists/checkpoints/dna-exp517-gpn-uniform-0p25b-*/2026.08.26/{checkpoints,hf}/`.
+- Current allocation: CDS is running on a v6e-4 worker at W&B step 4,164.
+  3-prime UTR, TSS/5-prime UTR, ncRNA exon, enhancer Arm A, and background are pending replacement workers.
+  All six Iris children still report zero failures.
+- Reliability: Preemption counts are seven for CDS, three each for 3-prime UTR, TSS/5-prime UTR, and ncRNA exon, and four each for enhancer Arm A and background.
+  The pending diagnostics cite TPU preemption or worker-reconcile failure thresholds, with no model or data error.
+- Latest W&B steps: CDS 4,164; 3-prime UTR 3,005; TSS/5-prime UTR 2,940; ncRNA exon 2,720; enhancer Arm A 1,915; background 2,337.
+  CDS reports train loss 1.1627, evaluation loss 1.1827, and approximately 451,000 tokens per second on `TPU v6 lite`.
+- Durable progress: Matching native and HF-compatible checkpoints are complete at step 4,000 for CDS, step 3,000 for 3-prime UTR, step 2,500 for TSS/5-prime UTR and ncRNA exon, step 1,500 for enhancer Arm A, and step 2,000 for background.
+- Capacity: The Iris controller is healthy with 71 of 71 workers healthy.
+  Its sampled status lists two ready v6e-4 workers and no v5p-8 workers in `us-east5`; ready workers may already be occupied, and five issue 517 children remain pending in the authoritative task view.
+- ETA: CDS needs about one hour of uninterrupted optimizer work to reach step 5,000 at its observed throughput.
+  The other arms need approximately 2.6, 3.2, 3.2, 4.5, and 3.9 hours of optimizer work from their durable restore points, respectively, after allocation.
+  Wall-clock completion remains capacity- and preemption-dependent.
+- Next action: Keep the existing resumable jobs active, verify the CDS terminal native and HF exports, and continue coarse monitoring of the five queued workers without duplicate submissions.
