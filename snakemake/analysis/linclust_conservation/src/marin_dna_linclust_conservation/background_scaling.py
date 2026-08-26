@@ -288,3 +288,35 @@ def evaluate_background_scaling(
         )
         / len(truth_ids),
     }
+
+
+def summarize_background_scaling_receipts(
+    *,
+    receipt_paths: Iterable[str | Path],
+    labels: Iterable[tuple[str, str]],
+) -> list[dict[str, object]]:
+    """Combine staged metric receipts with their sample and variant labels."""
+    paths = list(receipt_paths)
+    label_rows = list(labels)
+    assert len(paths) == len(label_rows)
+    assert len(set(label_rows)) == len(label_rows)
+
+    rows: list[dict[str, object]] = []
+    for (sample, variant), path in zip(label_rows, paths, strict=True):
+        receipt = json.loads(Path(path).read_text())
+        configuration = receipt["mmseqs_configuration"]
+        assert isinstance(configuration, dict)
+        rows.append(
+            {
+                "sample": sample,
+                "variant": variant,
+                "kmer_length": configuration["kmer_length"],
+                "hash_shift": configuration["hash_shift"],
+                **{
+                    key: value
+                    for key, value in receipt.items()
+                    if key != "mmseqs_configuration"
+                },
+            }
+        )
+    return rows

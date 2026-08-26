@@ -4,6 +4,9 @@ from pathlib import Path
 
 import polars as pl
 
+from marin_dna_linclust_conservation.background_scaling import (
+    summarize_background_scaling_receipts,
+)
 from marin_dna_linclust_conservation.controls import (
     canonical_partition,
     check_release_gate,
@@ -929,21 +932,15 @@ rule summarize_background_scaling:
         json=f"{BACKGROUND_SCALING}/summary.json",
         tsv=f"{BACKGROUND_SCALING}/summary.tsv",
     run:
-        rows = []
-        for sample in BACKGROUND_SAMPLE_NAMES:
-            for variant in BACKGROUND_VARIANT_NAMES:
-                path = f"{BACKGROUND_SCALING}/{sample}/{variant}/receipt.json"
-                receipt = json.loads(Path(path).read_text())
-                configuration = receipt.pop("mmseqs_configuration")
-                rows.append(
-                    {
-                        "sample": sample,
-                        "variant": variant,
-                        "kmer_length": configuration["kmer_length"],
-                        "hash_shift": configuration["hash_shift"],
-                        **receipt,
-                    }
-                )
+        labels = [
+            (sample, variant)
+            for sample in BACKGROUND_SAMPLE_NAMES
+            for variant in BACKGROUND_VARIANT_NAMES
+        ]
+        rows = summarize_background_scaling_receipts(
+            receipt_paths=input,
+            labels=labels,
+        )
         Path(output.json).write_text(
             json.dumps(rows, indent=2, sort_keys=True) + "\n"
         )

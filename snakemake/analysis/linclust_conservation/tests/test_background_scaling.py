@@ -5,6 +5,7 @@ from marin_dna_linclust_conservation.background_scaling import (
     BackgroundFastaSource,
     build_background_fixture,
     evaluate_background_scaling,
+    summarize_background_scaling_receipts,
 )
 
 
@@ -107,3 +108,48 @@ def test_evaluate_background_scaling_penalizes_decoy_contamination(
     assert result["contaminated_truth_cluster_count"] == 1
     assert result["truth_record_decoy_contamination_fraction"] == 0.5
     assert result["strict_truth_cluster_pair_precision"] == 1 / 3
+
+
+def test_summarize_background_scaling_uses_staged_receipt_paths(
+    tmp_path: Path,
+) -> None:
+    first = tmp_path / "staged-a.json"
+    first.write_text(
+        json.dumps(
+            {
+                "mmseqs_configuration": {"kmer_length": 17, "hash_shift": 1},
+                "true_pair_recall": 0.25,
+            }
+        )
+    )
+    second = tmp_path / "staged-b.json"
+    second.write_text(
+        json.dumps(
+            {
+                "mmseqs_configuration": {"kmer_length": 13, "hash_shift": 67},
+                "true_pair_recall": 0.5,
+            }
+        )
+    )
+
+    rows = summarize_background_scaling_receipts(
+        receipt_paths=[first, second],
+        labels=[("5000000", "auto"), ("100000", "k13")],
+    )
+
+    assert rows == [
+        {
+            "sample": "5000000",
+            "variant": "auto",
+            "kmer_length": 17,
+            "hash_shift": 1,
+            "true_pair_recall": 0.25,
+        },
+        {
+            "sample": "100000",
+            "variant": "k13",
+            "kmer_length": 13,
+            "hash_shift": 67,
+            "true_pair_recall": 0.5,
+        },
+    ]
