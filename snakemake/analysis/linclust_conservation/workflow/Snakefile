@@ -43,6 +43,7 @@ HOMOLOGY_EXHAUSTIVE_GRAPH = f"{RESULTS}/homology_exhaustive_graph"
 BACKGROUND_SCALING = f"{RESULTS}/background_scaling"
 CLUSTERIZE_BACKGROUND = f"{RESULTS}/clusterize_background"
 SEED_GRAPH_BACKGROUND = f"{RESULTS}/seed_graph_background"
+SEED_ALIGNMENT_DIAGNOSTIC = f"{RESULTS}/seed_alignment_diagnostic"
 
 HOMOLOGY_FIXTURE = config.get("homology_fixture", {})
 HOMOLOGY_SOURCES = HOMOLOGY_FIXTURE.get("sources", [])
@@ -131,6 +132,8 @@ SEED_GRAPH_VARIANT_NAMES = sorted(SEED_GRAPH_VARIANTS)
 SEED_GRAPH_SOURCE_ALIASES = {
     source["accession"]: source["label"] for source in BACKGROUND_SOURCES
 }
+SEED_ALIGNMENT_CONFIG = config.get("seed_alignment_diagnostic", {})
+SEED_ALIGNMENT_THRESHOLDS = SEED_ALIGNMENT_CONFIG.get("thresholds", [])
 
 SELECTION_PATH = config.get("selection_path", "config/assembly_selection.tsv")
 SOURCE_REUSE_PATH = "config/source_reuse_inventory.tsv"
@@ -1335,6 +1338,105 @@ rule background_seed_graph:
     input:
         f"{SEED_GRAPH_BACKGROUND}/summary.json",
         f"{SEED_GRAPH_BACKGROUND}/summary.tsv",
+
+
+rule prepare_seed_alignment_diagnostic:
+    input:
+        fasta=storage(
+            SEED_ALIGNMENT_CONFIG.get("fasta", "missing-seed-alignment-fasta")
+        ),
+        truth=storage(
+            SEED_ALIGNMENT_CONFIG.get("truth", "missing-seed-alignment-truth")
+        ),
+        assignments=storage(
+            SEED_ALIGNMENT_CONFIG.get(
+                "assignments", "missing-seed-alignment-assignments"
+            )
+        ),
+    output:
+        subset=f"{SEED_ALIGNMENT_DIAGNOSTIC}/subset.fasta",
+        pairs=f"{SEED_ALIGNMENT_DIAGNOSTIC}/pairs.tsv",
+        receipt=f"{SEED_ALIGNMENT_DIAGNOSTIC}/preparation.json",
+    shell:
+        "linclust-conservation-prepare-seed-alignment "
+        "--fasta {input.fasta:q} --truth {input.truth:q} "
+        "--assignments {input.assignments:q} --subset-fasta {output.subset:q} "
+        "--pairs {output.pairs:q} --receipt {output.receipt:q}"
+
+
+rule run_seed_alignment_diagnostic:
+    input:
+        f"{SEED_ALIGNMENT_DIAGNOSTIC}/subset.fasta",
+    output:
+        alignments=f"{SEED_ALIGNMENT_DIAGNOSTIC}/alignments.tsv",
+        version=f"{SEED_ALIGNMENT_DIAGNOSTIC}/mmseqs_version.txt",
+        resources=f"{SEED_ALIGNMENT_DIAGNOSTIC}/resources.txt",
+    conda:
+        "envs/mmseqs2.yaml"
+    threads: 4
+    resources:
+        mem_mb=16000,
+    params:
+        timeout=SEED_ALIGNMENT_CONFIG.get("timeout", "10m"),
+        max_sequences=int(SEED_ALIGNMENT_CONFIG.get("max_sequences", 2000)),
+    shell:
+        r"""
+        set -euo pipefail
+        TMPDIR=$(mktemp -d -t seed_alignment_diagnostic_XXXXXX)
+        trap 'rm -rf "$TMPDIR"' EXIT
+        mmseqs version >{output.version}
+        /usr/bin/time -v -o {output.resources} mmseqs createdb \
+            {input:q} "$TMPDIR/sequences" --mask-lower-case 0
+        /usr/bin/time -v -a -o {output.resources} \
+            timeout --signal=TERM {params.timeout} mmseqs search \
+            "$TMPDIR/sequences" "$TMPDIR/sequences" \
+            "$TMPDIR/search" "$TMPDIR/work" \
+            --search-type 3 --strand 1 --add-self-matches 1 \
+            --prefilter-mode 2 --min-seq-id 0 -c 0 --cov-mode 0 -e 10000 \
+            -s 7.5 --max-seqs {params.max_sequences} --spaced-kmer-mode 1 \
+            --mask-lower-case 0 --mask 0 --alignment-mode 3 \
+            --split-memory-limit 12G --threads {threads}
+        /usr/bin/time -v -a -o {output.resources} mmseqs convertalis \
+            "$TMPDIR/sequences" "$TMPDIR/sequences" "$TMPDIR/search" \
+            {output.alignments:q} --format-output \
+            "query,target,fident,alnlen,qcov,tcov,qstart,qend,tstart,tend,evalue,bits"
+        """
+
+
+rule evaluate_seed_alignment_diagnostic:
+    input:
+        truth=storage(
+            SEED_ALIGNMENT_CONFIG.get("truth", "missing-seed-alignment-truth")
+        ),
+        pairs=f"{SEED_ALIGNMENT_DIAGNOSTIC}/pairs.tsv",
+        alignments=f"{SEED_ALIGNMENT_DIAGNOSTIC}/alignments.tsv",
+        preparation=f"{SEED_ALIGNMENT_DIAGNOSTIC}/preparation.json",
+        version=f"{SEED_ALIGNMENT_DIAGNOSTIC}/mmseqs_version.txt",
+        resources=f"{SEED_ALIGNMENT_DIAGNOSTIC}/resources.txt",
+    output:
+        f"{SEED_ALIGNMENT_DIAGNOSTIC}/receipt.json",
+    params:
+        thresholds=json.dumps(SEED_ALIGNMENT_THRESHOLDS, sort_keys=True),
+        pipeline_commit=PIPELINE_COMMIT,
+        pipeline_config_sha256=PIPELINE_CONFIG_SHA256,
+    shell:
+        "linclust-conservation-evaluate-seed-alignment "
+        "--truth {input.truth:q} --pairs {input.pairs:q} "
+        "--alignments {input.alignments:q} --preparation {input.preparation:q} "
+        "--resources {input.resources:q} --mmseqs-version {input.version:q} "
+        "--thresholds {params.thresholds:q} "
+        "--pipeline-commit {params.pipeline_commit:q} "
+        "--pipeline-config-sha256 {params.pipeline_config_sha256:q} "
+        "--output {output:q}"
+
+
+rule seed_alignment_diagnostic:
+    input:
+        f"{SEED_ALIGNMENT_DIAGNOSTIC}/receipt.json",
+        f"{SEED_ALIGNMENT_DIAGNOSTIC}/preparation.json",
+        f"{SEED_ALIGNMENT_DIAGNOSTIC}/alignments.tsv",
+        f"{SEED_ALIGNMENT_DIAGNOSTIC}/mmseqs_version.txt",
+        f"{SEED_ALIGNMENT_DIAGNOSTIC}/resources.txt",
 
 
 rule tune_homology:

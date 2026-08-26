@@ -1,0 +1,19 @@
+seed_alignment_diagnostic:
+  fasta: s3://oa-bolinas/snakemake/analysis/linclust_conservation/runs/homology-background-seed-graph-scaling/results/v1/e860986cd86fe43026ad8db57eb97cefe8f77cd1/d3bc2ddff5f94e4753062541cd7daf00d9f2ccafb9406ebdb8f3758de6746d62/background_scaling/1000000/fixture/windows.fasta
+  truth: s3://oa-bolinas/snakemake/analysis/linclust_conservation/runs/homology-background-seed-graph-scaling/results/v1/e860986cd86fe43026ad8db57eb97cefe8f77cd1/d3bc2ddff5f94e4753062541cd7daf00d9f2ccafb9406ebdb8f3758de6746d62/homology_tuning/fixture/truth.tsv
+  assignments: s3://oa-bolinas/snakemake/analysis/linclust_conservation/runs/homology-background-seed-graph-scaling/results/v1/e860986cd86fe43026ad8db57eb97cefe8f77cd1/d3bc2ddff5f94e4753062541cd7daf00d9f2ccafb9406ebdb8f3758de6746d62/seed_graph_background/1000000/k19_s237_f8_m1/clusters.tsv
+  max_sequences: 2000
+  timeout: 10m
+  thresholds:
+    - name: evalue_only
+      min_sequence_identity: 0.0
+      coverage: 0.0
+      evalue: 0.001
+    - name: relaxed_0_4_c07
+      min_sequence_identity: 0.4
+      coverage: 0.7
+      evalue: 0.001
+    - name: standard_0_5_c08
+      min_sequence_identity: 0.5
+      coverage: 0.8
+      evalue: 0.001
