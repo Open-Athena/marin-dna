@@ -709,3 +709,30 @@ Its current anchor path instead creates uniform conservation-selected windows an
 - Interpretation and evaluation: Each arm still receives approximately 10.486 billion token presentations, while effective row exposure differs by almost ninefold across arms.
   No held-out VEP data was read or registered.
 - Next action: Monitor tokenization completion, verify each preemptible v5p-8 training descendant and its W&B telemetry, publish the launch status to issue #517, and terminate the temporary EC2 launcher once the independent Iris jobs no longer depend on it.
+
+### 2026-08-26 12:25 UTC - `FAS-517-026` flexible v5p-8/v6e-4 relaunch
+
+- Capacity finding: All six initial graphs completed and validated their train and validation token caches, then submitted v5p-8 training descendants.
+  The `tpu_v5p-preemptible_8-us-east5-a` scale group entered degraded backoff with no ready slices and repeated provisioning failures, leaving all six training tasks pending without W&B runs.
+- Prior-work check: [Issue #303](https://github.com/Open-Athena/marin-dna/issues/303#issuecomment-4653647945) records successful 0.25B, batch-8,192, sequence-length-256 training on `v6e-4` with PDP 1,024 in `us-east5`, including live TPU loops and W&B for both arms.
+  [Issue #351](https://github.com/Open-Athena/marin-dna/issues/351#issuecomment-4871479878) records the same v6e-4/PDP-1,024 route for two 0.25B enhancer runs, and the issue's final record reports both completed all 5,000 steps.
+- Human decision: Allow the historically used `v6e-4` TPU in addition to the original `v5p-8` request.
+  The exact ordered alternatives are `v5p-8,v6e-4` in `us-east5`, with preemptible capacity retained.
+- Validation: The existing EC2-side `test_tpu_resource_overrides_are_bounded` test passed for this exact variant pair.
+  The model, optimizer, seed, batch, sequence length, step budget, checkpoint cadence, artifact paths, and W&B run IDs are unchanged.
+- Replacement: After an exact six-job cancellation dry-run, the six v5p-only coordinators were deliberately cancelled before any optimizer step.
+  Their durable token caches were preserved.
+  Six replacements named `/ubuntu/exp517-gpn-uniform-{cds,utr3,tss-utr5,ncrna-exon,enhancer-arm-a,background}-flex` were accepted between 12:18:11 and 12:18:29 UTC and reused the completed caches without new tokenization.
+- Initial flexible scheduling: By 12:24 UTC, CDS, 3-prime UTR, TSS/5-prime UTR, and ncRNA exon were running on four distinct physical `tpu_v6e-preemptible_4-us-east5-b` workers.
+  Their Levanter loops reached `Progress on:train -/5000`, and four W&B runs were created in the intended group; no metric step had been logged yet during first-step compilation.
+  Enhancer Arm A and background remained pending for available slices.
+- Next action: Confirm real optimizer steps and metrics on the four active arms, verify enhancer Arm A and background allocation, publish the scheduling change and prior-work links to issue #517, then stop the temporary EC2 launcher.
+
+### 2026-08-26 12:35 UTC - `FAS-517-027` first optimizer steps on v6e-4
+
+- Runtime verification: The four allocated arms crossed compilation into real optimizer work on physical `tpu_v6e-preemptible_4-us-east5-b` workers.
+  At 12:33 UTC, W&B reported CDS at step 58, 3-prime UTR at step 60, TSS/5-prime UTR at step 59, and ncRNA exon at step 55, with all four runs in `running` state.
+- Queue state: Enhancer Arm A and background remain accepted and pending rather than failed.
+  Their scheduler reason is insufficient immediately available TPUs; at 12:34 UTC, the v6e-4 `us-east5-b` scale group reported 17 ready and nine booting workers, while the v5p-8 `us-east5-a` group reported two booting and none ready.
+- Interpretation: The previous issue records correctly predicted compatibility for this exact training geometry, and the physical worker assignments demonstrate that Iris selected the ordered v6e-4 alternative while v5p capacity was unavailable.
+- Next action: Publish the verified first-step status and queue state to issue #517, leave all six independently resumable training graphs active, and stop the temporary EC2 launcher.
