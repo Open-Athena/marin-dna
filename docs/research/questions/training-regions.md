@@ -34,6 +34,7 @@ With one seed, the result argues against hard half-token ranking in this setting
 The [anchor-free clustering experiment](../experiments/521-linclust-conservation.md) did not recover a viable conservation selector from independently tiled mammalian genomes.
 On a projected three-species control in a five-million-window background, the best scalable Linclust recipe recovered 54.9% of known pairs at 99.1% strict precision, while an exhaustive no-prefilter control still recovered only 71.9%.
 Extending windows from 255 to 511 bp reduced matched-anchor exhaustive recall, alternative seed and graph recipes traded away precision or recall, and monolithic Linclust segfaulted on the exact 298.5-million-window 20-genome panel.
+The workflow placed every retained tile in one database and lacked distributed sharding or cross-shard reconciliation, so it supplied no path from the mammalian proof of concept to all-animal or all-eukaryote coverage.
 This argues against further tuning of unordered short-window clustering for this purpose, while leaving targeted local alignment and methods with positional, syntenic, or anchor evidence as distinct directions.
 
 The leading hypothesis is that increasing the density of constrained or correctly annotated sequence improves functional-VEP sample efficiency at fixed compute.
@@ -90,7 +91,7 @@ It should retain a background arm so gains on functional VEP can be weighed agai
 - [Online loss selection and teacher distillation for CDS continuation](../experiments/515-online-loss-selection.md) compared seven objective forks from one exp58 animal-CDS bridge.
   All four loss-ranked half-token objectives harmed Mendelian missense-plus-splicing AUPRC, while pure final-checkpoint teacher KL beat uniform CE at step 200 within the paired evaluation records; one seed, privileged later-lineage supervision, and unmatched per-step compute limit the inference.
 - [Anchor-free clustering of mammalian genome windows](../experiments/521-linclust-conservation.md) tested Linclust, exhaustive alignment controls, longer windows, hash ensembles, denser seeds, DECIPHER, and a source-aware seed graph against projected homology.
-  The tested symmetric short-window recipes missed too many known pairs or admitted too many genomic decoys, and monolithic Linclust failed at the exact 20-genome scale, so this path was stopped without a phyloP selector or training run.
+  The tested symmetric short-window recipes missed too many known pairs or admitted too many genomic decoys, and the single-database workflow failed at the exact 20-genome scale without a distributed path to all animals or eukaryotes, so this path was stopped without a phyloP selector or training run.
 
 </details>
 

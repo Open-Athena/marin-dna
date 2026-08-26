@@ -1,7 +1,7 @@
 # Anchor-free clustering of mammalian genome windows
 
 > [!NOTE]
-> **TL;DR:** Symmetric clustering of independently tiled 255 bp mammalian genome windows, plus a bounded 511 bp projected-center diagnostic, did not provide a viable conservation selector: candidate generation missed many known homologs, the tested exhaustive MMseqs2 control still missed 28.1% of projected pairs, alternative seed graphs lost precision or recall, and monolithic Linclust crashed on the exact 298.5-million-window panel.
+> **TL;DR:** Symmetric clustering of independently tiled 255 bp mammalian genome windows, plus a bounded 511 bp projected-center diagnostic, did not provide a viable conservation selector: recovery was inadequate, monolithic Linclust crashed on the exact 298.5-million-window panel, and the single-database workflow had no path to all-animal or all-eukaryote scale.
 
 ## Findings
 
@@ -25,6 +25,11 @@ The exact 20-order panel retained 298,524,220 of 469,611,559 candidate 255 bp wi
 MMseqs2 18.8cc5c `kmermatcher` segfaulted on this monolithic database with both the measured 148-seed recipe and a 64-seed retry that planned one in-memory split.
 The latter reached a sampled 325,828,228 KiB RSS while approximately 192 GiB of host memory remained available, so its failure was not a host out-of-memory event.
 No full-panel assignments or direct phyloP metrics were produced.
+
+Scalability was a separate negative result from recovery quality.
+The workflow placed every retained window in one MMseqs2 database and had no distributed sequence-ID sharding or cross-shard reconciliation.
+The 20-mammal proof of concept already failed in that architecture.
+This implementation therefore did not provide a path to all-animal or all-eukaryote coverage; supporting those scopes would require a different system architecture and validation of global cluster semantics across partitions.
 
 These results do not rule out a materially different method that uses positional or syntenic evidence, an anchor genome, or another candidate representation.
 They do show that more hash shifts, denser short-seed sampling, broader alignment of the same candidates, a longer centered window, or another monolithic Linclust run is not justified by this experiment.
@@ -50,6 +55,7 @@ Relaxing coverage raised it further, but only the E-value-only graph reached 71.
 Changing minimum identity from 0.40 to 0.30 at 0.50 coverage changed no pairs, identifying coverage rather than identity as the operative acceptance limit within this MMseqs2 control.
 
 The 20-genome run used exactly one selected assembly from each of 20 mammalian orders and all retained tiles from each assembly.
+The rule constructed one MMseqs2 database from every retained tile and had no sharding or reconciliation stage.
 Both paid full-panel attempts completed database creation before failing in `kmermatcher` seed-list generation.
 The five on-demand panel attempts, including setup and workflow corrections, used an estimated $8.11 of EC2 compute and all workers were terminated.
 
