@@ -323,3 +323,58 @@ The sparse singleton results update confidence in the sampling design, not in th
 - Suggested issue update: record the panel smoke as a calibration result and the exhaustive three-genome run as the next sensitivity experiment.
 - Open questions: exact retained-window count, Linclust peak RSS and scratch, cross-genome cluster count, and whether the frozen 20-k-mer baseline has sufficient sensitivity.
 - Stop reason: the available evidence changes the experiment ordering decisively and supports one bounded exhaustive launch.
+
+### 2026-08-25 23:45 UTC - LINC-CONS-009 stopped exhaustive three-genome baseline
+
+- Hypothesis: Exhaustive 255 bp tiling of human, mouse, and opossum will put enough homologous loci in the same database for the frozen Linclust recipe to reduce the input substantially before its internal alignment stage.
+- Commit Hash: [`a64725bf`](https://github.com/Open-Athena/marin-dna/commit/a64725bf2ce623c1097e4b56c1b8ad1cfbec9dfe)
+- Commands: SkyPilot job 2 ran all 41 tests, the 21-job dry-run, staging, exhaustive extraction, `mmseqs createdb`, and the first Linclust k-mer/set-cover pass on AWS `r7i.4xlarge` in `us-east-2`; after the preliminary cluster count, `sky cancel -y linclust-cons-exhaustive3 2` stopped the job and `sky down -y linclust-cons-exhaustive3` terminated the worker.
+- Config: configuration SHA-256 `27136f290026a996f45ab3e18363d8e07e4af4293559aa3b69284691ae29c128`; 255 bp windows at stride 128; human `GCF_000001405.40`, mouse `GCF_000001635.27`, and opossum `GCF_027887165.2`; MMseqs2 18.8cc5c at identity 0.5, coverage 0.8, contiguous k-mers, and the default nucleotide k-mer scale 0.2; 16 threads, 128 GiB RAM, and 500 GB disk.
+- Result: The extractor retained 15,718,463 of 24,214,098 human candidates, 14,551,154 of 21,314,017 mouse candidates, and 17,497,482 of 28,016,908 opossum candidates.
+  In total it retained 47,767,099 of 73,545,023 candidates, or 64.9495%, and wrote 14,653,924,748 FASTA bytes.
+  `createdb` completed in 2 minutes 7 seconds.
+  The first Linclust k-mer pass took 5 minutes 18 seconds, found 3,857,889 candidate connections, and produced 45,500,465 preliminary clusters from 47,767,099 sequences.
+  Thus 95.25% as many clusters as input sequences remained before Linclust's mandatory internal candidate alignment.
+  The alignment stage then used all 16 cores and roughly 20 to 29 GiB RSS for more than 25 minutes, with ample memory and disk, before the user-directed stop.
+  No final assignment table or distinct-genome histogram exists.
+  The three extracted FASTAs, extraction receipts, manifests, and staging receipts remain durable under `s3://oa-bolinas/snakemake/analysis/linclust_conservation/runs/canary3-exhaustive/results/v1/a64725bf2ce623c1097e4b56c1b8ad1cfbec9dfe/27136f290026a996f45ab3e18363d8e07e4af4293559aa3b69284691ae29c128/`.
+- Negative results: SkyPilot job 1 stopped before workflow execution because the setup command used an incorrectly expanded commit hash; job 2 used the exact requested hash.
+- Interpretation: The baseline was deliberately stopped, not failed.
+  A 4.75% preliminary reduction is already too weak to justify paying for its long internal alignment or a later representative-to-all search.
+  This rejects the frozen whole-genome recipe but does not reject clustering after substantial sensitivity or representation changes.
+- Next action: measure cluster recovery and purity on a small fixture where the true homologous groups are known before considering any other whole-genome run.
+
+### 2026-08-26 00:10 UTC - LINC-CONS-010 projected-homology tuning fixture
+
+- Hypothesis: If the main failure is sparse or phase-mismatched genome sampling, Linclust should compress a clean three-species projected-ortholog fixture close to one cluster per human anchor; if it does not, the clustering recipe itself lacks sensitivity.
+- Commit Hash: [`0c456c03`](https://github.com/Open-Athena/marin-dna/commit/0c456c03)
+- Commands: downloaded the exact preserved issue #417 human, mouse, and armadillo projection Parquets from S3; built the fixture with the pipeline-local bounded selector; ran eight MMseqs2 18.8cc5c Linclust configurations and direct representative-member alignment only on the retained fixture edges; ran `uv run --locked pytest`, default, smoke, and 19-job tuning dry-runs, and scoped pre-commit checks.
+- Config: 512 shared projected human anchors with one clean 255 bp row each for human `hg38`, mouse `GCF_000001635.26`, and armadillo `GCF_000208655.1`; 1,536 sequences and 1,536 known within-anchor species pairs; candidate k-mer scales 0.2, 0.3, 0.5, and 1.0; contiguous or spaced k-mers; coverage 0.80, 0.75, or 0.70; minimum identity 0.50 or 0.40; and masked or unmasked prefilter variants.
+- Fixture result: The three immutable projection sources share 931,775 anchor IDs.
+  The deterministic 4,096-anchor candidate prefix yielded 512 clean complete groups after rejecting four candidates for ambiguity and 24 for majority lowercase.
+  The resulting FASTA SHA-256 is `6af225840dfe5269b7b95e7a5f97b2ac594b4f989f814c604c956fb425010d92`; the truth TSV SHA-256 is `959585e53f61166678c533902175d92782d8b6ce89bb353960a42263609d6c3e`.
+  Local construction took 1.68 seconds and peaked at 370,428 KiB RSS.
+
+| Variant | Clusters / ideal 512 | Exact 3-species anchors | True pairs recovered / 1,536 | Pair precision | Impure clusters |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| baseline | 1,014 / 1.980× | 180 / 35.2% | 699 / 45.5% | 99.43% | 3 |
+| scale 0.3 | 993 / 1.939× | 193 / 37.7% | 733 / 47.7% | 99.46% | 3 |
+| spaced, scale 0.3 | 955 / 1.865× | 210 / 41.0% | 788 / 51.3% | 99.49% | 3 |
+| spaced, scale 0.3, coverage 0.75 | 945 / 1.846× | 214 / 41.8% | 802 / 52.2% | 99.50% | 3 |
+| preceding variant plus identity 0.40 | 945 / 1.846× | 214 / 41.8% | 802 / 52.2% | 99.50% | 3 |
+| spaced, scale 1.0 | 898 / 1.754× | 243 / 47.5% | 878 / 57.2% | 99.55% | 3 |
+| unmasked spaced, scale 0.3 | 914 / 1.785× | 228 / 44.5% | 849 / 55.3% | 99.07% | 2 |
+| spaced, scale 0.5, coverage 0.70, identity 0.40 | 885 / 1.729× | 250 / 48.8% | 897 / 58.4% | 99.34% | 4 |
+
+- Alignment result: The accepted true representative-member edges have mean identity 0.846 and mean query/target coverage about 0.904 under the baseline.
+  The best-recall variant lowers those means only to 0.837 identity and 0.892 coverage, so accepted edges remain strong while 41.6% of known true pairs are still missed.
+  Baseline pair recall is 51.2% for armadillo-human, 41.4% for armadillo-mouse, and 43.9% for human-mouse.
+  The best-recall variant reaches 64.1%, 52.5%, and 58.6%, respectively.
+- Negative results: A direct sensitive MMseqs2 nucleotide search was not run on the shared node after its fixed prefilter allocation could not fit within the node's safe memory limit, even with a split-memory request.
+  No remote worker or further paid compute was launched for it.
+- Interpretation: The clean known-homology fixture falsifies the idea that the full-genome result is explained only by missing corresponding loci.
+  The tested Linclust recipes remain severe under-clusterers: even the most relaxed bounded variant produces 1.73 times the ideal cluster count and recovers fewer than half of complete three-species groups.
+  High precision shows that the dominant failure is missed homologs rather than cross-anchor over-merging.
+  Lowering identity from 0.50 to 0.40 did nothing at the otherwise matched setting, while stronger k-mer sampling produced the largest improvement; the heuristic candidate stage is therefore the clearest current bottleneck.
+- Next action: do not launch the prepared 511 bp whole-genome run.
+  Decide whether to test a fundamentally more sensitive search/graph construction on the same truth fixture or to stop the Linclust approach for this conservation representation.
