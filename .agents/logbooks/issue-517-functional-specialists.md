@@ -791,3 +791,9 @@ Its current anchor path instead creates uniform conservation-selected windows an
 - ETA: CDS has approximately 2,500 optimizer steps remaining after restore, or about 3.2 hours at its prior steady-state throughput plus compilation and evaluation overhead.
   The other arms retain the previous estimate of approximately 4-5 hours after allocation; their wall-clock completion remains capacity-dependent.
 - Next action: Confirm a post-restore CDS W&B step, continue waiting on the existing five queued jobs, and avoid duplicate submissions.
+
+### 2026-08-26 17:51 UTC - `FAS-517-032` CDS W&B reconnect
+
+- Telemetry: The existing CDS W&B run changed back to `running` under the same run ID after the replacement worker restored step 2,500.
+  Its latest global step remains 2,531, so resumed telemetry is connected but a post-restore optimizer step has not yet been observed.
+- Next action: Treat the restore as operationally healthy after W&B advances beyond step 2,531.
