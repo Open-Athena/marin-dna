@@ -257,7 +257,13 @@ uv run --locked snakemake \
 It expands the accepted target-center intervals to 511 bp with 0-based half-open coordinates, extracts strand-aware soft-masked sequence with pinned UCSC `twoBitToFa` 482, and retains 128 complete clean groups.
 Three Linclust recipes measure candidate discovery, while sensitivity-7.5 and no-prefilter graphs measure the alignment ceiling.
 Its outputs use the separate `s3://oa-bolinas/snakemake/analysis/linclust_conservation/runs/homology-window511/` prefix.
-A 511 bp whole-genome run remains deferred until this bounded comparison shows adequate recovery.
+The bounded result falsified the longer-window hypothesis: on 123 exactly shared anchors, E-value-only true-pair recall fell from 71.3% at 255 bp to 37.7% at 511 bp, with 100% precision in both induced partitions.
+A 511 bp whole-genome run is therefore not justified.
+
+An exploratory short-seed sweep on the 255 bp, 128-anchor fixture found that Linclust had automatically selected 17-mers.
+At the fixed 0.40 identity and 0.70 bidirectional-coverage gate, an explicit masked 9-mer improved true-pair recall from 52.3% to 67.4% while retaining 100% observed pair precision.
+This clean-fixture result is not yet a deployable setting because a 9-mer has only 262,144 possible keys and may lose specificity or representative stability against tens of millions of background tiles.
+The next target injects the truth fixture into increasing samples of the already extracted three-genome tile FASTAs and measures that scaling behavior.
 
 ## Current outputs
 

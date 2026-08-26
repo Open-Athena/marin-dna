@@ -521,3 +521,55 @@ The sparse singleton results update confidence in the sampling design, not in th
 - Falsifier: 511 bp fails to improve candidate or exhaustive recall, or gains arise only through impure cross-anchor merges.
 - Cost/risk: one bounded 384-sequence run; source download is approximately 2.85 GB of immutable in-region inputs, outputs use a new namespace, and no whole-genome clustering is authorized by this design.
 - Next action: implement and unit-test the expanded-center fixture builder, validate the combined Snakemake DAG, snapshot it, and run it on one `r7i.large`.
+
+### 2026-08-26 01:23 UTC - LINC-CONS-018 bounded 511 bp geometry result
+
+- Hypothesis: Extending projected-center windows from 255 to 511 bp will improve Linclust candidate discovery and the exhaustive MMseqs2 alignment ceiling without introducing cross-anchor merges.
+- Commit Hash: [`dc704fa5`](https://github.com/Open-Athena/marin-dna/commit/dc704fa5d1e0636177653f7ff7d33b7c0dcd5954)
+- Commands: launched SkyPilot job 1 on `linclust-cons-window511`, which ran 45 tests, the 19-job dry-run, `tune_homology`, and `exhaustive_graph_homology` on AWS `r7i.large` in `us-east-2`; after all artifacts uploaded, `sky down -y linclust-cons-window511` terminated the worker.
+- Config: configuration SHA-256 `97f523755b1a079221549f29813e097ae71deec6f0acc8378bc7736d59cad213`; 128 complete human, mouse, and armadillo groups; 384 sequences; 511 bp strand-oriented windows around projected centers; MMseqs2 18.8cc5c; three Linclust candidate recipes; and four exhaustive-graph controls.
+- Fixture audit: 123 of the 128 selected anchors match the original deterministic 255 bp prefix.
+  Five replacements were required because expansion introduced an ambiguous base or majority-lowercase sequence in at least one species.
+
+| 511 bp variant | Clusters / ideal 128 | Complete anchors | True-pair recall | Pair precision | Impure clusters |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Linclust baseline | 320 / 2.500x | 15 / 11.7% | 17.7% | 83.95% | 11 |
+| Linclust previous 255 bp recipe | 184 / 1.438x | 3 / 2.3% | 25.0% | 22.59% | 105 |
+| Linclust dense spaced k-mers | 181 / 1.414x | 3 / 2.3% | 25.8% | 23.29% | 105 |
+| sensitivity-7.5 k-mer graph, 0.50 / 0.80 | 308 / 2.406x | 21 / 16.4% | 22.4% | 87.76% | 11 |
+| no prefilter, 0.50 / 0.80 | 316 / 2.469x | 24 / 18.8% | 24.0% | 100% | 0 |
+| no prefilter, 0.40 / 0.70 | 313 / 2.445x | 25 / 19.5% | 25.0% | 100% | 0 |
+| no prefilter, E-value only | 280 / 2.188x | 39 / 30.5% | 37.0% | 98.61% | 1 |
+
+- Matched-anchor control: restricting both E-value-only partitions to the exact same 123 projected anchors gives 71.3% true-pair recall and 65.0% exact-anchor recovery at 255 bp versus 37.7% and 31.7% at 511 bp.
+  Both induced partitions have 100% pair precision.
+- Resources: the 511 bp E-value-only search took 0.82 seconds and peaked at 22,016 KiB RSS; dense Linclust took 0.11 seconds and peaked at 22,016 KiB RSS on the 384-sequence fixture.
+- Artifacts: `s3://oa-bolinas/snakemake/analysis/linclust_conservation/runs/homology-window511/results/v1/dc704fa5d1e0636177653f7ff7d33b7c0dcd5954/97f523755b1a079221549f29813e097ae71deec6f0acc8378bc7736d59cad213/` contains the expanded fixture, assignments, alignments, receipts, resource records, and summaries.
+- Interpretation: the hypothesis is falsified.
+  Expanding around a projected one- or two-base center adds target-genome flanks that are not guaranteed to be homologous, dilutes the conserved block, and substantially lowers recovery for every species pair.
+  The severe impurity of the dense 511 bp Linclust variants also makes them unusable despite their superficially lower cluster counts.
+- Next action: keep 255 bp, investigate the scalable candidate stage directly, and test explicit shorter nucleotide k-mers before implementing a new candidate algorithm.
+
+### 2026-08-26 01:38 UTC - LINC-CONS-019 short-seed Linclust exploratory result
+
+- Hypothesis: Linclust's automatically selected nucleotide k-mer is too long for divergent 255 bp mammalian windows, and an explicit shorter k-mer can approach the exhaustive-alignment ceiling without sacrificing purity.
+- Scope: zero-cloud-cost local exploration on the existing 128-anchor, 384-sequence 255 bp fixture; all commands completed in less than two seconds and stayed below the shared-node heavy-work threshold.
+- Fixed settings: MMseqs2 18.8cc5c; 0.40 minimum identity; 0.70 bidirectional coverage; E-value 0.001; 20 base k-mers plus scale 0.5; spaced k-mers; set-cover clustering; and lowercase plus low-complexity masking unless named otherwise.
+
+| Candidate setting | Clusters / ideal 128 | Complete anchors | True-pair recall | Pair precision |
+| --- | ---: | ---: | ---: | ---: |
+| automatic 17-mer | 238 / 1.859x | 43.0% | 52.3% | 100% |
+| explicit 15-mer | 222 / 1.734x | 50.0% | 58.9% | 100% |
+| explicit 12-mer, unmasked | 205 / 1.602x | 56.2% | 65.4% | 100% |
+| explicit 11-mer, masked | 212 / 1.656x | 51.6% | 62.0% | 100% |
+| explicit 9-mer, masked, default hash shift | 203 / 1.586x | 57.0% | 66.1% | 100% |
+| explicit 9-mer, masked, hash shift 1 | 200 / 1.562x | 58.6% | 67.4% | 100% |
+| explicit 7-mer, masked | 257 / 2.008x | 35.2% | 44.8% | 100% |
+
+- Threshold warning: lowering the 11-mer Linclust acceptance threshold to 0.30 identity / 0.50 coverage reduced pair precision to 52.1%; the E-value-only arm recovered 80.7% of true pairs but precision fell to 41.0% with 52 impure clusters.
+  Unlike the exhaustive graph, greedy Linclust's intermediate representatives can therefore amplify false short-seed connections when acceptance thresholds are loose.
+- Stability warning: 9-mer recall ranged from 65.6% to 67.4% across tested hash shifts, so seed selection contributes about two percentage points of variation even on this small fixture.
+- Interpretation: automatic 17-mer selection was a material, previously untested source of candidate loss.
+  A masked 9-mer at the existing 0.40/0.70 acceptance gate comes within 4.4 percentage points of the 71.9% exhaustive E-value-only ceiling while retaining perfect observed purity.
+  However, a 9-mer has only 262,144 possible keys, so clean-fixture accuracy alone cannot establish scalability across 47.8 million real tiles.
+- Next action: inject the 384 truth sequences into increasing real-background samples from the already extracted three-genome FASTAs, then measure recovery, impurity, runtime, and peak memory for short-seed Linclust variants.
