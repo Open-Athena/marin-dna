@@ -11,6 +11,12 @@ name: Claude Code Review
 # also excludes dependabot (CONTRIBUTOR) and fork PRs, which never receive the
 # secret. `pull_request` (not `pull_request_target`) checks out the merge ref
 # — what would actually land — without exposing credentials to PR code.
+#
+# claude-code-action additionally refuses to run unless this file is identical
+# to the copy on the default branch (anti-tampering check on its app-token
+# exchange). A PR that adds or edits this workflow therefore gets a ~15 s
+# "success" with no review and a "Skipping action due to workflow validation"
+# warning in the log; the review starts working for the next PR after merge.
 
 on:
   pull_request:
