@@ -34,6 +34,7 @@ linclust-conservation-evaluate-homology-clusters = "marin_dna_linclust_conservat
 linclust-conservation-build-background-fixture = "marin_dna_linclust_conservation.cli.build_background_fixture:main"
 linclust-conservation-evaluate-background-scaling = "marin_dna_linclust_conservation.cli.evaluate_background_scaling:main"
 linclust-conservation-merge-cluster-assignments = "marin_dna_linclust_conservation.cli.merge_cluster_assignments:main"
+linclust-conservation-build-seed-graph = "marin_dna_linclust_conservation.cli.build_seed_graph:main"
 
 [dependency-groups]
 dev = [

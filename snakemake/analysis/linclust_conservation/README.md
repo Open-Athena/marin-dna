@@ -295,6 +295,55 @@ It streams each complete representative-member partition into a linear-memory un
 Its reported runtime is the sum of all constituent MMseqs2 stages; merge work is recorded separately and does not masquerade as MMseqs2 time.
 Outputs use the new `s3://oa-bolinas/snakemake/analysis/linclust_conservation/runs/homology-background-ensemble/` prefix.
 
+The one-pass sampling-density target holds automatic 17-mer selection and the clustering gate fixed while varying the number of selected k-mers per sequence:
+
+```bash
+uv run --locked snakemake \
+  --snakefile workflow/Snakefile \
+  --configfile config/homology_background_density.yaml \
+  --profile workflow/profiles/default \
+  background_scaling
+```
+
+It compares 20, 80, 148, and 239 selected k-mers on the 100,000-, 1,000,000-, and 5,000,000-tile backgrounds.
+The measured optimum was the existing 148-k-mer setting: at five million background tiles, 239 k-mers recovered 53.4% rather than 55.0% of truth pairs, increased wall time from 158 to 184 seconds, and increased peak RSS from 12.6 to 19.4 GiB.
+Reducing the density to 80 or 20 k-mers lowered recall to 51.0% or 31.0%, respectively.
+Outputs use the separate `s3://oa-bolinas/snakemake/analysis/linclust_conservation/runs/homology-background-density/` prefix.
+
+The bounded Clusterize comparison evaluates a distinct linear-time candidate strategy based on rare k-mers and relatedness sorting:
+
+```bash
+uv run --locked snakemake \
+  --snakefile workflow/Snakefile \
+  --configfile config/homology_background_density.yaml \
+  --configfile config/homology_background_clusterize.yaml \
+  --profile workflow/profiles/default \
+  background_clusterize
+```
+
+The bounded run evaluated DECIPHER Clusterize at a 0.6 distance cutoff on 100,000 and 1,000,000 real-background tiles, then evaluated the stricter 0.5 cutoff only at 100,000 tiles.
+At distance 0.6, Clusterize collapsed 100,384 sequences to 189 clusters and 1,000,384 sequences to 310 clusters, with zero singleton fraction and every truth record sharing a cluster with unrelated decoys.
+At distance 0.5, the 100,000-background arm still produced only 1,392 clusters, contaminated every truth record, and required 452 seconds.
+The uninformative stricter one-million-sequence arm was cancelled before its first phase completed.
+Clusterize therefore has linear memory scaling here, but its low-similarity local matches create giant mixed components and its runtime is not competitive with Linclust.
+Outputs use the separate `s3://oa-bolinas/snakemake/analysis/linclust_conservation/runs/homology-background-clusterize/` prefix.
+
+The candidate-only seed-graph target tests whether explicit source-genome constraints and repeat caps can retain short-seed sensitivity without either representative dilution or giant components:
+
+```bash
+uv run --locked snakemake \
+  --snakefile workflow/Snakefile \
+  --configfile config/homology_background_density.yaml \
+  --configfile config/homology_background_seed_graph.yaml \
+  --profile workflow/profiles/default \
+  background_seed_graph
+```
+
+It selects canonical seeds deterministically, removes every seed bucket above a fixed document-frequency cap, emits only cross-genome candidate pairs, and requires configured shared-seed support.
+Greedy components may contain at most one record from each source genome, including after accession-to-species aliasing of the injected truth records.
+The first target compares 9-, 13-, 15-, and 17-mer candidates on 100,000 real background tiles and performs no sequence alignment.
+Outputs use the separate `s3://oa-bolinas/snakemake/analysis/linclust_conservation/runs/homology-background-seed-graph/` prefix.
+
 ## Current outputs
 
 The default target writes:

@@ -42,6 +42,7 @@ HOMOLOGY_SEARCH_CLUSTERING = f"{RESULTS}/homology_search_clustering"
 HOMOLOGY_EXHAUSTIVE_GRAPH = f"{RESULTS}/homology_exhaustive_graph"
 BACKGROUND_SCALING = f"{RESULTS}/background_scaling"
 CLUSTERIZE_BACKGROUND = f"{RESULTS}/clusterize_background"
+SEED_GRAPH_BACKGROUND = f"{RESULTS}/seed_graph_background"
 
 HOMOLOGY_FIXTURE = config.get("homology_fixture", {})
 HOMOLOGY_SOURCES = HOMOLOGY_FIXTURE.get("sources", [])
@@ -120,6 +121,16 @@ CLUSTERIZE_SAMPLE_NAMES = [
 assert set(CLUSTERIZE_SAMPLE_NAMES).issubset(BACKGROUND_SAMPLE_NAMES)
 CLUSTERIZE_VARIANTS = CLUSTERIZE_CONFIG.get("variants", {})
 CLUSTERIZE_VARIANT_NAMES = sorted(CLUSTERIZE_VARIANTS)
+SEED_GRAPH_CONFIG = config.get("seed_graph", {})
+SEED_GRAPH_SAMPLE_NAMES = [
+    str(sample) for sample in SEED_GRAPH_CONFIG.get("samples", [])
+]
+assert set(SEED_GRAPH_SAMPLE_NAMES).issubset(BACKGROUND_SAMPLE_NAMES)
+SEED_GRAPH_VARIANTS = SEED_GRAPH_CONFIG.get("variants", {})
+SEED_GRAPH_VARIANT_NAMES = sorted(SEED_GRAPH_VARIANTS)
+SEED_GRAPH_SOURCE_ALIASES = {
+    source["accession"]: source["label"] for source in BACKGROUND_SOURCES
+}
 
 SELECTION_PATH = config.get("selection_path", "config/assembly_selection.tsv")
 SOURCE_REUSE_PATH = "config/source_reuse_inventory.tsv"
@@ -1176,6 +1187,154 @@ rule background_clusterize:
     input:
         f"{CLUSTERIZE_BACKGROUND}/summary.json",
         f"{CLUSTERIZE_BACKGROUND}/summary.tsv",
+
+
+rule run_background_seed_graph:
+    input:
+        fasta=f"{BACKGROUND_SCALING}/{{sample}}/fixture/windows.fasta",
+        truth=f"{HOMOLOGY_TUNING}/fixture/truth.tsv",
+    output:
+        assignments=f"{SEED_GRAPH_BACKGROUND}/{{sample}}/{{variant}}/clusters.tsv",
+        receipt=f"{SEED_GRAPH_BACKGROUND}/{{sample}}/{{variant}}/seed_graph.json",
+        version=f"{SEED_GRAPH_BACKGROUND}/{{sample}}/{{variant}}/version.txt",
+        resources=f"{SEED_GRAPH_BACKGROUND}/{{sample}}/{{variant}}/resources.txt",
+    wildcard_constraints:
+        sample="|".join(SEED_GRAPH_SAMPLE_NAMES) or "(?!x)x",
+        variant="|".join(SEED_GRAPH_VARIANT_NAMES) or "(?!x)x",
+    resources:
+        mem_mb=110000,
+    params:
+        kmer_length=lambda wc: SEED_GRAPH_VARIANTS[wc.variant]["kmer_length"],
+        selected_seeds=lambda wc: SEED_GRAPH_VARIANTS[wc.variant][
+            "selected_seeds_per_sequence"
+        ],
+        max_frequency=lambda wc: SEED_GRAPH_VARIANTS[wc.variant]["max_seed_frequency"],
+        min_shared=lambda wc: SEED_GRAPH_VARIANTS[wc.variant]["min_shared_seeds"],
+        hash_seed=lambda wc: SEED_GRAPH_VARIANTS[wc.variant]["hash_seed"],
+        timeout=lambda wc: SEED_GRAPH_VARIANTS[wc.variant]["timeout"],
+        source_aliases=json.dumps(SEED_GRAPH_SOURCE_ALIASES, sort_keys=True),
+    shell:
+        r"""
+        set -euo pipefail
+        /usr/bin/time -v -o {output.resources} \
+            timeout --signal=TERM {params.timeout} \
+            linclust-conservation-build-seed-graph \
+            --fasta {input.fasta:q} --truth {input.truth:q} \
+            --assignments {output.assignments:q} --receipt {output.receipt:q} \
+            --version {output.version:q} --kmer-length {params.kmer_length} \
+            --selected-seeds {params.selected_seeds} \
+            --max-seed-frequency {params.max_frequency} \
+            --min-shared-seeds {params.min_shared} \
+            --hash-seed {params.hash_seed} \
+            --source-aliases {params.source_aliases:q}
+        """
+
+
+rule evaluate_background_seed_graph:
+    input:
+        truth=f"{HOMOLOGY_TUNING}/fixture/truth.tsv",
+        assignments=f"{SEED_GRAPH_BACKGROUND}/{{sample}}/{{variant}}/clusters.tsv",
+        fixture_receipt=f"{BACKGROUND_SCALING}/{{sample}}/fixture/receipt.json",
+        resources=f"{SEED_GRAPH_BACKGROUND}/{{sample}}/{{variant}}/resources.txt",
+        version=f"{SEED_GRAPH_BACKGROUND}/{{sample}}/{{variant}}/version.txt",
+    output:
+        f"{SEED_GRAPH_BACKGROUND}/{{sample}}/{{variant}}/receipt.json",
+    wildcard_constraints:
+        sample="|".join(SEED_GRAPH_SAMPLE_NAMES) or "(?!x)x",
+        variant="|".join(SEED_GRAPH_VARIANT_NAMES) or "(?!x)x",
+    params:
+        configuration=lambda wc: json.dumps(
+            {
+                "algorithm": "repeat_capped_seed_graph",
+                **SEED_GRAPH_VARIANTS[wc.variant],
+            },
+            sort_keys=True,
+        ),
+        pipeline_commit=PIPELINE_COMMIT,
+        pipeline_config_sha256=PIPELINE_CONFIG_SHA256,
+    shell:
+        "linclust-conservation-evaluate-background-scaling "
+        "--truth {input.truth:q} --assignments {input.assignments:q} "
+        "--fixture-receipt {input.fixture_receipt:q} "
+        "--resources {input.resources:q} "
+        "--configuration {params.configuration:q} "
+        "--mmseqs-version {input.version:q} "
+        "--pipeline-commit {params.pipeline_commit:q} "
+        "--pipeline-config-sha256 {params.pipeline_config_sha256:q} "
+        "--output {output:q}"
+
+
+rule summarize_background_seed_graph:
+    input:
+        evaluations=expand(
+            f"{SEED_GRAPH_BACKGROUND}/{{sample}}/{{variant}}/receipt.json",
+            sample=SEED_GRAPH_SAMPLE_NAMES,
+            variant=SEED_GRAPH_VARIANT_NAMES,
+        ),
+        candidate_receipts=expand(
+            f"{SEED_GRAPH_BACKGROUND}/{{sample}}/{{variant}}/seed_graph.json",
+            sample=SEED_GRAPH_SAMPLE_NAMES,
+            variant=SEED_GRAPH_VARIANT_NAMES,
+        ),
+    output:
+        json=f"{SEED_GRAPH_BACKGROUND}/summary.json",
+        tsv=f"{SEED_GRAPH_BACKGROUND}/summary.tsv",
+    run:
+        labels = [
+            (sample, variant)
+            for sample in SEED_GRAPH_SAMPLE_NAMES
+            for variant in SEED_GRAPH_VARIANT_NAMES
+        ]
+        rows = []
+        for (sample, variant), evaluation_path, candidate_path in zip(
+            labels, input.evaluations, input.candidate_receipts, strict=True
+        ):
+            evaluation = json.loads(Path(evaluation_path).read_text())
+            candidates = json.loads(Path(candidate_path).read_text())
+            configuration = candidates["configuration"]
+            rows.append(
+                {
+                    "sample": sample,
+                    "variant": variant,
+                    **configuration,
+                    "candidate_true_pair_recall": candidates[
+                        "candidate_true_pair_recall"
+                    ],
+                    "qualifying_candidate_pair_count": candidates[
+                        "qualifying_candidate_pair_count"
+                    ],
+                    "accepted_edge_count": candidates["accepted_edge_count"],
+                    "retained_seed_count": candidates["retained_seed_count"],
+                    "suppressed_seed_count": candidates["suppressed_seed_count"],
+                    "cluster_count": evaluation["cluster_count"],
+                    "singleton_sequence_fraction": evaluation[
+                        "singleton_sequence_fraction"
+                    ],
+                    "exact_anchor_recovery_fraction": evaluation[
+                        "exact_anchor_recovery_fraction"
+                    ],
+                    "true_pair_recall": evaluation["true_pair_recall"],
+                    "pair_precision": evaluation["pair_precision"],
+                    "strict_truth_cluster_pair_precision": evaluation[
+                        "strict_truth_cluster_pair_precision"
+                    ],
+                    "truth_record_decoy_contamination_fraction": evaluation[
+                        "truth_record_decoy_contamination_fraction"
+                    ],
+                    "wall_seconds": evaluation["mmseqs_wall_seconds"],
+                    "peak_rss_kib": evaluation["mmseqs_peak_rss_kib"],
+                }
+            )
+        Path(output.json).write_text(
+            json.dumps(rows, indent=2, sort_keys=True) + "\n"
+        )
+        pl.DataFrame(rows).write_csv(output.tsv, separator="\t")
+
+
+rule background_seed_graph:
+    input:
+        f"{SEED_GRAPH_BACKGROUND}/summary.json",
+        f"{SEED_GRAPH_BACKGROUND}/summary.tsv",
 
 
 rule tune_homology:

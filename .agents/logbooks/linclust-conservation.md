@@ -654,3 +654,82 @@ The sparse singleton results update confidence in the sampling design, not in th
 - Execution note: fresh AWS Sky images exposed a hard-coded Miniforge and stale Conda assumption before scientific work began.
   The pinned task now detects Miniforge or Miniconda, upgrades Conda to 25.7.0, runs all 50 tests and the 30-job dry-run, and only then starts the experiment.
 - Next action: monitor SkyPilot job 4 on `linclust-cons-background-density`, stop the worker after the durable summary lands, and compare recall, strict precision, clusters, candidate cost, wall time, and peak RSS.
+
+### 2026-08-26 03:43 UTC - LINC-CONS-022 automatic-k sampling-density result
+
+- Hypothesis: spending the candidate budget on denser automatic-k17 sampling within one pass will recover more truth edges per unit of time than four independent hash passes.
+- Commit Hash: [`6c86097e`](https://github.com/Open-Athena/marin-dna/commit/6c86097e44676f07ae398afa7831a01e17894981)
+- Commands: SkyPilot job 4 completed all twelve Linclust and twelve evaluation arms on AWS `r7i.4xlarge` in `us-east-2`; the worker remained warm only for the immediately following bounded algorithm comparison.
+- Config: configuration SHA-256 `225aac22428329931549bf90c6805c404c84ce2bdfe2aaae757c5bd973eb387a`; automatic k17; hash shift 1; zero length-based sampling scale; and 20, 80, 148, or 239 selected k-mers per 255 bp sequence.
+
+| Background | Selected k-mers | Recall | Strict precision | Exact anchors | Decoy contamination | Clusters | Wall time | Peak RSS |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 100,000 | 20 | 31.0% | 100.0% | 22.7% | 0.0% | 97,453 | 1.33 s | 97 MiB |
+| 100,000 | 80 | 51.3% | 100.0% | 42.2% | 0.0% | 97,212 | 1.57 s | 278 MiB |
+| 100,000 | 148 | 54.9% | 100.0% | 46.1% | 0.0% | 97,188 | 1.96 s | 468 MiB |
+| 100,000 | 239 | 52.9% | 100.0% | 43.8% | 0.0% | 97,235 | 2.03 s | 655 MiB |
+| 1,000,000 | 20 | 31.0% | 100.0% | 22.7% | 0.0% | 986,764 | 11.98 s | 838 MiB |
+| 1,000,000 | 80 | 51.3% | 100.0% | 42.2% | 0.0% | 983,582 | 16.36 s | 1.71 GiB |
+| 1,000,000 | 148 | 54.9% | 100.0% | 46.1% | 0.0% | 982,559 | 19.93 s | 2.73 GiB |
+| 1,000,000 | 239 | 52.9% | 100.0% | 43.8% | 0.0% | 982,530 | 22.79 s | 4.08 GiB |
+| 5,000,000 | 20 | 31.0% | 99.2% | 22.7% | 0.3% | 4,896,355 | 68.67 s | 3.06 GiB |
+| 5,000,000 | 80 | 51.0% | 99.0% | 42.2% | 0.5% | 4,855,873 | 113.54 s | 7.53 GiB |
+| 5,000,000 | 148 | 54.9% | 99.1% | 46.1% | 0.5% | 4,841,534 | 157.78 s | 12.6 GiB |
+| 5,000,000 | 239 | 53.4% | 97.6% | 44.5% | 0.5% | 4,839,481 | 184.24 s | 19.4 GiB |
+
+- Artifacts: `s3://oa-bolinas/snakemake/analysis/linclust_conservation/runs/homology-background-density/results/v1/6c86097e44676f07ae398afa7831a01e17894981/225aac22428329931549bf90c6805c404c84ce2bdfe2aaae757c5bd973eb387a/` contains all fixtures, assignments, resource records, evaluator receipts, and summaries.
+- Interpretation: the hypothesis is falsified.
+  Recall saturates at the existing 148-k-mer setting and does not improve monotonically at maximum density.
+  At five million backgrounds, 239 k-mers lose 1.6 recall percentage points relative to 148, take 17% longer, use 54% more peak memory, and lower strict precision by 1.4 percentage points.
+  One-pass density tuning therefore cannot close the candidate-recovery gap, although the 20-to-148 progression confirms that sampling density is material below the saturation point.
+- Next action: benchmark DECIPHER Clusterize, whose rare-k-mer and relatedness-sorting phases are specifically designed to retain distant relationships without relying on one representative-centered common-k-mer bucket.
+
+### 2026-08-26 03:44 UTC - LINC-CONS-023 relatedness-sorting clustering design
+
+- Hypothesis: DECIPHER Clusterize will preserve more projected truth pairs than Linclust's 54.9% single-pass plateau as real background grows because it prioritizes rare k-mers and then sorts sequences by relatedness before bounded alignment phases.
+- Commit Hash: [`14f8b65`](https://github.com/Open-Athena/marin-dna/commit/14f8b65dcf9da4e3f035f4d1da05f03e8680bec1)
+- Data: reuse the exact 100,000- and 1,000,000-tile balanced real-background construction and unchanged 128-anchor truth fixture from LINC-CONS-020.
+- Variants: DECIPHER 3.6.0 Clusterize with center linkage, 0.70 minimum coverage, distance cutoffs 0.5 or 0.6, lowercase and low-complexity masking, deterministic seed 521, and fixed phase and alignment bounds.
+- Expected signal: materially higher recall than Linclust at one million backgrounds without material truth-to-truth false merges or decoy contamination, at a runtime and memory footprint that can plausibly extend to five million tiles.
+- Falsifier: recall does not improve, precision becomes unusable, or the one-million-tile arm is already too slow or memory-intensive to scale.
+- Cost/risk: four bounded runs on the already warm approved `r7i.4xlarge`; a new pinned R/DECIPHER Conda environment; and a separate `homology-background-clusterize` S3 namespace.
+- Validation: 50 project tests passed; the 13-job dry-run and all scoped pre-commit hooks passed before launch.
+- Next action: monitor SkyPilot job 5, evaluate the completed 100,000- and 1,000,000-tile partitions against the same truth/decoy contracts, and decide from measured scaling whether a five-million-tile arm is justified.
+
+### 2026-08-26 04:36 UTC - LINC-CONS-023 relatedness-sorting clustering result
+
+- Hypothesis: DECIPHER Clusterize will preserve more projected truth pairs than Linclust's 54.9% single-pass plateau as real background grows because it prioritizes rare k-mers and relatedness sorting.
+- Commit Hash: [`14f8b65`](https://github.com/Open-Athena/marin-dna/commit/14f8b65dcf9da4e3f035f4d1da05f03e8680bec1)
+- Config: configuration SHA-256 `4973dddae6448c85b9581edc1255fcf30067eb248703a6140689095e8fe85451`; DECIPHER 3.6.0; center linkage; 0.70 minimum coverage; fixed phase bounds 20,000/2,000/2,000; at most 200 alignments; 50 rare k-mers; and deterministic seed 521.
+
+| Background | Distance cutoff | Clusters | Singleton fraction | Truth recall | Truth-pair precision | Strict cluster-pair precision | Truth-decoy contamination | Wall time | Peak RSS |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 100,000 | 0.6 | 189 | 0.0% | 25.5% | 5.2% | 0.00027% | 100% | 207.54 s | 1.20 GiB |
+| 1,000,000 | 0.6 | 310 | 0.0% | 28.6% | 4.5% | 0.000005% | 100% | 2,208.40 s | 8.22 GiB |
+| 100,000 | 0.5 | 1,392 | 0.04% | 59.6% | 58.1% | 0.0175% | 100% | 452.47 s | 1.22 GiB |
+
+- Phase audit: the one-million distance-0.6 arm spent 269 seconds partitioning into 60,812 detectable-homology groups, 395 seconds sorting by relatedness, and 1,533 seconds in final 9-mer clustering.
+  Relatedness sorting contributed to every clustered sequence and rare 11-mers contributed to 94.9%, but those links overwhelmingly joined unrelated genomic tiles.
+- Stop decision: cancelled the redundant one-million distance-0.5 arm 33 seconds after it started.
+  Evaluator-only Snakemake targets then produced durable receipts for the two completed distance-0.6 assignments under their original commit/config provenance.
+- Artifacts: `s3://oa-bolinas/snakemake/analysis/linclust_conservation/runs/homology-background-clusterize/results/v1/14f8b65dcf9da4e3f035f4d1da05f03e8680bec1/4973dddae6448c85b9581edc1255fcf30067eb248703a6140689095e8fe85451/` contains the completed assignments, resource reports, versions, and evaluator receipts.
+- Interpretation: the hypothesis is falsified for this representation and threshold regime.
+  Clusterize's linear memory scaling is credible, but low-similarity local matches make almost all real genomic windows non-singletons and collapse them into giant mixed clusters.
+  A stricter cutoff improves truth recall and pair precision but remains orders of magnitude below a plausible cluster count and contaminates every truth record.
+  Ideal linear extrapolation of the default one-million runtime is also about one day per 47.8-million-tile parameter arm on this instance.
+- Next action: test a candidate-only graph that removes high-frequency seeds, emits only cross-genome edges, and prevents any component from acquiring two records from the same source genome.
+
+### 2026-08-26 04:42 UTC - LINC-CONS-024 repeat-capped species-aware seed-graph design
+
+- Hypothesis: the short-seed signal that succeeded on the bounded truth fixture can survive real background if high-frequency buckets are discarded and candidate competition is restricted across source genomes, avoiding both Linclust's representative dilution and Clusterize's giant mixed components.
+- Data: the same 100,000 balanced human, mouse, and opossum background records plus the unchanged 384-record projected human/mouse/armadillo truth fixture.
+- Candidate construction: canonicalize every contiguous DNA k-mer across strands; choose a deterministic bottom hash sample per sequence; discard any seed observed above a fixed record-frequency cap; emit only record pairs from different source genomes; and require one or two shared retained seeds.
+- Partition constraint: process candidate edges by descending shared-seed support and merge components only when their source-genome sets are disjoint.
+  Background human and mouse accessions are explicitly aliased to the corresponding truth source labels, so the invariant cannot be bypassed by identifier format.
+- Variants: 9-mer/128 seeds/frequency 8/minimum support 2; 13-mer/128 seeds/frequency 8 or 32/minimum support 2; 15-mer/128 seeds/frequency 8/minimum support 1; and 17-mer/148 seeds/frequency 8/minimum support 1.
+- Evaluation: report truth-pair recall before graph aggregation, unique and qualifying candidate-pair counts, accepted edges, cluster and singleton counts, post-partition truth recall and precision, decoy contamination, runtime, and peak RSS.
+- Expected signal: at least one variant preserves 50% candidate truth recall, keeps every component source-unique, avoids broad truth-decoy contamination, and emits a candidate set small enough for later bounded alignment.
+- Falsifier: frequency caps erase the truth signal, qualifying candidates explode despite the caps, or greedy source-unique matching still replaces most truth partners with decoys.
+- Cost/risk: five candidate-only 100,000-background arms, each hard-capped at 20 minutes, on one approved `r7i.4xlarge`; no sequence alignment and a separate `homology-background-seed-graph` S3 namespace.
+- Validation: 53 project tests passed and the 14-job credential-free dry-run succeeded.
+- Next action: snapshot and push the exact target, launch one EC2 worker, inspect every completed arm before considering any larger scale, and terminate the worker after the durable summary lands.
