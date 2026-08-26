@@ -587,3 +587,70 @@ The sparse singleton results update confidence in the sampling design, not in th
 - Cost/risk: twelve Linclust runs on one `r7i.4xlarge`, each capped at 45 minutes, using an estimated 2 GB of newly materialized input FASTAs and a separate `homology-background-scaling` S3 prefix.
   The user authorized up to $20 of EC2 spend for the overnight scalable-clustering investigation.
 - Next action: run all project tests and the credential-free DAG, commit and push the exact target, launch the EC2 worker, inspect the 100,000-record results before trusting the larger arms, and terminate the worker when the complete summary is durable.
+
+### 2026-08-26 03:05 UTC - LINC-CONS-020 real-background seed-scaling result
+
+- Hypothesis: explicit 9- to 13-mer Linclust will retain most of its bounded projected-homology recovery as unrelated real genomic tiles are added.
+- Commit Hash: [`2732c884`](https://github.com/Open-Athena/marin-dna/commit/2732c8847a666b27a9a4dec47a5027bb257259fb)
+- Config: configuration SHA-256 `dba172739b490b90a1d032bfd65d9002a926ad2dcb2b311a15d772d5708054bb`; 100,000, 1,000,000, and 5,000,000 balanced real background tiles plus the unchanged 384 truth sequences; automatic k-mer selection or fixed 13-, 11-, or 9-mers; and the fixed 0.40 identity / 0.70 coverage acceptance gate.
+
+| Background | Seed | Recall | Strict precision | Exact anchors | Decoy contamination | Clusters | MMseqs wall time |
+| ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| 100,000 | automatic k17 | 54.9% | 100.0% | 46.1% | 0.0% | 97,181 | 2.44 s |
+| 100,000 | k13 | 59.4% | 98.7% | 49.2% | 0.8% | 96,736 | 5.21 s |
+| 100,000 | k11 | 43.2% | 98.2% | 31.2% | 0.8% | 96,944 | 16.35 s |
+| 100,000 | k9 | 3.9% | 100.0% | 3.1% | 0.0% | 99,320 | 17.90 s |
+| 1,000,000 | automatic k17 | 54.9% | 100.0% | 46.1% | 0.0% | 982,569 | 17.77 s |
+| 1,000,000 | k13 | 46.1% | 98.3% | 35.9% | 0.8% | 979,726 | 155.37 s |
+| 1,000,000 | k11 | 7.3% | 93.3% | 4.7% | 0.5% | 993,612 | 199.22 s |
+| 1,000,000 | k9 | 0.8% | 100.0% | 0.8% | 0.0% | 999,401 | 176.92 s |
+| 5,000,000 | automatic k17 | 54.4% | 99.1% | 45.3% | 0.5% | 4,841,525 | 141.34 s |
+| 5,000,000 | k13 | 18.8% | 85.7% | 12.5% | 0.8% | 4,887,287 | 1,008.32 s |
+| 5,000,000 | k11 | 1.6% | 100.0% | 1.6% | 0.0% | 4,981,122 | 1,047.15 s |
+| 5,000,000 | k9 | 0.0% | 100.0% | 0.0% | 0.0% | 4,997,933 | 896.27 s |
+
+- Resources: at five million backgrounds, automatic k17 produced about 46.8 million candidate alignments, while each shorter fixed seed produced 609 to 668 million alignments.
+  Automatic k17 was about 7.1 times faster than k13 and required 12.5 GiB peak RSS.
+- Artifacts: `s3://oa-bolinas/snakemake/analysis/linclust_conservation/runs/homology-background-scaling/results/v1/2732c8847a666b27a9a4dec47a5027bb257259fb/dba172739b490b90a1d032bfd65d9002a926ad2dcb2b311a15d772d5708054bb/` contains all fixtures, assignments, resource records, and evaluator receipts.
+  A summary recovery at commit [`5873ef6f`](https://github.com/Open-Athena/marin-dna/commit/5873ef6fe1fd9047153d703c2319ca19dddf81a2) reads those immutable receipts and writes the recovered summary under configuration SHA-256 `4b0573d845754433eeda21866d4d26ef5884e877c399a22634f7095f1bda5d16`.
+- Interpretation: the hypothesis is falsified.
+  Fixed short seeds saturate their finite key spaces as the database grows, so candidate groups become dominated by unrelated sequences and the center-selection heuristic stops exposing the truth edges.
+  Automatic k17 adapts to the database and preserves recall, time, and observed purity, but clusters only about 3.2% of five million real tiles.
+  The result rejects the expectation that this recipe will naturally collapse three-species tiles to approximately `n_sequences / n_species` clusters.
+- Next action: keep automatic k17 and test whether a fixed number of independent hash selections recovers complementary verified edges without changing the asymptotic `O(N)` form.
+
+### 2026-08-26 03:20 UTC - LINC-CONS-021 automatic-k hash ensemble result
+
+- Hypothesis: four automatic-k17 Linclust passes with independent hash shifts will recover complementary verified homology edges while preserving real-background purity.
+- Commit Hash: [`5873ef6f`](https://github.com/Open-Athena/marin-dna/commit/5873ef6fe1fd9047153d703c2319ca19dddf81a2)
+- Commands: SkyPilot job 4 ran four hash shifts at one million and five million backgrounds on AWS `r7i.4xlarge` in `us-east-2`, merged their verified cluster edges with a streaming union-find, evaluated the combined partitions, uploaded all 25 workflow outputs, and terminated the worker.
+- Config: configuration SHA-256 `24e867dbc6a333a03b50f33bb8f0ae2bd0dac387cb4ece6e677b1a6b1af4fda9`; automatic k17; hash shifts 1, 67, 123, and 251; 20 base k-mers plus length scale 0.5; and unchanged acceptance thresholds.
+
+| Background | Result | Recall | Strict precision | Exact anchors | Decoy contamination | Clusters | Aggregate MMseqs wall time |
+| ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| 1,000,000 | best single hash | 54.9% | 100.0% | 46.1% | 0.0% | 982,569 | 19.95 s |
+| 1,000,000 | four-hash union | 56.2% | 100.0% | 47.7% | 0.0% | 980,620 | 80.37 s |
+| 5,000,000 | best single hash | 54.4% | 99.1% | 45.3% | 0.5% | 4,841,525 | 161.38 s |
+| 5,000,000 | four-hash union | 56.2% | 97.7% | 47.7% | 0.5% | 4,815,329 | 641.90 s |
+
+- Merge audit: the four five-million-sequence inputs each had 158,859 to 159,013 non-representative assignment edges, while their union had 185,055 edges.
+  The different hashes therefore found different real-background edges, but very few additional truth edges.
+- Artifacts: `s3://oa-bolinas/snakemake/analysis/linclust_conservation/runs/homology-background-ensemble/results/v1/5873ef6fe1fd9047153d703c2319ca19dddf81a2/24e867dbc6a333a03b50f33bb8f0ae2bd0dac387cb4ece6e677b1a6b1af4fda9/` contains all per-hash assignments and receipts, merged partitions, merge audits, and summaries.
+- Interpretation: the hypothesis is weakly supported for complementarity but rejected as a useful scalable recipe.
+  Four hashes gain only 1.3 percentage points of recall over the best single pass at five million backgrounds, multiply MMseqs time by four, and reduce strict precision by 1.4 percentage points.
+  Transitive union did not cause broad contamination in this fixture, but the marginal verified-edge yield is too small.
+- Next action: sweep the number of selected k-mers within one automatic-k17 pass, which is the sensitivity control documented by Linclust and avoids paying repeated database construction and clustering costs.
+
+### 2026-08-26 03:30 UTC - LINC-CONS-022 automatic-k sampling-density design
+
+- Hypothesis: spending the candidate budget on denser automatic-k17 sampling within one pass will recover more truth edges per unit of time than four independent hash passes.
+- Commit Hash: [`6c86097e`](https://github.com/Open-Athena/marin-dna/commit/6c86097e44676f07ae398afa7831a01e17894981)
+- Config: configuration SHA-256 `225aac22428329931549bf90c6805c404c84ce2bdfe2aaae757c5bd973eb387a`; exactly 20, 80, 148, or 239 selected k-mers per 255 bp sequence; automatic k-mer length; hash shift 1; zero length-based sampling scale; and the unchanged 0.40 identity / 0.70 coverage gate.
+- Scale: the same 100,000, 1,000,000, and 5,000,000 balanced real-background fixtures, yielding twelve Linclust runs and twelve evaluator jobs.
+- Baseline relation: 148 selected k-mers approximates the previous `20 + 0.5 × 255` setting, while 239 is the maximum number of start positions for a contiguous 17-mer in a 255 bp window.
+- Expected signal: denser sampling improves recall monotonically and the best single pass reaches or exceeds the 56.2% four-hash recall in less than 641.9 seconds at five million backgrounds.
+- Falsifier: recall saturates near the previous single-pass result, strict precision falls materially, or candidate cost grows faster than the marginal truth-edge yield.
+- Artifacts: `s3://oa-bolinas/snakemake/analysis/linclust_conservation/runs/homology-background-density/results/v1/6c86097e44676f07ae398afa7831a01e17894981/225aac22428329931549bf90c6805c404c84ce2bdfe2aaae757c5bd973eb387a/` is the separate durable output namespace.
+- Execution note: fresh AWS Sky images exposed a hard-coded Miniforge and stale Conda assumption before scientific work began.
+  The pinned task now detects Miniforge or Miniconda, upgrades Conda to 25.7.0, runs all 50 tests and the 30-job dry-run, and only then starts the experiment.
+- Next action: monitor SkyPilot job 4 on `linclust-cons-background-density`, stop the worker after the durable summary lands, and compare recall, strict precision, clusters, candidate cost, wall time, and peak RSS.

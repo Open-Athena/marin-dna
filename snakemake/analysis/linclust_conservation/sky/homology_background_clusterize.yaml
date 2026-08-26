@@ -1,0 +1,66 @@
+name: linclust-conservation-homology-background-clusterize
+
+resources:
+  infra: aws/us-east-2
+  instance_type: r7i.4xlarge
+  disk_size: 250
+  labels:
+    project: dna
+
+workdir: .
+
+envs:
+  PIPELINE_COMMIT_SHA: ""
+
+setup: |
+  set -euxo pipefail
+  test "$PIPELINE_COMMIT_SHA" = "$(printf '%s' "$PIPELINE_COMMIT_SHA" | grep -E '^[0-9a-f]{40}$')"
+  CHECKOUT="$HOME/marin-dna-checkout-$PIPELINE_COMMIT_SHA"
+  if [ ! -d "$CHECKOUT/.git" ]; then
+    git clone --filter=blob:none --no-checkout https://github.com/Open-Athena/marin-dna.git "$CHECKOUT"
+    git -C "$CHECKOUT" fetch --depth 1 origin "$PIPELINE_COMMIT_SHA"
+    git -C "$CHECKOUT" checkout --detach FETCH_HEAD
+  fi
+  test "$(git -C "$CHECKOUT" rev-parse HEAD)" = "$PIPELINE_COMMIT_SHA"
+  git -C "$CHECKOUT" diff --exit-code
+  test -z "$(git -C "$CHECKOUT" status --porcelain --untracked-files=all)"
+  export PATH="$HOME/.local/bin:$PATH"
+  test "$(uv --version | awk '{print $2}')" = "0.12.5"
+  export PATH="$HOME/miniforge3/bin:$HOME/miniconda3/bin:$HOME/.local/bin:$PATH"
+  if [ -x "$HOME/miniforge3/bin/conda" ]; then
+    export CONDA_EXE="$HOME/miniforge3/bin/conda"
+  else
+    export CONDA_EXE="$HOME/miniconda3/bin/conda"
+  fi
+  test -x "$CONDA_EXE"
+  "$CONDA_EXE" install --name base --yes conda=25.7.0
+  test "$("$CONDA_EXE" --version | awk '{print $2}')" = "25.7.0"
+  uv sync --project "$CHECKOUT/snakemake/analysis/linclust_conservation" --locked --group dev
+
+run: |
+  set -euxo pipefail
+  export PATH="$HOME/miniforge3/bin:$HOME/miniconda3/bin:$HOME/.local/bin:$PATH"
+  if [ -x "$HOME/miniforge3/bin/conda" ]; then
+    export CONDA_EXE="$HOME/miniforge3/bin/conda"
+  else
+    export CONDA_EXE="$HOME/miniconda3/bin/conda"
+  fi
+  test -x "$CONDA_EXE"
+  test -n "$PIPELINE_COMMIT_SHA"
+  CHECKOUT="$HOME/marin-dna-checkout-$PIPELINE_COMMIT_SHA"
+  test "$(git -C "$CHECKOUT" rev-parse HEAD)" = "$PIPELINE_COMMIT_SHA"
+  cd "$CHECKOUT/snakemake/analysis/linclust_conservation"
+  uv run --locked pytest
+  uv run --locked snakemake -n background_clusterize \
+    --profile workflow/profiles/default \
+    --default-storage-provider none \
+    --configfile config/homology_background_density.yaml config/homology_background_clusterize.yaml \
+    --cores 16 \
+    --resources mem_mb=110000
+  uv run --locked snakemake background_clusterize \
+    --profile workflow/profiles/default \
+    --default-storage-prefix s3://oa-bolinas/snakemake/analysis/linclust_conservation/runs/homology-background-clusterize/ \
+    --configfile config/homology_background_density.yaml config/homology_background_clusterize.yaml \
+    --cores 16 \
+    --resources mem_mb=110000 \
+    --rerun-incomplete

@@ -1,0 +1,22 @@
+clusterize:
+  samples: ["100000", "1000000"]
+  variants:
+    distance_0_5: &clusterize_variant
+      algorithm: clusterize
+      cutoff: 0.5
+      min_coverage: 0.7
+      random_seed: 521
+      max_phase1: 20000
+      max_phase2: 2000
+      max_phase3: 2000
+      max_alignments: 200
+      rare_kmers: 50
+      probability: 0.99
+      center_linkage: true
+      mask_repeats: true
+      mask_low_complexity_regions: true
+      kmer_length: 0
+      hash_shift: 0
+    distance_0_6:
+      <<: *clusterize_variant
+      cutoff: 0.6

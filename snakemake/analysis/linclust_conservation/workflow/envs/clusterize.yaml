@@ -1,0 +1,5 @@
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - bioconductor-decipher=3.6.0=r45h01b2380_0

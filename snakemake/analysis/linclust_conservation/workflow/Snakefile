@@ -41,6 +41,7 @@ HOMOLOGY_TUNING = f"{RESULTS}/homology_tuning"
 HOMOLOGY_SEARCH_CLUSTERING = f"{RESULTS}/homology_search_clustering"
 HOMOLOGY_EXHAUSTIVE_GRAPH = f"{RESULTS}/homology_exhaustive_graph"
 BACKGROUND_SCALING = f"{RESULTS}/background_scaling"
+CLUSTERIZE_BACKGROUND = f"{RESULTS}/clusterize_background"
 
 HOMOLOGY_FIXTURE = config.get("homology_fixture", {})
 HOMOLOGY_SOURCES = HOMOLOGY_FIXTURE.get("sources", [])
@@ -112,6 +113,13 @@ BACKGROUND_SUMMARY_VARIANT_NAMES = [
 BACKGROUND_SUMMARY_RECEIPT_BASE = BACKGROUND_SCALING_CONFIG.get(
     "summary_receipt_base", BACKGROUND_SCALING
 )
+CLUSTERIZE_CONFIG = config.get("clusterize", {})
+CLUSTERIZE_SAMPLE_NAMES = [
+    str(sample) for sample in CLUSTERIZE_CONFIG.get("samples", [])
+]
+assert set(CLUSTERIZE_SAMPLE_NAMES).issubset(BACKGROUND_SAMPLE_NAMES)
+CLUSTERIZE_VARIANTS = CLUSTERIZE_CONFIG.get("variants", {})
+CLUSTERIZE_VARIANT_NAMES = sorted(CLUSTERIZE_VARIANTS)
 
 SELECTION_PATH = config.get("selection_path", "config/assembly_selection.tsv")
 SOURCE_REUSE_PATH = "config/source_reuse_inventory.tsv"
@@ -1055,6 +1063,119 @@ rule background_ensemble:
     input:
         f"{BACKGROUND_SCALING}/summary.json",
         f"{BACKGROUND_SCALING}/summary.tsv",
+
+
+rule run_background_clusterize:
+    input:
+        fasta=f"{BACKGROUND_SCALING}/{{sample}}/fixture/windows.fasta",
+    output:
+        assignments=f"{CLUSTERIZE_BACKGROUND}/{{sample}}/{{variant}}/clusters.tsv",
+        version=f"{CLUSTERIZE_BACKGROUND}/{{sample}}/{{variant}}/version.txt",
+        resources=f"{CLUSTERIZE_BACKGROUND}/{{sample}}/{{variant}}/resources.txt",
+    wildcard_constraints:
+        sample="|".join(CLUSTERIZE_SAMPLE_NAMES) or "(?!)",
+        variant="|".join(CLUSTERIZE_VARIANT_NAMES) or "(?!)",
+    conda:
+        "envs/clusterize.yaml"
+    threads: 16
+    resources:
+        mem_mb=110000,
+    params:
+        cutoff=lambda wc: CLUSTERIZE_VARIANTS[wc.variant]["cutoff"],
+        min_coverage=lambda wc: CLUSTERIZE_VARIANTS[wc.variant]["min_coverage"],
+        seed=lambda wc: CLUSTERIZE_VARIANTS[wc.variant]["random_seed"],
+        max_phase1=lambda wc: CLUSTERIZE_VARIANTS[wc.variant]["max_phase1"],
+        max_phase2=lambda wc: CLUSTERIZE_VARIANTS[wc.variant]["max_phase2"],
+        max_phase3=lambda wc: CLUSTERIZE_VARIANTS[wc.variant]["max_phase3"],
+        max_alignments=lambda wc: CLUSTERIZE_VARIANTS[wc.variant]["max_alignments"],
+        rare_kmers=lambda wc: CLUSTERIZE_VARIANTS[wc.variant]["rare_kmers"],
+        probability=lambda wc: CLUSTERIZE_VARIANTS[wc.variant]["probability"],
+    shell:
+        r"""
+        set -euo pipefail
+        /usr/bin/time -v -o {output.resources} Rscript workflow/scripts/run_clusterize.R \
+            {input.fasta:q} {output.assignments:q} {output.version:q} \
+            {params.cutoff} {params.min_coverage} {params.seed} {threads} \
+            {params.max_phase1} {params.max_phase2} {params.max_phase3} \
+            {params.max_alignments} {params.rare_kmers} {params.probability}
+        """
+
+
+rule evaluate_background_clusterize:
+    input:
+        truth=f"{HOMOLOGY_TUNING}/fixture/truth.tsv",
+        assignments=f"{CLUSTERIZE_BACKGROUND}/{{sample}}/{{variant}}/clusters.tsv",
+        fixture_receipt=f"{BACKGROUND_SCALING}/{{sample}}/fixture/receipt.json",
+        resources=f"{CLUSTERIZE_BACKGROUND}/{{sample}}/{{variant}}/resources.txt",
+        version=f"{CLUSTERIZE_BACKGROUND}/{{sample}}/{{variant}}/version.txt",
+    output:
+        f"{CLUSTERIZE_BACKGROUND}/{{sample}}/{{variant}}/receipt.json",
+    wildcard_constraints:
+        sample="|".join(CLUSTERIZE_SAMPLE_NAMES) or "(?!)",
+        variant="|".join(CLUSTERIZE_VARIANT_NAMES) or "(?!)",
+    params:
+        configuration=lambda wc: json.dumps(
+            CLUSTERIZE_VARIANTS[wc.variant], sort_keys=True
+        ),
+        pipeline_commit=PIPELINE_COMMIT,
+        pipeline_config_sha256=PIPELINE_CONFIG_SHA256,
+    shell:
+        "linclust-conservation-evaluate-background-scaling "
+        "--truth {input.truth:q} --assignments {input.assignments:q} "
+        "--fixture-receipt {input.fixture_receipt:q} "
+        "--resources {input.resources:q} "
+        "--configuration {params.configuration:q} "
+        "--mmseqs-version {input.version:q} "
+        "--pipeline-commit {params.pipeline_commit:q} "
+        "--pipeline-config-sha256 {params.pipeline_config_sha256:q} "
+        "--output {output:q}"
+
+
+rule summarize_background_clusterize:
+    input:
+        expand(
+            f"{CLUSTERIZE_BACKGROUND}/{{sample}}/{{variant}}/receipt.json",
+            sample=CLUSTERIZE_SAMPLE_NAMES,
+            variant=CLUSTERIZE_VARIANT_NAMES,
+        ),
+    output:
+        json=f"{CLUSTERIZE_BACKGROUND}/summary.json",
+        tsv=f"{CLUSTERIZE_BACKGROUND}/summary.tsv",
+    run:
+        labels = [
+            (sample, variant)
+            for sample in CLUSTERIZE_SAMPLE_NAMES
+            for variant in CLUSTERIZE_VARIANT_NAMES
+        ]
+        rows = summarize_background_scaling_receipts(
+            receipt_paths=input,
+            labels=labels,
+        )
+        Path(output.json).write_text(
+            json.dumps(rows, indent=2, sort_keys=True) + "\n"
+        )
+        pl.DataFrame(rows).select(
+            "sample",
+            "variant",
+            "combined_sequence_count",
+            "cluster_count",
+            "singleton_sequence_fraction",
+            "exact_anchor_recovery_fraction",
+            "true_pair_recall",
+            "pair_precision",
+            "strict_truth_cluster_pair_precision",
+            "truth_record_decoy_contamination_fraction",
+            "impure_truth_cluster_count",
+            "mmseqs_wall_seconds",
+            "mmseqs_cpu_seconds",
+            "mmseqs_peak_rss_kib",
+        ).write_csv(output.tsv, separator="\t")
+
+
+rule background_clusterize:
+    input:
+        f"{CLUSTERIZE_BACKGROUND}/summary.json",
+        f"{CLUSTERIZE_BACKGROUND}/summary.tsv",
 
 
 rule tune_homology:
