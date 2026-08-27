@@ -1082,3 +1082,19 @@ Its current anchor path instead creates uniform conservation-selected windows an
   All 18 project tests pass, including an assertion that the child training config receives an absolute tokenizer path.
 - Preservation: All six TPU workflows remain untouched throughout H100 calibration.
 - Next action: Snapshot and publish the absolute-tokenizer fix, rerun the 4,096 three-step smoke, and require advancing W&B optimizer progress plus a reachable checkpoint before considering the H100 path validated.
+
+### 2026-08-27 19:53 UTC - `FAS-517-048` single-H100 path validated
+
+- 4,096 result: Dispatch `cds-h100-pdp4096-smoke-d006` reached the first compiled `jit__train_step` on one preemptible H100 and failed with JAX `RESOURCE_EXHAUSTED` while requesting 94.29 GiB.
+  No optimizer step completed, so this is the second verified memory limit and authorizes the planned reduction to per-device parallelism 2,048.
+- 2,048 placement: A fresh Iris version-3 capacity snapshot showed 208 of 512 H100s free on `cw-rno2a` and none free on `cw-us-east-02a`.
+  Dispatch `cds-h100-pdp2048-smoke-d001` therefore used one batch-priority preemptible H100 on RNO while retaining global batch 8,192, sequence length 256, seed 0, the immutable CDS dataset revision, and commit `103990e6`.
+- Success: The H100 child completed all 3/3 optimizer steps and both the child and coordinator exited successfully.
+  The child ran for 7m22s; the first batch took 145.7s to load, and the three-step training progress reported 93.8s per step over 4m41s including initial compilation.
+- Telemetry: W&B finalized normally with finite evaluation loss 7.61084 and bits per byte 2.20068.
+  The run is `dna-exp517-phylop-uniform-0p25b-cds-h100-pdp2048-smoke-v1`.
+- Checkpoint: Levanter saved native and Hugging Face step-2 checkpoints.
+  A separate preemptible RNO CPU probe used virtual-host S3 addressing to HEAD `hf/step-2/model.safetensors`, confirming a 1,019,422,904-byte object written at 19:47:30 UTC.
+- Persistence: The 2,048 trial is marked complete with a verified checkpoint in the sweep database, and each observation, terminal transition, and completion transaction has an immutable downloaded-and-SHA-256-verified GCS backup.
+- Preservation: All six TPU workflows remain untouched.
+- Next action: Use per-device parallelism 2,048 for any full one-H100 control launch; decide whether to run the full CDS arm first or expand immediately to the six-arm H100 sweep while retaining the TPU controls.
