@@ -10,12 +10,19 @@ import json
 import subprocess
 from pathlib import Path
 
+IGNORED_DIRECTORY_NAMES = {".pytest_cache", "__pycache__"}
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--upstream-root", type=Path, required=True)
     parser.add_argument("--upstream-commit")
     parser.add_argument("--repo-root", type=Path, default=Path.cwd())
+    parser.add_argument(
+        "--manifest",
+        type=Path,
+        help="Vendor manifest; defaults to references/manifest.json",
+    )
     parser.add_argument("--output", type=Path)
     return parser.parse_args()
 
@@ -24,14 +31,25 @@ def file_identity(data: bytes) -> str:
     return f"size={len(data)} sha256={hashlib.sha256(data).hexdigest()}"
 
 
-def directory_diff(upstream: Path, local: Path) -> str:
+def directory_diff(
+    upstream: Path,
+    local: Path,
+    upstream_label: str,
+    local_label: str,
+) -> str:
     upstream_files = {
         path.relative_to(upstream): path
         for path in upstream.rglob("*")
         if path.is_file()
+        and not IGNORED_DIRECTORY_NAMES.intersection(path.parts)
+        and path.suffix != ".pyc"
     }
     local_files = {
-        path.relative_to(local): path for path in local.rglob("*") if path.is_file()
+        path.relative_to(local): path
+        for path in local.rglob("*")
+        if path.is_file()
+        and not IGNORED_DIRECTORY_NAMES.intersection(path.parts)
+        and path.suffix != ".pyc"
     }
     chunks: list[str] = []
     for relative in sorted(upstream_files.keys() | local_files.keys()):
@@ -49,12 +67,12 @@ def directory_diff(upstream: Path, local: Path) -> str:
             continue
 
         upstream_name = (
-            f"marin/.agents/skills/{upstream.name}/{relative}"
+            f"{upstream_label}/.agents/skills/{upstream.name}/{relative}"
             if upstream_path is not None
             else "/dev/null"
         )
         local_name = (
-            f"marin-dna/.agents/skills/{local.name}/{relative}"
+            f"{local_label}/.agents/skills/{local.name}/{relative}"
             if local_path is not None
             else "/dev/null"
         )
@@ -147,7 +165,8 @@ def upstream_provenance(
 def main() -> int:
     args = parse_args()
     skill_root = Path(__file__).resolve().parents[1]
-    manifest = json.loads((skill_root / "references/manifest.json").read_text())
+    manifest_path = args.manifest or skill_root / "references/manifest.json"
+    manifest = json.loads(manifest_path.read_text())
     local_root = args.repo_root.resolve() / ".agents/skills"
     upstream_repo = manifest["upstream_repo"]
     expected_commit = manifest["commit"]
@@ -158,7 +177,7 @@ def main() -> int:
     )
 
     lines = [
-        "# Marin vendored-skill deltas",
+        f"# {upstream_repo} vendored-skill deltas",
         "",
         f"Expected upstream: `{upstream_repo}@{expected_commit}`",
         "",
@@ -178,7 +197,12 @@ def main() -> int:
             lines.append(f"- `{name}`: missing directory")
             errors.extend(f"missing skill directory: {path}" for path in missing)
             continue
-        diff = directory_diff(upstream_skill, local_skill)
+        diff = directory_diff(
+            upstream_skill,
+            local_skill,
+            upstream_repo,
+            "Open-Athena/marin-dna",
+        )
         state = "byte-identical" if not diff else "unexpected local diff"
         lines.append(f"- `{name}`: {state}")
         if diff:
@@ -210,7 +234,12 @@ def main() -> int:
             lines.extend(["Missing skill directory.", ""])
             errors.extend(f"missing skill directory: {path}" for path in missing)
             continue
-        diff = directory_diff(upstream_skill, local_skill)
+        diff = directory_diff(
+            upstream_skill,
+            local_skill,
+            upstream_repo,
+            "Open-Athena/marin-dna",
+        )
         if diff:
             lines.extend(["```diff", diff.rstrip(), "```", ""])
         else:
