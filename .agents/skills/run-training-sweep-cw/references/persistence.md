@@ -19,7 +19,7 @@ The model covers heartbeat reconciliation, placement ranking, recovery, completi
 - A trial owns one W&B and checkpoint identity and at most one active dispatch.
 - An active dispatch is either an unsubmitted/unreconciled intent or a confirmed Iris submission.
 - A trial's dispatches have persisted attempt numbers; never parse names for identity.
-- All persisted times are UTC.
+- Persist times as canonical UTC ISO-8601 strings and progress as finite, nonnegative values.
 - Dispatches retain stopped, failed, and superseded placement history.
 - Commands and experiment parameters contain no secrets.
 - A completed trial has `run_progress >= 1`, a verified checkpoint, and no active dispatch.
@@ -54,21 +54,16 @@ For every submission:
 
 At heartbeat entry, restore the newest valid immutable backup if needed and reconcile every active intent before any other action.
 
-Operations owns target eligibility and policy. SQLite owns observed facts and action
-history; it does not own transient fleet utilization, rankings, or the Operations
-`Change Record`.
+Operations owns target eligibility and policy.
+SQLite owns observed facts and action history; it does not own transient fleet utilization, rankings, or the Operations `Change Record`.
 
 ## Supported Decisions
 
-- **Placement:** historical `target_rate`, productive and pending counts per exact
-  `(cluster, GPU, nodes, GPUs)` target.
-- **Recovery:** dispatch clocks begin at submission or latest progress; the trial
-  clock survives restarts and reslices and resets only on progress.
-- **Liveness:** W&B establishes training state and progress; Iris answers only
-  whether the exact dispatch is running.
+- **Placement:** historical `target_rate`, productive and pending counts per exact `(cluster, GPU, nodes, GPUs)` target.
+- **Recovery:** dispatch clocks begin at submission or latest progress; the trial clock survives restarts and reslices and resets only on progress.
+- **Liveness:** W&B establishes training state and progress; Iris answers only whether the exact dispatch is running.
 - **Accounting:** active placement separates submitted GPUs from GPUs on W&B-running work.
-- **Failures and completion:** attempt history and observations distinguish isolated
-  failures, repeated failures, abandonment, and verified completion.
+- **Failures and completion:** attempt history and observations distinguish isolated failures, repeated failures, abandonment, and verified completion.
 
 ## Control Snapshot
 
@@ -77,11 +72,8 @@ uv run .agents/skills/run-training-sweep-cw/scripts/persistence.py \
   snapshot scratch/<sweep>/expXXX_sweep.sqlite --reslice-after-hours <hours>
 ```
 
-The read-only JSON snapshot includes every unfinished trial, active dispatches,
-progress clocks, latest observations, target rates and pending counts, fleet
-accounting, actionable conditions, event counts, and a bounded event window.
-Snapshot generation fails when identities, intervals, progress high-water marks,
-or completion state are inconsistent.
+The read-only JSON snapshot includes every unfinished trial, active dispatches, progress clocks, latest observations, target rates and pending counts, fleet accounting, actionable conditions, event counts, and a bounded event window.
+Snapshot generation fails when identities, intervals, progress high-water marks, or completion state are inconsistent.
 
 ## Event History
 

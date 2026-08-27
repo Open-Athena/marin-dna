@@ -261,6 +261,125 @@ def test_completion_and_snapshot_reject_semantic_errors(tmp_path: Path) -> None:
         persistence.snapshot(database, recent_event_limit=0)
 
 
+def test_persistence_normalizes_input_times_to_utc(tmp_path: Path) -> None:
+    database = tmp_path / "sweep.sqlite"
+    persistence.init(database)
+    persistence.add_trial(
+        database, "trial", {}, "wandb-trial", "s3://checkpoints/trial"
+    )
+    assert (
+        persistence.prepare_dispatch(
+            database,
+            "trial",
+            "dispatch",
+            "iris-dispatch",
+            "cw-rno2a",
+            "H100",
+            1,
+            8,
+            "launch --redacted",
+            "2026-01-01T00:58:00+01:00",
+        )
+        == 1
+    )
+    assert (
+        persistence.confirm_dispatch(database, "dispatch", "2025-12-31T23:59:00Z")
+        == "2025-12-31T23:59:00+00:00"
+    )
+    persistence.record_observation(
+        database,
+        "dispatch",
+        "2026-01-01T01:00:00+01:00",
+        "running",
+        0.5,
+        True,
+    )
+    persistence.record_observation(
+        database,
+        "dispatch",
+        "2025-12-31T19:30:00-05:00",
+        "finished",
+        1.0,
+        False,
+    )
+    assert (
+        persistence.end_dispatch(
+            database,
+            "dispatch",
+            "completed",
+            ended_at="2025-12-31T19:31:00-05:00",
+        )
+        == "2026-01-01T00:31:00+00:00"
+    )
+    assert (
+        persistence.complete_trial(database, "trial", "2026-01-01T01:32:00+01:00")
+        == "2026-01-01T00:32:00+00:00"
+    )
+
+    with sqlite3.connect(database) as connection:
+        dispatch_times = connection.execute(
+            "SELECT intent_at, submitted_at, ended_at FROM dispatches"
+        ).fetchone()
+        observations = connection.execute(
+            "SELECT observed_at, run_progress FROM observations ORDER BY observed_at"
+        ).fetchall()
+        checkpoint_verified_at = connection.execute(
+            "SELECT checkpoint_verified_at FROM trials"
+        ).fetchone()[0]
+    assert dispatch_times == (
+        "2025-12-31T23:58:00+00:00",
+        "2025-12-31T23:59:00+00:00",
+        "2026-01-01T00:31:00+00:00",
+    )
+    assert observations == [
+        ("2026-01-01T00:00:00+00:00", 0.5),
+        ("2026-01-01T00:30:00+00:00", 1.0),
+    ]
+    assert checkpoint_verified_at == "2026-01-01T00:32:00+00:00"
+    assert persistence.check(database) == []
+
+
+def test_record_observation_rejects_nonfinite_progress(tmp_path: Path) -> None:
+    database = tmp_path / "sweep.sqlite"
+    persistence.init(database)
+    persistence.add_trial(
+        database, "trial", {}, "wandb-trial", "s3://checkpoints/trial"
+    )
+    persistence.prepare_dispatch(
+        database,
+        "trial",
+        "dispatch",
+        "iris-dispatch",
+        "cw-rno2a",
+        "H100",
+        1,
+        8,
+        "launch --redacted",
+        "2026-01-01T00:00:00+00:00",
+    )
+    persistence.confirm_dispatch(database, "dispatch", "2026-01-01T00:01:00Z")
+
+    for progress in (float("nan"), float("inf"), float("-inf")):
+        with pytest.raises(RuntimeError, match="finite and nonnegative"):
+            persistence.record_observation(
+                database,
+                "dispatch",
+                "2026-01-01T00:02:00Z",
+                "running",
+                progress,
+                True,
+            )
+
+    with sqlite3.connect(database) as connection:
+        assert (
+            connection.execute("SELECT COUNT(*) FROM observations").fetchone()[0] == 0
+        )
+        assert (
+            connection.execute("SELECT high_water_progress FROM trials").fetchone()[0]
+            == 0.0
+        )
+
+
 def test_schema_rejects_non_batch_dispatch(tmp_path: Path) -> None:
     database = tmp_path / "sweep.sqlite"
     persistence.init(database)

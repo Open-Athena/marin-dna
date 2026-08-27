@@ -3,6 +3,7 @@
 import argparse
 import hashlib
 import json
+import math
 import sqlite3
 from collections import Counter, defaultdict
 from datetime import UTC, datetime
@@ -156,6 +157,10 @@ def _parse_time(value: str, field: str) -> datetime:
     return parsed.astimezone(UTC)
 
 
+def _canonical_time(value: str, field: str) -> str:
+    return _parse_time(value, field).isoformat()
+
+
 def _connect(path: Path) -> sqlite3.Connection:
     connection = sqlite3.connect(path)
     connection.execute("PRAGMA foreign_keys = ON")
@@ -271,8 +276,7 @@ def prepare_dispatch(
     command_redacted: str,
     intent_at: str | None = None,
 ) -> int:
-    recorded_at = intent_at or _now()
-    _parse_time(recorded_at, "intent_at")
+    recorded_at = _canonical_time(intent_at or _now(), "intent_at")
     with _connect(path) as connection:
         connection.execute("BEGIN IMMEDIATE")
         trial = connection.execute(
@@ -331,8 +335,7 @@ def prepare_dispatch(
 def confirm_dispatch(
     path: Path, dispatch_id: str, submitted_at: str | None = None
 ) -> str:
-    confirmed_at = submitted_at or _now()
-    _parse_time(confirmed_at, "submitted_at")
+    confirmed_at = _canonical_time(submitted_at or _now(), "submitted_at")
     with _connect(path) as connection:
         connection.execute("BEGIN IMMEDIATE")
         row = connection.execute(
@@ -378,8 +381,7 @@ def end_dispatch(
     stop_reason: str | None = None,
     ended_at: str | None = None,
 ) -> str:
-    terminal_at = ended_at or _now()
-    _parse_time(terminal_at, "ended_at")
+    terminal_at = _canonical_time(ended_at or _now(), "ended_at")
     with _connect(path) as connection:
         connection.execute("BEGIN IMMEDIATE")
         row = connection.execute(
@@ -432,8 +434,11 @@ def record_observation(
     iris_running: bool | None,
 ) -> None:
     observed_time = _parse_time(observed_at, "observed_at")
-    if run_progress is not None and run_progress < 0:
-        raise RuntimeError("run_progress must be nonnegative")
+    canonical_observed_at = observed_time.isoformat()
+    if run_progress is not None and (
+        not math.isfinite(run_progress) or run_progress < 0
+    ):
+        raise RuntimeError("run_progress must be finite and nonnegative")
     with _connect(path) as connection:
         connection.execute("BEGIN IMMEDIATE")
         row = connection.execute(
@@ -466,7 +471,7 @@ def record_observation(
             (
                 trial_id,
                 dispatch_id,
-                observed_at,
+                canonical_observed_at,
                 wandb_state,
                 run_progress,
                 None if iris_running is None else int(iris_running),
@@ -492,8 +497,9 @@ def record_observation(
 def complete_trial(
     path: Path, trial_id: str, checkpoint_verified_at: str | None = None
 ) -> str:
-    verified_at = checkpoint_verified_at or _now()
-    _parse_time(verified_at, "checkpoint_verified_at")
+    verified_at = _canonical_time(
+        checkpoint_verified_at or _now(), "checkpoint_verified_at"
+    )
     with _connect(path) as connection:
         connection.execute("BEGIN IMMEDIATE")
         row = connection.execute(

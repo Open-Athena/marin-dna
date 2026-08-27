@@ -12,9 +12,9 @@
         "Require explicit approval and final lineage reporting before a trial resumes across accelerator families.",
         "Replace the BUILD_DATE-only Iris freshness workaround with a coherent dependency update under marin-experiment.",
         "Compose tracked Operations and task-logbook chronology with immutable SQLite backups under a declared durable owner.",
-        "Add transactional trial, dispatch-intent, confirmation, observation, terminal, completion, and backup commands with intent-before-submit recovery tests.",
+        "Add transactional trial, dispatch-intent, confirmation, observation, terminal, completion, and backup commands with intent-before-submit recovery tests; normalize timestamps to UTC and reject non-finite progress.",
         "Clarify that the sweep deadline is a whole-sweep stop condition distinct from reslice and restart recovery thresholds.",
-        "Apply MarinDNA's Python lint and format rules to bundled helpers and gate their tests in the root pytest suite."
+        "Apply MarinDNA's Python lint/format and one-sentence-per-line Markdown rules; gate bundled helper tests in the root pytest suite."
       ]
     },
     {
@@ -25,9 +25,9 @@
         "Require explicit approval and final lineage reporting before a trial resumes across accelerator families.",
         "Replace the BUILD_DATE-only Iris freshness workaround with a coherent dependency update under marin-experiment.",
         "Compose tracked Operations and task-logbook chronology with immutable SQLite backups under a declared durable owner.",
-        "Add transactional trial, regional-run, dispatch-intent, confirmation, observation, terminal, completion, and backup commands with intent-before-submit recovery tests.",
+        "Add transactional trial, regional-run, dispatch-intent, confirmation, observation, terminal, completion, and backup commands with intent-before-submit recovery tests; normalize timestamps to UTC and reject non-finite progress.",
         "Clarify that the sweep deadline is a whole-sweep stop condition distinct from reslice, restart, and relocation recovery thresholds.",
-        "Apply MarinDNA's Python lint and format rules to bundled helpers and gate their tests in the root pytest suite."
+        "Apply MarinDNA's Python lint/format and one-sentence-per-line Markdown rules; gate bundled helper tests in the root pytest suite."
       ]
     }
   ],
