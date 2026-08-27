@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import os
+
 import pytest
+import exp517_functional_specialists.phylop_uniform_h100_experiment as h100_experiment
 from exp517_functional_specialists.experiment import (
     BATCH_SIZE,
     HF_SAVE_STEPS,
@@ -16,6 +19,7 @@ from exp517_functional_specialists.phylop_uniform_h100_experiment import (
     FULL_H100_PER_DEVICE_PARALLELISM,
     build_full_h100_training,
     full_h100_tokenized_dataset,
+    tokenize_with_local_workers,
 )
 from fray.types import ANY_REGION
 from marin.execution.lazy import StepContext
@@ -92,3 +96,23 @@ def test_full_h100_rejects_unvalidated_microbatch(
     monkeypatch.setenv("EXP517_H100_PDP", "4096")
     with pytest.raises(ValueError, match="validated one-H100 value"):
         build_full_h100_training(ARMS["cds"])
+
+
+def test_local_tokenizer_workers_do_not_rediscover_iris(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    config = full_h100_tokenized_dataset(ARMS["cds"]).build_config(
+        StepContext.for_fingerprint(deps=())
+    )
+    observed_task_ids: list[str | None] = []
+    monkeypatch.setenv("IRIS_TASK_ID", "parent-task")
+    monkeypatch.setattr(
+        h100_experiment,
+        "tokenize",
+        lambda _: observed_task_ids.append(os.environ.get("IRIS_TASK_ID")),
+    )
+
+    tokenize_with_local_workers(config)
+
+    assert observed_task_ids == [None]
+    assert os.environ["IRIS_TASK_ID"] == "parent-task"

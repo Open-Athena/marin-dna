@@ -180,11 +180,14 @@ def tokenize_with_local_workers(config: HfTokenizeConfig) -> None:
     preserving the maintained Marin tokenizer implementation and cache format.
     """
     client = LocalClient(max_threads=FULL_H100_LOCAL_TOKENIZER_WORKERS + 2)
+    iris_task_id = os.environ.pop("IRIS_TASK_ID", None)
     try:
         with set_current_client(client):
             tokenize(config)
     finally:
         client.shutdown()
+        if iris_task_id is not None:
+            os.environ["IRIS_TASK_ID"] = iris_task_id
 
 
 def build_full_h100_training(

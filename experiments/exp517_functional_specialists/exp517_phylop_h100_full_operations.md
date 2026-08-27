@@ -53,3 +53,5 @@ The H100 child retains its independently declared 128 GB disk request.
 2026-08-27: Override the training data tokenizer with the vendored absolute path so a reused tokenized-cache record cannot resolve relative to `/app`.
 2026-08-27: Both production peers' bare CPU callable images lacked `cloudpickle`, so the nested remote tokenization wrapper failed before reading data or allocating an H100.
 Keep the maintained Marin tokenization and cache format, but run its Zephyr pool locally inside one locked, explicitly sized CoreWeave CPU task; launch training separately after that immutable cache completes.
+2026-08-27: Local Fray context variables do not propagate into actor-method threads, and `IRIS_TASK_ID` would make those threads rediscover the ambient Iris backend.
+Hide `IRIS_TASK_ID` only for the duration of local tokenization and restore it afterward so every Zephyr coordinator and worker remains in the explicitly sized task.
