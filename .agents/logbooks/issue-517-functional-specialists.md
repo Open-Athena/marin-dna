@@ -883,3 +883,16 @@ Its current anchor path instead creates uniform conservation-selected windows an
   Failed launches are retried, and each successful Sky job tears down its worker after completion.
 - Evaluation boundary: No intermediate checkpoint and no held-out even-autosome or chromosome-Y VEP split is registered or read.
 - Next action: Let the watcher launch the ten remaining development cells as their five training arms export step 4,999, monitor the three active CDS cells, and report verified metrics after all artifacts are durable.
+
+### 2026-08-27 02:29 UTC - `FAS-517-038` CDS terminal VEP cells complete
+
+- Completion: All three CDS Sky jobs returned `SUCCEEDED` and uploaded their score and metric Parquets to workflow-owned S3 storage.
+- Mendelian Traits: Scoring covered 16,140 development records and completed at 02:16:43 UTC.
+  Metric aggregation produced 66 rows and completed at 02:18:21 UTC.
+- Complex Traits: Scoring covered 11,630 development records and completed at 02:20:01 UTC.
+  Metric aggregation produced 60 rows and completed at 02:21:27 UTC.
+- SGE: Scoring covered 23,853 development records and completed at 02:21:59 UTC.
+  Metric aggregation produced 216 rows and completed at 02:25:47 UTC.
+- Interpretation: This entry verifies execution and durable artifact production only.
+  Cross-arm model interpretation waits for the remaining ten terminal-checkpoint cells.
+- Next action: Keep the five-minute terminal-export watcher active and launch each remaining arm's two development cells when its complete step-4,999 export appears.
