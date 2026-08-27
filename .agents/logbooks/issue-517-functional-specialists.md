@@ -896,3 +896,32 @@ Its current anchor path instead creates uniform conservation-selected windows an
 - Interpretation: This entry verifies execution and durable artifact production only.
   Cross-arm model interpretation waits for the remaining ten terminal-checkpoint cells.
 - Next action: Keep the five-minute terminal-export watcher active and launch each remaining arm's two development cells when its complete step-4,999 export appears.
+
+### 2026-08-27 05:24 UTC - `FAS-517-039` all terminal VEP cells complete
+
+- Completion: The five remaining training arms exported complete terminal Hugging Face checkpoints at step 4,999.
+  The five-minute watcher launched their Mendelian Traits and Complex Traits cells and exited after all ten evaluations completed.
+  Together with CDS, all 13 authorized development cells now have durable score and metric Parquets under `s3://oa-bolinas/snakemake/analysis/evals_v2/results/`.
+- Configuration: All values use the pinned `train` development splits, terminal step 4,999, strand-averaged LLR scores, and 1,000 bootstrap iterations with seed 0.
+  No held-out VEP labels, predictions, or metrics were accessed.
+- Target-aligned matched-trait AUPRCs (point estimate ± bootstrap SE):
+
+  | Training arm | Mendelian Traits | Complex Traits |
+  | --- | --- | --- |
+  | CDS | Missense 0.339 ± 0.017; Splicing 0.400 ± 0.028; Synonymous 0.299 ± 0.061 | Missense 0.159 ± 0.015 |
+  | 3′ UTR | 3′ UTR 0.185 ± 0.035 | 3′ UTR 0.195 ± 0.058 |
+  | TSS / 5′ UTR | 5′ UTR 0.249 ± 0.023; Promoter 0.260 ± 0.027 | Promoter 0.149 ± 0.022; 5′ UTR 0.251 ± 0.064 |
+  | ncRNA exon | ncRNA 0.384 ± 0.035 | ncRNA 0.162 ± 0.044 |
+  | Enhancer arm A | Distal 0.119 ± 0.018 | Distal 0.104 ± 0.005 |
+  | Background | Macro avg 0.133 ± 0.006 | Macro avg 0.113 ± 0.008 |
+
+- SGE: The CDS accession-macro rows are 0.264 ± 0.008 for Missense across eight eligible accessions and 0.454 ± 0.021 for Splicing across six eligible accessions.
+  `Macro`, `Both`, and other specialist-wide aggregates are omitted under the standalone reporting contract.
+- Interpretation: The matched datasets use 1:9 positives:controls, so chance AUPRC is 0.10.
+  CDS, ncRNA exon, and TSS/5′ UTR show the clearest target-aligned Mendelian signal.
+  Enhancer arm A is close to chance on Distal in both matched benchmarks and needs a direct comparison with the prior uniform-grid enhancer baseline.
+- Mature-miRNA check: The dedicated YAML declared `exclude_complete_match_groups_with_subsets`, but the current workflow does not consume that key and the raw Mendelian metric Parquets still contain the four mature-miRNA groups.
+  None of the specialist rows above uses that subset.
+  The background macro was independently checked over supported per-subset rows after excluding mature miRNA; its value and SE are unchanged because four groups do not pass the 30-group macro support gate.
+- Public record: [Issue #517 update](https://github.com/Open-Athena/marin-dna/issues/517#issuecomment-5438753599).
+- Next action: Compare these target-aligned cells with the established arm-specific baselines and fix or reject unsupported dataset-filter keys in the maintained evals_v2 configuration path.
