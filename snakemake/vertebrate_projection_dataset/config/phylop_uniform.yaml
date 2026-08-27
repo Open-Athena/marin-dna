@@ -1,0 +1,60 @@
+pipeline_version: phylop-uniform-v1
+tier: smoke
+
+window_size: 255
+step_size: 128
+phylop_track: phyloP_447m
+phyloP_447m_threshold: 2.2162
+min_proportion_conserved: 0.20
+expected_full_anchors: 1136854
+smoke_anchors_per_arm: 4
+
+ensembl_release: 115
+ccre_url: https://downloads.wenglab.org/Registry-V4/GRCh38-cCREs.bed
+standard_chroms:
+  [chr1, chr2, chr3, chr4, chr5, chr6, chr7, chr8, chr9, chr10,
+   chr11, chr12, chr13, chr14, chr15, chr16, chr17, chr18, chr19,
+   chr20, chr21, chr22, chrX, chrY]
+
+species_candidates: config/species_candidates.tsv
+species_selected: config/species_selected.tsv
+multiz_mirror_manifest: config/multiz_mirror.tsv
+twobit_manifest: config/twobit_manifest.tsv
+smoke_anchors: config/smoke_anchors.tsv
+
+hal_s3_uri: s3://oa-bolinas/staging/447-mammalian-2022v1.hal
+hal_stage_path: /mnt/nvme/vertebrate_projection/447-mammalian-2022v1.hal
+multiz_stage_dir: /mnt/nvme/vertebrate_projection/multiz100way/ucsc-2015-05-12
+
+smoke_chroms: [chr7, chr18]
+smoke_mammals: [Mus_musculus, Loxodonta_africana]
+smoke_non_mammals: [galGal4, allMis1, xenTro7, danRer10, petMar2]
+
+validation_rows: 16384
+smoke_validation_rows: 1
+validation_seed: 517
+add_rc: true
+publication_train_shards: 64
+publication_smoke_train_shards: 4
+publication_validation_shards: 1
+publication_shuffle_seed: 517
+inspection_seed: 517
+inspection_rows_per_region: 3
+inspection_fragmented_rows: 5
+inspection_rejected_rows_per_reason: 2
+region_cohorts:
+  [cds, utr3, tss_region_and_utr5, ncrna_exon, enhancer, background]
+
+hf_owner: marin-dna
+hf_upload_workers: 1
+
+# Exact #232 v4 assignment followed by #326 Arm A and complement background.
+region_label_tss_radius: 256
+region_label_ccre_flank: 0
+region_label_tss_pc_only: true
+region_label_functional_threshold: 0.20
+region_label_priority:
+  [cds, utr3, tss_region_and_utr5, ncrna_exon, ccre_non_promoter]
+assignment_recipe: exp232-v4-plus-exp326-arm-a-remainder-v1
+assignment_arms:
+  [cds, utr3, tss_region_and_utr5, ncrna_exon, enhancer, background]
