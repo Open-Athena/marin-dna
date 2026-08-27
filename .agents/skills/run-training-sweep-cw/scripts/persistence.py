@@ -275,13 +275,13 @@ def prepare_dispatch(
     _parse_time(recorded_at, "intent_at")
     with _connect(path) as connection:
         connection.execute("BEGIN IMMEDIATE")
-        if (
-            connection.execute(
-                "SELECT 1 FROM trials WHERE trial_id = ?", (trial_id,)
-            ).fetchone()
-            is None
-        ):
+        trial = connection.execute(
+            "SELECT status FROM trials WHERE trial_id = ?", (trial_id,)
+        ).fetchone()
+        if trial is None:
             raise RuntimeError(f"unknown trial: {trial_id}")
+        if trial[0].casefold() == "completed":
+            raise RuntimeError(f"trial {trial_id!r} is completed")
         active = connection.execute(
             """
             SELECT dispatch_id, submission_state FROM dispatches
@@ -495,13 +495,20 @@ def complete_trial(
     with _connect(path) as connection:
         connection.execute("BEGIN IMMEDIATE")
         row = connection.execute(
-            "SELECT status, high_water_progress FROM trials WHERE trial_id = ?",
+            """
+            SELECT status, high_water_progress, checkpoint_verified_at
+            FROM trials WHERE trial_id = ?
+            """,
             (trial_id,),
         ).fetchone()
         if row is None:
             raise RuntimeError(f"unknown trial: {trial_id}")
-        if row[0] == "completed":
-            return verified_at
+        if row[0].casefold() == "completed":
+            if row[2] is None:
+                raise RuntimeError(
+                    f"completed trial {trial_id!r} has no verified checkpoint time"
+                )
+            return row[2]
         if row[1] < 1:
             raise RuntimeError(f"trial {trial_id!r} has progress below 1")
         if (

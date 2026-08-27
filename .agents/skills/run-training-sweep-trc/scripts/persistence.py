@@ -275,6 +275,14 @@ def add_regional_run(
     wandb_url: str | None = None,
 ) -> None:
     with _connect(path) as connection:
+        connection.execute("BEGIN IMMEDIATE")
+        trial = connection.execute(
+            "SELECT status FROM trials WHERE trial_id = ?", (trial_id,)
+        ).fetchone()
+        if trial is None:
+            raise RuntimeError(f"unknown trial: {trial_id}")
+        if trial[0].casefold() == "completed":
+            raise RuntimeError(f"trial {trial_id!r} is completed")
         connection.execute(
             """
             INSERT INTO runs(
@@ -320,12 +328,22 @@ def prepare_dispatch(
     with _connect(path) as connection:
         connection.execute("BEGIN IMMEDIATE")
         run = connection.execute(
-            "SELECT trial_id, region FROM runs WHERE regional_run_id = ?",
+            """
+            SELECT runs.trial_id, runs.region, runs.status, trials.status
+            FROM runs JOIN trials USING (trial_id)
+            WHERE regional_run_id = ?
+            """,
             (regional_run_id,),
         ).fetchone()
         if run is None:
             raise RuntimeError(f"unknown regional run: {regional_run_id}")
-        trial_id, region = run
+        trial_id, region, run_status, trial_status = run
+        if trial_status.casefold() == "completed":
+            raise RuntimeError(f"trial {trial_id!r} is completed")
+        if run_status.casefold() in {"completed", "race_lost"}:
+            raise RuntimeError(
+                f"regional run {regional_run_id!r} is terminal as {run_status!r}"
+            )
         active = connection.execute(
             """
             SELECT dispatch_id, submission_state FROM dispatches
@@ -559,6 +577,33 @@ def complete_trial(
     _parse_time(verified_at, "checkpoint_verified_at")
     with _connect(path) as connection:
         connection.execute("BEGIN IMMEDIATE")
+        trial = connection.execute(
+            "SELECT status FROM trials WHERE trial_id = ?", (trial_id,)
+        ).fetchone()
+        if trial is None:
+            raise RuntimeError(f"unknown trial: {trial_id}")
+        if trial[0].casefold() == "completed":
+            existing_winner = connection.execute(
+                """
+                SELECT regional_run_id, checkpoint_verified_at FROM runs
+                WHERE trial_id = ? AND is_winner = 1
+                """,
+                (trial_id,),
+            ).fetchone()
+            if existing_winner is None:
+                raise RuntimeError(
+                    f"completed trial {trial_id!r} has no recorded winner"
+                )
+            if existing_winner[0] != winner_run_id:
+                raise RuntimeError(
+                    f"trial {trial_id!r} is already completed with winner "
+                    f"{existing_winner[0]!r}"
+                )
+            if existing_winner[1] is None:
+                raise RuntimeError(
+                    f"completed trial {trial_id!r} has no verified checkpoint time"
+                )
+            return existing_winner[1]
         winner = connection.execute(
             """
             SELECT trial_id, high_water_progress FROM runs

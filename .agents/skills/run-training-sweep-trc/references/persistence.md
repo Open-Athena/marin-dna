@@ -37,6 +37,7 @@ evidence behind them.
   losing history. Stop-and-replace, winner-and-cancel, and completion transitions
   are atomic.
 - Commands and experiment parameters contain no API keys, tokens, or secret values.
+- Completion is terminal; it is idempotent only for the recorded winner and never permits another regional run, dispatch, or replacement winner.
 
 ## Supported Mutations
 

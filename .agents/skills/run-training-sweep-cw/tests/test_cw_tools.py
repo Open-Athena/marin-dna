@@ -356,6 +356,62 @@ def test_dispatch_intent_blocks_duplicate_after_backup_recovery(tmp_path: Path) 
     )
 
 
+def test_completed_trial_is_terminal_and_completion_is_idempotent(
+    tmp_path: Path,
+) -> None:
+    database = tmp_path / "sweep.sqlite"
+    persistence.init(database)
+    persistence.add_trial(
+        database, "trial", {}, "wandb-trial", "s3://checkpoints/trial"
+    )
+    persistence.prepare_dispatch(
+        database,
+        "trial",
+        "dispatch",
+        "iris-exact",
+        "cw-rno2a",
+        "H100",
+        1,
+        8,
+        "launch --redacted",
+        "2026-01-01T00:00:00+00:00",
+    )
+    persistence.confirm_dispatch(database, "dispatch", "2026-01-01T00:01:00+00:00")
+    persistence.record_observation(
+        database,
+        "dispatch",
+        "2026-01-01T00:02:00+00:00",
+        "finished",
+        1.0,
+        False,
+    )
+    persistence.end_dispatch(
+        database,
+        "dispatch",
+        "completed",
+        ended_at="2026-01-01T00:03:00+00:00",
+    )
+
+    verified_at = "2026-01-01T00:04:00+00:00"
+    assert persistence.complete_trial(database, "trial", verified_at) == verified_at
+    assert (
+        persistence.complete_trial(database, "trial", "2026-01-01T00:05:00+00:00")
+        == verified_at
+    )
+    with pytest.raises(RuntimeError, match="is completed"):
+        persistence.prepare_dispatch(
+            database,
+            "trial",
+            "dispatch-late",
+            "iris-late",
+            "cw-rno2a",
+            "H100",
+            1,
+            8,
+            "launch --redacted",
+        )
+
+
 def _availability(
     gpu: str,
     free: int,

@@ -23,6 +23,7 @@ The model covers heartbeat reconciliation, placement ranking, recovery, completi
 - Dispatches retain stopped, failed, and superseded placement history.
 - Commands and experiment parameters contain no secrets.
 - A completed trial has `run_progress >= 1`, a verified checkpoint, and no active dispatch.
+- Completion is terminal; it is idempotent only for the already completed trial and never permits a later dispatch.
 
 ## Supported Mutations
 

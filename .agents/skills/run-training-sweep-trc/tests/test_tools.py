@@ -335,6 +335,85 @@ def test_dispatch_intent_blocks_duplicate_after_backup_recovery(tmp_path: Path) 
     )
 
 
+def test_completed_trial_cannot_reopen_or_change_winner(tmp_path: Path) -> None:
+    database = tmp_path / "sweep.sqlite"
+    persistence.init(database)
+    persistence.add_trial(database, "trial", {})
+    for run_id, region in (("run-1", "us-central1"), ("run-2", "us-east1")):
+        persistence.add_regional_run(
+            database,
+            run_id,
+            "trial",
+            region,
+            f"wandb-{run_id}",
+            f"gs://checkpoints/{run_id}",
+        )
+        dispatch_id = f"dispatch-{run_id}"
+        persistence.prepare_dispatch(
+            database,
+            run_id,
+            dispatch_id,
+            f"iris-{run_id}",
+            "v5p-8",
+            8,
+            "batch",
+            "launch --redacted",
+            "2026-01-01T00:00:00+00:00",
+        )
+        persistence.confirm_dispatch(database, dispatch_id, "2026-01-01T00:01:00+00:00")
+        persistence.record_observation(
+            database,
+            dispatch_id,
+            "2026-01-01T00:02:00+00:00",
+            "finished",
+            1.0,
+            False,
+        )
+        persistence.end_dispatch(
+            database,
+            dispatch_id,
+            "completed",
+            ended_at="2026-01-01T00:03:00+00:00",
+        )
+
+    verified_at = "2026-01-01T00:04:00+00:00"
+    assert (
+        persistence.complete_trial(database, "trial", "run-1", verified_at)
+        == verified_at
+    )
+    assert (
+        persistence.complete_trial(
+            database,
+            "trial",
+            "run-1",
+            "2026-01-01T00:05:00+00:00",
+        )
+        == verified_at
+    )
+    with pytest.raises(RuntimeError, match="already completed with winner 'run-1'"):
+        persistence.complete_trial(database, "trial", "run-2")
+    with pytest.raises(RuntimeError, match="is completed"):
+        persistence.add_regional_run(
+            database,
+            "run-late",
+            "trial",
+            "us-west1",
+            "wandb-late",
+            "gs://checkpoints/late",
+        )
+    with pytest.raises(RuntimeError, match="is completed"):
+        persistence.prepare_dispatch(
+            database,
+            "run-2",
+            "dispatch-late",
+            "iris-late",
+            "v5p-8",
+            8,
+            "batch",
+            "launch --redacted",
+        )
+
+
 def _utilization_response() -> dict[str, object]:
     def group(name: str, capacity: str, tasks: int, created_at: int, availability: str):
         return {
