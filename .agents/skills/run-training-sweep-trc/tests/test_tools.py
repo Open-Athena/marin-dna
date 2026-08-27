@@ -412,6 +412,27 @@ def test_completed_trial_cannot_reopen_or_change_winner(tmp_path: Path) -> None:
             "batch",
             "launch --redacted",
         )
+    with pytest.raises(RuntimeError, match="is completed"):
+        persistence.record_observation(
+            database,
+            "dispatch-run-2",
+            "2026-01-01T00:06:00+00:00",
+            "finished",
+            1.1,
+            False,
+        )
+    with sqlite3.connect(database) as connection:
+        runs = connection.execute(
+            """
+            SELECT regional_run_id, status, high_water_progress, is_winner
+            FROM runs ORDER BY regional_run_id
+            """
+        ).fetchall()
+    assert runs == [
+        ("run-1", "completed", 1.0, 1),
+        ("run-2", "race_lost", 1.0, 0),
+    ]
+    assert persistence.check(database) == []
 
 
 def _utilization_response() -> dict[str, object]:

@@ -518,15 +518,20 @@ def record_observation(
         row = connection.execute(
             """
             SELECT runs.trial_id, dispatches.regional_run_id,
-                   dispatches.submitted_at, runs.high_water_progress
-            FROM dispatches JOIN runs USING (regional_run_id)
+                   dispatches.submitted_at, runs.high_water_progress,
+                   trials.status
+            FROM dispatches
+            JOIN runs USING (regional_run_id)
+            JOIN trials USING (trial_id)
             WHERE dispatch_id = ?
             """,
             (dispatch_id,),
         ).fetchone()
         if row is None:
             raise RuntimeError(f"unknown dispatch: {dispatch_id}")
-        trial_id, regional_run_id, submitted_at, previous = row
+        trial_id, regional_run_id, submitted_at, previous, trial_status = row
+        if trial_status.casefold() == "completed":
+            raise RuntimeError(f"trial {trial_id!r} is completed")
         if submitted_at is None:
             raise RuntimeError(
                 f"dispatch {dispatch_id!r} has not been confirmed as submitted"

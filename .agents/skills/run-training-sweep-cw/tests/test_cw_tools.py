@@ -410,6 +410,16 @@ def test_completed_trial_is_terminal_and_completion_is_idempotent(
             8,
             "launch --redacted",
         )
+    with pytest.raises(RuntimeError, match="is completed"):
+        persistence.record_observation(
+            database,
+            "dispatch",
+            "2026-01-01T00:06:00+00:00",
+            "finished",
+            1.1,
+            False,
+        )
+    assert persistence.check(database) == []
 
 
 def _availability(

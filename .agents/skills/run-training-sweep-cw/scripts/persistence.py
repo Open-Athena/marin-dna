@@ -438,22 +438,24 @@ def record_observation(
         connection.execute("BEGIN IMMEDIATE")
         row = connection.execute(
             """
-            SELECT trial_id, submitted_at FROM dispatches WHERE dispatch_id = ?
+            SELECT dispatches.trial_id, dispatches.submitted_at,
+                   trials.status, trials.high_water_progress
+            FROM dispatches JOIN trials USING (trial_id)
+            WHERE dispatch_id = ?
             """,
             (dispatch_id,),
         ).fetchone()
         if row is None:
             raise RuntimeError(f"unknown dispatch: {dispatch_id}")
-        trial_id, submitted_at = row
+        trial_id, submitted_at, trial_status, previous = row
+        if trial_status.casefold() == "completed":
+            raise RuntimeError(f"trial {trial_id!r} is completed")
         if submitted_at is None:
             raise RuntimeError(
                 f"dispatch {dispatch_id!r} has not been confirmed as submitted"
             )
         if observed_time < _parse_time(submitted_at, "submitted_at"):
             raise RuntimeError("observed_at predates submitted_at")
-        previous = connection.execute(
-            "SELECT high_water_progress FROM trials WHERE trial_id = ?", (trial_id,)
-        ).fetchone()[0]
         connection.execute(
             """
             INSERT INTO observations(
