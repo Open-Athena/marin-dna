@@ -139,6 +139,46 @@ The launcher validates that the key exists but deliberately excludes its value f
 Verify immutable Hub download, complete tokenization, real TPU optimizer steps, W&B telemetry, and checkpoint creation independently for every arm.
 Each GPN arm has an independent run ID, checkpoint root, tokenized cache, and W&B run.
 
+## Strict phyloP-selector control
+
+The strict control changes only the conservation selector from GPN-Star-P to `hg38.phyloP447way`.
+It retains the center-1 projector, 107 mammal HAL targets, 28 nonmammal chain targets, six exhaustive arm assignments, model, tokenizer, loss, optimizer, seed, batch, sequence length, 5,000-step schedule, and checkpoint cadence.
+The phyloP threshold is score at least 2.2162 in at least 51 of 255 source bases.
+The background arm contains every selector-passing window not assigned to the other five arms.
+
+The immutable publication producer is commit `fbc8968b14415b2722e7bcc4afaf95051acd6638`.
+The six anonymously verified public datasets are pinned at these Hub revisions:
+
+- `marin-dna/phylop-uniform-v1-cds` at `452a5a3538f22630c3dea94d441ac30216bb28ea`
+- `marin-dna/phylop-uniform-v1-utr3` at `2b73d5d9ebda34a361536db5e3d2697b6a1b1d6c`
+- `marin-dna/phylop-uniform-v1-tss-utr5` at `5134205d86cd03e7833843d99e947e43e7aa11ac`
+- `marin-dna/phylop-uniform-v1-ncrna-exon` at `54667e7bb49505f463afc147676e880a30c11d89`
+- `marin-dna/phylop-uniform-v1-enhancer-arm-a` at `6f879b3747330e2c92e1402ead55cda6621f50ff`
+- `marin-dna/phylop-uniform-v1-background` at `7d84519dccb4286622a14642a82a4f045d93a42c`
+
+Each repository has 64 train shards and one validation shard.
+Launch the six authorized arms together by substituting the arm key and job name below:
+
+```bash
+IRIS_USER=gonzalo uv run --python /usr/bin/python3.12 --locked \
+  iris --cluster=marin job run \
+  --no-wait --job-name exp517-phylop-uniform-cds \
+  --cpu 1 --memory 2G --region us-east5 --extra=tpu \
+  -e WANDB_API_KEY "$WANDB_API_KEY" \
+  -e WANDB_ENTITY gonzalobenegas \
+  -e WANDB_PROJECT marin \
+  -e MARIN_PREFIX gs://marin-us-east5/MarinDNA/exp517_phylop_uniform_specialists \
+  -e EXP517_TPU_REGION us-east5 \
+  -e EXP517_TPU_VARIANT v5p-8,v6e-4 \
+  -e EXP517_TPU_RAM 56g \
+  -e EXP517_TPU_PREEMPTIBLE true \
+  -e EXP517_PHYLOP_ARM cds \
+  -e UV_PROJECT /app \
+  -- bash -lc 'cd /app && uv sync --locked --extra tpu && \
+  exec uv run --locked python -m exp517_functional_specialists.phylop_uniform_experiment \
+  --version 2026.08.27 --run'
+```
+
 ## Evaluation boundary
 
 Evaluate only the development split unless the user separately authorizes held-out access.

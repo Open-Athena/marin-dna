@@ -1019,3 +1019,19 @@ Its current anchor path instead creates uniform conservation-selected windows an
   The reported 1/255 alignment coverage is expected because the projector maps the center nucleotide and extracts 127 bp of target context on each side.
 - Durable source: `s3://oa-bolinas/snakemake/vertebrate_projection_dataset/results/phylop-uniform-v1/2162b6aa8299a9748eeb8031318b49072bb8c3fc/94d512050de327f96fda1105ce9c6ae5562944e402802516c7cde54795d8cdd1/full/`.
 - Next action: Snapshot the source-pinned publication workflow, build and anonymously verify six immutable Hugging Face datasets, then launch all six matched preemptible TPU runs as Iris user `gonzalo`.
+
+### 2026-08-27 17:00 UTC - `FAS-517-044` strict phyloP datasets published
+
+- Publication snapshot: Commit `fbc8968b14415b2722e7bcc4afaf95051acd6638` pins the completed source producer, adds the six-arm publication workflow, and passed all 257 locked source-project tests plus a 417-job publication dry-run.
+- Remote build: A dedicated AWS `r6i.8xlarge` completed all 417 build jobs and then all seven upload targets without error.
+  Each arm contains 64 train shards and one validation shard, and the uploader verified every remote object against its local source.
+- Anonymous audit: After removing the temporary EC2 Hugging Face token, an unauthenticated API read confirmed that all six repositories are public and each has the exact 67-file inventory: `.gitattributes`, `README.md`, 64 train shards, and one validation shard.
+- Immutable inputs:
+  - CDS: `marin-dna/phylop-uniform-v1-cds` at `452a5a3538f22630c3dea94d441ac30216bb28ea`.
+  - 3-prime UTR: `marin-dna/phylop-uniform-v1-utr3` at `2b73d5d9ebda34a361536db5e3d2697b6a1b1d6c`.
+  - TSS/5-prime UTR: `marin-dna/phylop-uniform-v1-tss-utr5` at `5134205d86cd03e7833843d99e947e43e7aa11ac`.
+  - ncRNA exon: `marin-dna/phylop-uniform-v1-ncrna-exon` at `54667e7bb49505f463afc147676e880a30c11d89`.
+  - Enhancer Arm A: `marin-dna/phylop-uniform-v1-enhancer-arm-a` at `6f879b3747330e2c92e1402ead55cda6621f50ff`.
+  - Background: `marin-dna/phylop-uniform-v1-background` at `7d84519dccb4286622a14642a82a4f045d93a42c`.
+- Training gate: The six-run launcher now pins the publication producer and exact Hub revisions while retaining the GPN experiment's model, optimizer, tokenizer, seed, batch, schedule, checkpoint cadence, ordered `v5p-8,v6e-4` preemptible request, and six region assignments.
+- Next action: Validate and snapshot the pinned launcher, launch all six independent jobs as Iris user `gonzalo`, and verify coordinator acceptance, immutable input download, and child scheduling.
