@@ -126,7 +126,7 @@ def resolved_publication_commit() -> str:
     return PUBLICATION_PRODUCER_COMMIT
 
 
-def training_tags(arm: PhylopUniformArm) -> list[str]:
+def training_tags(arm: PhylopUniformArm, tpu_region: str) -> list[str]:
     """Return the fixed recipe and full publication provenance as W&B tags."""
     tags = [
         "dna",
@@ -137,6 +137,7 @@ def training_tags(arm: PhylopUniformArm) -> list[str]:
         "strict-selector-control",
         "exhaustive-six-arm",
         f"region={arm.key}",
+        f"tpu_region={tpu_region}",
         bounded_wandb_tag("hf_repo", arm.hf_repo),
         f"hf_revision={arm.resolved_revision()}",
         f"publication={resolved_publication_commit()}",
@@ -259,7 +260,7 @@ def build_training(arm: PhylopUniformArm) -> ArtifactStep[LevanterCheckpoint]:
         steps_per_eval=HF_SAVE_STEPS,
         wandb_project=forwarded_env["WANDB_PROJECT"],
         wandb_group="dna-exp517-phylop-uniform-specialists",
-        tags=training_tags(arm),
+        tags=training_tags(arm, tpu_region),
         env_vars=forwarded_env,
     )
     base_build_config = step.build_config

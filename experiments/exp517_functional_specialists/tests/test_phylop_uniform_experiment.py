@@ -135,5 +135,7 @@ def test_phylop_fixed_specialist_recipe(monkeypatch) -> None:
     assert all("s3://" not in repr(dep) for dep in step.deps)
     assert "WANDB_API_KEY" not in pod.env_vars
     assert "test-key" not in repr(pod)
-    assert "phylop" in training_tags(arm)
-    assert "strict-selector-control" in training_tags(arm)
+    tags = training_tags(arm, DEFAULT_TPU_REGION)
+    assert "phylop" in tags
+    assert "strict-selector-control" in tags
+    assert f"tpu_region={DEFAULT_TPU_REGION}" in tags

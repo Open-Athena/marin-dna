@@ -160,9 +160,10 @@ Each repository has 64 train shards and one validation shard.
 Launch the six authorized arms together by substituting the arm key and job name below:
 
 ```bash
-IRIS_USER=gonzalo uv run --python /usr/bin/python3.12 --locked \
+uv run --python /usr/bin/python3.12 --locked \
   iris --cluster=marin job run \
-  --no-wait --job-name exp517-phylop-uniform-cds \
+  --no-wait --user gonzalo --priority interactive \
+  --job-name exp517-phylop-uniform-cds-alt-d001 \
   --cpu 1 --memory 2G --region us-east5 --extra=tpu \
   -e WANDB_API_KEY "$WANDB_API_KEY" \
   -e WANDB_ENTITY gonzalobenegas \
