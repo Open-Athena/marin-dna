@@ -47,6 +47,9 @@ The vendored character tokenizer is pinned to source revision `a73e9d9ee636f722b
 - 2026-08-27: Verified the five cache roots and parent checkpoint metadata in GCS.
 - 2026-08-27: Queried the parent and m5.1 W&B configs for exact model, optimizer, data, and continuation settings.
 - 2026-08-27: Created the permanent experiment branch and began the locked self-contained project.
+- 2026-08-27: Committed and pushed initial snapshot `5fe4205e`.
+- 2026-08-27: Remote locked tests found that lazy artifacts require plain calendar versions and that a CPU test with the TPU extra must explicitly select the CPU JAX backend.
+- 2026-08-27: Corrected both preflight-only failures; neither job reached training or requested an accelerator.
 
 ## Launch record
 

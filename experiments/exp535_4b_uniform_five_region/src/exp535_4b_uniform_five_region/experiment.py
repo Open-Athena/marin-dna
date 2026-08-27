@@ -81,8 +81,8 @@ TPU_REGION = "us-east5"
 TPU_ZONE = "us-east5-a"
 WANDB_PROJECT = "marin"
 WANDB_GROUP = "dna-exp535"
-VERSION = "2026.08.27-v1"
-SMOKE_VERSION = "2026.08.27-smoke-v1"
+VERSION = "2026.08.27"
+SMOKE_VERSION = "2026.08.27"
 
 
 @dataclass(frozen=True)

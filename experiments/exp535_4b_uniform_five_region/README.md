@@ -4,8 +4,8 @@ This locked experiment continues the permanent native checkpoint at global step 
 It uses an equal-weight mixture of CDS, upstream, downstream, ncRNA exon, and non-promoter cCRE caches.
 The 20-step smoke and production run have separate artifact and W&B identities.
 
-The smoke output is `gs://marin-us-east5/checkpoints/dna-exp535-4b-uniform-five-region-smoke/2026.08.27-smoke-v1`.
-The production output is `gs://marin-us-east5/checkpoints/dna-exp535-4b-uniform-five-region/2026.08.27-v1`.
+The smoke output is `gs://marin-us-east5/checkpoints/dna-exp535-4b-uniform-five-region-smoke/2026.08.27`.
+The production output is `gs://marin-us-east5/checkpoints/dna-exp535-4b-uniform-five-region/2026.08.27`.
 Native recovery checkpoints are under each output's `checkpoints/` directory, and HF exports are under `hf/`.
 The production checkpointer keeps rolling 10-minute recovery states, permanent state 343573 immediately before cooldown, and forced final state 375573.
 

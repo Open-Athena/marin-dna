@@ -91,13 +91,15 @@ def test_smoke_has_separate_identity_and_twenty_updates(monkeypatch) -> None:
     production, _ = _pod(monkeypatch, "production")
     smoke, pod = _pod(monkeypatch, "smoke")
     assert smoke.name != production.name
-    assert smoke.version != production.version
     assert pod.train_config.trainer.num_train_steps == SMOKE_TARGET_STEP == PARENT_STEP + 20
     assert pod.train_config.adapter.steps == SMOKE_HF_EXPORT_STEPS == (SMOKE_TARGET_STEP,)
     assert pod.train_config.trainer.checkpointer.keep == []
 
 
 def test_second_wsd_cycle_has_requested_boundaries() -> None:
+    import jax
+
+    jax.config.update("jax_platforms", "cpu")
     optimizer = optimizer_config(PRODUCTION_ADDED_STEPS)
     assert optimizer.learning_rate == LEARNING_RATE
     assert optimizer.adam_lr == ADAM_LEARNING_RATE
