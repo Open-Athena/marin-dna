@@ -7,6 +7,8 @@ import argparse
 import difflib
 import hashlib
 import json
+import os
+import stat
 import subprocess
 from pathlib import Path
 
@@ -27,8 +29,31 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def file_identity(data: bytes) -> str:
-    return f"size={len(data)} sha256={hashlib.sha256(data).hexdigest()}"
+def file_identity(mode: str, data: bytes) -> str:
+    kind = "symlink" if mode == "120000" else "file"
+    return (
+        f"mode={mode} type={kind} size={len(data)} "
+        f"sha256={hashlib.sha256(data).hexdigest()}"
+    )
+
+
+def _entries(root: Path) -> dict[Path, tuple[str, bytes]]:
+    entries: dict[Path, tuple[str, bytes]] = {}
+    for path in root.rglob("*"):
+        relative = path.relative_to(root)
+        if IGNORED_DIRECTORY_NAMES.intersection(relative.parts):
+            continue
+        if path.suffix == ".pyc":
+            continue
+        if path.is_symlink():
+            entries[relative] = ("120000", os.fsencode(os.readlink(path)))
+        elif path.is_file():
+            executable = bool(path.lstat().st_mode & stat.S_IXUSR)
+            entries[relative] = (
+                "100755" if executable else "100644",
+                path.read_bytes(),
+            )
+    return entries
 
 
 def directory_diff(
@@ -37,54 +62,40 @@ def directory_diff(
     upstream_label: str,
     local_label: str,
 ) -> str:
-    upstream_files = {
-        path.relative_to(upstream): path
-        for path in upstream.rglob("*")
-        if path.is_file()
-        and not IGNORED_DIRECTORY_NAMES.intersection(path.parts)
-        and path.suffix != ".pyc"
-    }
-    local_files = {
-        path.relative_to(local): path
-        for path in local.rglob("*")
-        if path.is_file()
-        and not IGNORED_DIRECTORY_NAMES.intersection(path.parts)
-        and path.suffix != ".pyc"
-    }
+    upstream_files = _entries(upstream)
+    local_files = _entries(local)
     chunks: list[str] = []
     for relative in sorted(upstream_files.keys() | local_files.keys()):
-        upstream_path = upstream_files.get(relative)
-        local_path = local_files.get(relative)
-        upstream_bytes = (
-            upstream_path.read_bytes() if upstream_path is not None else b""
-        )
-        local_bytes = local_path.read_bytes() if local_path is not None else b""
-        if (
-            upstream_path is not None
-            and local_path is not None
-            and upstream_bytes == local_bytes
-        ):
+        upstream_entry = upstream_files.get(relative)
+        local_entry = local_files.get(relative)
+        upstream_mode, upstream_bytes = upstream_entry or ("missing", b"")
+        local_mode, local_bytes = local_entry or ("missing", b"")
+        if upstream_entry == local_entry:
             continue
 
         upstream_name = (
             f"{upstream_label}/.agents/skills/{upstream.name}/{relative}"
-            if upstream_path is not None
+            if upstream_entry is not None
             else "/dev/null"
         )
         local_name = (
             f"{local_label}/.agents/skills/{local.name}/{relative}"
-            if local_path is not None
+            if local_entry is not None
             else "/dev/null"
         )
         if (
-            (upstream_path is None) != (local_path is None)
+            (upstream_entry is None) != (local_entry is None)
             and not upstream_bytes
             and not local_bytes
         ):
             upstream_identity = (
-                file_identity(upstream_bytes) if upstream_path else "missing"
+                file_identity(upstream_mode, upstream_bytes)
+                if upstream_entry
+                else "missing"
             )
-            local_identity = file_identity(local_bytes) if local_path else "missing"
+            local_identity = (
+                file_identity(local_mode, local_bytes) if local_entry else "missing"
+            )
             chunks.extend(
                 [
                     f"--- {upstream_name}\n",
@@ -95,14 +106,41 @@ def directory_diff(
                 ]
             )
             continue
+        if upstream_mode != local_mode:
+            upstream_identity = (
+                file_identity(upstream_mode, upstream_bytes)
+                if upstream_entry
+                else "missing"
+            )
+            local_identity = (
+                file_identity(local_mode, local_bytes) if local_entry else "missing"
+            )
+            chunks.extend(
+                [
+                    f"--- {upstream_name}\n",
+                    f"+++ {local_name}\n",
+                    "@@ metadata @@\n",
+                    f"-{upstream_identity}\n",
+                    f"+{local_identity}\n",
+                ]
+            )
+            if upstream_bytes == local_bytes or "120000" in {
+                upstream_mode,
+                local_mode,
+            }:
+                continue
         try:
             upstream_lines = upstream_bytes.decode("utf-8").splitlines(keepends=True)
             local_lines = local_bytes.decode("utf-8").splitlines(keepends=True)
         except UnicodeDecodeError:
             upstream_identity = (
-                file_identity(upstream_bytes) if upstream_path else "missing"
+                file_identity(upstream_mode, upstream_bytes)
+                if upstream_entry
+                else "missing"
             )
-            local_identity = file_identity(local_bytes) if local_path else "missing"
+            local_identity = (
+                file_identity(local_mode, local_bytes) if local_entry else "missing"
+            )
             chunks.extend(
                 [
                     f"--- {upstream_name}\n",
@@ -139,12 +177,46 @@ def upstream_provenance(
             message = result.stderr.strip() or "git rev-parse failed"
             return "Git checkout could not be verified", [message]
         actual_commit = result.stdout.strip()
-        errors = (
-            []
-            if actual_commit == expected_commit
-            else [f"upstream Git HEAD is {actual_commit}, expected {expected_commit}"]
+        errors = []
+        if actual_commit != expected_commit:
+            errors.append(
+                f"upstream Git HEAD is {actual_commit}, expected {expected_commit}"
+            )
+        status = subprocess.run(
+            [
+                "git",
+                "-C",
+                str(root),
+                "status",
+                "--porcelain=v1",
+                "--untracked-files=all",
+                "--",
+                ".agents/skills",
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
         )
-        return f"verified Git HEAD `{actual_commit}`", errors
+        if status.returncode != 0:
+            message = status.stderr.strip() or "git status failed"
+            errors.append(
+                f"upstream skill-tree cleanliness could not be verified: {message}"
+            )
+        elif status.stdout.strip():
+            dirty_lines = [
+                line
+                for line in status.stdout.splitlines()
+                if line.strip()
+                and not IGNORED_DIRECTORY_NAMES.intersection(Path(line[3:]).parts)
+                and Path(line[3:]).suffix != ".pyc"
+            ]
+            if not dirty_lines:
+                state = "verified clean Git HEAD" if not errors else "Git HEAD"
+                return f"{state} `{actual_commit}`", errors
+            dirty_paths = ", ".join(line[3:] for line in dirty_lines)
+            errors.append(f"upstream skill tree is dirty: {dirty_paths}")
+        state = "verified clean Git HEAD" if not errors else "Git HEAD"
+        return f"{state} `{actual_commit}`", errors
 
     if declared_commit is None:
         return "unverified non-Git tree", [
@@ -183,7 +255,7 @@ def main() -> int:
         "",
         f"Input provenance: {provenance}",
         "",
-        "## Byte-identical vendors",
+        "## Exact vendors",
         "",
     ]
 
@@ -203,7 +275,7 @@ def main() -> int:
             upstream_repo,
             "Open-Athena/marin-dna",
         )
-        state = "byte-identical" if not diff else "unexpected local diff"
+        state = "content/type/mode-identical" if not diff else "unexpected local diff"
         lines.append(f"- `{name}`: {state}")
         if diff:
             errors.append(f"{name} is classified unchanged but has a diff")

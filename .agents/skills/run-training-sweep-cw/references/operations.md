@@ -1,7 +1,7 @@
 # Operations
 
-Create one living `expXXX_operations.md` per sweep. Default to
-`scratch/<sweep>/`. The agent must read it completely at the start of every heartbeat.
+Create one living, tracked `expXXX_operations.md` beside the experiment project for each sweep.
+The agent must read it completely at the start of every heartbeat.
 
 Use terse English for rules, choices, constraints, exceptions, and operating
 conclusions not reliably recovered from code or data. Never restate code or
@@ -29,9 +29,9 @@ initialization, checkpoint, or placement constraints not clear from code or SQLi
 
 ## Operator Choices
 
-Record the time limit, approved GPU limit, clusters, GPU families, exclusions,
-whether cross-family reslicing is allowed, Iris user, batch priority, and document
-location.
+Record the absolute sweep deadline, approved GPU limit, clusters, GPU families, exclusions, whether cross-family reslicing is allowed, Iris user, batch priority, and document location.
+Record the durable SQLite backup owner and prefix, immutable key format, upload/download method, checksum verification, and newest-valid-backup recovery rule.
+State clearly that the sweep deadline stops the whole sweep and that recovery timing is controlled separately by `reslice_after` and `restart_after`.
 
 ## Operating Policy
 

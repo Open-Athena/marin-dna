@@ -29,19 +29,19 @@ dispatch for a preemption alone—act from W&B progress and the recovery policy.
 
 Keep each durable fact in one authoritative form:
 
-- **Operations (text):** policy, choices, constraints, exceptions, and operating
-  conclusions not reliably recovered from code or data.
+- **Operations (tracked text):** policy, choices, constraints, exceptions, recovery location, and operating conclusions not reliably recovered from code or data.
 - **Experiment and helper code:** executable behavior.
-- **SQLite (data):** structured observations, identities, attempts, action results,
-  clocks, and history.
+- **SQLite (data):** structured observations, identities, attempts, action results, clocks, and history.
+- **Immutable SQLite backups:** recoverable copies under the experiment's durable owner selected with `manage-research-storage`.
+- **Task logbook:** research chronology, decisions, milestones, and handoff context under `task-logbook` or `run-research`.
 
 Session chat is the interface, not state. Put heartbeat reports and decisions needing
 operator input there. Anything needed by a later heartbeat belongs in text, code, or
 data.
 
-Never restate code or configuration in Operations; prefer a source reference. Create
-no other experiment log, runbook, or recurring status file. Correct the authoritative
-form instead of adding a competing note.
+Never restate code or configuration in Operations; prefer a source reference.
+Do not create a second operational status file or copy SQLite state into the logbook.
+The logbook remains required when `task-logbook` or `run-research` applies and records research chronology rather than fleet-control state.
 
 ## Process
 
@@ -62,7 +62,7 @@ Investigate utilization failures when useful, but continue without that hint.
 flowchart TD
     A["Initialize, validate, and dispatch"] --> B["Refresh context and inventory"]
     B --> C["Observe, reconcile, decide, and act"]
-    C --> D{"Finished or time limit reached?"}
+    C --> D{"Finished or sweep deadline reached?"}
     D -- "No" --> E["Report and schedule the next pass"]
     E --> B
     D -- "Yes" --> F["Stop, verify, and summarize"]
@@ -75,7 +75,9 @@ flowchart TD
 Ask only for missing information. Offer the recommended answer first.
 
 1. **Training entry point and trial catalog.** Require both.
-2. **Time limit.** Recommend two weeks. Explain shorter means faster recovery; longer is useful only when healthy trials need it.
+2. **Sweep deadline.** Recommend two weeks.
+   Explain that this is the hard stop for the entire sweep, not a recovery timeout.
+   Use `reslice_after`, `restart_after`, and `relocate_after` for faster recovery; shortening the deadline may leave trials unfinished.
 3. **Regional replicas per trial.** Recommend `1`; explain `2` often reduces completion time but duplicates work. Discourage more than `2`.
 4. **Compute and TPU scope.** Require an explicitly approved remote-compute scope
    and overall chip limit before any smoke or production dispatch. Recommend the
@@ -88,16 +90,20 @@ Ask only for missing information. Offer the recommended answer first.
    `restart_after=3h`, and `relocate_after=3d`. Explain that they define the major
    scheduled behavior to expect and should remain unchanged without a concrete
    reason. Ask whether to use the defaults.
+6. **Durable state owner.** Require an exact durable object-store prefix and upload/download method before dispatch.
+   Recommend the Marin experiment's native object-store ownership under `manage-research-storage`.
+   Use issue-owned storage only when the sweep already has a coordinating issue; this skill does not create one merely to store state.
 
-Create the document from [operations.md](references/operations.md). Default to
-`scratch/<sweep>/expXXX_operations.md`; offer a tracked experiment-side file only
-if requested. Build its candidate grid from [targets.md](references/targets.md), then
-initialize SQLite:
+Create the document from [operations.md](references/operations.md) as a tracked file beside the experiment project.
+Build its candidate grid from [targets.md](references/targets.md), record the durable state prefix and recovery procedure, then initialize the local SQLite working copy:
 
 ```bash
 uv run .agents/skills/run-training-sweep-trc/scripts/persistence.py \
   init scratch/<sweep>/expXXX_sweep.sqlite
 ```
+
+Create a consistent backup with the helper and upload it to a new immutable key under the recorded durable prefix before the first dispatch.
+Record research setup and milestones through `task-logbook` or `run-research` when either applies.
 
 ## Validate
 
@@ -115,14 +121,16 @@ monitor, dispatcher, scheduled loop, or recovery script.
 At every heartbeat:
 
 1. **Refresh context and inventory:** enter from authoritative state, not memory.
-   Reread Operations and relevant code, then build the inventory snapshot.
+   Restore the newest valid immutable SQLite backup when the local working copy is absent, reread Operations and relevant code, then build the inventory snapshot.
+   Reconcile every `dispatch_intent_unreconciled` against its exact Iris job before any other action.
 2. **Observe, reconcile, decide, and act:** establish what is progressing before
    changing anything. Query W&B first, use Iris only as allowed, persist observations,
    and rebuild the decision snapshot. Protect recent progress, resolve exceptions,
    reconsider every dispatch, and coordinate one fleet plan with
    [execution.md](references/execution.md). Persist each result and revise the plan
    when an action changes material facts.
-3. **Finish or continue:** if finished or out of time, stop, verify, and summarize.
+   After every state-changing transaction, publish a consistent immutable backup before another external action or handoff.
+3. **Finish or continue:** if finished or the sweep deadline has arrived, stop, verify, and summarize.
    Otherwise report in chat and schedule exactly one next pass for
    `heartbeat_every`, using the environment's supported time-based task or thread
    wakeup mechanism. Never rely on event-based monitoring.
@@ -144,8 +152,9 @@ only for a specific decision.
 A trial finishes when `run_progress >= 1` and the expected checkpoint is reachable.
 W&B `finished` alone is insufficient.
 
-When every trial finishes or the time limit expires, stop remaining dispatches,
+When every trial finishes or the sweep deadline arrives, stop remaining dispatches,
 verify completion and checkpoints, check SQLite integrity, and report the outcome as
 defined by [throughput.md](references/throughput.md). Include the accelerator and
 placement lineage for every trial that moved across hardware families. Do not
 schedule another pass.
+Publish one final immutable SQLite backup and link it from the logbook or coordinating issue/PR.

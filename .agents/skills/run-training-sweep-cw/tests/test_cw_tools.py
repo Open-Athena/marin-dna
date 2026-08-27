@@ -34,33 +34,25 @@ utilization = _load_module(
 
 
 def _insert_trial(
-    connection: sqlite3.Connection,
+    database: Path,
     trial_id: str,
     progress: float,
     *,
     status: str = "active",
     checkpoint_verified_at: str | None = None,
 ) -> None:
-    connection.execute(
-        """
-        INSERT INTO trials(
-            trial_id, env_json, wandb_run_id, checkpoint_root, status,
-            high_water_progress, checkpoint_verified_at
-        ) VALUES (?, '{}', ?, ?, ?, ?, ?)
-        """,
-        (
-            trial_id,
-            f"wandb-{trial_id}",
-            f"s3://checkpoints/{trial_id}",
-            status,
-            progress,
-            checkpoint_verified_at,
-        ),
+    del progress, status, checkpoint_verified_at
+    persistence.add_trial(
+        database,
+        trial_id,
+        {},
+        f"wandb-{trial_id}",
+        f"s3://checkpoints/{trial_id}",
     )
 
 
 def _insert_dispatch(
-    connection: sqlite3.Connection,
+    database: Path,
     dispatch_id: str,
     trial_id: str,
     attempt: int,
@@ -71,33 +63,26 @@ def _insert_dispatch(
     submitted_at: str,
     ended_at: str | None,
 ) -> None:
-    connection.execute(
-        """
-        INSERT INTO dispatches(
-            dispatch_id, trial_id, attempt, iris_job_id, cluster, gpu_variant,
-            nodes, gpus, priority_band, command_redacted, submitted_at,
-            ended_at, active, outcome
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'batch', 'launch', ?, ?, ?, ?)
-        """,
-        (
-            dispatch_id,
-            trial_id,
-            attempt,
-            f"iris-{dispatch_id}",
-            cluster,
-            gpu_variant,
-            nodes,
-            gpus,
-            submitted_at,
-            ended_at,
-            int(ended_at is None),
-            None if ended_at is None else "stopped",
-        ),
+    actual_attempt = persistence.prepare_dispatch(
+        database,
+        trial_id,
+        dispatch_id,
+        f"iris-{dispatch_id}",
+        cluster,
+        gpu_variant,
+        nodes,
+        gpus,
+        "launch",
+        submitted_at,
     )
+    assert actual_attempt == attempt
+    persistence.confirm_dispatch(database, dispatch_id, submitted_at)
+    if ended_at is not None:
+        persistence.end_dispatch(database, dispatch_id, "stopped", ended_at=ended_at)
 
 
 def _insert_observation(
-    connection: sqlite3.Connection,
+    database: Path,
     trial_id: str,
     dispatch_id: str,
     observed_at: str,
@@ -106,55 +91,54 @@ def _insert_observation(
     *,
     wandb_state: str = "running",
 ) -> None:
-    connection.execute(
-        """
-        INSERT INTO observations(
-            trial_id, dispatch_id, observed_at, wandb_state,
-            run_progress, iris_running
-        ) VALUES (?, ?, ?, ?, ?, ?)
-        """,
-        (trial_id, dispatch_id, observed_at, wandb_state, progress, int(iris_running)),
+    del trial_id
+    persistence.record_observation(
+        database,
+        dispatch_id,
+        observed_at,
+        wandb_state,
+        progress,
+        iris_running,
     )
 
 
 def test_target_rate_pools_trials_and_zero_progress_time(tmp_path: Path) -> None:
     database = tmp_path / "sweep.sqlite"
     persistence.init(database)
-    with sqlite3.connect(database) as connection:
-        _insert_trial(connection, "trial-1", 0.12)
-        _insert_trial(connection, "trial-2", 0.0)
-        _insert_dispatch(
-            connection,
-            "dispatch-1",
-            "trial-1",
-            1,
-            "cw-rno2a",
-            "H100",
-            2,
-            16,
-            "2026-01-01T00:00:00+00:00",
-            "2026-01-01T01:00:00+00:00",
-        )
-        _insert_dispatch(
-            connection,
-            "dispatch-2",
-            "trial-2",
-            1,
-            "cw-rno2a",
-            "H100",
-            2,
-            16,
-            "2026-01-01T00:00:00+00:00",
-            "2026-01-01T02:00:00+00:00",
-        )
-        _insert_observation(
-            connection,
-            "trial-1",
-            "dispatch-1",
-            "2026-01-01T00:30:00+00:00",
-            0.12,
-            True,
-        )
+    _insert_trial(database, "trial-1", 0.12)
+    _insert_trial(database, "trial-2", 0.0)
+    _insert_dispatch(
+        database,
+        "dispatch-1",
+        "trial-1",
+        1,
+        "cw-rno2a",
+        "H100",
+        2,
+        16,
+        "2026-01-01T00:00:00+00:00",
+        "2026-01-01T01:00:00+00:00",
+    )
+    _insert_dispatch(
+        database,
+        "dispatch-2",
+        "trial-2",
+        1,
+        "cw-rno2a",
+        "H100",
+        2,
+        16,
+        "2026-01-01T00:00:00+00:00",
+        "2026-01-01T02:00:00+00:00",
+    )
+    _insert_observation(
+        database,
+        "trial-1",
+        "dispatch-1",
+        "2026-01-01T00:30:00+00:00",
+        0.12,
+        True,
+    )
 
     assert persistence.snapshot(database, recent_event_limit=0)["placements"] == [
         {
@@ -179,51 +163,46 @@ def test_target_rate_pools_trials_and_zero_progress_time(tmp_path: Path) -> None
 def test_reslice_attributes_progress_to_exact_dispatch(tmp_path: Path) -> None:
     database = tmp_path / "sweep.sqlite"
     persistence.init(database)
-    with sqlite3.connect(database) as connection:
-        _insert_trial(connection, "trial", 0.2)
-        _insert_dispatch(
-            connection,
-            "old",
-            "trial",
-            1,
-            "cw-rno2a",
-            "H100",
-            2,
-            16,
-            "2026-01-01T00:00:00+00:00",
-            "2026-01-01T00:10:00+00:00",
-        )
-        _insert_dispatch(
-            connection,
-            "new",
-            "trial",
-            2,
-            "cw-us-east-08a",
-            "GB200",
-            2,
-            8,
-            "2026-01-01T00:10:00+00:00",
-            None,
-        )
-        _insert_observation(
-            connection, "trial", "old", "2026-01-01T00:05:00+00:00", 0.1, True
-        )
-        _insert_observation(
-            connection, "trial", "old", "2026-01-01T00:11:00+00:00", 0.2, False
-        )
+    _insert_trial(database, "trial", 0.2)
+    _insert_dispatch(
+        database,
+        "old",
+        "trial",
+        1,
+        "cw-rno2a",
+        "H100",
+        2,
+        16,
+        "2026-01-01T00:00:00+00:00",
+        "2026-01-01T00:10:00+00:00",
+    )
+    _insert_dispatch(
+        database,
+        "new",
+        "trial",
+        2,
+        "cw-us-east-08a",
+        "GB200",
+        2,
+        8,
+        "2026-01-01T00:10:00+00:00",
+        None,
+    )
+    _insert_observation(
+        database, "trial", "old", "2026-01-01T00:05:00+00:00", 0.1, True
+    )
+    _insert_observation(
+        database, "trial", "old", "2026-01-01T00:11:00+00:00", 0.2, False
+    )
 
     before = persistence.snapshot(database, recent_event_limit=0)
     assert before["fleet"]["wandb_running_gpus"] == 0
     assert before["trials"][0]["active_dispatch"]["latest_observation"] is None
     assert before["conditions"][0]["kind"] == "active_dispatch_unobserved"
 
-    with sqlite3.connect(database) as connection:
-        _insert_observation(
-            connection, "trial", "new", "2026-01-01T00:12:00+00:00", 0.3, True
-        )
-        connection.execute(
-            "UPDATE trials SET high_water_progress = 0.3 WHERE trial_id = 'trial'"
-        )
+    _insert_observation(
+        database, "trial", "new", "2026-01-01T00:12:00+00:00", 0.3, True
+    )
 
     after = persistence.snapshot(database, recent_event_limit=0)
     progress_by_gpu = {
@@ -240,17 +219,16 @@ def test_snapshot_classifies_target_headroom(tmp_path: Path) -> None:
     now = datetime.now(UTC).replace(microsecond=0)
     old = (now - timedelta(hours=2)).isoformat()
     recent = (now - timedelta(minutes=30)).isoformat()
-    with sqlite3.connect(database) as connection:
-        _insert_trial(connection, "trial-1", 0.1)
-        _insert_trial(connection, "trial-2", 0.0)
-        _insert_dispatch(
-            connection, "dispatch-1", "trial-1", 1, "cw-rno2a", "H100", 2, 16, old, None
-        )
-        _insert_dispatch(
-            connection, "dispatch-2", "trial-2", 1, "cw-rno2a", "H100", 2, 16, old, None
-        )
-        _insert_observation(connection, "trial-1", "dispatch-1", recent, 0.1, True)
-        _insert_observation(connection, "trial-2", "dispatch-2", recent, 0.0, True)
+    _insert_trial(database, "trial-1", 0.1)
+    _insert_trial(database, "trial-2", 0.0)
+    _insert_dispatch(
+        database, "dispatch-1", "trial-1", 1, "cw-rno2a", "H100", 2, 16, old, None
+    )
+    _insert_dispatch(
+        database, "dispatch-2", "trial-2", 1, "cw-rno2a", "H100", 2, 16, old, None
+    )
+    _insert_observation(database, "trial-1", "dispatch-1", recent, 0.1, True)
+    _insert_observation(database, "trial-2", "dispatch-2", recent, 0.0, True)
 
     result = persistence.snapshot(database, recent_event_limit=0)
     placement = result["placements"][0]
@@ -270,8 +248,11 @@ def test_snapshot_classifies_target_headroom(tmp_path: Path) -> None:
 def test_completion_and_snapshot_reject_semantic_errors(tmp_path: Path) -> None:
     database = tmp_path / "sweep.sqlite"
     persistence.init(database)
+    _insert_trial(database, "trial", 0.5)
     with sqlite3.connect(database) as connection:
-        _insert_trial(connection, "trial", 0.5)
+        connection.execute(
+            "UPDATE trials SET high_water_progress = 0.5 WHERE trial_id = 'trial'"
+        )
 
     assert persistence.check(database) == [
         "semantic_check: trial 'trial' progress high-water does not match observations"
@@ -283,22 +264,96 @@ def test_completion_and_snapshot_reject_semantic_errors(tmp_path: Path) -> None:
 def test_schema_rejects_non_batch_dispatch(tmp_path: Path) -> None:
     database = tmp_path / "sweep.sqlite"
     persistence.init(database)
-    with sqlite3.connect(database) as connection:
-        _insert_trial(connection, "trial", 0.0)
-        with pytest.raises(sqlite3.IntegrityError, match="priority_band"):
-            connection.execute(
-                """
-                INSERT INTO dispatches(
-                    dispatch_id, trial_id, attempt, iris_job_id, cluster,
-                    gpu_variant, nodes, gpus, priority_band, command_redacted,
-                    submitted_at, active
-                ) VALUES (
-                    'dispatch', 'trial', 1, 'iris-dispatch', 'cw-rno2a',
-                    'H100', 1, 8, 'interactive', 'launch',
-                    '2026-01-01T00:00:00+00:00', 1
-                )
-                """
+    _insert_trial(database, "trial", 0.0)
+    with (
+        sqlite3.connect(database) as connection,
+        pytest.raises(sqlite3.IntegrityError, match="priority_band"),
+    ):
+        connection.execute(
+            """
+            INSERT INTO dispatches(
+                dispatch_id, trial_id, attempt, iris_job_id, cluster,
+                gpu_variant, nodes, gpus, priority_band, command_redacted,
+                intent_at, submitted_at, submission_state, active
+            ) VALUES (
+                'dispatch', 'trial', 1, 'iris-dispatch', 'cw-rno2a',
+                'H100', 1, 8, 'interactive', 'launch',
+                '2026-01-01T00:00:00+00:00',
+                '2026-01-01T00:00:00+00:00', 'submitted', 1
             )
+            """
+        )
+
+
+def test_dispatch_intent_blocks_duplicate_after_backup_recovery(tmp_path: Path) -> None:
+    database = tmp_path / "sweep.sqlite"
+    recovered = tmp_path / "recovered.sqlite"
+    persistence.init(database)
+    persistence.add_trial(
+        database, "trial", {}, "wandb-trial", "s3://checkpoints/trial"
+    )
+
+    attempt = persistence.prepare_dispatch(
+        database,
+        "trial",
+        "dispatch-1",
+        "iris-exact-1",
+        "cw-rno2a",
+        "H100",
+        1,
+        8,
+        "launch --redacted",
+        "2026-01-01T00:00:00+00:00",
+    )
+    assert attempt == 1
+    backup = persistence.backup(database, recovered)
+    assert backup["path"] == str(recovered)
+    assert len(backup["sha256"]) == 64
+
+    snapshot = persistence.snapshot(recovered, recent_event_limit=0)
+    assert snapshot["fleet"]["unreconciled_dispatch_intents"] == 1
+    assert snapshot["fleet"]["active_dispatches"] == 0
+    assert snapshot["trials"][0]["active_dispatch"]["submission_state"] == "intent"
+    assert snapshot["conditions"] == [
+        {"kind": "dispatch_intent_unreconciled", "trial_id": "trial"}
+    ]
+
+    with pytest.raises(RuntimeError, match="already has active dispatch"):
+        persistence.prepare_dispatch(
+            recovered,
+            "trial",
+            "dispatch-duplicate",
+            "iris-duplicate",
+            "cw-us-east-02a",
+            "H100",
+            1,
+            8,
+            "launch --redacted",
+            "2026-01-01T00:01:00+00:00",
+        )
+
+    persistence.confirm_dispatch(recovered, "dispatch-1", "2026-01-01T00:02:00+00:00")
+    persistence.end_dispatch(
+        recovered,
+        "dispatch-1",
+        "stopped",
+        ended_at="2026-01-01T00:03:00+00:00",
+    )
+    assert (
+        persistence.prepare_dispatch(
+            recovered,
+            "trial",
+            "dispatch-2",
+            "iris-exact-2",
+            "cw-us-east-02a",
+            "H100",
+            1,
+            8,
+            "launch --redacted",
+            "2026-01-01T00:04:00+00:00",
+        )
+        == 2
+    )
 
 
 def _availability(

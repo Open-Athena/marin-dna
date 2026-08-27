@@ -79,7 +79,30 @@ def test_custom_manifest_reports_exact_and_changed_vendors(tmp_path: Path) -> No
     exact = subprocess.run(command, check=False, capture_output=True, text=True)
     assert exact.returncode == 0
     assert "# example/upstream vendored-skill deltas" in exact.stdout
-    assert "`demo`: byte-identical" in exact.stdout
+    assert "`demo`: content/type/mode-identical" in exact.stdout
+
+    upstream_file = upstream / ".agents/skills/demo/SKILL.md"
+    upstream_file.write_text("dirty\n")
+    dirty = subprocess.run(command, check=False, capture_output=True, text=True)
+    assert dirty.returncode == 1
+    assert "upstream skill tree is dirty" in dirty.stdout
+    assert "Input provenance: Git HEAD" in dirty.stdout
+    upstream_file.write_text("demo\n")
+
+    local_file.chmod(0o755)
+    mode_changed = subprocess.run(command, check=False, capture_output=True, text=True)
+    assert mode_changed.returncode == 1
+    assert "mode=100644 type=file" in mode_changed.stdout
+    assert "mode=100755 type=file" in mode_changed.stdout
+    local_file.chmod(0o644)
+
+    local_file.unlink()
+    local_file.symlink_to("demo\n")
+    type_changed = subprocess.run(command, check=False, capture_output=True, text=True)
+    assert type_changed.returncode == 1
+    assert "mode=100644 type=file" in type_changed.stdout
+    assert "mode=120000 type=symlink" in type_changed.stdout
+    local_file.unlink()
 
     local_file.write_text("changed\n")
     changed = subprocess.run(command, check=False, capture_output=True, text=True)

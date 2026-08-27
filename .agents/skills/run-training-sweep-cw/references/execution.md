@@ -21,7 +21,8 @@ progress. Inspect logs, parent/child details, retry history, or pending reasons 
 for a concrete failure or placement question.
 
 An Iris timeout or service failure blocks actions. Schedule one later pass that
-checks only Iris, then reconcile affected exact dispatches before resuming.
+checks only Iris, then reconcile affected exact dispatch intents and submissions before resuming.
+Do not infer that a timed-out submission failed and do not create a replacement.
 
 ## Use Visible Capacity
 
@@ -49,8 +50,12 @@ changing eligibility; simultaneous results may indicate a systemic problem.
 
 ## Make Every Dispatch Unique
 
-- Assign attempt numbers in SQLite and use a unique Iris root name.
-- Give every root one immutable dispatch row.
+- Use `dispatch-intent` to assign the attempt and persist one exact unique Iris root name before submission.
+- Publish the intent-bearing SQLite backup to the durable owner before calling Iris.
+- Submit only the exact persisted name.
+- Use `dispatch-confirm` only after Iris unambiguously accepts it.
+- If the result is unknown, keep the intent active and reconcile that exact name before any replacement.
+- Give every root one immutable dispatch row and use `dispatch-end` for its terminal result.
 - Stop and verify the current root before replacing it.
 - Allow at most one active dispatch per trial.
 

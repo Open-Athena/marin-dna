@@ -34,29 +34,26 @@ utilization = _load_module(
 
 
 def _insert_trial_run(
-    connection: sqlite3.Connection,
+    database: Path,
     trial_id: str,
     run_id: str,
     wandb_id: str,
     progress: float,
 ) -> None:
-    connection.execute(
-        "INSERT INTO trials(trial_id, env_json, status) VALUES (?, '{}', 'active')",
-        (trial_id,),
-    )
-    connection.execute(
-        """
-        INSERT INTO runs(
-            regional_run_id, trial_id, region, wandb_run_id,
-            checkpoint_root, status, high_water_progress
-        ) VALUES (?, ?, 'us-central1', ?, 'gs://checkpoints', 'running', ?)
-        """,
-        (run_id, trial_id, wandb_id, progress),
+    del progress
+    persistence.add_trial(database, trial_id, {})
+    persistence.add_regional_run(
+        database,
+        run_id,
+        trial_id,
+        "us-central1",
+        wandb_id,
+        "gs://checkpoints",
     )
 
 
 def _insert_dispatch(
-    connection: sqlite3.Connection,
+    database: Path,
     dispatch_id: str,
     run_id: str,
     attempt: int,
@@ -65,82 +62,70 @@ def _insert_dispatch(
     submitted_at: str,
     ended_at: str | None,
 ) -> None:
-    connection.execute(
-        """
-        INSERT INTO dispatches(
-            dispatch_id, regional_run_id, attempt, iris_job_id, tpu_slice,
-            chips, priority_band, command_redacted, submitted_at, ended_at,
-            active, outcome
-        ) VALUES (?, ?, ?, ?, ?, ?, 'batch', 'launch', ?, ?, ?, ?)
-        """,
-        (
-            dispatch_id,
-            run_id,
-            attempt,
-            f"iris-{dispatch_id}",
-            tpu_slice,
-            chips,
-            submitted_at,
-            ended_at,
-            int(ended_at is None),
-            None if ended_at is None else "stopped",
-        ),
+    actual_attempt = persistence.prepare_dispatch(
+        database,
+        run_id,
+        dispatch_id,
+        f"iris-{dispatch_id}",
+        tpu_slice,
+        chips,
+        "batch",
+        "launch",
+        submitted_at,
     )
+    assert actual_attempt == attempt
+    persistence.confirm_dispatch(database, dispatch_id, submitted_at)
+    if ended_at is not None:
+        persistence.end_dispatch(database, dispatch_id, "stopped", ended_at=ended_at)
 
 
 def _insert_observation(
-    connection: sqlite3.Connection,
+    database: Path,
     run_id: str,
     dispatch_id: str,
     observed_at: str,
     progress: float,
     iris_running: bool,
 ) -> None:
-    connection.execute(
-        """
-        INSERT INTO observations(
-            regional_run_id, dispatch_id, observed_at,
-            wandb_state, run_progress, iris_running
-        ) VALUES (?, ?, ?, 'running', ?, ?)
-        """,
-        (run_id, dispatch_id, observed_at, progress, int(iris_running)),
+    del run_id
+    persistence.record_observation(
+        database, dispatch_id, observed_at, "running", progress, iris_running
     )
 
 
 def test_target_rate_pools_trials_and_zero_progress_time(tmp_path: Path) -> None:
     database = tmp_path / "sweep.sqlite"
     persistence.init(database)
-    with sqlite3.connect(database) as connection:
-        _insert_trial_run(connection, "trial-1", "run-1", "wandb-1", 0.12)
-        _insert_trial_run(connection, "trial-2", "run-2", "wandb-2", 0.0)
-        _insert_dispatch(
-            connection,
-            "dispatch-1",
-            "run-1",
-            1,
-            "v5p-8",
-            8,
-            "2026-01-01T00:00:00+00:00",
-            "2026-01-01T01:00:00+00:00",
-        )
-        _insert_dispatch(
-            connection,
-            "dispatch-2",
-            "run-2",
-            1,
-            "v5p-8",
-            8,
-            "2026-01-01T00:00:00+00:00",
-            "2026-01-01T02:00:00+00:00",
-        )
-        _insert_observation(
-            connection,
-            "run-1",
-            "dispatch-1",
-            "2026-01-01T00:30:00+00:00",
-            0.12,
-            True,
-        )
+    _insert_trial_run(database, "trial-1", "run-1", "wandb-1", 0.12)
+    _insert_trial_run(database, "trial-2", "run-2", "wandb-2", 0.0)
+    _insert_dispatch(
+        database,
+        "dispatch-1",
+        "run-1",
+        1,
+        "v5p-8",
+        8,
+        "2026-01-01T00:00:00+00:00",
+        "2026-01-01T01:00:00+00:00",
+    )
+    _insert_dispatch(
+        database,
+        "dispatch-2",
+        "run-2",
+        1,
+        "v5p-8",
+        8,
+        "2026-01-01T00:00:00+00:00",
+        "2026-01-01T02:00:00+00:00",
+    )
+    _insert_observation(
+        database,
+        "run-1",
+        "dispatch-1",
+        "2026-01-01T00:30:00+00:00",
+        0.12,
+        True,
+    )
 
     placement = persistence.snapshot(database, recent_event_limit=0)["placements"]
 
@@ -166,62 +151,57 @@ def test_target_rate_pools_trials_and_zero_progress_time(tmp_path: Path) -> None
 def test_replacement_uses_only_its_own_observations(tmp_path: Path) -> None:
     database = tmp_path / "sweep.sqlite"
     persistence.init(database)
-    with sqlite3.connect(database) as connection:
-        _insert_trial_run(connection, "trial", "run", "wandb", 0.2)
-        _insert_dispatch(
-            connection,
-            "old",
-            "run",
-            1,
-            "v5p-8",
-            8,
-            "2026-01-01T00:00:00+00:00",
-            "2026-01-01T00:10:00+00:00",
-        )
-        _insert_dispatch(
-            connection,
-            "new",
-            "run",
-            2,
-            "v5p-16",
-            16,
-            "2026-01-01T00:10:00+00:00",
-            None,
-        )
-        _insert_observation(
-            connection,
-            "run",
-            "old",
-            "2026-01-01T00:05:00+00:00",
-            0.1,
-            True,
-        )
-        _insert_observation(
-            connection,
-            "run",
-            "old",
-            "2026-01-01T00:11:00+00:00",
-            0.2,
-            False,
-        )
+    _insert_trial_run(database, "trial", "run", "wandb", 0.2)
+    _insert_dispatch(
+        database,
+        "old",
+        "run",
+        1,
+        "v5p-8",
+        8,
+        "2026-01-01T00:00:00+00:00",
+        "2026-01-01T00:10:00+00:00",
+    )
+    _insert_dispatch(
+        database,
+        "new",
+        "run",
+        2,
+        "v5p-16",
+        16,
+        "2026-01-01T00:10:00+00:00",
+        None,
+    )
+    _insert_observation(
+        database,
+        "run",
+        "old",
+        "2026-01-01T00:05:00+00:00",
+        0.1,
+        True,
+    )
+    _insert_observation(
+        database,
+        "run",
+        "old",
+        "2026-01-01T00:11:00+00:00",
+        0.2,
+        False,
+    )
 
     before = persistence.snapshot(database, recent_event_limit=0)
     assert before["fleet"]["wandb_running_chips"] == 0
     assert before["runs"][0]["active_dispatch"]["latest_observation"] is None
     assert before["conditions"][0]["kind"] == "active_dispatch_unobserved"
 
-    with sqlite3.connect(database) as connection:
-        _insert_observation(
-            connection,
-            "run",
-            "new",
-            "2026-01-01T00:12:00+00:00",
-            0.3,
-            True,
-        )
-        connection.execute(
-            "UPDATE runs SET high_water_progress = 0.3 WHERE regional_run_id = 'run'"
-        )
+    _insert_observation(
+        database,
+        "run",
+        "new",
+        "2026-01-01T00:12:00+00:00",
+        0.3,
+        True,
+    )
 
     after = persistence.snapshot(database, recent_event_limit=0)
     progress_by_slice = {
@@ -238,13 +218,12 @@ def test_snapshot_classifies_current_target_headroom(tmp_path: Path) -> None:
     now = datetime.now(UTC)
     old = (now.replace(microsecond=0) - timedelta(hours=2)).isoformat()
     recent = (now.replace(microsecond=0) - timedelta(minutes=30)).isoformat()
-    with sqlite3.connect(database) as connection:
-        _insert_trial_run(connection, "trial-1", "run-1", "wandb-1", 0.1)
-        _insert_trial_run(connection, "trial-2", "run-2", "wandb-2", 0.0)
-        _insert_dispatch(connection, "dispatch-1", "run-1", 1, "v5p-8", 8, old, None)
-        _insert_dispatch(connection, "dispatch-2", "run-2", 1, "v5p-8", 8, old, None)
-        _insert_observation(connection, "run-1", "dispatch-1", recent, 0.1, True)
-        _insert_observation(connection, "run-2", "dispatch-2", recent, 0.0, True)
+    _insert_trial_run(database, "trial-1", "run-1", "wandb-1", 0.1)
+    _insert_trial_run(database, "trial-2", "run-2", "wandb-2", 0.0)
+    _insert_dispatch(database, "dispatch-1", "run-1", 1, "v5p-8", 8, old, None)
+    _insert_dispatch(database, "dispatch-2", "run-2", 1, "v5p-8", 8, old, None)
+    _insert_observation(database, "run-1", "dispatch-1", recent, 0.1, True)
+    _insert_observation(database, "run-2", "dispatch-2", recent, 0.0, True)
 
     result = persistence.snapshot(database, recent_event_limit=0)
     placement = result["placements"][0]
@@ -265,14 +244,95 @@ def test_snapshot_classifies_current_target_headroom(tmp_path: Path) -> None:
 def test_check_and_snapshot_reject_the_same_semantic_error(tmp_path: Path) -> None:
     database = tmp_path / "sweep.sqlite"
     persistence.init(database)
+    _insert_trial_run(database, "trial", "run", "wandb", 0.5)
     with sqlite3.connect(database) as connection:
-        _insert_trial_run(connection, "trial", "run", "wandb", 0.5)
+        connection.execute(
+            "UPDATE runs SET high_water_progress = 0.5 WHERE regional_run_id = 'run'"
+        )
 
     assert persistence.check(database) == [
         "semantic_check: run 'run' progress high-water does not match observations"
     ]
     with pytest.raises(RuntimeError, match="progress high-water"):
         persistence.snapshot(database, recent_event_limit=0)
+
+
+def test_dispatch_intent_blocks_duplicate_after_backup_recovery(tmp_path: Path) -> None:
+    database = tmp_path / "sweep.sqlite"
+    recovered = tmp_path / "recovered.sqlite"
+    persistence.init(database)
+    persistence.add_trial(database, "trial", {})
+    persistence.add_regional_run(
+        database,
+        "run",
+        "trial",
+        "us-central1",
+        "wandb-run",
+        "gs://checkpoints/run",
+    )
+
+    attempt = persistence.prepare_dispatch(
+        database,
+        "run",
+        "dispatch-1",
+        "iris-exact-1",
+        "v5p-8",
+        8,
+        "batch",
+        "launch --redacted",
+        "2026-01-01T00:00:00+00:00",
+    )
+    assert attempt == 1
+    backup = persistence.backup(database, recovered)
+    assert backup["path"] == str(recovered)
+    assert len(backup["sha256"]) == 64
+
+    snapshot = persistence.snapshot(recovered, recent_event_limit=0)
+    assert snapshot["fleet"]["unreconciled_dispatch_intents"] == 1
+    assert snapshot["fleet"]["active_dispatches"] == 0
+    assert snapshot["runs"][0]["active_dispatch"]["submission_state"] == "intent"
+    assert snapshot["conditions"] == [
+        {
+            "kind": "dispatch_intent_unreconciled",
+            "trial_id": "trial",
+            "run_id": "run",
+        }
+    ]
+
+    with pytest.raises(RuntimeError, match="already has active dispatch"):
+        persistence.prepare_dispatch(
+            recovered,
+            "run",
+            "dispatch-duplicate",
+            "iris-duplicate",
+            "v5p-16",
+            16,
+            "batch",
+            "launch --redacted",
+            "2026-01-01T00:01:00+00:00",
+        )
+
+    persistence.confirm_dispatch(recovered, "dispatch-1", "2026-01-01T00:02:00+00:00")
+    persistence.end_dispatch(
+        recovered,
+        "dispatch-1",
+        "stopped",
+        ended_at="2026-01-01T00:03:00+00:00",
+    )
+    assert (
+        persistence.prepare_dispatch(
+            recovered,
+            "run",
+            "dispatch-2",
+            "iris-exact-2",
+            "v5p-16",
+            16,
+            "batch",
+            "launch --redacted",
+            "2026-01-01T00:04:00+00:00",
+        )
+        == 2
+    )
 
 
 def _utilization_response() -> dict[str, object]:

@@ -24,7 +24,8 @@ parent-child structure, retry history, pending reasons, or cluster capacity. W&B
 
 An Iris timeout or service failure blocks all sweep work. Do not infer whether the request
 succeeded, inspect W&B, or take another action. Schedule one later pass that checks only Iris;
-keep waiting until it responds, then reconcile the affected exact dispatches before resuming.
+keep waiting until it responds, then reconcile the affected exact dispatch intents and submissions before resuming.
+Do not create a replacement for a timed-out submission.
 
 Inspect deeper only for a recorded reason, such as the same first-attempt failure reproducing
 across regions or a dispatch command failing before W&B registration. Do not derive placement
@@ -47,10 +48,14 @@ results across previously valid targets as a systemic problem.
 
 ## Make Every Dispatch Unique
 
-- Assign attempt numbers in SQLite.
-- Use a unique Iris job name, such as `<opaque-wandb-id>-<slice>-a<attempt>`.
+- Use `dispatch-intent` to assign the attempt and persist one exact unique Iris job name before submission.
+- Publish the intent-bearing SQLite backup to the durable owner before calling Iris.
+- Submit only the exact persisted name.
+- Use `dispatch-confirm` only after Iris unambiguously accepts it.
+- If the result is unknown, keep the intent active and reconcile that exact name before any replacement.
+- Use a unique Iris job name, such as `<opaque-wandb-id>-<slice>-<unique-dispatch-id>`.
 - Never recover attempt numbers or metadata by parsing that name.
-- Give every Iris job one immutable dispatch row.
+- Give every Iris job one immutable dispatch row and use `dispatch-end` for its terminal result.
 - Stop the current dispatch before replacing it.
 - Allow at most one active dispatch per regional run.
 

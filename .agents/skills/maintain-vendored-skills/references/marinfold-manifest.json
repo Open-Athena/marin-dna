@@ -11,7 +11,10 @@
         "Use MarinDNA W&B routing and dna-exp<N> run identity instead of the MarinFold project.",
         "Require explicit approval and final lineage reporting before a trial resumes across accelerator families.",
         "Replace the BUILD_DATE-only Iris freshness workaround with a coherent dependency update under marin-experiment.",
-        "Apply MarinDNA's Python lint and format rules to bundled helpers without changing behavior."
+        "Compose tracked Operations and task-logbook chronology with immutable SQLite backups under a declared durable owner.",
+        "Add transactional trial, dispatch-intent, confirmation, observation, terminal, completion, and backup commands with intent-before-submit recovery tests.",
+        "Clarify that the sweep deadline is a whole-sweep stop condition distinct from reslice and restart recovery thresholds.",
+        "Apply MarinDNA's Python lint and format rules to bundled helpers and gate their tests in the root pytest suite."
       ]
     },
     {
@@ -21,7 +24,10 @@
         "Use MarinDNA W&B run identity and the execution environment's supported time-based wakeup mechanism.",
         "Require explicit approval and final lineage reporting before a trial resumes across accelerator families.",
         "Replace the BUILD_DATE-only Iris freshness workaround with a coherent dependency update under marin-experiment.",
-        "Apply MarinDNA's Python lint and format rules to bundled helpers without changing behavior."
+        "Compose tracked Operations and task-logbook chronology with immutable SQLite backups under a declared durable owner.",
+        "Add transactional trial, regional-run, dispatch-intent, confirmation, observation, terminal, completion, and backup commands with intent-before-submit recovery tests.",
+        "Clarify that the sweep deadline is a whole-sweep stop condition distinct from reslice, restart, and relocation recovery thresholds.",
+        "Apply MarinDNA's Python lint and format rules to bundled helpers and gate their tests in the root pytest suite."
       ]
     }
   ],

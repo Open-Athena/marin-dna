@@ -1,7 +1,7 @@
 # Operations
 
-Create one living `expXXX_operations.md` per sweep. Default to
-`scratch/<sweep>/`. The agent must read it completely at the start of every heartbeat.
+Create one living, tracked `expXXX_operations.md` beside the experiment project for each sweep.
+The agent must read it completely at the start of every heartbeat.
 
 Use terse English for rules, choices, constraints, exceptions, and operating
 conclusions not reliably recovered from code or data. Never restate code or
@@ -28,9 +28,9 @@ data, initialization, and checkpoint constraints not clear from code or SQLite.
 
 ## Operator Choices
 
-Record the time limit, regional replica count, approved chip limit, approved
-regions and TPU families, exclusions, whether cross-family reslicing is allowed,
-priority band, and document location.
+Record the absolute sweep deadline, regional replica count, approved chip limit, approved regions and TPU families, exclusions, whether cross-family reslicing is allowed, priority band, and document location.
+Record the durable SQLite backup owner and prefix, immutable key format, upload/download method, checksum verification, and newest-valid-backup recovery rule.
+State clearly that the sweep deadline stops the whole sweep and that recovery timing is controlled separately by `reslice_after`, `restart_after`, and `relocate_after`.
 
 ## Operating Policy
 
@@ -71,8 +71,7 @@ None.
 Use `Change Record` only during the autonomous loop, never during setup or validation,
 or ordinary development. Require an unexpected or unusual condition to cause an
 actual change to Operations, the SQLite model, or execution code. Examples include
-a validated token cache disappearing, changing a recovery timeout, or changing an
-Iris `BUILD_DATE`.
+a validated token cache disappearing, changing a recovery threshold, or updating the coherent Marin/Iris dependency set after a client-floor rejection.
 
 Update the relevant Operations section in place so it states the current rule. Then
 add one terse entry with the cause, change, and effect. Ask before changing Operator

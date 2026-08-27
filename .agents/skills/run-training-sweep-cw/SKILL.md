@@ -32,19 +32,19 @@ recovery policy.
 
 Keep each durable fact in one authoritative form:
 
-- **Operations (text):** policy, choices, constraints, exceptions, and operating
-  conclusions not reliably recovered from code or data.
+- **Operations (tracked text):** policy, choices, constraints, exceptions, recovery location, and operating conclusions not reliably recovered from code or data.
 - **Experiment and helper code:** executable behavior.
-- **SQLite (data):** structured observations, identities, attempts, action results,
-  clocks, and history.
+- **SQLite (data):** structured observations, identities, attempts, action results, clocks, and history.
+- **Immutable SQLite backups:** recoverable copies under the experiment's durable owner selected with `manage-research-storage`.
+- **Task logbook:** research chronology, decisions, milestones, and handoff context under `task-logbook` or `run-research`.
 
 Session chat is the interface, not state. Put heartbeat reports and decisions needing
 operator input there. Anything needed by a later heartbeat belongs in text, code, or
 data.
 
-Never restate code or configuration in Operations; prefer a source reference. Create
-no other experiment log, runbook, or recurring status file. Correct the authoritative
-form instead of adding a competing note.
+Never restate code or configuration in Operations; prefer a source reference.
+Do not create a second operational status file or copy SQLite state into the logbook.
+The logbook remains required when `task-logbook` or `run-research` applies and records research chronology rather than fleet-control state.
 
 ## Process
 
@@ -68,8 +68,9 @@ changing capacity. It informs placement; W&B remains the source of training prog
 Ask only for missing information. Offer the recommended answer first.
 
 1. **Training entry point and trial catalog.** Require both.
-2. **Time limit.** Recommend two weeks. Explain shorter means faster recovery;
-   longer is useful only when healthy trials need it.
+2. **Sweep deadline.** Recommend two weeks.
+   Explain that this is the hard stop for the entire sweep, not a recovery timeout.
+   Use `reslice_after` and `restart_after` for faster recovery; shortening the deadline may leave trials unfinished.
 3. **Compute and GPU scope.** Require an explicitly approved remote-compute scope
    and overall GPU limit before any smoke or production dispatch. Recommend the
    limit from the training code and prior runs. Confirm whether to use both H100
@@ -79,16 +80,20 @@ Ask only for missing information. Offer the recommended answer first.
    reproducibility cost.
 4. **Sweep timing.** Recommend `heartbeat_every=30m`, `reslice_after=1h`, and
    `restart_after=3h`. Ask whether to use the defaults.
+5. **Durable state owner.** Require an exact durable object-store prefix and upload/download method before dispatch.
+   Recommend the Marin experiment's native object-store ownership under `manage-research-storage`.
+   Use issue-owned storage only when the sweep already has a coordinating issue; this skill does not create one merely to store state.
 
-Create the document from [operations.md](references/operations.md). Default to
-`scratch/<sweep>/expXXX_operations.md`; offer a tracked experiment-side file only
-if requested. Build its candidate grid from [targets.md](references/targets.md), then
-initialize SQLite:
+Create the document from [operations.md](references/operations.md) as a tracked file beside the experiment project.
+Build its candidate grid from [targets.md](references/targets.md), record the durable state prefix and recovery procedure, then initialize the local SQLite working copy:
 
 ```bash
 uv run .agents/skills/run-training-sweep-cw/scripts/persistence.py \
   init scratch/<sweep>/expXXX_sweep.sqlite
 ```
+
+Create a consistent backup with the helper and upload it to a new immutable key under the recorded durable prefix before the first dispatch.
+Record research setup and milestones through `task-logbook` or `run-research` when either applies.
 
 ## Validate
 
@@ -106,12 +111,14 @@ monitor, dispatcher, scheduled loop, or recovery script.
 At every heartbeat:
 
 1. **Refresh context and inventory:** enter from authoritative state, not memory.
-   Reread Operations and relevant code, then build the inventory snapshot.
+   Restore the newest valid immutable SQLite backup when the local working copy is absent, reread Operations and relevant code, then build the inventory snapshot.
+   Reconcile every `dispatch_intent_unreconciled` against its exact Iris job before any other action.
 2. **Observe, reconcile, decide, and act:** query W&B first, then exact Iris
    liveness and fleet utilization. Persist observations, rebuild the decision
    snapshot, and coordinate one fleet plan with [execution.md](references/execution.md).
    Persist each result and replan after a material action.
-3. **Finish or continue:** if finished or out of time, stop, verify, and summarize.
+   After every state-changing transaction, publish a consistent immutable backup before another external action or handoff.
+3. **Finish or continue:** if finished or the sweep deadline has arrived, stop, verify, and summarize.
    Otherwise report in chat and schedule exactly one time-based next pass for
    `heartbeat_every`. Never rely on event-based monitoring.
 
@@ -130,8 +137,9 @@ decision-complete projection, not another status record.
 A trial finishes when `run_progress >= 1` and the expected checkpoint is reachable.
 W&B `finished` alone is insufficient.
 
-When every trial finishes or the time limit expires, stop remaining dispatches,
+When every trial finishes or the sweep deadline arrives, stop remaining dispatches,
 verify completion and checkpoints, check SQLite integrity, and report the outcome as
 defined by [throughput.md](references/throughput.md). Include the accelerator and
 placement lineage for every trial that moved across hardware families. Do not
 schedule another pass.
+Publish one final immutable SQLite backup and link it from the logbook or coordinating issue/PR.

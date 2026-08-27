@@ -1,13 +1,14 @@
 """Initialize, inspect, and check CoreWeave training-sweep persistence."""
 
 import argparse
+import hashlib
 import json
 import sqlite3
 from collections import Counter, defaultdict
 from datetime import UTC, datetime
 from pathlib import Path
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 SCHEMA = """
 PRAGMA foreign_keys = ON;
@@ -39,19 +40,29 @@ CREATE TABLE IF NOT EXISTS dispatches (
     gpus INTEGER NOT NULL CHECK (gpus > 0),
     priority_band TEXT NOT NULL CHECK (priority_band = 'batch'),
     command_redacted TEXT NOT NULL,
-    submitted_at TEXT NOT NULL,
+    intent_at TEXT NOT NULL,
+    submitted_at TEXT,
+    submission_state TEXT NOT NULL DEFAULT 'intent'
+        CHECK (submission_state IN ('intent', 'submitted', 'ended')),
     ended_at TEXT,
     active INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0, 1)),
     outcome TEXT,
     stop_reason TEXT,
-    UNIQUE (trial_id, attempt)
+    UNIQUE (trial_id, attempt),
+    CHECK (
+        (submission_state = 'intent' AND active = 1
+            AND submitted_at IS NULL AND ended_at IS NULL)
+        OR (submission_state = 'submitted' AND active = 1
+            AND submitted_at IS NOT NULL AND ended_at IS NULL)
+        OR (submission_state = 'ended' AND active = 0 AND ended_at IS NOT NULL)
+    )
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS one_active_dispatch_per_trial
 ON dispatches(trial_id) WHERE active = 1;
 
 CREATE INDEX IF NOT EXISTS dispatch_target_history
-ON dispatches(cluster, gpu_variant, nodes, gpus, submitted_at);
+ON dispatches(cluster, gpu_variant, nodes, gpus, intent_at);
 
 CREATE TABLE IF NOT EXISTS observations (
     observation_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -101,7 +112,9 @@ REQUIRED_COLUMNS = {
         "gpus",
         "priority_band",
         "command_redacted",
+        "intent_at",
         "submitted_at",
+        "submission_state",
         "ended_at",
         "active",
         "outcome",
@@ -201,13 +214,339 @@ def record_event(
     dispatch_id: str | None,
 ) -> None:
     with _connect(path) as connection:
+        _record_event(connection, kind, detail, trial_id, dispatch_id)
+
+
+def _record_event(
+    connection: sqlite3.Connection,
+    kind: str,
+    detail: str,
+    trial_id: str | None,
+    dispatch_id: str | None,
+) -> None:
+    connection.execute(
+        """
+        INSERT INTO events(recorded_at, kind, trial_id, dispatch_id, detail)
+        VALUES (?, ?, ?, ?, ?)
+        """,
+        (_now(), kind, trial_id, dispatch_id, detail),
+    )
+
+
+def add_trial(
+    path: Path,
+    trial_id: str,
+    env: dict[str, object],
+    wandb_run_id: str,
+    checkpoint_root: str,
+    wandb_url: str | None = None,
+) -> None:
+    with _connect(path) as connection:
         connection.execute(
             """
-            INSERT INTO events(recorded_at, kind, trial_id, dispatch_id, detail)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO trials(
+                trial_id, env_json, wandb_run_id, wandb_url, checkpoint_root
+            ) VALUES (?, ?, ?, ?, ?)
             """,
-            (_now(), kind, trial_id, dispatch_id, detail),
+            (
+                trial_id,
+                json.dumps(env, sort_keys=True),
+                wandb_run_id,
+                wandb_url,
+                checkpoint_root,
+            ),
         )
+        _record_event(connection, "trial_added", "trial registered", trial_id, None)
+
+
+def prepare_dispatch(
+    path: Path,
+    trial_id: str,
+    dispatch_id: str,
+    iris_job_id: str,
+    cluster: str,
+    gpu_variant: str,
+    nodes: int,
+    gpus: int,
+    command_redacted: str,
+    intent_at: str | None = None,
+) -> int:
+    recorded_at = intent_at or _now()
+    _parse_time(recorded_at, "intent_at")
+    with _connect(path) as connection:
+        connection.execute("BEGIN IMMEDIATE")
+        if (
+            connection.execute(
+                "SELECT 1 FROM trials WHERE trial_id = ?", (trial_id,)
+            ).fetchone()
+            is None
+        ):
+            raise RuntimeError(f"unknown trial: {trial_id}")
+        active = connection.execute(
+            """
+            SELECT dispatch_id, submission_state FROM dispatches
+            WHERE trial_id = ? AND active = 1
+            """,
+            (trial_id,),
+        ).fetchone()
+        if active is not None:
+            raise RuntimeError(
+                f"trial {trial_id!r} already has active dispatch {active[0]!r} "
+                f"in state {active[1]!r}"
+            )
+        attempt = connection.execute(
+            "SELECT COALESCE(MAX(attempt), 0) + 1 FROM dispatches WHERE trial_id = ?",
+            (trial_id,),
+        ).fetchone()[0]
+        connection.execute(
+            """
+            INSERT INTO dispatches(
+                dispatch_id, trial_id, attempt, iris_job_id, cluster, gpu_variant,
+                nodes, gpus, priority_band, command_redacted, intent_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'batch', ?, ?)
+            """,
+            (
+                dispatch_id,
+                trial_id,
+                attempt,
+                iris_job_id,
+                cluster,
+                gpu_variant,
+                nodes,
+                gpus,
+                command_redacted,
+                recorded_at,
+            ),
+        )
+        _record_event(
+            connection,
+            "dispatch_intent",
+            f"iris_job_id={iris_job_id} target={cluster}/{gpu_variant}/{nodes}/{gpus}",
+            trial_id,
+            dispatch_id,
+        )
+    return attempt
+
+
+def confirm_dispatch(
+    path: Path, dispatch_id: str, submitted_at: str | None = None
+) -> str:
+    confirmed_at = submitted_at or _now()
+    _parse_time(confirmed_at, "submitted_at")
+    with _connect(path) as connection:
+        connection.execute("BEGIN IMMEDIATE")
+        row = connection.execute(
+            """
+            SELECT trial_id, intent_at, submitted_at, submission_state
+            FROM dispatches WHERE dispatch_id = ?
+            """,
+            (dispatch_id,),
+        ).fetchone()
+        if row is None:
+            raise RuntimeError(f"unknown dispatch: {dispatch_id}")
+        trial_id, intent_at, existing_submitted_at, state = row
+        if state == "submitted":
+            return existing_submitted_at
+        if state != "intent":
+            raise RuntimeError(f"dispatch {dispatch_id!r} is already ended")
+        if _parse_time(confirmed_at, "submitted_at") < _parse_time(
+            intent_at, "intent_at"
+        ):
+            raise RuntimeError("submitted_at predates intent_at")
+        connection.execute(
+            """
+            UPDATE dispatches
+            SET submitted_at = ?, submission_state = 'submitted'
+            WHERE dispatch_id = ?
+            """,
+            (confirmed_at, dispatch_id),
+        )
+        _record_event(
+            connection,
+            "dispatch_submitted",
+            "exact Iris job accepted",
+            trial_id,
+            dispatch_id,
+        )
+    return confirmed_at
+
+
+def end_dispatch(
+    path: Path,
+    dispatch_id: str,
+    outcome: str,
+    stop_reason: str | None = None,
+    ended_at: str | None = None,
+) -> str:
+    terminal_at = ended_at or _now()
+    _parse_time(terminal_at, "ended_at")
+    with _connect(path) as connection:
+        connection.execute("BEGIN IMMEDIATE")
+        row = connection.execute(
+            """
+            SELECT trial_id, intent_at, submitted_at, submission_state, outcome
+            FROM dispatches WHERE dispatch_id = ?
+            """,
+            (dispatch_id,),
+        ).fetchone()
+        if row is None:
+            raise RuntimeError(f"unknown dispatch: {dispatch_id}")
+        trial_id, intent_at, submitted_at, state, existing_outcome = row
+        if state == "ended":
+            if existing_outcome != outcome:
+                raise RuntimeError(
+                    f"dispatch {dispatch_id!r} already ended as {existing_outcome!r}"
+                )
+            return terminal_at
+        lower_bound = submitted_at or intent_at
+        if _parse_time(terminal_at, "ended_at") < _parse_time(
+            lower_bound, "dispatch start"
+        ):
+            raise RuntimeError("ended_at predates dispatch intent or submission")
+        connection.execute(
+            """
+            UPDATE dispatches
+            SET submission_state = 'ended', ended_at = ?, active = 0,
+                outcome = ?, stop_reason = ?
+            WHERE dispatch_id = ?
+            """,
+            (terminal_at, outcome, stop_reason, dispatch_id),
+        )
+        event_kind = "dispatch_terminal" if submitted_at else "dispatch_not_submitted"
+        _record_event(
+            connection,
+            event_kind,
+            f"outcome={outcome}; reason={stop_reason or '-'}",
+            trial_id,
+            dispatch_id,
+        )
+    return terminal_at
+
+
+def record_observation(
+    path: Path,
+    dispatch_id: str,
+    observed_at: str,
+    wandb_state: str | None,
+    run_progress: float | None,
+    iris_running: bool | None,
+) -> None:
+    observed_time = _parse_time(observed_at, "observed_at")
+    if run_progress is not None and run_progress < 0:
+        raise RuntimeError("run_progress must be nonnegative")
+    with _connect(path) as connection:
+        connection.execute("BEGIN IMMEDIATE")
+        row = connection.execute(
+            """
+            SELECT trial_id, submitted_at FROM dispatches WHERE dispatch_id = ?
+            """,
+            (dispatch_id,),
+        ).fetchone()
+        if row is None:
+            raise RuntimeError(f"unknown dispatch: {dispatch_id}")
+        trial_id, submitted_at = row
+        if submitted_at is None:
+            raise RuntimeError(
+                f"dispatch {dispatch_id!r} has not been confirmed as submitted"
+            )
+        if observed_time < _parse_time(submitted_at, "submitted_at"):
+            raise RuntimeError("observed_at predates submitted_at")
+        previous = connection.execute(
+            "SELECT high_water_progress FROM trials WHERE trial_id = ?", (trial_id,)
+        ).fetchone()[0]
+        connection.execute(
+            """
+            INSERT INTO observations(
+                trial_id, dispatch_id, observed_at, wandb_state,
+                run_progress, iris_running
+            ) VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (
+                trial_id,
+                dispatch_id,
+                observed_at,
+                wandb_state,
+                run_progress,
+                None if iris_running is None else int(iris_running),
+            ),
+        )
+        if run_progress is not None and run_progress > previous:
+            connection.execute(
+                """
+                UPDATE trials SET high_water_progress = ?, status = 'active'
+                WHERE trial_id = ? AND status != 'completed'
+                """,
+                (run_progress, trial_id),
+            )
+            _record_event(
+                connection,
+                "progress",
+                f"run_progress={run_progress}",
+                trial_id,
+                dispatch_id,
+            )
+
+
+def complete_trial(
+    path: Path, trial_id: str, checkpoint_verified_at: str | None = None
+) -> str:
+    verified_at = checkpoint_verified_at or _now()
+    _parse_time(verified_at, "checkpoint_verified_at")
+    with _connect(path) as connection:
+        connection.execute("BEGIN IMMEDIATE")
+        row = connection.execute(
+            "SELECT status, high_water_progress FROM trials WHERE trial_id = ?",
+            (trial_id,),
+        ).fetchone()
+        if row is None:
+            raise RuntimeError(f"unknown trial: {trial_id}")
+        if row[0] == "completed":
+            return verified_at
+        if row[1] < 1:
+            raise RuntimeError(f"trial {trial_id!r} has progress below 1")
+        if (
+            connection.execute(
+                "SELECT 1 FROM dispatches WHERE trial_id = ? AND active = 1",
+                (trial_id,),
+            ).fetchone()
+            is not None
+        ):
+            raise RuntimeError(f"trial {trial_id!r} still has an active dispatch")
+        connection.execute(
+            """
+            UPDATE trials
+            SET status = 'completed', checkpoint_verified_at = ?
+            WHERE trial_id = ?
+            """,
+            (verified_at, trial_id),
+        )
+        _record_event(
+            connection,
+            "trial_completed",
+            "progress complete and checkpoint verified",
+            trial_id,
+            None,
+        )
+    return verified_at
+
+
+def backup(path: Path, destination: Path) -> dict[str, object]:
+    if not path.is_file():
+        raise RuntimeError(f"database does not exist: {path}")
+    if destination.exists():
+        raise RuntimeError(f"backup destination already exists: {destination}")
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    with _connect(path) as source, sqlite3.connect(destination) as target:
+        source.backup(target)
+    errors = check(destination)
+    if errors:
+        raise RuntimeError("backup validation failed: " + "; ".join(errors))
+    data = destination.read_bytes()
+    return {
+        "path": str(destination),
+        "size": len(data),
+        "sha256": hashlib.sha256(data).hexdigest(),
+    }
 
 
 def _structural_errors(path: Path) -> list[str]:
@@ -234,9 +573,14 @@ def _structural_errors(path: Path) -> list[str]:
         errors.extend(f"multiple active dispatches: {row}" for row in duplicate_active)
         inconsistent_dispatches = connection.execute(
             """
-            SELECT dispatch_id, active, ended_at FROM dispatches
-            WHERE (active = 1 AND ended_at IS NOT NULL)
-               OR (active = 0 AND ended_at IS NULL)
+            SELECT dispatch_id, submission_state, active, submitted_at, ended_at
+            FROM dispatches
+            WHERE (submission_state = 'intent'
+                    AND (active != 1 OR submitted_at IS NOT NULL OR ended_at IS NOT NULL))
+               OR (submission_state = 'submitted'
+                    AND (active != 1 OR submitted_at IS NULL OR ended_at IS NOT NULL))
+               OR (submission_state = 'ended'
+                    AND (active != 0 OR ended_at IS NULL))
             """
         ).fetchall()
         errors.extend(
@@ -270,7 +614,7 @@ def _build_snapshot(
         trials = list(connection.execute("SELECT * FROM trials ORDER BY trial_id"))
         dispatches = list(
             connection.execute(
-                "SELECT * FROM dispatches ORDER BY submitted_at, dispatch_id"
+                "SELECT * FROM dispatches ORDER BY intent_at, dispatch_id"
             )
         )
         observations = list(
@@ -317,6 +661,11 @@ def _build_snapshot(
                 f"observation {observation['observation_id']} is in the future"
             )
         dispatch = dispatch_by_id[observation["dispatch_id"]]
+        if dispatch["submitted_at"] is None:
+            raise RuntimeError(
+                f"observation {observation['observation_id']} belongs to an "
+                "unsubmitted dispatch intent"
+            )
         submitted_at = _parse_time(
             dispatch["submitted_at"], f"dispatch {dispatch['dispatch_id']} submitted_at"
         )
@@ -403,33 +752,51 @@ def _build_snapshot(
         active_latest_at = None
         if active_dispatch is not None:
             dispatch_id = active_dispatch["dispatch_id"]
-            submitted_at = _parse_time(
-                active_dispatch["submitted_at"], f"dispatch {dispatch_id} submitted_at"
+            intent_at = _parse_time(
+                active_dispatch["intent_at"], f"dispatch {dispatch_id} intent_at"
             )
-            if submitted_at > snapshot_at:
-                raise RuntimeError(f"dispatch {dispatch_id!r} is in the future")
-            active_observations = observations_by_dispatch[dispatch_id]
-            if active_observations:
-                active_latest_row, active_latest_at = active_observations[-1]
-            progress_at = last_progress_at.get(dispatch_id)
-            stall_since = progress_at or submitted_at
-            stall_seconds = (snapshot_at - stall_since).total_seconds()
+            if intent_at > snapshot_at:
+                raise RuntimeError(f"dispatch {dispatch_id!r} intent is in the future")
+            submitted_at = None
+            progress_at = None
+            stall_since = None
+            stall_seconds = None
+            if active_dispatch["submission_state"] == "submitted":
+                submitted_at = _parse_time(
+                    active_dispatch["submitted_at"],
+                    f"dispatch {dispatch_id} submitted_at",
+                )
+                if submitted_at > snapshot_at:
+                    raise RuntimeError(f"dispatch {dispatch_id!r} is in the future")
+                active_observations = observations_by_dispatch[dispatch_id]
+                if active_observations:
+                    active_latest_row, active_latest_at = active_observations[-1]
+                progress_at = last_progress_at.get(dispatch_id)
+                stall_since = progress_at or submitted_at
+                stall_seconds = (snapshot_at - stall_since).total_seconds()
             active_snapshot = {
                 "dispatch_id": dispatch_id,
                 "attempt": active_dispatch["attempt"],
                 "iris_job_id": active_dispatch["iris_job_id"],
+                "submission_state": active_dispatch["submission_state"],
                 "cluster": active_dispatch["cluster"],
                 "gpu_variant": active_dispatch["gpu_variant"],
                 "nodes": active_dispatch["nodes"],
                 "gpus": active_dispatch["gpus"],
+                "intent_at": active_dispatch["intent_at"],
                 "submitted_at": active_dispatch["submitted_at"],
-                "age_seconds": round((snapshot_at - submitted_at).total_seconds(), 3),
+                "age_seconds": round(
+                    (snapshot_at - (submitted_at or intent_at)).total_seconds(), 3
+                ),
                 "last_progress_at": None
                 if progress_at is None
                 else progress_at.isoformat(),
-                "stall_since": stall_since.isoformat(),
-                "stall_seconds": round(stall_seconds, 3),
+                "stall_since": None if stall_since is None else stall_since.isoformat(),
+                "stall_seconds": None
+                if stall_seconds is None
+                else round(stall_seconds, 3),
                 "recent_progress": progress_at is not None
+                and stall_seconds is not None
                 and stall_seconds <= reslice_after_seconds,
                 "latest_observation": None
                 if active_latest_row is None or active_latest_at is None
@@ -460,12 +827,17 @@ def _build_snapshot(
             }
 
         trial_progress_at = last_trial_progress_at.get(trial_id)
-        if trial_progress_at is None and dispatches_by_trial[trial_id]:
+        submitted_dispatches = [
+            row
+            for row in dispatches_by_trial[trial_id]
+            if row["submitted_at"] is not None
+        ]
+        if trial_progress_at is None and submitted_dispatches:
             trial_progress_at = min(
                 _parse_time(
                     row["submitted_at"], f"dispatch {row['dispatch_id']} submitted_at"
                 )
-                for row in dispatches_by_trial[trial_id]
+                for row in submitted_dispatches
             )
         snapshot = {
             "trial_id": trial_id,
@@ -494,6 +866,8 @@ def _build_snapshot(
             kinds: list[str] = []
             if active_dispatch is None:
                 kinds.append("no_active_dispatch")
+            elif active_dispatch["submission_state"] == "intent":
+                kinds.append("dispatch_intent_unreconciled")
             elif active_latest_row is None:
                 kinds.append("active_dispatch_unobserved")
             else:
@@ -512,6 +886,8 @@ def _build_snapshot(
 
     placement_groups: dict[tuple[str, str, int, int], dict[str, object]] = {}
     for dispatch in dispatches:
+        if dispatch["submitted_at"] is None:
+            continue
         submitted_at = _parse_time(
             dispatch["submitted_at"], f"dispatch {dispatch['dispatch_id']} submitted_at"
         )
@@ -602,7 +978,16 @@ def _build_snapshot(
         )
     )
 
-    active_dispatches = [row for row in dispatches if row["active"]]
+    active_intents = [
+        row
+        for row in dispatches
+        if row["active"] and row["submission_state"] == "intent"
+    ]
+    active_dispatches = [
+        row
+        for row in dispatches
+        if row["active"] and row["submission_state"] == "submitted"
+    ]
     training_dispatches = 0
     training_gpus = 0
     for dispatch in active_dispatches:
@@ -646,6 +1031,7 @@ def _build_snapshot(
         },
         "fleet": {
             "trial_status_counts": dict(sorted(trial_status_counts.items())),
+            "unreconciled_dispatch_intents": len(active_intents),
             "active_dispatches": len(active_dispatches),
             "submitted_gpus": sum(row["gpus"] for row in active_dispatches),
             "wandb_running_dispatches": training_dispatches,
@@ -681,12 +1067,72 @@ def snapshot(
     return _build_snapshot(path, recent_event_limit, reslice_after_hours)
 
 
+def _optional_bool(value: str) -> bool | None:
+    normalized = value.casefold()
+    if normalized in {"true", "1"}:
+        return True
+    if normalized in {"false", "0"}:
+        return False
+    if normalized in {"unknown", "none", "null"}:
+        return None
+    raise argparse.ArgumentTypeError("expected true, false, or unknown")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     init_parser = subparsers.add_parser("init")
     init_parser.add_argument("database", type=Path)
+
+    trial_parser = subparsers.add_parser("trial-add")
+    trial_parser.add_argument("database", type=Path)
+    trial_parser.add_argument("--trial-id", required=True)
+    trial_parser.add_argument("--env-json", required=True)
+    trial_parser.add_argument("--wandb-run-id", required=True)
+    trial_parser.add_argument("--wandb-url")
+    trial_parser.add_argument("--checkpoint-root", required=True)
+
+    intent_parser = subparsers.add_parser("dispatch-intent")
+    intent_parser.add_argument("database", type=Path)
+    intent_parser.add_argument("--trial-id", required=True)
+    intent_parser.add_argument("--dispatch-id", required=True)
+    intent_parser.add_argument("--iris-job-id", required=True)
+    intent_parser.add_argument("--cluster", required=True)
+    intent_parser.add_argument("--gpu-variant", required=True)
+    intent_parser.add_argument("--nodes", type=int, required=True)
+    intent_parser.add_argument("--gpus", type=int, required=True)
+    intent_parser.add_argument("--command-redacted", required=True)
+    intent_parser.add_argument("--intent-at")
+
+    confirm_parser = subparsers.add_parser("dispatch-confirm")
+    confirm_parser.add_argument("database", type=Path)
+    confirm_parser.add_argument("--dispatch-id", required=True)
+    confirm_parser.add_argument("--submitted-at")
+
+    end_parser = subparsers.add_parser("dispatch-end")
+    end_parser.add_argument("database", type=Path)
+    end_parser.add_argument("--dispatch-id", required=True)
+    end_parser.add_argument("--outcome", required=True)
+    end_parser.add_argument("--stop-reason")
+    end_parser.add_argument("--ended-at")
+
+    observation_parser = subparsers.add_parser("observe")
+    observation_parser.add_argument("database", type=Path)
+    observation_parser.add_argument("--dispatch-id", required=True)
+    observation_parser.add_argument("--observed-at", required=True)
+    observation_parser.add_argument("--wandb-state")
+    observation_parser.add_argument("--run-progress", type=float)
+    observation_parser.add_argument("--iris-running", type=_optional_bool)
+
+    complete_parser = subparsers.add_parser("trial-complete")
+    complete_parser.add_argument("database", type=Path)
+    complete_parser.add_argument("--trial-id", required=True)
+    complete_parser.add_argument("--checkpoint-verified-at")
+
+    backup_parser = subparsers.add_parser("backup")
+    backup_parser.add_argument("database", type=Path)
+    backup_parser.add_argument("destination", type=Path)
 
     event_parser = subparsers.add_parser("event")
     event_parser.add_argument("database", type=Path)
@@ -707,6 +1153,77 @@ def main() -> int:
     if args.command == "init":
         init(args.database)
         print(f"OK: initialized {args.database}")
+        return 0
+    if args.command == "trial-add":
+        env = json.loads(args.env_json)
+        if not isinstance(env, dict):
+            raise RuntimeError("--env-json must decode to an object")
+        add_trial(
+            args.database,
+            args.trial_id,
+            env,
+            args.wandb_run_id,
+            args.checkpoint_root,
+            args.wandb_url,
+        )
+        print("OK: trial added")
+        return 0
+    if args.command == "dispatch-intent":
+        attempt = prepare_dispatch(
+            args.database,
+            args.trial_id,
+            args.dispatch_id,
+            args.iris_job_id,
+            args.cluster,
+            args.gpu_variant,
+            args.nodes,
+            args.gpus,
+            args.command_redacted,
+            args.intent_at,
+        )
+        print(json.dumps({"attempt": attempt, "dispatch_id": args.dispatch_id}))
+        return 0
+    if args.command == "dispatch-confirm":
+        submitted_at = confirm_dispatch(
+            args.database, args.dispatch_id, args.submitted_at
+        )
+        print(
+            json.dumps({"dispatch_id": args.dispatch_id, "submitted_at": submitted_at})
+        )
+        return 0
+    if args.command == "dispatch-end":
+        ended_at = end_dispatch(
+            args.database,
+            args.dispatch_id,
+            args.outcome,
+            args.stop_reason,
+            args.ended_at,
+        )
+        print(json.dumps({"dispatch_id": args.dispatch_id, "ended_at": ended_at}))
+        return 0
+    if args.command == "observe":
+        record_observation(
+            args.database,
+            args.dispatch_id,
+            args.observed_at,
+            args.wandb_state,
+            args.run_progress,
+            args.iris_running,
+        )
+        print("OK: observation recorded")
+        return 0
+    if args.command == "trial-complete":
+        verified_at = complete_trial(
+            args.database, args.trial_id, args.checkpoint_verified_at
+        )
+        print(
+            json.dumps(
+                {"trial_id": args.trial_id, "checkpoint_verified_at": verified_at}
+            )
+        )
+        return 0
+    if args.command == "backup":
+        print(json.dumps(backup(args.database, args.destination), sort_keys=True))
         return 0
     if args.command == "event":
         record_event(
