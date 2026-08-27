@@ -925,3 +925,20 @@ Its current anchor path instead creates uniform conservation-selected windows an
   The background macro was independently checked over supported per-subset rows after excluding mature miRNA; its value and SE are unchanged because four groups do not pass the 30-group macro support gate.
 - Public record: [Issue #517 update](https://github.com/Open-Athena/marin-dna/issues/517#issuecomment-5438753599).
 - Next action: Compare these target-aligned cells with the established arm-specific baselines and fix or reject unsupported dataset-filter keys in the maintained evals_v2 configuration path.
+
+### 2026-08-27 12:19 UTC - `FAS-517-040` terminal Mendelian diagonal
+
+- Request: Reproduce the issue #232 final-step diagonal heatmap for the six GPN-Star-P uniform-grid arms.
+- Commit Hash: `a83fa00c`.
+- Inputs: The six terminal step-4,999 Mendelian metric Parquets under `s3://oa-bolinas/snakemake/analysis/evals_v2/results/metrics/exp517-gpn-uniform-*-step-4999/mendelian_traits.parquet`.
+  The plot uses the development `train` split and `minus_llr_avg` with the existing 1,000-replicate match-group bootstrap SE.
+- Figure: The eight Mendelian consequence subsets form rows and the six training arms form columns.
+  Black outlines mark the prespecified arm-to-subset assignment, and green stars mark nominal row-max point estimates.
+  Each cell displays AUPRC ± bootstrap SE.
+- Result: The nominal diagonal is 7/8.
+  CDS wins Missense, Synonymous, and Splicing; 3′ UTR wins 3′ UTR; ncRNA exon wins ncRNA; and TSS/5′ UTR wins 5′ UTR and Promoter.
+  Distal is the exception: ncRNA exon is the nominal maximum at 0.138 ± 0.033, while Enhancer arm A is 0.119 ± 0.018.
+- Interpretation: The Distal difference is small relative to the displayed uncertainty and has not been pairwise-tested.
+  The figure supports a clear specialist diagonal for seven consequence rows and no clear Enhancer-arm advantage on Distal.
+- Artifacts: `.agents/artifacts/issue-517/evaluation/issue517_mendelian_diagonal.svg`, its exact source-data CSV, and the reproducible plotting script live in commit `a83fa00c`.
+- Next action: Publish the commit-pinned figure to issue #517 and compare the Distal row directly with issue #232 and the selected arm-A predecessor.
