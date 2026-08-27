@@ -1,0 +1,29 @@
+{
+  "upstream_repo": "Open-Athena/MarinFold",
+  "commit": "ac4a41b70e4b2b3900c4778f3f40b8418fab673f",
+  "vendored_on": "2026-08-27",
+  "unchanged": [],
+  "adapted": [
+    {
+      "name": "run-training-sweep-cw",
+      "deviations": [
+        "Compose sweep operation with MarinDNA's experiment setup, coherent-version, snapshot, and remote-compute approval policy.",
+        "Use MarinDNA W&B routing and dna-exp<N> run identity instead of the MarinFold project.",
+        "Require explicit approval and final lineage reporting before a trial resumes across accelerator families.",
+        "Replace the BUILD_DATE-only Iris freshness workaround with a coherent dependency update under marin-experiment.",
+        "Apply MarinDNA's Python lint and format rules to bundled helpers without changing behavior."
+      ]
+    },
+    {
+      "name": "run-training-sweep-trc",
+      "deviations": [
+        "Compose sweep operation with MarinDNA's experiment setup, coherent-version, snapshot, and remote-compute approval policy.",
+        "Use MarinDNA W&B run identity and the execution environment's supported time-based wakeup mechanism.",
+        "Require explicit approval and final lineage reporting before a trial resumes across accelerator families.",
+        "Replace the BUILD_DATE-only Iris freshness workaround with a coherent dependency update under marin-experiment.",
+        "Apply MarinDNA's Python lint and format rules to bundled helpers without changing behavior."
+      ]
+    }
+  ],
+  "local": []
+}

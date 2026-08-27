@@ -1,0 +1,4 @@
+interface:
+  display_name: "Run CoreWeave GPU Training Sweep"
+  short_description: "Run and recover CoreWeave GPU training sweeps"
+  default_prompt: "Use $run-training-sweep-cw to launch and actively operate this CoreWeave GPU training sweep until it finishes."
