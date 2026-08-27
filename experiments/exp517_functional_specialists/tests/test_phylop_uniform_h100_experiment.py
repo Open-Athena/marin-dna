@@ -11,6 +11,7 @@ from exp517_functional_specialists.experiment import (
 )
 from exp517_functional_specialists.phylop_uniform_experiment import ARMS
 from exp517_functional_specialists.phylop_uniform_h100_experiment import (
+    FULL_H100_LOCAL_TOKENIZER_WORKERS,
     FULL_H100_NUM_SHARDS,
     FULL_H100_PER_DEVICE_PARALLELISM,
     build_full_h100_training,
@@ -40,13 +41,11 @@ def test_full_h100_tokenizes_complete_immutable_dataset() -> None:
     assert config.revision == ARMS["cds"].revision
     assert config.sample_count is None
     assert config.num_shards == FULL_H100_NUM_SHARDS == 64
+    assert config.max_workers == FULL_H100_LOCAL_TOKENIZER_WORKERS == 16
     assert config.format.text_key == "sequence"
     assert config.worker_resources.regions == [ANY_REGION]
     assert config.worker_resources.target_cluster is None
     assert config.worker_resources.preemptible is True
-    assert step.run.resources.regions == [ANY_REGION]
-    assert step.run.resources.target_cluster is None
-    assert step.run.resources.preemptible is True
     assert "h100-full" in config.tags
 
 

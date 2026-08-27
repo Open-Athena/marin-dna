@@ -15,6 +15,7 @@ Per-device parallelism is fixed at the validated one-H100 value 2,048.
 
 The single full CDS trial is defined in [`phylop_uniform_h100_experiment.py`](src/exp517_functional_specialists/phylop_uniform_h100_experiment.py).
 It tokenizes the complete immutable CDS dataset revision `452a5a3538f22630c3dea94d441ac30216bb28ea` into CoreWeave-local S3 before training.
+Tokenization runs as 16 local Zephyr workers inside one explicitly sized preemptible CoreWeave CPU job because the pinned Fray CPU actor path does not attach a uv environment on the production peers.
 The run ID is `dna-exp517-phylop-uniform-0p25b-cds-h100-pdp2048-v1`.
 
 ## Operator Choices
@@ -50,3 +51,5 @@ The 2,048 configuration completed 3/3 steps and wrote a remotely verified S3 che
 The H100 child retains its independently declared 128 GB disk request.
 2026-08-27: Disable top-level Iris auto-sync, install uv 0.11.31 as an isolated tool, select the nested H100 project by its full bundled path, and run the coordinator from the experiment root.
 2026-08-27: Override the training data tokenizer with the vendored absolute path so a reused tokenized-cache record cannot resolve relative to `/app`.
+2026-08-27: Both production peers' bare CPU callable images lacked `cloudpickle`, so the nested remote tokenization wrapper failed before reading data or allocating an H100.
+Keep the maintained Marin tokenization and cache format, but run its Zephyr pool locally inside one locked, explicitly sized CoreWeave CPU task; launch training separately after that immutable cache completes.

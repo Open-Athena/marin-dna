@@ -6,9 +6,10 @@ import os
 from dataclasses import replace
 
 import click
+from fray.current_client import set_current_client
+from fray.local_backend import LocalClient
 from fray.types import ANY_REGION, ResourceConfig
 from marin.execution.lazy import ArtifactStep, StepContext
-from marin.execution.remote import remote
 from marin.experiment.cli import build_options
 from marin.experiment.train import train_lm
 from marin.processing.tokenize.tokenize import HfTokenizeConfig, tokenize
@@ -50,6 +51,7 @@ from exp517_functional_specialists.phylop_uniform_h100_smoke import (
 
 FULL_H100_PER_DEVICE_PARALLELISM = 2_048
 FULL_H100_NUM_SHARDS = 64
+FULL_H100_LOCAL_TOKENIZER_WORKERS = 16
 
 
 def selected_full_per_device_parallelism() -> int:
@@ -148,7 +150,7 @@ def full_h100_tokenized_dataset(
                     for name, digest in sorted(TOKENIZER_SHA256.items())
                 ],
             ],
-            max_workers=128,
+            max_workers=FULL_H100_LOCAL_TOKENIZER_WORKERS,
             num_shards=FULL_H100_NUM_SHARDS,
             worker_resources=ResourceConfig.with_cpu(
                 cpu=2,
@@ -163,22 +165,26 @@ def full_h100_tokenized_dataset(
         name=f"h100/inputs/phylop-uniform-{arm.key}-char-bos",
         version=DATA_VERSION,
         artifact_type=DnaTokenizedCache,
-        run=remote(
-            tokenize,
-            resources=ResourceConfig.with_cpu(
-                cpu=1,
-                ram="16g",
-                disk="20g",
-                regions=[ANY_REGION],
-                preemptible=True,
-            ),
-            env_vars={
-                "HF_HUB_DOWNLOAD_TIMEOUT": "120",
-                "UV_LOCK_TIMEOUT": "7200",
-            },
-        ),
+        run=tokenize_with_local_workers,
         build_config=build_config,
     )
+
+
+def tokenize_with_local_workers(config: HfTokenizeConfig) -> None:
+    """Run Zephyr workers inside one explicitly sized CoreWeave CPU task.
+
+    CoreWeave's bare CPU callable images do not contain ``cloudpickle`` and the
+    pinned Fray actor-group path does not attach a uv environment to CPU actors.
+    The top-level coordinator is already running the locked project environment,
+    so a local Fray client keeps all tokenization actors inside that task while
+    preserving the maintained Marin tokenizer implementation and cache format.
+    """
+    client = LocalClient(max_threads=FULL_H100_LOCAL_TOKENIZER_WORKERS + 2)
+    try:
+        with set_current_client(client):
+            tokenize(config)
+    finally:
+        client.shutdown()
 
 
 def build_full_h100_training(
@@ -263,9 +269,18 @@ def build_full_h100_training(
 
 @click.command(help=__doc__)
 @build_options
-def main() -> ArtifactStep[LevanterCheckpoint]:
-    """Return the full H100 strict-control arm selected by the environment."""
-    return build_full_h100_training(selected_h100_arm())
+def main() -> ArtifactStep[DnaTokenizedCache] | ArtifactStep[LevanterCheckpoint]:
+    """Return the selected full H100 training or tokenization-only artifact."""
+    arm = selected_h100_arm()
+    tokenize_only = os.environ.get("EXP517_H100_TOKENIZE_ONLY", "false").strip().lower()
+    if tokenize_only == "true":
+        return full_h100_tokenized_dataset(arm)
+    if tokenize_only != "false":
+        raise ValueError(
+            "EXP517_H100_TOKENIZE_ONLY must be true or false, "
+            f"got {tokenize_only!r}"
+        )
+    return build_full_h100_training(arm)
 
 
 if __name__ == "__main__":

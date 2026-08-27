@@ -215,6 +215,8 @@ The successful run retained global batch 8,192 and saved both native and Hugging
 The full one-H100 path therefore fixes per-device parallelism at the validated value 2,048.
 
 The full path tokenizes the complete immutable selected arm into CoreWeave-local S3 and restores the exact 5,000-step schedule and 500-step checkpoint cadence.
+Run its tokenization-only mode first on one explicitly sized preemptible CoreWeave CPU task; it uses 16 local Zephyr workers because the pinned Fray CPU actor path does not attach a uv environment on the production peers.
+After that immutable cache completes, launch the small coordinator below and it will skip tokenization and submit only the H100 child.
 Select the production H100 peer from a fresh capacity snapshot, then launch the CDS arm with batch-priority preemptible capacity:
 
 ```bash
