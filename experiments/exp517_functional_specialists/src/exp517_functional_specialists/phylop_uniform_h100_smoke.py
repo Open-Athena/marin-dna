@@ -130,7 +130,6 @@ def smoke_tokenized_dataset(arm: PhylopUniformArm) -> ArtifactStep[DnaTokenizedC
                 ram="12g",
                 disk="20g",
                 regions=[ANY_REGION],
-                target_cluster=cluster,
                 preemptible=True,
             ),
         )
@@ -146,7 +145,6 @@ def smoke_tokenized_dataset(arm: PhylopUniformArm) -> ArtifactStep[DnaTokenizedC
                 ram="16g",
                 disk="20g",
                 regions=[ANY_REGION],
-                target_cluster=cluster,
                 preemptible=True,
             ),
             env_vars={
@@ -198,7 +196,6 @@ def build_smoke(arm: PhylopUniformArm) -> ArtifactStep[LevanterCheckpoint]:
             ram="64g",
             disk="128g",
             regions=[ANY_REGION],
-            target_cluster=cluster,
             preemptible=True,
         ),
         tensor_parallel_size=1,

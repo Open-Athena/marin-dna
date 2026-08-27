@@ -42,3 +42,5 @@ Completion requires at least one advancing W&B optimizer step with an H100 devic
 
 2026-08-27: Keep the CPU coordinator below Iris's large-resource threshold with 9 GB ephemeral disk.
 The H100 child retains its independently declared 128 GB disk request.
+2026-08-27: Pin the production CoreWeave peer on the top-level dispatch only.
+CPU and H100 child jobs inherit the federated controller rather than attempting self-refederation.

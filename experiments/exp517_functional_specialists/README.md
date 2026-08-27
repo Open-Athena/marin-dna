@@ -207,6 +207,7 @@ uv run --python /usr/bin/python3.12 --locked \
 
 The CoreWeave cluster supplies its S3 `MARIN_PREFIX` and object-store credentials.
 The thin `h100_smoke` environment keeps the established TPU lock unchanged and resolves the H100 child with its GPU-only `gpu` extra.
+The top-level Iris job owns the CoreWeave peer selection; child jobs inherit that controller and must not attempt to federate back to the same peer.
 
 ## Evaluation boundary
 

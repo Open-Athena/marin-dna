@@ -4,7 +4,6 @@ import pytest
 from exp517_functional_specialists.experiment import BATCH_SIZE, SEQUENCE_LENGTH
 from exp517_functional_specialists.phylop_uniform_experiment import ARMS
 from exp517_functional_specialists.phylop_uniform_h100_smoke import (
-    DEFAULT_H100_CLUSTER,
     DEFAULT_H100_PER_DEVICE_PARALLELISM,
     SMOKE_NUM_SHARDS,
     SMOKE_SAMPLE_COUNT,
@@ -37,10 +36,10 @@ def test_smoke_uses_small_immutable_hf_sample() -> None:
     assert config.num_shards == SMOKE_NUM_SHARDS == 8
     assert config.format.text_key == "sequence"
     assert config.worker_resources.regions == [ANY_REGION]
-    assert config.worker_resources.target_cluster == DEFAULT_H100_CLUSTER
+    assert config.worker_resources.target_cluster is None
     assert config.worker_resources.preemptible is True
     assert step.run.resources.regions == [ANY_REGION]
-    assert step.run.resources.target_cluster == DEFAULT_H100_CLUSTER
+    assert step.run.resources.target_cluster is None
     assert step.run.resources.preemptible is True
     assert "h100-smoke" in config.tags
     assert "gs://" not in repr(config)
@@ -67,7 +66,7 @@ def test_smoke_requests_one_preemptible_h100_at_full_batch(monkeypatch) -> None:
     assert resources.device.variant == "H100"
     assert resources.device.count == 1
     assert resources.regions == [ANY_REGION]
-    assert resources.target_cluster == DEFAULT_H100_CLUSTER
+    assert resources.target_cluster is None
     assert resources.preemptible is True
     assert pod.env_vars["MARIN_PREFIX"].startswith("s3://")
     assert "WANDB_API_KEY" not in pod.env_vars
