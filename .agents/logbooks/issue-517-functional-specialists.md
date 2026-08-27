@@ -863,3 +863,23 @@ Its current anchor path instead creates uniform conservation-selected windows an
 - Separate identity: `gonzalobenegas` is the W&B entity and does not control Iris quota attribution.
 - Decision: Leave the active resumable jobs unchanged because Iris does not support in-place owner renaming.
   Set `--user gonzalo` or `IRIS_USER=gonzalo` explicitly on future top-level launches.
+
+### 2026-08-27 02:27 UTC - `FAS-517-037` terminal-only VEP evaluation launch
+
+- Training completion: The CDS Iris training child succeeded with zero failures and seven preemptions.
+  Its terminal native and Hugging Face exports are complete at step 4,999; the Hugging Face export contains `config.json`, `model.safetensors`, `tokenizer.json`, and `tokenizer_config.json` under the configured GCS root.
+- Evaluation registration: Commit `858f70bc` and draft PR [#529](https://github.com/Open-Athena/marin-dna/pull/529) register the six GPN-Star-P-filtered uniform-grid specialists at terminal step 4,999.
+  The dedicated issue config reads only the pinned development `train` splits.
+  Every specialist runs Mendelian Traits and Complex Traits, and CDS also runs the biologically scoped SGE evaluation.
+- Validation: The focused workflow-config, model-registry, Sky-task, and GPU-runtime suite passed all 31 tests.
+  The exact CDS dry-run resolved one terminal-checkpoint download, three score jobs, and three metric jobs.
+  A broader project test run was stopped at 80% after slow failures across unrelated model tests; no focused launch-gate test failed.
+- Launch: Three independent Sky clusters started for CDS Mendelian Traits, Complex Traits, and SGE.
+  AWS spot A10G capacity was unavailable in all `us-east-2` zones, so the configured fallback allocated on-demand A10G workers.
+  Every worker passed the pinned runtime smoke with NVIDIA A10G, driver 595.71.05, PyTorch 2.13.0, compiled CUDA 13.0, and executable bf16.
+  The first cluster copied only the step-4,999 checkpoint into the workflow-owned S3 cache, and all three cells entered scoring.
+- Remaining-arm trigger: A lightweight five-minute watcher on the current VM requires the complete four-file Hugging Face step-4,999 export before scheduling an arm.
+  It launches Mendelian Traits immediately and Complex Traits six minutes later so the first cell can populate the shared model cache without a concurrent checkpoint write.
+  Failed launches are retried, and each successful Sky job tears down its worker after completion.
+- Evaluation boundary: No intermediate checkpoint and no held-out even-autosome or chromosome-Y VEP split is registered or read.
+- Next action: Let the watcher launch the ten remaining development cells as their five training arms export step 4,999, monitor the three active CDS cells, and report verified metrics after all artifacts are durable.
