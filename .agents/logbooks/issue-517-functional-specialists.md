@@ -942,3 +942,44 @@ Its current anchor path instead creates uniform conservation-selected windows an
   The figure supports a clear specialist diagonal for seven consequence rows and no clear Enhancer-arm advantage on Distal.
 - Artifacts: `.agents/artifacts/issue-517/evaluation/issue517_mendelian_diagonal.svg`, its exact source-data CSV, and the reproducible plotting script live in commit `a83fa00c`.
 - Next action: Publish the commit-pinned figure to issue #517 and compare the Distal row directly with issue #232 and the selected arm-A predecessor.
+
+### 2026-08-27 13:02 UTC - `FAS-517-041` same-size regression audit
+
+- Request: Compare the six terminal GPN-Star-P uniform-grid specialists with previous Qwen3-0.25B runs at the same 5,000-step by 8,192-token training budget and flag regressions.
+- Research effort: Medium.
+  The internal search covered issues #232, #326, #351, #473, the earlier annotation-first issue #517 runs, their logged configurations, and the registered development score and metric artifacts.
+  No external search was needed because this is an internal experiment comparison.
+- Evaluation boundary: Every paired result uses the pinned Mendelian Traits `train` development split, `minus_llr_avg`, and the biologically assigned home subset.
+  Mature-miRNA rows, specialist-wide aggregates, background, and held-out labels are excluded.
+  Background is not compared because the current GPN-constrained unassigned complement is not definition-compatible with the earlier background arms.
+- Primary control: Issue #232 is the canonical six-arm uniform-grid control with the same Qwen3-0.25B geometry and terminal compute budget.
+  A 1,000-replicate paired match-group bootstrap with seed 517 was run on an AWS `c6i.2xlarge` spot instance and the EC2 cluster was torn down after completion.
+
+  | Home endpoint | Current | #232 | Delta | Paired 95% CI | Two-sided p | Verdict |
+  | --- | ---: | ---: | ---: | ---: | ---: | --- |
+  | CDS Missense | 0.339 | 0.309 | +0.029 | [+0.010, +0.049] | 0.002 | Improvement |
+  | CDS Splicing | 0.400 | 0.395 | +0.005 | [-0.027, +0.039] | 0.716 | Inconclusive |
+  | CDS Synonymous | 0.299 | 0.281 | +0.018 | [-0.065, +0.086] | 0.684 | Inconclusive |
+  | 3′ UTR | 0.185 | 0.217 | -0.032 | [-0.075, +0.027] | 0.348 | Inconclusive |
+  | ncRNA | 0.384 | 0.366 | +0.018 | [-0.031, +0.060] | 0.464 | Inconclusive |
+  | 5′ UTR | 0.249 | 0.289 | -0.040 | [-0.074, -0.010] | 0.010 | Nominal regression |
+  | Promoter | 0.260 | 0.259 | +0.001 | [-0.029, +0.028] | 0.970 | Inconclusive |
+  | Distal | 0.119 | 0.127 | -0.008 | [-0.043, +0.012] | 0.508 | Inconclusive; both near chance |
+
+- Multiplicity: The intervals and p-values are unadjusted across eight primary home endpoints.
+  The 5′ UTR result is a regression candidate but does not pass a Bonferroni threshold of 0.00625; the CDS Missense improvement does.
+- Earlier annotation-first issue #517 control: The current grid significantly improves all three CDS endpoints and 5′ UTR, is inconclusive on 3′ UTR and Promoter, and regresses on ncRNA by -0.168 AUPRC with paired 95% CI [-0.243, -0.095] and Distal by -0.204 with paired 95% CI [-0.307, -0.099].
+  Both regressions have bootstrap p = 0.001 and survive an eight-endpoint Bonferroni threshold.
+- Enhancer cross-checks: Current Distal AUPRC is 0.119 versus the issue #326 Arm A point estimate of 0.299, issue #351 tiled point estimate of 0.308, and issue #351 centered point estimate of 0.366.
+  Those older values came from online `lm_eval` rather than registered offline score Parquets, so they are strong regression signals but not paired inferential comparisons.
+- CDS cross-check: Against the issue #473 full-window CDS run, the current point estimates are higher on Mendelian Missense and Splicing and SGE Missense, and lower on Mendelian Synonymous, Complex Traits Missense, and SGE Splicing.
+  None of the lower point differences is clearly separated using the reported marginal standard errors, and no paired #473 test was run.
+- Exposure caveat: Current effective epochs are lower than issue #232 for every comparable arm, including TSS/5′ UTR at 2.80 versus 3.63 and Enhancer at 0.31 versus 0.47.
+  The current Enhancer arm also uses 653,017 GPN-Star-P-filtered human anchors, while issue #326 Arm A used the same assignment logic with a phyloP-filtered cohort of roughly 370,000 windows and at least about 0.5 effective epoch.
+  These exposure and selection differences are plausible explanations, not identified causes.
+- Interpretation: The current experiment is not a uniform regression.
+  It recovers CDS performance lost in the earlier annotation-first setup, retains the #232-level ncRNA and Promoter results, has a nominal 5′ UTR regression against #232, and loses the earlier ncRNA and Enhancer gains.
+  Enhancer is the highest-priority regression because it is near chance, fails to own the Distal row, and is far below every same-size targeted predecessor.
+- Negative result: No registered offline score Parquets were found for the issue #326 or #351 Enhancer runs, so a paired comparison with those predecessors is not currently possible.
+- Artifacts: The exact paired JSON, 25-row comparison CSV, and reproducible EC2 Sky configuration are stored under `.agents/artifacts/issue-517/evaluation/`.
+- Next action: Inspect the terminal Enhancer and TSS learning trajectories, then run the smallest controlled continuation or matched-exposure comparison that separates underexposure from the GPN-versus-phyloP window-selection change.
