@@ -41,7 +41,11 @@ ignore_missing_imports = true
 strict_optional = false
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = [
+    "tests",
+    ".agents/skills/run-training-sweep-cw/tests",
+    ".agents/skills/run-training-sweep-trc/tests",
+]
 markers = [
     "slow: slow and/or network-dependent; deselected in the default CI gate",
 ]
