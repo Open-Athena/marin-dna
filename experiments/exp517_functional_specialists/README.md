@@ -210,6 +210,32 @@ The thin `h100_smoke` environment keeps the established TPU lock unchanged and r
 The coordinator disables Iris auto-sync, installs the repository-pinned uv as an isolated tool, and runs from the experiment root so the vendored tokenizer resolves identically on every production peer.
 The top-level Iris job owns the CoreWeave peer selection; child jobs inherit that controller and must not attempt to federate back to the same peer.
 
+The measured calibration result is a verified OOM at per-device parallelism 8,192 and 4,096, followed by a successful 3/3-step run at 2,048.
+The successful run retained global batch 8,192 and saved both native and Hugging Face checkpoints.
+The full one-H100 path therefore fixes per-device parallelism at the validated value 2,048.
+
+The full path tokenizes the complete immutable selected arm into CoreWeave-local S3 and restores the exact 5,000-step schedule and 500-step checkpoint cadence.
+Select the production H100 peer from a fresh capacity snapshot, then launch the CDS arm with batch-priority preemptible capacity:
+
+```bash
+uv run --python /usr/bin/python3.12 --locked \
+  iris --cluster=marin job run \
+  --no-wait --no-sync --user gonzalo --priority batch --preemptible \
+  --target-cluster cw-rno2a \
+  --job-name exp517-phylop-cds-h100-pdp2048-full-d001 \
+  --cpu 1 --memory 2G --disk 9G \
+  -e WANDB_API_KEY "$WANDB_API_KEY" \
+  -e WANDB_ENTITY gonzalobenegas \
+  -e WANDB_PROJECT marin \
+  -e EXP517_H100_CLUSTER cw-rno2a \
+  -e EXP517_H100_ARM cds \
+  -e EXP517_H100_PDP 2048 \
+  -e UV_PROJECT /app/experiments/exp517_functional_specialists/h100_smoke \
+  -- bash -lc 'cd /tmp && UV_TOOL_DIR=/tmp/uv-tools UV_TOOL_BIN_DIR=/tmp/uv-bin uv tool install uv==0.11.31 && cd /app/experiments/exp517_functional_specialists && exec /tmp/uv-bin/uv run --project /app/experiments/exp517_functional_specialists/h100_smoke --locked python -m exp517_functional_specialists.phylop_uniform_h100_experiment --version 2026.08.27 --run'
+```
+
+Keep the existing TPU workflows alive until the full CDS H100 trajectory and checkpoint behavior have been compared.
+
 ## Evaluation boundary
 
 Evaluate only the development split unless the user separately authorizes held-out access.
