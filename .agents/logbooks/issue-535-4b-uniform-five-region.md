@@ -55,7 +55,14 @@ The vendored character tokenizer is pinned to source revision `a73e9d9ee636f722b
 - 2026-08-27: Smoke v3 created the exact `v5p-16` child, but Iris classified its inherited placement as on-demand and reported `tier_blocked` against the preemptible pool; no TPU worker was allocated.
 - 2026-08-27: Added an experiment-local compatibility shim that makes `preemptible=True` a hard Iris capacity constraint for the TPU child while retaining an on-demand CPU coordinator.
 - 2026-08-27: Remote locked test job `/gonzalo/exp535-config-tests-v3` passed all six configuration tests, including the persisted hard-preemptible constraint check.
+- 2026-08-27: Committed and pushed corrected launch snapshot `66de67d3`.
+- 2026-08-27: Dispatched smoke `/gonzalo/exp535-4b-five-region-smoke-v4`; its child is correctly routed as two co-scheduled preemptible `v5p-16` tasks in `us-east5-a`.
+- 2026-08-27: Google returned repeated `us-east5-a` TPU stockouts while Iris tried to satisfy the lower v5p quota tier, so tier monotonicity is holding the exact `v5p-16` request pending.
+- 2026-08-27: Left the approved smoke queued without changing region or accelerator; no TPU worker had been allocated at the last observation.
 
 ## Launch record
 
-Pending committed constraint-fix snapshot and corrected smoke dispatch.
+Smoke dashboard: https://iris.oa.dev/#/job/%2Fgonzalo%2Fexp535-4b-five-region-smoke-v4
+
+The exact smoke request is queued for TPU capacity.
+Production remains undispatched until the operational smoke verifies restoration, progress, native checkpointing, and the final HF export.
