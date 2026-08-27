@@ -50,6 +50,7 @@ The vendored character tokenizer is pinned to source revision `a73e9d9ee636f722b
 - 2026-08-27: Committed and pushed initial snapshot `5fe4205e`.
 - 2026-08-27: Remote locked tests found that lazy artifacts require plain calendar versions and that a CPU test with the TPU extra must explicitly select the CPU JAX backend.
 - 2026-08-27: Corrected both preflight-only failures; neither job reached training or requested an accelerator.
+- 2026-08-27: Remote locked test job `/gonzalo/exp535-config-tests-v2` passed all five configuration tests on commit `4e15974d`.
 
 ## Launch record
 
