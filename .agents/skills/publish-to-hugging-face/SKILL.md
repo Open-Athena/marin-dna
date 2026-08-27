@@ -26,7 +26,10 @@ Use `manage-research-storage` first when the producing artifact does not already
    Retain the exact publishable files under that owner, or retain a deterministic transformation from the authoritative artifact.
    In either case, create and validate a release manifest listing every published path, file size, and SHA-256 checksum before upload.
 3. Prepare the README, model card, or dataset card before the first upload or a material metadata change.
-4. Set `license: openmdw-1.1` in the card metadata, and include a commit-pinned producing pipeline or training-script link, a concise provenance description, and the `biology`, `genomics`, and `dna` tags.
+4. Set the card's `license` metadata to the verified license identified in step 2.
+   Use `license: openmdw-1.1` for MarinDNA-trained models and processed datasets released under OpenMDW 1.1, and state the source-data terms and scope of the license in the card.
+   Use the source license tag or `license: other` for a repository whose primary contents retain source terms.
+   Include a commit-pinned producing pipeline or training-script link, a concise provenance description, and the `biology`, `genomics`, and `dna` tags.
 5. Describe the file layout, formats, schemas, assemblies, sequence naming, coordinate conventions, and checksums that consumers need.
 
 ## Publish Reproducibly
