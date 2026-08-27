@@ -1050,3 +1050,20 @@ Its current anchor path instead creates uniform conservation-selected windows an
   No W&B run had registered and no TPU was yet allocated, which is expected before tokenization completes.
 - Cleanup: The temporary EC2 W&B credential was removed and the completed publication cluster `issue517-phylop-hf` was terminated.
 - Next action: Observe W&B first, verify each immutable token cache, actual TPU family, first optimizer progress, and sane telemetry, then keep the 30-minute capacity-aware heartbeat until all six terminal step-4,999 checkpoints exist.
+
+### 2026-08-27 18:23 UTC - `FAS-517-046` single-H100 validation snapshot
+
+- Human decision: Keep all six existing TPU workflows alive while validating one CDS arm on a single preemptible CoreWeave H100.
+  Start with global batch 8,192 as one per-device microbatch and reduce to 4,096, 2,048, or 1,024 only after a verified H100 OOM.
+- Commit Hash: `2f698bf9`.
+- Isolation: The established TPU project and lock remain unchanged.
+  A thin GPU-only `h100_smoke` launch environment pins the same Marin commit and resolves `torch==2.11.0+cu128`, CUDA JAX, and the Marin GPU dependency set without mixing the TPU/CPU PyTorch index into the H100 worker.
+- Smoke scope: Sample 16,384 rows from the immutable CDS dataset revision `452a5a3538f22630c3dea94d441ac30216bb28ea`, tokenize to cluster-local S3, and run three optimizer steps at sequence length 256 with one H100, seed 0, and per-device parallelism 8,192.
+- Scheduling: CPU tokenization and the one-H100 training child are both preemptible, batch-priority work pinned to the selected production peer `cw-us-east-02a` with `regions=[ANY_REGION]`.
+  The latest capacity snapshot showed 175 of 256 H100s free there; `cw-rno2a` showed no free H100s.
+- Validation: The pinned `uv 0.11.31` lock resolved 265 packages in 1.46 seconds.
+  The CUDA selection dry-run chose `torch==2.11.0+cu128` and `torchvision==0.26.0+cu128` without installing CUDA packages locally.
+  All 18 experiment tests passed in 4.27 seconds with 477,740 KiB peak RSS.
+- Negative result: Adding a CUDA index directly to the universal TPU project lock caused `uv` to reject conflicting CPU and CUDA indexes for transitive `torch` requirements.
+  The first remote preparation attempt also failed before testing because its image had `uv 0.12.6` instead of the repository-pinned `0.11.31`; the temporary AWS spot node was then terminated.
+- Next action: Rebase the validated snapshot onto current `origin/main`, publish the branch, dispatch the CDS smoke directly from exe-codex, and verify actual H100 allocation plus advancing W&B optimizer steps before changing any TPU workflow.
