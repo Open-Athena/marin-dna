@@ -1,0 +1,45 @@
+pipeline_version: phylop-uniform-publication-v1
+tier: full
+
+# Immutable source projection produced for the issue #517 strict control.
+source_pipeline_version: phylop-uniform-v1
+source_pipeline_commit: 2162b6aa8299a9748eeb8031318b49072bb8c3fc
+source_config_sha256: 94d512050de327f96fda1105ce9c6ae5562944e402802516c7cde54795d8cdd1
+source_tier: full
+
+# Audited from qc/per_anchor.parquet in the immutable full projection.
+source_rows: 124196403
+source_arm_rows:
+  cds: 34758271
+  utr3: 7264712
+  tss_region_and_utr5: 5806425
+  ncrna_exon: 10411649
+  enhancer: 39879096
+  background: 26076250
+
+region_cohorts:
+  [cds, utr3, tss_region_and_utr5, ncrna_exon, enhancer, background]
+
+hf_owner: marin-dna
+hf_repo_names:
+  cds: phylop-uniform-v1-cds
+  utr3: phylop-uniform-v1-utr3
+  tss_region_and_utr5: phylop-uniform-v1-tss-utr5
+  ncrna_exon: phylop-uniform-v1-ncrna-exon
+  enhancer: phylop-uniform-v1-enhancer-arm-a
+  background: phylop-uniform-v1-background
+
+validation_rows: 16384
+validation_seed: 517
+add_rc: true
+publication_train_shards: 64
+publication_validation_shards: 1
+publication_shuffle_seed: 517
+hf_upload_workers: 1
+
+# Repeated in generated cards and checked against the source producer contract.
+phylop_track: hg38.phyloP447way
+phylop_threshold: 2.2162
+phylop_min_selected_bases: 51
+phylop_window_size: 255
+assignment_recipe: exp232-v4-plus-exp326-arm-a-remainder-v1

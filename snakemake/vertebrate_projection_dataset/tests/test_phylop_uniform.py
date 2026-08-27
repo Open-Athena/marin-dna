@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 import polars as pl
+
 from marin_dna_vertebrate_projection.phylop_uniform import (
     PHYLOP_ASSIGNMENT_RECIPE,
     PHYLOP_UNIFORM_ARMS,

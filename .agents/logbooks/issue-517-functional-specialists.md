@@ -983,3 +983,39 @@ Its current anchor path instead creates uniform conservation-selected windows an
 - Negative result: No registered offline score Parquets were found for the issue #326 or #351 Enhancer runs, so a paired comparison with those predecessors is not currently possible.
 - Artifacts: The exact paired JSON, 25-row comparison CSV, and reproducible EC2 Sky configuration are stored under `.agents/artifacts/issue-517/evaluation/`.
 - Next action: Inspect the terminal Enhancer and TSS learning trajectories, then run the smallest controlled continuation or matched-exposure comparison that separates underexposure from the GPN-versus-phyloP window-selection change.
+
+### 2026-08-27 13:21 UTC - `FAS-517-042` strict phyloP selector-control launch
+
+- Human decision: Run a strict selector-only control of the six GPN-Star-P uniform-grid specialists using the historical phyloP window gate.
+  Everything downstream of window eligibility stays fixed.
+- Selector: Uniform GRCh38 255 bp windows at 128 bp stride are scored with `hg38.phyloP447way`; a base is selected at phyloP `>= 2.2162`, and a window is retained with at least 51 of 255 selected bases.
+  The expected full catalog is 1,136,854 human windows.
+- Fixed factors: The control uses the current center-1 projector, the same 107 non-human Zoonomia HAL mammals, 28 non-mammal MultiZ targets, human reference stream, six-arm assignment recipe `exp232-v4-plus-exp326-arm-a-remainder-v1`, Qwen3-like 0.25B recipe, seed 0, 5,000 by 8,192 schedule, tokenizer, optimizer, checkpoint cadence, and development VEP cells.
+- Projection decision: Reproject mammals rather than reuse issue #232/#326 outputs.
+  Those historical phyloP datasets used the old full-window projection contract, whereas the GPN experiment used the current center-1 contract; reuse would therefore confound selector and projector.
+- Snapshot: Commit `2162b6aa8299a9748eeb8031318b49072bb8c3fc` adds the source workflow without modifying the existing GPN workflow.
+- Remote validation: On AWS `c6id.12xlarge`, all 256 locked project tests passed; pinned Ruff, Snakefmt, YAML, and file checks passed; and smoke/full Snakemake dry-runs passed.
+  The full DAG contains 1,708 rules, exactly 107 batched `halLiftOver` invocations, and all 28 non-mammal targets.
+- Execution: Sky job 12 on cluster `issue517-phylop-control` started the real smoke tier from the immutable producer snapshot.
+  Its outputs are under `s3://oa-bolinas/snakemake/vertebrate_projection_dataset/results/phylop-uniform-v1/2162b6aa8299a9748eeb8031318b49072bb8c3fc/5d9c798e656218acf8ea203023d71252223022c6010f70e508b9c43df83ef62e/smoke/`.
+  The retained worker stages the 1.26 TB HAL once onto local instance-store RAID0 before the full tier.
+- Public record: [Issue #517 strict-control update](https://github.com/Open-Athena/marin-dna/issues/517#issuecomment-5439739545).
+- Next action: Audit the six-arm smoke projection, run the full projection on the retained worker, publish six immutable datasets, and launch all six matched preemptible TPU runs.
+
+### 2026-08-27 15:56 UTC - `FAS-517-043` strict phyloP projection complete
+
+- Execution: Sky job 13 completed the full source DAG on the retained AWS `c6id.12xlarge` worker: 1,705/1,705 execution steps with no errors.
+  All 107 actual mammal `halLiftOver` invocations succeeded without retry; the measured HAL-only wall time was 46m37s from 14:20:17 to 15:06:54 UTC.
+- Projection scope: 1,136,854 unique 255 bp human anchors across all 24 primary chromosomes, 107 non-human mammals, and 28 non-mammal MultiZ targets.
+  Mammal and non-mammal fragments, contracts, and sequences all completed under the current center-1 projection contract.
+- Assignment audit: The six arms are exhaustive and sum exactly to the anchor catalog.
+  Anchor counts are 295,561 CDS; 67,155 3-prime UTR; 57,418 TSS/5-prime UTR; 98,630 ncRNA exon; 369,860 enhancer Arm A; and 248,230 background.
+  Background consists of 57,220 cCRE windows rejected by Arm A plus 191,010 v4-background windows.
+- Publication row counts: Including one human reference row per anchor, the combined source has 124,196,403 rows.
+  Per-arm totals are 34,758,271 CDS; 7,264,712 3-prime UTR; 5,806,425 TSS/5-prime UTR; 10,411,649 ncRNA exon; 39,879,096 enhancer; and 26,076,250 background.
+- Contract audit: For every anchor, accepted plus rejected projections equals all 135 requested non-human species; mammal plus non-mammal accepted counts equal the accepted total; recovered fractions agree to floating-point precision; and source spans are uniformly 255 bp.
+  Rejections are limited to 29,839,169 `no_mapping`, 541,280 `target_window_out_of_bounds`, and 35,292 `target_chromosome_too_short` events.
+- Manual sample: The deterministic 18-row sample covers all six arms and both projection backends, includes 11 reverse-strand rows, and has uniformly 255 bp target spans and sequences with valid IUPAC DNA.
+  The reported 1/255 alignment coverage is expected because the projector maps the center nucleotide and extracts 127 bp of target context on each side.
+- Durable source: `s3://oa-bolinas/snakemake/vertebrate_projection_dataset/results/phylop-uniform-v1/2162b6aa8299a9748eeb8031318b49072bb8c3fc/94d512050de327f96fda1105ce9c6ae5562944e402802516c7cde54795d8cdd1/full/`.
+- Next action: Snapshot the source-pinned publication workflow, build and anonymously verify six immutable Hugging Face datasets, then launch all six matched preemptible TPU runs as Iris user `gonzalo`.
