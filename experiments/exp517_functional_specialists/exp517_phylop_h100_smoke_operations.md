@@ -40,4 +40,5 @@ Completion requires at least one advancing W&B optimizer step with an H100 devic
 
 ## Change Record
 
-None.
+2026-08-27: Keep the CPU coordinator below Iris's large-resource threshold with 9 GB ephemeral disk.
+The H100 child retains its independently declared 128 GB disk request.

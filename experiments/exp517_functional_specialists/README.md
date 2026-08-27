@@ -195,7 +195,7 @@ uv run --python /usr/bin/python3.12 --locked \
   --no-wait --user gonzalo --priority batch --preemptible \
   --target-cluster cw-us-east-02a \
   --job-name exp517-phylop-cds-h100-pdp8192-smoke-d001 \
-  --cpu 1 --memory 2G --disk 10G \
+  --cpu 1 --memory 2G --disk 9G \
   -e WANDB_API_KEY "$WANDB_API_KEY" \
   -e WANDB_ENTITY gonzalobenegas \
   -e WANDB_PROJECT marin \
