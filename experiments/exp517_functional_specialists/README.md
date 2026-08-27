@@ -180,6 +180,34 @@ uv run --python /usr/bin/python3.12 --locked \
   --version 2026.08.27 --run'
 ```
 
+## Single-H100 validation
+
+The CoreWeave validation keeps all TPU production workflows live and uses a distinct CDS smoke identity.
+It tokenizes 16,384 rows from the same immutable public CDS dataset into cluster-local S3, then runs three optimizer steps on one preemptible H100.
+The first attempt uses the complete 8,192-sequence global batch as one per-device microbatch.
+Reduce the per-device microbatch to 4,096, 2,048, or 1,024 only after a verified H100 OOM.
+
+Select the production H100 peer from a current Iris capacity snapshot and use batch priority:
+
+```bash
+uv run --python /usr/bin/python3.12 --locked \
+  iris --cluster=marin job run \
+  --no-wait --user gonzalo --priority batch --preemptible \
+  --target-cluster cw-us-east-02a \
+  --job-name exp517-phylop-cds-h100-pdp8192-smoke-d001 \
+  --cpu 1 --memory 2G --disk 10G \
+  -e WANDB_API_KEY "$WANDB_API_KEY" \
+  -e WANDB_ENTITY gonzalobenegas \
+  -e WANDB_PROJECT marin \
+  -e EXP517_H100_CLUSTER cw-us-east-02a \
+  -e EXP517_H100_SMOKE_PDP 8192 \
+  -e UV_PROJECT /app/h100_smoke \
+  -- bash -lc 'cd /app && exec uv run --project /app/h100_smoke --locked python -m exp517_functional_specialists.phylop_uniform_h100_smoke --version 2026.08.27 --run'
+```
+
+The CoreWeave cluster supplies its S3 `MARIN_PREFIX` and object-store credentials.
+The thin `h100_smoke` environment keeps the established TPU lock unchanged and resolves the H100 child with its GPU-only `gpu` extra.
+
 ## Evaluation boundary
 
 Evaluate only the development split unless the user separately authorizes held-out access.
