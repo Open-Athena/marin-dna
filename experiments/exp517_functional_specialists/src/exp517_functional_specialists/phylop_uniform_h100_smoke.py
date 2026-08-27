@@ -18,6 +18,7 @@ from exp517_functional_specialists.experiment import (
     BATCH_SIZE,
     MARIN_COMMIT,
     MODEL,
+    MODEL_TOKENIZER_PATH,
     OPTIMIZER,
     SEED,
     SEQUENCE_LENGTH,
@@ -227,6 +228,10 @@ def build_smoke(arm: PhylopUniformArm) -> ArtifactStep[LevanterCheckpoint]:
             pod,
             train_config=replace(
                 pod.train_config,
+                data=replace(
+                    pod.train_config.data,
+                    tokenizer=MODEL_TOKENIZER_PATH,
+                ),
                 trainer=replace(
                     pod.train_config.trainer,
                     seed=SEED,

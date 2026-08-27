@@ -44,3 +44,6 @@ Completion requires at least one advancing W&B optimizer step with an H100 devic
 The H100 child retains its independently declared 128 GB disk request.
 2026-08-27: Pin the production CoreWeave peer on the top-level dispatch only.
 CPU and H100 child jobs inherit the federated controller rather than attempting self-refederation.
+2026-08-27: Disable top-level Iris auto-sync on production peers whose task image uv is older than the repository pin.
+Install uv 0.11.31 as an isolated tool, select the nested H100 project by its full bundled path, and run the coordinator from the experiment root.
+2026-08-27: Override the training data tokenizer with the vendored absolute path because the reused tokenized cache records the historical relative string `tokenizer`.

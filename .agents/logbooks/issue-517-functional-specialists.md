@@ -1067,3 +1067,18 @@ Its current anchor path instead creates uniform conservation-selected windows an
 - Negative result: Adding a CUDA index directly to the universal TPU project lock caused `uv` to reject conflicting CPU and CUDA indexes for transitive `torch` requirements.
   The first remote preparation attempt also failed before testing because its image had `uv 0.12.6` instead of the repository-pinned `0.11.31`; the temporary AWS spot node was then terminated.
 - Next action: Rebase the validated snapshot onto current `origin/main`, publish the branch, dispatch the CDS smoke directly from exe-codex, and verify actual H100 allocation plus advancing W&B optimizer steps before changing any TPU workflow.
+
+### 2026-08-27 19:22 UTC - `FAS-517-047` H100 batch calibration
+
+- Outcome at 8,192: The first real one-H100 train step failed with JAX `RESOURCE_EXHAUSTED`; XLA requested 203.65 GiB after rematerialization could not reduce the program below the H100 budget.
+  This is the required verified OOM and authorizes the planned reduction to per-device parallelism 4,096 while global batch remains 8,192.
+- Placement: Live capacity moved from full `cw-us-east-02a` to `cw-rno2a`, where repeated version-3 Iris snapshots reported at least 72 free H100s and as many as 192 during calibration.
+  A CPU probe confirmed that RNO injects the same `s3://marin-us-east-02a/marin` artifact prefix, so the completed tokenization remains reusable.
+- Launcher calibration: RNO's task image has uv 0.10.3, while the repository pins 0.11.31.
+  CPU-only preflights established the reproducible path: disable Iris auto-sync, install uv 0.11.31 as an isolated tool, address the nested project at its full bundled path, and run from the experiment root.
+- GPU validation: Dispatch `cds-h100-pdp4096-smoke-d005` allocated one preemptible batch H100 and installed the CUDA environment, but failed before compilation because the reused tokenized-cache record serialized its tokenizer as the relative string `tokenizer`.
+  The training child therefore looked for `/app/tokenizer` and fell back to a nonexistent Hugging Face repository.
+- Fix and validation: The H100 wrapper now overrides the data tokenizer with the already-proven absolute vendored tokenizer path.
+  All 18 project tests pass, including an assertion that the child training config receives an absolute tokenizer path.
+- Preservation: All six TPU workflows remain untouched throughout H100 calibration.
+- Next action: Snapshot and publish the absolute-tokenizer fix, rerun the 4,096 three-step smoke, and require advancing W&B optimizer progress plus a reachable checkpoint before considering the H100 path validated.

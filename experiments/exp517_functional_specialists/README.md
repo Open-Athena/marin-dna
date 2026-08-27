@@ -192,7 +192,7 @@ Select the production H100 peer from a current Iris capacity snapshot and use ba
 ```bash
 uv run --python /usr/bin/python3.12 --locked \
   iris --cluster=marin job run \
-  --no-wait --user gonzalo --priority batch --preemptible \
+  --no-wait --no-sync --user gonzalo --priority batch --preemptible \
   --target-cluster cw-us-east-02a \
   --job-name exp517-phylop-cds-h100-pdp8192-smoke-d001 \
   --cpu 1 --memory 2G --disk 9G \
@@ -201,12 +201,13 @@ uv run --python /usr/bin/python3.12 --locked \
   -e WANDB_PROJECT marin \
   -e EXP517_H100_CLUSTER cw-us-east-02a \
   -e EXP517_H100_SMOKE_PDP 8192 \
-  -e UV_PROJECT /app/h100_smoke \
-  -- bash -lc 'cd /app && exec uv run --project /app/h100_smoke --locked python -m exp517_functional_specialists.phylop_uniform_h100_smoke --version 2026.08.27 --run'
+  -e UV_PROJECT /app/experiments/exp517_functional_specialists/h100_smoke \
+  -- bash -lc 'cd /tmp && UV_TOOL_DIR=/tmp/uv-tools UV_TOOL_BIN_DIR=/tmp/uv-bin uv tool install uv==0.11.31 && cd /app/experiments/exp517_functional_specialists && exec /tmp/uv-bin/uv run --project /app/experiments/exp517_functional_specialists/h100_smoke --locked python -m exp517_functional_specialists.phylop_uniform_h100_smoke --version 2026.08.27 --run'
 ```
 
 The CoreWeave cluster supplies its S3 `MARIN_PREFIX` and object-store credentials.
 The thin `h100_smoke` environment keeps the established TPU lock unchanged and resolves the H100 child with its GPU-only `gpu` extra.
+The coordinator disables Iris auto-sync, installs the repository-pinned uv as an isolated tool, and runs from the experiment root so the vendored tokenizer resolves identically on every production peer.
 The top-level Iris job owns the CoreWeave peer selection; child jobs inherit that controller and must not attempt to federate back to the same peer.
 
 ## Evaluation boundary

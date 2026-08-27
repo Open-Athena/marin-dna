@@ -1,7 +1,11 @@
 from __future__ import annotations
 
 import pytest
-from exp517_functional_specialists.experiment import BATCH_SIZE, SEQUENCE_LENGTH
+from exp517_functional_specialists.experiment import (
+    BATCH_SIZE,
+    MODEL_TOKENIZER_PATH,
+    SEQUENCE_LENGTH,
+)
 from exp517_functional_specialists.phylop_uniform_experiment import ARMS
 from exp517_functional_specialists.phylop_uniform_h100_smoke import (
     DEFAULT_H100_PER_DEVICE_PARALLELISM,
@@ -62,6 +66,8 @@ def test_smoke_requests_one_preemptible_h100_at_full_batch(monkeypatch) -> None:
     ) == 8_192
     assert train.trainer.num_train_steps == SMOKE_TRAIN_STEPS == 3
     assert train.train_seq_len == SEQUENCE_LENGTH == 256
+    assert train.data.tokenizer == MODEL_TOKENIZER_PATH
+    assert train.data.tokenizer.startswith("/")
     assert resources.device.kind == "gpu"
     assert resources.device.variant == "H100"
     assert resources.device.count == 1
