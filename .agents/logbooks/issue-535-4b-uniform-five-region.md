@@ -51,7 +51,11 @@ The vendored character tokenizer is pinned to source revision `a73e9d9ee636f722b
 - 2026-08-27: Remote locked tests found that lazy artifacts require plain calendar versions and that a CPU test with the TPU extra must explicitly select the CPU JAX backend.
 - 2026-08-27: Corrected both preflight-only failures; neither job reached training or requested an accelerator.
 - 2026-08-27: Remote locked test job `/gonzalo/exp535-config-tests-v2` passed all five configuration tests on commit `4e15974d`.
+- 2026-08-27: Canceled smoke coordinators v1 and v2 before TPU allocation after finding coordinator-placement and missing-CLI-version errors.
+- 2026-08-27: Smoke v3 created the exact `v5p-16` child, but Iris classified its inherited placement as on-demand and reported `tier_blocked` against the preemptible pool; no TPU worker was allocated.
+- 2026-08-27: Added an experiment-local compatibility shim that makes `preemptible=True` a hard Iris capacity constraint for the TPU child while retaining an on-demand CPU coordinator.
+- 2026-08-27: Remote locked test job `/gonzalo/exp535-config-tests-v3` passed all six configuration tests, including the persisted hard-preemptible constraint check.
 
 ## Launch record
 
-Pending local validation, committed snapshot, capacity refresh, and smoke dispatch.
+Pending committed constraint-fix snapshot and corrected smoke dispatch.

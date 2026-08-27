@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import hashlib
 import os
+from collections.abc import Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import timedelta
 from pathlib import Path
@@ -284,8 +286,33 @@ def _run_on_tpu(pod_config: TrainLmOnPodConfig) -> None:
     run_levanter_train_lm(pod_config)
 
 
+@contextmanager
+def _require_preemptible_iris_capacity() -> Iterator[None]:
+    """Make the pinned Fray client require, rather than merely allow, spot capacity."""
+    import fray.iris_backend as iris_backend
+    from iris.cluster.constraints import Constraint, preemptible_constraint
+
+    original_convert_constraints = iris_backend.convert_constraints
+
+    def convert_constraints(resources: ResourceConfig) -> list[Constraint]:
+        constraints = original_convert_constraints(resources)
+        if resources.preemptible:
+            constraints.append(preemptible_constraint(True, soft=False))
+        return constraints
+
+    iris_backend.convert_constraints = convert_constraints
+    try:
+        yield
+    finally:
+        iris_backend.convert_constraints = original_convert_constraints
+
+
 def _training_job(pod_config: TrainLmOnPodConfig) -> None:
-    remote(_run_on_tpu, resources=pod_config.resources)(pod_config)
+    # The pinned Fray version omits a constraint for ``preemptible=True``.
+    # A child of an on-demand coordinator is consequently classified as
+    # on-demand by Iris and cannot enter the preemptible TPU quota tier.
+    with _require_preemptible_iris_capacity():
+        remote(_run_on_tpu, resources=pod_config.resources)(pod_config)
 
 
 def build_training(mode: Literal["smoke", "production"]) -> ArtifactStep[LevanterCheckpoint]:

@@ -23,6 +23,8 @@ from exp535_4b_uniform_five_region.experiment import (
     TPU_REGION,
     TPU_VARIANT,
     TPU_ZONE,
+    _require_preemptible_iris_capacity,
+    _resources,
     build_training,
     optimizer_config,
     validate_vendored_tokenizer,
@@ -94,6 +96,22 @@ def test_smoke_has_separate_identity_and_twenty_updates(monkeypatch) -> None:
     assert pod.train_config.trainer.num_train_steps == SMOKE_TARGET_STEP == PARENT_STEP + 20
     assert pod.train_config.adapter.steps == SMOKE_HF_EXPORT_STEPS == (SMOKE_TARGET_STEP,)
     assert pod.train_config.trainer.checkpointer.keep == []
+
+
+def test_tpu_submission_requires_preemptible_capacity() -> None:
+    import fray.iris_backend as iris_backend
+    from iris.cluster.types import WellKnownAttribute
+
+    with _require_preemptible_iris_capacity():
+        constraints = iris_backend.convert_constraints(_resources())
+    preemptible = [
+        constraint
+        for constraint in constraints
+        if constraint.key == WellKnownAttribute.PREEMPTIBLE
+    ]
+    assert len(preemptible) == 1
+    assert preemptible[0].values[0].value == "true"
+    assert preemptible[0].is_soft is False
 
 
 def test_second_wsd_cycle_has_requested_boundaries() -> None:
