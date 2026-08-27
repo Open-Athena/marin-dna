@@ -1035,3 +1035,18 @@ Its current anchor path instead creates uniform conservation-selected windows an
   - Background: `marin-dna/phylop-uniform-v1-background` at `7d84519dccb4286622a14642a82a4f045d93a42c`.
 - Training gate: The six-run launcher now pins the publication producer and exact Hub revisions while retaining the GPN experiment's model, optimizer, tokenizer, seed, batch, schedule, checkpoint cadence, ordered `v5p-8,v6e-4` preemptible request, and six region assignments.
 - Next action: Validate and snapshot the pinned launcher, launch all six independent jobs as Iris user `gonzalo`, and verify coordinator acceptance, immutable input download, and child scheduling.
+
+### 2026-08-27 17:25 UTC - `FAS-517-045` capacity-aware strict-control launch
+
+- Rebase: At the human's request, the experiment branch was rebased cleanly onto `origin/main` commit `7cf936d97b7a92baccb82b147cb66dadf6d48503` before any training submission.
+  The already-published pre-rebase producer is preserved by annotated tag `issue517-phylop-publication-v1`.
+- Updated guidance: Rebased commit `cf41be91` applies the new TRC sweep operating contract, records the exact target grid and recovery policy, adds structured `tpu_region=us-east5` W&B lineage, and passed all 15 locked project tests on EC2.
+- Durable state: Six logical trials and six regional runs are registered in the sweep SQLite database.
+  Every dispatch intent and confirmation has an immutable, size- and SHA-256-verified backup under `gs://marin-us-east5/MarinDNA/exp517_phylop_uniform_specialists/sweep_state/`.
+- Launches: Six independent coordinators were accepted between 17:17:21 and 17:23:05 UTC as `/gonzalo/exp517-phylop-uniform-{cds,utr3,tss-utr5,ncrna-exon,enhancer-arm-a,background}-alt-d001`.
+  They use interactive priority, one regional replica, `us-east5`, and ordered preemptible child alternatives `v5p-8,v6e-4`; the 48-chip registry total is a submitted ceiling rather than current allocation.
+- Initial health: At 17:24:31 UTC all six coordinators were running.
+  CDS, 3-prime UTR, TSS/5-prime UTR, ncRNA exon, and enhancer Arm A had running tokenization subtrees; the background tokenizer was newly pending behind its running coordinator.
+  No W&B run had registered and no TPU was yet allocated, which is expected before tokenization completes.
+- Cleanup: The temporary EC2 W&B credential was removed and the completed publication cluster `issue517-phylop-hf` was terminated.
+- Next action: Observe W&B first, verify each immutable token cache, actual TPU family, first optimizer progress, and sane telemetry, then keep the 30-minute capacity-aware heartbeat until all six terminal step-4,999 checkpoints exist.
