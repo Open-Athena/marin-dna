@@ -175,3 +175,44 @@ def test_phylop_uniform_control_is_additive_current_projector_and_ec2_only() -> 
     assert "--profile workflow/profiles/default" in worker
     assert 'test "$TARGET" = "tests" -o "$TARGET" = "all"' in worker
     assert "uv run --locked pytest" in worker
+
+
+def test_phylop_uniform_publication_is_source_pinned_and_upload_gated() -> None:
+    config = yaml.safe_load(
+        (PROJECT_ROOT / "config/phylop_uniform_publication.yaml").read_text()
+    )
+    snakefile = (
+        PROJECT_ROOT / "workflow/phylop_uniform_publication.Snakefile"
+    ).read_text()
+    rules = (
+        PROJECT_ROOT / "workflow/rules/phylop_uniform_publication.smk"
+    ).read_text()
+    worker = (PROJECT_ROOT / "sky/phylop_uniform_hf.yaml").read_text()
+
+    assert config["source_pipeline_commit"] == (
+        "2162b6aa8299a9748eeb8031318b49072bb8c3fc"
+    )
+    assert config["source_config_sha256"] == (
+        "94d512050de327f96fda1105ce9c6ae5562944e402802516c7cde54795d8cdd1"
+    )
+    assert config["source_rows"] > 0
+    assert sum(config["source_arm_rows"].values()) == config["source_rows"]
+    assert config["region_cohorts"] == [
+        "cds",
+        "utr3",
+        "tss_region_and_utr5",
+        "ncrna_exon",
+        "enhancer",
+        "background",
+    ]
+    assert len(set(config["hf_repo_names"].values())) == 6
+    assert config["validation_rows"] == 16_384
+    assert config["add_rc"] is True
+    assert 'include: "rules/phylop_uniform_publication.smk"' in snakefile
+    assert "validate_producer_manifest" in rules
+    assert "phylop_hf_upload_dataset" in rules
+    assert 'ALLOW_HF_UPLOAD: "0"' in worker
+    assert 'test "$ALLOW_HF_UPLOAD" = "1"' in worker
+    assert 'if [ -z "${HF_TOKEN:-}" ]' in worker
+    assert "workflow/phylop_uniform_publication.Snakefile" in worker
+    assert "r6i.8xlarge" in worker
