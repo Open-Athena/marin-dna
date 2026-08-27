@@ -1098,3 +1098,21 @@ Its current anchor path instead creates uniform conservation-selected windows an
 - Persistence: The 2,048 trial is marked complete with a verified checkpoint in the sweep database, and each observation, terminal transition, and completion transaction has an immutable downloaded-and-SHA-256-verified GCS backup.
 - Preservation: All six TPU workflows remain untouched.
 - Next action: Use per-device parallelism 2,048 for any full one-H100 control launch; decide whether to run the full CDS arm first or expand immediately to the six-arm H100 sweep while retaining the TPU controls.
+
+### 2026-08-27 20:49 UTC - `FAS-517-049` full CDS H100 handoff armed
+
+- Human decision: Proceed from the validated three-step smoke to the complete strict-phyloP CDS arm on one preemptible H100 while leaving all six TPU workflows untouched.
+  The full scientific contract remains global batch 8,192, per-device parallelism 2,048, sequence length 256, seed 0, and 5,000 optimizer steps over immutable dataset revision `452a5a3538f22630c3dea94d441ac30216bb28ea`.
+- Pre-GPU failures: Full dispatches `d001` and `d002` failed before any H100 allocation, W&B registration, or optimizer step because the bare nested CPU tokenizer image lacked `cloudpickle`.
+  They are execution-setup failures rather than scientific training failures.
+- Tokenizer correction: Commit `7e7f78ee` runs the maintained Marin tokenizer with 16 local Zephyr workers inside one explicitly sized preemptible CoreWeave CPU task and hides `IRIS_TASK_ID` only while that local pool runs.
+  All 22 locked project tests pass, and live job `/gonzalo/exp517-phylop-cds-h100-full-tokenize-d002` shows 16/16 workers alive, zero dead workers, and no nested Iris worker jobs.
+- Cache scale and ETA: The source is 10.73 GB across 64 train shards and one validation shard.
+  The immutable training split contains 71,002,636 rows after reverse-complement augmentation, so the measured aggregate throughput implies approximately 1h50m for this one-time cache build and a current completion window near 22:15-22:30 UTC.
+- Durable control state: Every preprocessing intent, accepted submission, terminal retry, and current active state has a new immutable SQLite backup under `gs://marin-us-east5/MarinDNA/exp517_phylop_uniform_specialists/sweep_state/coreweave-full-cds/`, downloaded and SHA-256 verified after upload.
+- Capacity compatibility: Iris production peers now advertise availability schema version 3 while the pinned strict helper only accepts version 2.
+  A direct v3 audit reconciled free plus held H100s to each fleet total and showed 232 of 512 free on `cw-rno2a` versus 4 of 256 on `cw-us-east-02a` at the latest sample.
+- Event-triggered handoff: A no-polling watcher is armed on exe-codex.
+  It requires preprocessing success, rejects a duplicate `d003`, validates a fresh internally consistent v3 snapshot for both eligible peers, selects the peer with more free H100s, persists and verifies each state transition, and then submits `/gonzalo/exp517-phylop-cds-h100-pdp2048-full-d003`.
+- Public record: The issue records the successful 2,048 calibration, the healthy full-cache build, and a correction from the pre-augmentation to the post-augmentation row-count ETA.
+- Next action: Confirm cache completion and accepted `d003` submission, then verify the actual one-H100 child, W&B progress, sustained throughput, and first full-run checkpoint before considering any TPU cancellation or additional H100 arm.
