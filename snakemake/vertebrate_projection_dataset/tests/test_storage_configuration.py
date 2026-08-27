@@ -69,10 +69,7 @@ def test_gpn_star_profile_is_pinned_additive_and_ec2_only() -> None:
 
     assert config["pipeline_version"] == "gpn-star-p-uniform-v1"
     assert config["gpn_dataset_repo"] == "songlab/gpn-star-scores"
-    assert (
-        config["gpn_dataset_revision"]
-        == "5c799b2ec6aa089f0caa8294ae72adb4510f81ae"
-    )
+    assert config["gpn_dataset_revision"] == "5c799b2ec6aa089f0caa8294ae72adb4510f81ae"
     assert config["gpn_score_set"] == "gpn-star-hg38-p243-200m"
     assert config["gpn_entropy_cutoff"] == 0.081001
     assert config["gpn_min_selected_bases"] == 51
@@ -86,7 +83,7 @@ def test_gpn_star_profile_is_pinned_additive_and_ec2_only() -> None:
         "background",
     ]
     assert len(manifest_rows) == 25
-    assert set(row.split("\t")[0] for row in manifest_rows[1:]) == set(
+    assert {row.split("\t")[0] for row in manifest_rows[1:]} == set(
         config["standard_chroms"]
     )
     assert all(len(row.split("\t")[4]) == 64 for row in manifest_rows[1:])
@@ -101,7 +98,7 @@ def test_gpn_star_profile_is_pinned_additive_and_ec2_only() -> None:
     assert "c6id.12xlarge" in worker
     assert "workflow/gpn_star.Snakefile" in worker
     assert "--profile workflow/profiles/default" in worker
-    assert 'tests|all|all_projection)' in worker
+    assert "tests|all|all_projection)" in worker
     assert "uv run --locked pytest" in worker
 
 
@@ -146,3 +143,35 @@ def test_gpn_star_publication_is_source_pinned_and_upload_gated() -> None:
     assert 'if [ -z "${HF_TOKEN:-}" ]' in worker
     assert "workflow/gpn_star_publication.Snakefile" in worker
     assert "r6i.8xlarge" in worker
+
+
+def test_phylop_uniform_control_is_additive_current_projector_and_ec2_only() -> None:
+    config = yaml.safe_load((PROJECT_ROOT / "config/phylop_uniform.yaml").read_text())
+    snakefile = (PROJECT_ROOT / "workflow/phylop_uniform.Snakefile").read_text()
+    assignment = (
+        PROJECT_ROOT / "workflow/rules/phylop_uniform_anchors.smk"
+    ).read_text()
+    worker = (PROJECT_ROOT / "sky/phylop_uniform_project.yaml").read_text()
+
+    assert config["pipeline_version"] == "phylop-uniform-v1"
+    assert config["phylop_track"] == "phyloP_447m"
+    assert config["phyloP_447m_threshold"] == 2.2162
+    assert config["min_proportion_conserved"] == 0.20
+    assert config["expected_full_anchors"] == 1_136_854
+    assert config["assignment_arms"] == [
+        "cds",
+        "utr3",
+        "tss_region_and_utr5",
+        "ncrna_exon",
+        "enhancer",
+        "background",
+    ]
+    assert 'include: "rules/anchors.smk"' in snakefile
+    assert 'include: "rules/projection.smk"' in snakefile
+    assert 'include: "rules/dataset.smk"' not in snakefile
+    assert "write_phylop_uniform_anchor_catalog" in assignment
+    assert "c6id.12xlarge" in worker
+    assert "workflow/phylop_uniform.Snakefile" in worker
+    assert "--profile workflow/profiles/default" in worker
+    assert 'test "$TARGET" = "tests" -o "$TARGET" = "all"' in worker
+    assert "uv run --locked pytest" in worker
