@@ -1178,3 +1178,15 @@ Its current anchor path instead creates uniform conservation-selected windows an
 - Evaluation: The four completed-arm VEP workflow has produced all inputs needed for the same-row phyloP-versus-GPN audit while its remaining metrics finish.
   A 1,000-bootstrap paired comparison is running on a preemptible EC2 `c6i.2xlarge` in `us-east-2c`; the established metric implementation excludes miRNA internally.
 - Next action: Publish the completed four-arm AUPRC and paired deltas, then evaluate ncRNA exon and background immediately after their terminal step-4,999 checkpoints are verified.
+
+### 2026-08-28 13:29 UTC - `FAS-517-054` all six strict controls terminal
+
+- Recovery completion: Corrected ncRNA `d006` and background `d004` children both used the absolute vendored tokenizer path, restored optimizer state at steps 4,886 and 4,908, and completed successfully on preemptible `v6e-4` slices.
+- Terminal verification: W&B reports both runs `finished` at global step 4,999 with `run_progress=1`.
+  Their evaluation losses are 0.92461 for ncRNA exon and 1.22600 for background.
+  Each terminal Hugging Face export contains a 1,019,422,904-byte `model.safetensors` plus reachable configuration and tokenizer files.
+- Sweep completion: All six logical trials and regional runs are now complete, with zero active dispatches, zero submitted TPU chips, and no unresolved persistence conditions.
+- Durable state: The 118,784-byte terminal SQLite snapshot was uploaded to `gs://marin-us-east5/MarinDNA/exp517_phylop_uniform_specialists/sweep_state/exp517_sweep_20260828T132900Z_all_six_terminal.sqlite`, downloaded, and verified at SHA-256 `e0a9a51b0a4fe94d9c2264a3f9b348e6ea1b18bf93d7900da82e27df831029ec`.
+- Immediate evaluation: Background VEP job 1 and ncRNA VEP job 2 were submitted on the same reviewed-commit A10G evaluator after artifact verification.
+  The cluster obtained the approved on-demand fallback after spot capacity was unavailable, and the pinned A10G runtime parity gate passed before scoring.
+- Next action: Complete the four remaining VEP cells, extract the full six-arm metrics, produce the issue-232-style diagonal, and publish the final selector-control comparison.
