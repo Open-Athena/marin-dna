@@ -41,6 +41,8 @@ Protect progress within `reslice_after`.
 Iris handles ordinary preemption; do not replace a progressing or merely preempted job.
 Classify isolated versus systemic failures from the full W&B fleet before recovery.
 Completion requires `run_progress >= 1` and a reachable terminal step-4,999 checkpoint.
+If a late checkpoint write alone exhausts coordinator host memory, preserve the same regional checkpoint root, W&B identity, and scientific configuration and retry that logical run with 96 GiB coordinator RAM.
+Treat this host-memory-only retry as execution recovery, not a new scientific trial.
 
 | Region | Bucket | Slice | Chips | State | Reason |
 | --- | --- | --- | ---: | --- | --- |
@@ -49,4 +51,5 @@ Completion requires `run_progress >= 1` and a reachable terminal step-4,999 chec
 
 ## Change Record
 
-None.
+- 2026-08-28: ncRNA exon and background exhausted 56 GiB coordinator RAM while writing late checkpoints after W&B steps 4,984 and 4,998.
+  Their same-identity recovery coordinators now request 96 GiB while retaining preemptible `v6e-4` children and the original regional checkpoint roots.

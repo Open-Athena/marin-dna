@@ -1150,3 +1150,19 @@ Its current anchor path instead creates uniform conservation-selected windows an
   The terminal 73,728-byte SQLite snapshot was uploaded to `gs://marin-us-east5/MarinDNA/exp517_phylop_uniform_specialists/sweep_state/coreweave-full-cds-pdp1024/exp517_h100_full_cds_pdp1024_20260828T003833Z_terminal.sqlite`, downloaded, and verified at SHA-256 `3e0f6341a38ffe589b387b9f7f34b3ca9797deb28c276d6b558f0c5a741a07d8`.
 - Preservation: All six TPU workflows remain untouched.
 - Next action: Keep the single-H100 path paused pending a decision between a 512 memory-fit test and returning focus to the TPU controls.
+
+### 2026-08-28 12:35 UTC - `FAS-517-052` four terminal controls and immediate VEP
+
+- Training completion: CDS, 3-prime UTR, TSS/5-prime UTR, and enhancer Arm A reached optimizer step 4,999 and have reachable terminal Hugging Face `model.safetensors` checkpoints.
+  Their final W&B evaluation losses are 1.08367, 0.92517, 0.85712, and 1.27926, respectively.
+- Host-memory failures: ncRNA exon reached W&B step 4,984 and background reached step 4,998 before their coordinators exhausted host RAM while writing late checkpoints.
+  Both retained durable step-4,500 checkpoints, so this is an execution failure rather than a change to the scientific control.
+- Recovery: The corrected recovery roots are `/gonzalo/exp517-phylop-uniform-ncrna-exon-v6e-96g-d005` and `/gonzalo/exp517-phylop-uniform-background-v6e-96g-d003`.
+  They preserve the exact dataset revision, training configuration, checkpoint root, and W&B identity while requesting preemptible `v6e-4` children with 96 GiB host RAM.
+  At 12:35 UTC both coordinators were healthy and both children were pending because Iris reported zero of the required four TPU chips immediately available.
+- VEP registration: PR [#536](https://github.com/Open-Athena/marin-dna/pull/536) registers the six strict-control terminal cells and a train-only issue configuration at commit `7eff7a121bd9ddf015a155863df72e04f43c1558`.
+  The established evaluation metrics remain unchanged and exclude miRNA records internally.
+- Immediate evaluation: SkyPilot job `exp517-phylop-vep-4arms` job 1 is running the nine available development-only cells on one AWS A10G.
+  Spot A10G capacity was unavailable in the eligible `us-east-2` zones, so the checked-in fallback provisioned an on-demand `g5.xlarge` at $1.01 per hour; the runtime gate confirmed an NVIDIA A10G with bf16 support before scoring.
+- Durable state: The current two-recovery sweep database was uploaded to `gs://marin-us-east5/MarinDNA/exp517_phylop_uniform_specialists/sweep_state/exp517_sweep_20260828T123057Z_two_recoveries_pending.sqlite`, downloaded, and verified at SHA-256 `a5ff50140fa8c826b3135e70752d5f740a2198eb69cabbf0eae09335aa3ddc0a`.
+- Next action: Publish the nine available AUPRC results after completion, verify each recovered step-4,999 checkpoint, and trigger the ncRNA-exon and background VEP cells as soon as their terminal artifacts appear.
