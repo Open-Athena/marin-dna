@@ -1,0 +1,67 @@
+{
+  "cds.missense": {
+    "baseline": "s3://oa-bolinas/snakemake/analysis/evals_v2/results/scores/exp517-gpn-uniform-cds-step-4999/complex_traits.parquet",
+    "ci_high": 0.026876475115895894,
+    "ci_low": -0.011645762185995409,
+    "current": "s3://oa-bolinas/snakemake/analysis/evals_v2/results/scores/exp517-phylop-uniform-cds-step-4999/complex_traits.parquet",
+    "delta": 0.009877424424644954,
+    "n_groups": 250,
+    "n_rows": 2500,
+    "p_two_sided": 0.354,
+    "score_protocol": "abs_llr",
+    "se": 0.009808638243296138,
+    "subset": "missense_variant"
+  },
+  "enhancer.distal": {
+    "baseline": "s3://oa-bolinas/snakemake/analysis/evals_v2/results/scores/exp517-gpn-uniform-enhancer-arm-a-step-4999/complex_traits.parquet",
+    "ci_high": 0.013585951097175036,
+    "ci_low": -0.0015781650277146273,
+    "current": "s3://oa-bolinas/snakemake/analysis/evals_v2/results/scores/exp517-phylop-uniform-enhancer-arm-a-step-4999/complex_traits.parquet",
+    "delta": 0.005776670613564669,
+    "n_groups": 616,
+    "n_rows": 6160,
+    "p_two_sided": 0.132,
+    "score_protocol": "abs_llr",
+    "se": 0.0038904785630999414,
+    "subset": "distal"
+  },
+  "tss.promoter": {
+    "baseline": "s3://oa-bolinas/snakemake/analysis/evals_v2/results/scores/exp517-gpn-uniform-tss-utr5-step-4999/complex_traits.parquet",
+    "ci_high": 0.020252615682727935,
+    "ci_low": -0.03421516931073785,
+    "current": "s3://oa-bolinas/snakemake/analysis/evals_v2/results/scores/exp517-phylop-uniform-tss-utr5-step-4999/complex_traits.parquet",
+    "delta": -0.007035404178939109,
+    "n_groups": 138,
+    "n_rows": 1380,
+    "p_two_sided": 0.626,
+    "score_protocol": "abs_llr",
+    "se": 0.013729972330934079,
+    "subset": "tss_proximal"
+  },
+  "tss.utr5": {
+    "baseline": "s3://oa-bolinas/snakemake/analysis/evals_v2/results/scores/exp517-gpn-uniform-tss-utr5-step-4999/complex_traits.parquet",
+    "ci_high": 0.06073702310819766,
+    "ci_low": -0.06480592295424957,
+    "current": "s3://oa-bolinas/snakemake/analysis/evals_v2/results/scores/exp517-phylop-uniform-tss-utr5-step-4999/complex_traits.parquet",
+    "delta": -0.0020204267261105247,
+    "n_groups": 37,
+    "n_rows": 370,
+    "p_two_sided": 0.918,
+    "score_protocol": "abs_llr",
+    "se": 0.03164409806377082,
+    "subset": "5_prime_UTR_variant"
+  },
+  "utr3.utr3": {
+    "baseline": "s3://oa-bolinas/snakemake/analysis/evals_v2/results/scores/exp517-gpn-uniform-utr3-step-4999/complex_traits.parquet",
+    "ci_high": 0.015515339477905555,
+    "ci_low": -0.09562917470603922,
+    "current": "s3://oa-bolinas/snakemake/analysis/evals_v2/results/scores/exp517-phylop-uniform-utr3-step-4999/complex_traits.parquet",
+    "delta": -0.02839226708415976,
+    "n_groups": 49,
+    "n_rows": 490,
+    "p_two_sided": 0.25,
+    "score_protocol": "abs_llr",
+    "se": 0.028480610302226844,
+    "subset": "3_prime_UTR_variant"
+  }
+}
