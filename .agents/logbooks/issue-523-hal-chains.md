@@ -17,7 +17,7 @@ author: gonzalobenegas
 
 ## Current TL;DR
 
-- Status: The real EC2 pilot is running; HAL staging, validation, the full-grid BED, and all four genome-asset builds are complete, and the first two chain conversions are active.
+- Status: The first producer hit a chain-comment parsing bug after completing the baboon conversion; the fixed producer passes all 262 project tests, and the still-running elephant output is protected by same-filesystem recovery links before the old validator runs.
 - Selected artifact: Whole-genome human-to-species chains, because later tilings, window lengths, anchor positions, and arbitrary annotations must not require another HAL traversal.
 - Pilot: Build supported-default and `--noDupes` candidates for `Papio_anubis`, `Mus_musculus`, and `Loxodonta_africana` from one NVMe-staged HAL, with at most two pair pipelines running concurrently.
 - Gate: Compare all 1,136,854 strict-phyloP center mappings with their immutable direct-HAL outputs before accepting either chain recipe.
@@ -114,3 +114,24 @@ author: gonzalobenegas
 - Interpretation: One of the first two HAL traversals has moved into chain construction without resource pressure or observed stderr.
   Completion and success remain unconfirmed until the pipeline closes, writes the chain and generation JSON, and uploads both to S3.
 - Next action: Inspect the first finalized chain, resource metrics, S3 objects, direction audit, and strict-phyloP parity before estimating the remaining runtime.
+
+### 2026-08-28 23:46 UTC - `HALC-523-004` repair chain-comment validation and protect the elephant output
+
+- Hypothesis: The generated UCSC chain is structurally valid and the observed failure is confined to the post-generation direction validator.
+- Failed producer: `9627087eef9e4b1057a3b6f448771c0a17580ff0`, Sky job 7.
+- Fixed producer: `983c9959a3073a49bfb26afd0d5391481050a97d`.
+- Result: `Papio_anubis/no_dupes` reached `validate_chain_direction` at 21:50:21 UTC, 4 hours 47 minutes 5 seconds after the pair started.
+  The conversion subprocess had returned successfully, but the validator attempted to parse the valid `##matrix=axtChain` metadata line as an aligned-block integer and raised `ValueError`.
+- Result: Atomic failure cleanup removed the baboon chain partial and its GNU-time file before upload.
+  No baboon chain object was installed locally or sent to S3, so that candidate must be regenerated.
+- Fix: `validate_chain_direction` now skips non-empty chain comment lines beginning with `#`.
+  The regression fixture includes both `##matrix=axtChain` and a normal comment before the first chain header.
+- Verification: Sky job 8 ran `uv run --locked pytest` on the existing EC2 worker; all 262 tests passed in 13.08 seconds.
+- Verification: Sky job 9 constructed the fixed producer's 28-job recovery DAG in dry-run mode.
+  The expected shared Snakemake-lock warning was present because the old elephant rule was still active; the dry-run itself exited successfully.
+- Recovery: At 23:41 UTC, `Loxodonta_africana/default` remained in `halLiftover` at 99.6% CPU after 6 hours 38 minutes.
+  Same-filesystem hard links now preserve its compressed-chain partial, GNU-time file, and stderr file if the old validator unlinks their workflow paths.
+- Resource check: The node retained about 359 GiB available memory and 1.3 TiB free NVMe space.
+- Interpretation: The failure does not reject the HAL-to-chain method; it exposes a missing chain-format case in our validator.
+  Baboon must be regenerated, while elephant's completed chain bytes and runtime evidence should survive the same validator failure.
+- Next action: Wait for the old elephant process to finish, validate and account for the preserved chain, then launch the fixed producer without restaging the HAL.
