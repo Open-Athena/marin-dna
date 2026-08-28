@@ -27,7 +27,7 @@ Four metric families live here:
 """
 
 import math
-from collections.abc import Callable, Sequence
+from collections.abc import Callable
 
 import numpy as np
 import pandas as pd
@@ -128,54 +128,6 @@ SCORE_PROTOCOLS: dict[str, Callable[[np.ndarray], np.ndarray]] = {
     "minus_llr": lambda x: -x,
     "abs_llr": np.abs,
 }
-
-
-def exclude_complete_match_groups_with_subsets(
-    dataset: pd.DataFrame,
-    excluded_subsets: Sequence[str],
-) -> pd.DataFrame:
-    """Remove every row from groups containing an excluded subset.
-
-    Variant-effect datasets are matched at the ``match_group`` level.
-    Removing only the rows in an excluded subset would leave their matched
-    controls behind and corrupt both the class balance and the cluster
-    bootstrap.  This helper therefore identifies groups containing any
-    configured subset and removes those groups in full.
-
-    The configured subset names must all occur in the input.  Failing loudly
-    protects experiment-specific exclusions from silently becoming no-ops
-    after a dataset schema or vocabulary change.
-    """
-    for column in ("subset", "match_group"):
-        assert column in dataset.columns, (
-            f"dataset missing required column {column!r} for group exclusion"
-        )
-
-    excluded = tuple(dict.fromkeys(excluded_subsets))
-    assert all(isinstance(value, str) and value for value in excluded), (
-        "excluded subset names must be non-empty strings"
-    )
-    if not excluded:
-        return dataset.reset_index(drop=True).copy()
-
-    assert not dataset["subset"].isna().any(), "subset contains null values"
-    assert not dataset["match_group"].isna().any(), "match_group contains null values"
-    present = set(dataset["subset"].astype(str).unique())
-    missing = sorted(set(excluded) - present)
-    assert not missing, (
-        f"configured excluded subsets are absent from the dataset: {missing}; "
-        f"present subsets: {sorted(present)}"
-    )
-
-    excluded_groups = dataset.loc[
-        dataset["subset"].isin(excluded), "match_group"
-    ].unique()
-    filtered = dataset.loc[~dataset["match_group"].isin(excluded_groups)].reset_index(
-        drop=True
-    )
-    assert not filtered.empty, "group exclusion removed every dataset row"
-    assert not filtered["match_group"].isin(excluded_groups).any()
-    return filtered
 
 
 def auprc_with_bootstrap_se(

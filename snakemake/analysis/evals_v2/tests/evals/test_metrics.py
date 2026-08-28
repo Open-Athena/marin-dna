@@ -22,47 +22,11 @@ from marin_dna_evals.metrics import (
     compute_qtl_metrics,
     compute_sge_metrics,
     compute_sge_probe_metrics,
-    exclude_complete_match_groups_with_subsets,
     paired_metric_delta_bootstrap,
     per_chrom_ap_table,
     per_chrom_weighted_ap,
 )
 from sklearn.metrics import average_precision_score
-
-
-def test_exclude_complete_match_groups_with_subsets() -> None:
-    dataset = pd.DataFrame(
-        {
-            "subset": [
-                "mature_miRNA_variant",
-                "missense_variant",
-                "missense_variant",
-                "synonymous_variant",
-            ],
-            "match_group": [10, 10, 11, 11],
-            "label": [1, 0, 1, 0],
-            "score": [0.9, 0.1, 0.8, 0.2],
-        }
-    )
-
-    filtered = exclude_complete_match_groups_with_subsets(
-        dataset, ["mature_miRNA_variant"]
-    )
-
-    assert filtered.to_dict("records") == dataset.iloc[2:].to_dict("records")
-    assert list(filtered.index) == [0, 1]
-
-
-def test_exclude_complete_match_groups_rejects_missing_subset() -> None:
-    dataset = pd.DataFrame(
-        {
-            "subset": ["missense_variant", "missense_variant"],
-            "match_group": [1, 1],
-        }
-    )
-
-    with pytest.raises(AssertionError, match="absent from the dataset"):
-        exclude_complete_match_groups_with_subsets(dataset, ["mature_miRNA_variant"])
 
 
 def test_metric_functions_auprc():
