@@ -1190,3 +1190,17 @@ Its current anchor path instead creates uniform conservation-selected windows an
 - Immediate evaluation: Background VEP job 1 and ncRNA VEP job 2 were submitted on the same reviewed-commit A10G evaluator after artifact verification.
   The cluster obtained the approved on-demand fallback after spot capacity was unavailable, and the pinned A10G runtime parity gate passed before scoring.
 - Next action: Complete the four remaining VEP cells, extract the full six-arm metrics, produce the issue-232-style diagonal, and publish the final selector-control comparison.
+
+### 2026-08-28 13:46 UTC - `FAS-517-055` full six-arm VEP and selector-control audit
+
+- Evaluation completion: The background and ncRNA-exon terminal checkpoints completed all five `evals_v2` steps on the reviewed evaluator commit `7eff7a121bd9ddf015a155863df72e04f43c1558`.
+  The standard metric implementation excludes miRNA records internally; no additional post-hoc filtering was applied.
+- ncRNA exact results: On Mendelian non-coding-transcript-exon variants, strict phyloP achieved AUPRC `0.330531 ± 0.034943` versus `0.383780 ± 0.034972` for the same-size GPN-selected specialist.
+  The same-row paired bootstrap delta is `-0.053249` with 95% CI `[-0.098419, -0.009662]` and two-sided `p=0.012` across 115 variant groups.
+  On the complex-trait counterpart, phyloP achieved `0.171269 ± 0.042174` versus GPN `0.161625 ± 0.044437`, with paired delta `+0.009644`, 95% CI `[-0.060828, 0.073639]`, and `p=0.712` across 37 groups.
+- Full selector-control comparison: Across eight Mendelian and six complex-trait home-scope endpoints, the only nominal two-sided `p<0.05` differences are the ncRNA Mendelian decrease (`p=0.012`) and the enhancer Mendelian increase (`+0.016069`, `p=0.032`).
+  Neither remains below a simple Bonferroni threshold for 14 exploratory endpoints, so the result does not support a broad selector-induced regression.
+- Specialization sanity check: In the six-arm strict-phyloP Mendelian matrix, all eight rows are maximized by the matching established specialist: CDS for missense, synonymous, and splicing; 3-prime UTR for its row; ncRNA exon for its row; TSS/5-prime UTR for both 5-prime UTR and promoter; and enhancer Arm A for distal variants.
+  The unassigned background arm is included as a control and wins no row.
+- Artifacts: Exact same-size phyloP-versus-GPN metrics are in `issue517_phylop_vs_gpn_metrics.csv`; paired Mendelian and complex-trait results are in the corresponding JSON files; and the issue-232-style strict-phyloP diagonal is accompanied by its source-data CSV under `.agents/artifacts/issue-517/evaluation/`.
+- Next action: Publish the exact artifacts and interpretation to issue #517, then terminate the completed evaluation clusters.
