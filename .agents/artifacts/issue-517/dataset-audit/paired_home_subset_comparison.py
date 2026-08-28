@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compute paired Mendelian AUPRC deltas on exact shared benchmark rows."""
+"""Compute paired matched-VEP AUPRC deltas on exact shared benchmark rows."""
 
 from __future__ import annotations
 
@@ -17,13 +17,15 @@ KEYS = ["chrom", "pos", "ref", "alt", "label", "subset", "match_group"]
 SCORE_COLUMNS = [*KEYS, "llr_fwd", "llr_rc"]
 
 
-def _scores(path: str, subset: str, score_name: str) -> pl.DataFrame:
+def _scores(
+    path: str, subset: str, score_name: str, score_protocol: str
+) -> pl.DataFrame:
+    mean_llr = (pl.col("llr_fwd") + pl.col("llr_rc")) / 2
+    score = -mean_llr if score_protocol == "minus_llr" else mean_llr.abs()
     return (
         pl.read_parquet(path, columns=SCORE_COLUMNS)
         .filter(pl.col("subset") == subset)
-        .with_columns(
-            (-(pl.col("llr_fwd") + pl.col("llr_rc")) / 2).alias(score_name)
-        )
+        .with_columns(score.alias(score_name))
         .select(*KEYS, score_name)
     )
 
@@ -39,12 +41,21 @@ def main() -> int:
     )
     parser.add_argument("--n-bootstrap", type=int, default=1000)
     parser.add_argument("--seed", type=int, default=517)
+    parser.add_argument(
+        "--score-protocol",
+        choices=("minus_llr", "abs_llr"),
+        default="minus_llr",
+    )
     args = parser.parse_args()
 
     results: dict[str, dict[str, Any]] = {}
     for label, current_path, baseline_path, subset in args.comparison:
-        current = _scores(current_path, subset, "score_current")
-        baseline = _scores(baseline_path, subset, "score_baseline")
+        current = _scores(
+            current_path, subset, "score_current", args.score_protocol
+        )
+        baseline = _scores(
+            baseline_path, subset, "score_baseline", args.score_protocol
+        )
         paired = current.join(baseline, on=KEYS, how="inner", validate="1:1")
         assert current.height == baseline.height == paired.height, (
             label,
@@ -65,6 +76,7 @@ def main() -> int:
             "subset": subset,
             "current": current_path,
             "baseline": baseline_path,
+            "score_protocol": args.score_protocol,
             **result,
         }
 
