@@ -17,7 +17,7 @@ author: gonzalobenegas
 
 ## Current TL;DR
 
-- Status: Pilot implementation in progress.
+- Status: The real EC2 pilot is running; HAL staging, validation, the full-grid BED, and all four genome-asset builds are complete, and the first two chain conversions are active.
 - Selected artifact: Whole-genome human-to-species chains, because later tilings, window lengths, anchor positions, and arbitrary annotations must not require another HAL traversal.
 - Pilot: Build supported-default and `--noDupes` candidates for `Papio_anubis`, `Mus_musculus`, and `Loxodonta_africana` from one NVMe-staged HAL, with at most two pair pipelines running concurrently.
 - Gate: Compare all 1,136,854 strict-phyloP center mappings with their immutable direct-HAL outputs before accepting either chain recipe.
@@ -79,3 +79,20 @@ author: gonzalobenegas
 - Full-grid timing: Generate the exact 22,948,560 0-based center-1 BED from the immutable strict-phyloP chromosome sizes and undefined-region BED, then run only the strict chain through `liftOver`.
 - Verification plan: Run all locked project tests and a remote Snakemake dry-run before starting HAL staging or chain generation.
 - Next action: Snapshot and push the pilot, launch the EC2 test target, inspect the dry-run DAG and resource schedule, then start the real target.
+
+### 2026-08-28 17:23 UTC - `HALC-523-002` stage once and start the first shared-HAL pair
+
+- Hypothesis: `HALC-523-H2`; two concurrent whole-genome chain conversions can safely reuse one NVMe-staged HAL on an `r6id.12xlarge`.
+- Commit hash: `9627087eef9e4b1057a3b6f448771c0a17580ff0`.
+- Command: `sky exec issue-523-hal-chains snakemake/vertebrate_projection_dataset/sky/hal_chain_pilot.yaml --env TARGET=all --env DRY_RUN=0 --env PIPELINE_COMMIT_SHA=9627087eef9e4b1057a3b6f448771c0a17580ff0`.
+- Config: Sky job 7; on-demand AWS `r6id.12xlarge` in `us-east-2`; two-chain concurrency; Cactus 3.3.0; UCSC Kent 482.
+- Result: The 1,262,706,573,453-byte HAL staged from 16:18:21 to 17:02:02 UTC in 43 minutes 41 seconds, an end-to-end average of 481.8 MB/s.
+- Result: HAL validation finished in two seconds.
+  All four genome-asset jobs finished by 17:03:16 UTC, 72 seconds after asset generation began.
+- Result: The first pair started at 17:03:16 UTC: `Papio_anubis/no_dupes` and `Loxodonta_africana/default`.
+  Both `halLiftover` processes remained CPU-active after 20 minutes 22 seconds with empty stderr.
+  Their observed RSS was 8.7 GB and 0.94 GB, respectively.
+- Result: Node `MemAvailable` was 371,145,776 KiB (353.9 GiB), kernel cache was 352,300,960 KiB (336.0 GiB), and the RAID had about 1.3 TiB free.
+- Interpretation: The shared-HAL batch is safe at this checkpoint and the kernel has cached a large fraction of the staged HAL.
+  Chain-generation wall time and parity remain unknown because neither first-pair chain has completed.
+- Next action: Record the first completed chain's resource metrics, inspect direction validation and S3 upload, then allow the DAG to continue through parity and full-grid liftOver.
