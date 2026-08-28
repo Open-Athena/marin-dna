@@ -1,6 +1,6 @@
-"""Continue selected exp472 runs from their pre-cooldown CoreWeave checkpoints.
+"""Continue selected exp472 Stage-1 runs from their pre-cooldown checkpoints.
 
-``TRIAL`` selects one provisional first-sweep survivor. ``CLUSTER`` and
+``TRIAL`` selects one Stage-2 source. ``CLUSTER`` and
 ``NODES`` select placement without changing the production W&B or checkpoint
 identity. Set ``SMOKE=1`` and a unique ``SMOKE_ID`` for a short, separately
 named validation run under a one-day CoreWeave TTL path. Omit ``--run`` to
@@ -59,23 +59,21 @@ COREWEAVE_ROOT = "s3://marin-us-east-02a"
 TOKENIZED_CACHE = prefix_join(COREWEAVE_ROOT, TOKENIZED_CACHE_RELATIVE)
 EXPERIMENT_PREFIX = prefix_join(COREWEAVE_ROOT, EXPERIMENT_RELATIVE)
 
-SOURCE_ARTIFACT_VERSION = "2026.08.20"
-SOURCE_CHECKPOINT_STEP = 164_920
+SOURCE_ARTIFACT_VERSION = "2026.08.25"
+SOURCE_CHECKPOINT_STEP = 329_840
 SOURCE_RESUME_STEP = SOURCE_CHECKPOINT_STEP + 1
 ADDITIONAL_TRAIN_STEPS = DEFAULT_TRAIN_STEPS
-TRAIN_STAGE = "s01"
+TRAIN_STAGE = "s02"
 TRAIN_RECIPE_VERSION = "v1"
-TRAIN_ARTIFACT_VERSION = "2026.08.25"
+TRAIN_ARTIFACT_VERSION = "2026.08.28"
 WANDB_ENTITY = "eric-czech"
 WANDB_PROJECT = "marin"
 WANDB_GROUP = f"exp472-plantcad2-baseline-train-{TRAIN_STAGE}"
 
-# Final selection from the completed first sweep, frozen on 2026-08-25.
+# Final selection from the completed Stage-1 continuation, frozen on 2026-08-28.
 SOURCE_TRIAL_KEYS = (
-    "lr0p0001-wd0p1",
     "lr0p0005-wd0p1",
     "lr0p0001-wd0p2",
-    "lr0p0001-wd0p8",
 )
 
 
@@ -102,7 +100,7 @@ class SourceRun:
 SOURCE_RUNS = {
     key: SourceRun(
         point=SWEEP_POINTS_BY_KEY[key],
-        run_id=f"exp472-plantcad2-angiosperm-{key}-v2",
+        run_id=f"exp472-plantcad2-angiosperm-{key}-train-s01-v1",
     )
     for key in SOURCE_TRIAL_KEYS
 }

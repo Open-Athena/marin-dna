@@ -27,6 +27,11 @@ the forced final evaluation. Corrected production runs use the default `v2`
 run/checkpoint suffix; the short-lived pre-correction `v1` runs are not resumed.
 Short smoke runs retain each completed step.
 
+Selected models are continued in numbered stages. Stage 2 resumes the two
+selected Stage-1 runs from retained pre-cooldown checkpoint `step-329840`,
+restores the full trainer and optimizer state, and resets the WSD cycle for the
+next stage. Its production run IDs use the suffix `train-s02-v1`.
+
 The sweep contains 14 trials over learning rates `1e-4`, `2e-4`, `5e-4`, and
 `1e-3`, and weight decays `0.1`, `0.2`, `0.8`, and `1.6`. It omits the
 low-LR/low-WD corner (`1e-4`, `0.1`) and high-LR/high-WD corner (`1e-3`,
