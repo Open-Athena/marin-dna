@@ -40,11 +40,21 @@ setup: |
     tar -xzf /tmp/cactus.tar.gz -C "$HOME"
     rm /tmp/cactus.tar.gz
   fi
+  UCSC_KENT_VERSION=482
+  UCSC_KENT_DIR="$HOME/ucsc-kent-v${UCSC_KENT_VERSION}"
+  if [ ! -d "$UCSC_KENT_DIR" ]; then
+    conda create --yes --prefix "$UCSC_KENT_DIR" --channel conda-forge --channel bioconda \
+      "ucsc-axtchain=${UCSC_KENT_VERSION}" \
+      "ucsc-fatotwobit=${UCSC_KENT_VERSION}" \
+      "ucsc-liftover=${UCSC_KENT_VERSION}" \
+      "ucsc-pslpostarget=${UCSC_KENT_VERSION}" \
+      "ucsc-twobitinfo=${UCSC_KENT_VERSION}"
+  fi
   uv sync --project snakemake/vertebrate_projection_dataset --locked
 
 run: |
   set -euxo pipefail
-  export PATH="$HOME/skypilot-runtime/bin:$HOME/miniforge3/bin:$HOME/.local/bin:$HOME/cactus-bin-v3.3.0/bin:$PATH"
+  export PATH="$HOME/skypilot-runtime/bin:$HOME/miniforge3/bin:$HOME/.local/bin:$HOME/cactus-bin-v3.3.0/bin:$HOME/ucsc-kent-v482/bin:$PATH"
   export LD_LIBRARY_PATH="$HOME/cactus-bin-v3.3.0/lib:${LD_LIBRARY_PATH:-}"
   export CONDA_EXE="$HOME/miniforge3/bin/conda"
   command -v aws
