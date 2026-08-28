@@ -1166,3 +1166,15 @@ Its current anchor path instead creates uniform conservation-selected windows an
   Spot A10G capacity was unavailable in the eligible `us-east-2` zones, so the checked-in fallback provisioned an on-demand `g5.xlarge` at $1.01 per hour; the runtime gate confirmed an NVIDIA A10G with bf16 support before scoring.
 - Durable state: The current two-recovery sweep database was uploaded to `gs://marin-us-east5/MarinDNA/exp517_phylop_uniform_specialists/sweep_state/exp517_sweep_20260828T123057Z_two_recoveries_pending.sqlite`, downloaded, and verified at SHA-256 `a5ff50140fa8c826b3135e70752d5f740a2198eb69cabbf0eae09335aa3ddc0a`.
 - Next action: Publish the nine available AUPRC results after completion, verify each recovered step-4,999 checkpoint, and trigger the ncRNA-exon and background VEP cells as soon as their terminal artifacts appear.
+
+### 2026-08-28 13:00 UTC - `FAS-517-053` recovery tokenizer correction and paired audit
+
+- Recovery diagnosis: ncRNA recovery child `d005` obtained a TPU slice but failed before checkpoint restore because its reused cache metadata exposed the historical relative tokenizer string `tokenizer` under the no-sync coordinator.
+  The background `d003` child was cancelled while still pending, before it could consume a TPU slice and reproduce the same deterministic failure.
+- Recovery correction: Commit `17af2bad` makes the TPU training wrapper replace the cache metadata with the vendored absolute tokenizer path before child submission.
+  The full locked experiment suite passes on EC2 with 22 tests, including an assertion on the child training configuration.
+- Current recovery: Corrected ncRNA `d006` and background `d004` coordinators are healthy, and both preemptible `v6e-4` children are pending in `us-east5` because Iris reports zero of four required TPU chips available.
+  Both runs retain their original dataset revisions, checkpoint roots, W&B identities, optimizer state, and scientific configuration.
+- Evaluation: The four completed-arm VEP workflow has produced all inputs needed for the same-row phyloP-versus-GPN audit while its remaining metrics finish.
+  A 1,000-bootstrap paired comparison is running on a preemptible EC2 `c6i.2xlarge` in `us-east-2c`; the established metric implementation excludes miRNA internally.
+- Next action: Publish the completed four-arm AUPRC and paired deltas, then evaluate ncRNA exon and background immediately after their terminal step-4,999 checkpoints are verified.

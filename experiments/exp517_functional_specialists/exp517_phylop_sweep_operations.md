@@ -51,5 +51,7 @@ Treat this host-memory-only retry as execution recovery, not a new scientific tr
 
 ## Change Record
 
+- 2026-08-28: A no-sync recovery exposed that the reused tokenized-cache metadata still records the historical relative tokenizer string `tokenizer`.
+  The TPU training wrapper now replaces that value with the vendored absolute tokenizer path before submitting the child, matching the validated H100 wrapper and leaving the cache contents and scientific configuration unchanged.
 - 2026-08-28: ncRNA exon and background exhausted 56 GiB coordinator RAM while writing late checkpoints after W&B steps 4,984 and 4,998.
   Their same-identity recovery coordinators now request 96 GiB while retaining preemptible `v6e-4` children and the original regional checkpoint roots.
