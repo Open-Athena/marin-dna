@@ -96,3 +96,21 @@ author: gonzalobenegas
 - Interpretation: The shared-HAL batch is safe at this checkpoint and the kernel has cached a large fraction of the staged HAL.
   Chain-generation wall time and parity remain unknown because neither first-pair chain has completed.
 - Next action: Record the first completed chain's resource metrics, inspect direction validation and S3 upload, then allow the DAG to continue through parity and full-grid liftOver.
+
+### 2026-08-28 20:44 UTC - `HALC-523-003` first HAL traversal reaches chain construction
+
+- Hypothesis: `HALC-523-H2`; two concurrent whole-genome conversions can share the staged HAL without memory pressure.
+- Commit hash: `9627087eef9e4b1057a3b6f448771c0a17580ff0`.
+- Command: `sky queue issue-523-hal-chains`; `sky logs issue-523-hal-chains 7 --no-follow --tail 180`; remote process, `/proc/<pid>/io`, memory, and artifact inspection over SSH.
+- Config: Sky job 7; on-demand AWS `r6id.12xlarge` in `us-east-2`; first pair `Papio_anubis/no_dupes` and `Loxodonta_africana/default` started at 17:03:16 UTC.
+- Result: After 3 hours 41 minutes, the `Papio_anubis/no_dupes` `halLiftover` process had exited and its downstream `axtChain` process remained active.
+  The `axtChain` process had read 247,028,577,523 bytes from the pipeline and used about 1.32 GiB RSS.
+- Result: The `Loxodonta_africana/default` `halLiftover` process remained active at 99.3% CPU with about 2.31 GiB RSS.
+  Its downstream `axtChain` process used about 1.57 GiB RSS and had read 1,207,380,544 bytes.
+- Result: No final chain or generation JSON existed yet.
+  Both compressed-chain partial files remained zero bytes because `axtChain` had not closed its output stream.
+  Validation liftOver and parity audits therefore had not started; Snakemake remained at 8 of 30 completed steps.
+- Result: The node retained about 358 GiB available memory and 1.3 TiB free NVMe space.
+- Interpretation: One of the first two HAL traversals has moved into chain construction without resource pressure or observed stderr.
+  Completion and success remain unconfirmed until the pipeline closes, writes the chain and generation JSON, and uploads both to S3.
+- Next action: Inspect the first finalized chain, resource metrics, S3 objects, direction audit, and strict-phyloP parity before estimating the remaining runtime.
