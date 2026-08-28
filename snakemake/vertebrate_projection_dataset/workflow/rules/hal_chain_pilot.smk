@@ -147,11 +147,11 @@ rule generate_human_to_mammal_chain:
     input:
         hal=local(HAL_PATH),
         validation=local(HAL_VALIDATION),
-        query_sizes=f"{RESULTS}/genomes/{{species}}.chrom.sizes",
-        query_bed=f"{RESULTS}/genomes/{{species}}.whole_genome.bed",
-        query_twobit=f"{RESULTS}/genomes/{{species}}.2bit",
-        target_sizes=f"{RESULTS}/genomes/{SOURCE_GENOME}.chrom.sizes",
-        target_twobit=f"{RESULTS}/genomes/{SOURCE_GENOME}.2bit",
+        query_sizes=local(f"{RESULTS}/genomes/{{species}}.chrom.sizes"),
+        query_bed=local(f"{RESULTS}/genomes/{{species}}.whole_genome.bed"),
+        query_twobit=local(f"{RESULTS}/genomes/{{species}}.2bit"),
+        target_sizes=local(f"{RESULTS}/genomes/{SOURCE_GENOME}.chrom.sizes"),
+        target_twobit=local(f"{RESULTS}/genomes/{SOURCE_GENOME}.2bit"),
     output:
         chain=CHAIN_PATH,
         metrics=CHAIN_METRICS,
@@ -208,7 +208,7 @@ rule audit_chain_parity:
     input:
         queries=VALIDATION_BED,
         direct=lambda wc: f"{BASELINE_ROOT}/hal/raw/{wc.species}.bed",
-        chain=VALIDATION_MAPPED,
+        chain=local(VALIDATION_MAPPED),
     output:
         summary=PARITY_SUMMARY,
         discrepancies=PARITY_DISCREPANCIES,
@@ -250,7 +250,7 @@ rule prepare_full_uniform_grid_centers:
 
 rule benchmark_full_grid_chain_liftover:
     input:
-        bed=FULL_GRID_BED,
+        bed=local(FULL_GRID_BED),
         chain=lambda wc: CHAIN_PATH.format(species=wc.species, recipe="no_dupes"),
     output:
         mapped=temp(local(FULL_GRID_MAPPED)),
