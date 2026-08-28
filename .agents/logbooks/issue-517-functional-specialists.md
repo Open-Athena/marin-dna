@@ -1135,3 +1135,18 @@ Its current anchor path instead creates uniform conservation-selected windows an
   This is an early uninterrupted-runtime estimate and excludes checkpoint, evaluation, data-stall, and preemption overhead.
 - Durable state: Dispatch intent, acceptance, and step-21 observation were persisted in the sweep database and uploaded as immutable, downloaded-and-SHA-256-verified snapshots under `gs://marin-us-east5/MarinDNA/exp517_phylop_uniform_specialists/sweep_state/coreweave-full-cds-pdp1024/`.
 - Next action: Verify continued progress after the startup window and validate the first durable full-run checkpoint near step 500 before expanding the H100 path to another arm or changing any TPU workflow.
+
+### 2026-08-28 00:39 UTC - `FAS-517-051` single-H100 1,024 memory limit
+
+- Terminal result: W&B reached global step 59 with run progress 0.012, then the next `jit__train_step` failed with `RESOURCE_EXHAUSTED` while trying to allocate 27.36 GiB.
+  Iris reports one failed task attempt, zero preemptions, and an 18m30s child duration, confirming a training OOM rather than lost capacity or scheduler failure.
+- Throughput result: The final successful steps processed approximately 188,887-195,559 tokens per second and 738-764 examples per second.
+  With global batch 8,192, that corresponds to approximately 10.9-11.1 seconds per optimizer step near steps 48-59.
+- Interpretation: A single H100 is not sufficient for this exact full-run implementation at per-device parallelism 1,024, despite making substantially more progress than the 2,048 run.
+  The earlier approximately 16.5-hour uninterrupted ETA described speed only and is invalidated by the delayed OOM.
+- Checkpoint: The run stopped before the first planned step-500 checkpoint, so there is no durable training state to resume.
+  The complete token cache remains reusable.
+- Durable state: The final W&B observation, exact Iris failure, dispatch termination, and possible 512 follow-up were persisted transactionally.
+  The terminal 73,728-byte SQLite snapshot was uploaded to `gs://marin-us-east5/MarinDNA/exp517_phylop_uniform_specialists/sweep_state/coreweave-full-cds-pdp1024/exp517_h100_full_cds_pdp1024_20260828T003833Z_terminal.sqlite`, downloaded, and verified at SHA-256 `3e0f6341a38ffe589b387b9f7f34b3ca9797deb28c276d6b558f0c5a741a07d8`.
+- Preservation: All six TPU workflows remain untouched.
+- Next action: Keep the single-H100 path paused pending a decision between a 512 memory-fit test and returning focus to the TPU controls.
