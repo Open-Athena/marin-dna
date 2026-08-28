@@ -208,7 +208,7 @@ def _run_shape(
         "angiosperm-65-genomes",
         "selected-continuation",
         f"train_stage={TRAIN_STAGE}",
-        f"source_run={source.run_id}",
+        f"source_run={source.run_id.removeprefix('exp472-plantcad2-angiosperm-')}",
         f"source_checkpoint_step={source.checkpoint_step}",
         f"source_artifact_version={source.artifact_version}",
         "initialization=full-trainer-state",
