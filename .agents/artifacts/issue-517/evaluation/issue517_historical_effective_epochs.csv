@@ -1,0 +1,34 @@
+experiment,arm,train_rows,optimizer_steps,global_batch_size,sequence_presentations,effective_row_epochs,source
+issue187_v3,CDS,78387828,5000,8192,40960000,0.522530,issue #187 body
+issue187_v3,3-prime UTR,10305306,5000,8192,40960000,3.974652,issue #187 body
+issue187_v3,ncRNA exon,15277064,5000,8192,40960000,2.681143,issue #187 body
+issue187_v3,TSS / 5-prime UTR,8124514,5000,8192,40960000,5.041532,issue #187 body
+issue187_v3,Enhancer,96639800,5000,8192,40960000,0.423842,issue #187 body
+issue187_v3,Background,15145768,5000,8192,40960000,2.704386,issue #187 body
+issue232_v4,CDS,57591204,5000,8192,40960000,0.711220,issue #232 body
+issue232_v4,3-prime UTR,12586492,5000,8192,40960000,3.254282,issue #232 body
+issue232_v4,ncRNA exon,16319886,5000,8192,40960000,2.509821,issue #232 body
+issue232_v4,TSS / 5-prime UTR,11281780,5000,8192,40960000,3.630633,issue #232 body
+issue232_v4,Enhancer,88030162,5000,8192,40960000,0.465295,issue #232 body
+issue232_v4,Background,38070756,5000,8192,40960000,1.075891,issue #232 body
+issue517_annotation_first,CDS,46882278,5000,8192,40960000,0.873678,issue #517 logbook FAS-517-009
+issue517_annotation_first,3-prime UTR,11364040,5000,8192,40960000,3.604352,issue #517 logbook FAS-517-009
+issue517_annotation_first,ncRNA exon,6209692,5000,8192,40960000,6.596140,issue #517 logbook FAS-517-009
+issue517_annotation_first,TSS / 5-prime UTR,7577794,5000,8192,40960000,5.405267,issue #517 logbook FAS-517-009
+issue517_annotation_first,Enhancer,25364652,5000,8192,40960000,1.614846,issue #517 logbook FAS-517-009
+issue517_gpn_uniform,CDS,71002636,5000,8192,40960000,0.576880,config/gpn_star_p_publication.yaml
+issue517_gpn_uniform,3-prime UTR,20538748,5000,8192,40960000,1.994279,config/gpn_star_p_publication.yaml
+issue517_gpn_uniform,ncRNA exon,20026822,5000,8192,40960000,2.045257,config/gpn_star_p_publication.yaml
+issue517_gpn_uniform,TSS / 5-prime UTR,14650866,5000,8192,40960000,2.795739,config/gpn_star_p_publication.yaml
+issue517_gpn_uniform,Enhancer,131467840,5000,8192,40960000,0.311559,config/gpn_star_p_publication.yaml
+issue517_gpn_uniform,Background,77330858,5000,8192,40960000,0.529672,config/gpn_star_p_publication.yaml
+issue517_phylop_uniform,CDS,69483774,5000,8192,40960000,0.589490,config/phylop_uniform_publication.yaml
+issue517_phylop_uniform,3-prime UTR,14496656,5000,8192,40960000,2.825479,config/phylop_uniform_publication.yaml
+issue517_phylop_uniform,ncRNA exon,20790530,5000,8192,40960000,1.970128,config/phylop_uniform_publication.yaml
+issue517_phylop_uniform,TSS / 5-prime UTR,11580082,5000,8192,40960000,3.537108,config/phylop_uniform_publication.yaml
+issue517_phylop_uniform,Enhancer,79725424,5000,8192,40960000,0.513763,config/phylop_uniform_publication.yaml
+issue517_phylop_uniform,Background,52119732,5000,8192,40960000,0.785883,config/phylop_uniform_publication.yaml
+issue326_targeted,Enhancer Arm A,76710830,5000,8192,40960000,0.533953,HF dataset revision 45073f2ed8d7edbc25d089d51dd0b835ee52fc7c
+issue326_targeted,Enhancer Arm B,62734288,5000,8192,40960000,0.652912,HF dataset revision 8b224bb7becc1de4210bc574f34d6c4ed1db3084
+issue351_targeted,Enhancer tiled,10992626,5000,8192,40960000,3.726134,HF dataset revision 9ea662689ef520a956669f2bbdaf3301f19b957b
+issue351_targeted,Enhancer centered,4237620,5000,8192,40960000,9.665803,HF dataset revision 3e01749d83ad69ad6b1f3d8ebe12315ad17d60f4

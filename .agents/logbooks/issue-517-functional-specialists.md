@@ -21,6 +21,7 @@ author: gonzalobenegas
 The annotation-first five-arm experiment produced a 6/8 Mendelian diagonal, with large ncRNA and enhancer gains but lost synonymous and 5-prime-UTR ownership.
 The current center-1 uniform-grid experiments produced 7/8 row wins under GPN-Star-P selection and 8/8 under the strict historical phyloP selector.
 The strict phyloP matrix recovers #232's canonical 8/8 pattern with nearly the same mean home AUPRC and mean home-versus-best-nonhome margin; no paired strict-phyloP versus #232 home endpoint survives an eight-endpoint Bonferroni threshold.
+Every compared arm retained 40,960,000 sequence presentations, but effective exposure ranges from 0.312 to 9.666 row epochs because the post-augmentation datasets differ greatly in size; selector and historical comparisons are fixed-compute, not epoch-matched.
 The strict uniform-grid enhancer remains far below the targeted #326 and #351 enhancer specialists, while the current unassigned-background arm has much more splicing signal than #232's background and should not be interpreted as the same negative control.
 All six strict-control runs and development-only VEP evaluations are complete.
 Held-out even-autosome/Y evaluation remains unapproved and untouched.
@@ -1238,3 +1239,43 @@ Its current anchor path instead creates uniform conservation-selected windows an
 - Artifacts: The shared-scale four-panel SVG and PNG, exact 184-row source table, home-row margins, diagonal summary, paired JSON, plotting script, and remote Sky configuration are stored under `.agents/artifacts/issue-517/evaluation/`.
 - Source ledger: [#187](https://github.com/Open-Athena/marin-dna/issues/187) supplies the qualitative v3/1B predecessor; [#232](https://github.com/Open-Athena/marin-dna/issues/232) supplies the canonical registered six-arm matrix; [#326](https://github.com/Open-Athena/marin-dna/issues/326) and [#351](https://github.com/Open-Athena/marin-dna/issues/351) supply targeted enhancer point references; issue #517 and canonical `evals_v2` artifacts supply both current matrices and the annotation-first predecessor.
 - Next action: Publish the historical comparison and its definition caveats to issue #517, then terminate the completed audit node.
+
+### 2026-08-28 15:24 UTC - `FAS-517-057` effective-epoch audit
+
+- Request: Calculate the effective epochs for every full diagonal and targeted enhancer comparison in `FAS-517-056`.
+- Definition: All retained terminal checkpoints represent 5,000 optimizer updates with global batch 8,192, or 40,960,000 sequence presentations per arm.
+  Effective row epochs are `40,960,000 / post-augmentation training rows`.
+  Sequence length is fixed at 256 tokens including BOS, so the row-epoch and token-epoch ratios are identical.
+  Replay done by failed or preempted attempts is excluded because it is not retained in the terminal optimizer state.
+- Full diagonal exposures:
+
+  | Experiment | CDS | 3-prime UTR | ncRNA exon | TSS / 5-prime UTR | Enhancer | Background |
+  | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+  | #187 v3, 1B | 0.523 | 3.975 | 2.681 | 5.042 | 0.424 | 2.704 |
+  | #232 v4 uniform | 0.711 | 3.254 | 2.510 | 3.631 | 0.465 | 1.076 |
+  | Earlier #517 annotation-first | 0.874 | 3.604 | 6.596 | 5.405 | 1.615 | no arm |
+  | #517 GPN-Star-P uniform | 0.577 | 1.994 | 2.045 | 2.796 | 0.312 | 0.530 |
+  | #517 strict phyloP uniform | 0.589 | 2.825 | 1.970 | 3.537 | 0.514 | 0.786 |
+
+- Targeted enhancer exposures:
+
+  | Experiment | Arm | Training rows | Effective row epochs |
+  | --- | --- | ---: | ---: |
+  | #326 | Arm A, no exon overlap | 76,710,830 | 0.534 |
+  | #326 | Arm B, no exon overlap plus enhancer-dominant | 62,734,288 | 0.653 |
+  | #351 | Tiled, one-per-order | 10,992,626 | 3.726 |
+  | #351 | Centered, one-per-order | 4,237,620 | 9.666 |
+
+- Selector interpretation: Strict phyloP versus GPN is fixed-compute but not epoch-matched.
+  Strict phyloP receives 2% more CDS epochs, 42% more 3-prime-UTR epochs, 4% fewer ncRNA epochs, 27% more TSS/5-prime-UTR epochs, 65% more enhancer epochs, and 48% more background epochs.
+  The strict enhancer's nominal Mendelian improvement therefore coincides with substantially more repetition, whereas its ncRNA decline coincides with only 4% lower repetition.
+- Historical interpretation: The earlier annotation-first ncRNA and enhancer arms received 3.35 and 3.14 times the strict-control epochs, respectively.
+  Their much higher ncRNA and distal AUPRCs cannot be read as assignment-only effects.
+  In contrast, #326 Arm A is close to the strict enhancer exposure at 0.534 versus 0.514 epochs, so its large distal gain is not explained by a large epoch advantage.
+  #351 remains deliberately confounded at 3.726 versus 9.666 epochs.
+- Correction: `FAS-517-049` and [issue comment 5445009834](https://github.com/Open-Athena/marin-dna/issues/517#issuecomment-5445009834) attributed 71,002,636 training rows to the strict-phyloP CDS H100 cache.
+  That is the GPN-Star-P CDS count.
+  The exact pinned strict-phyloP CDS dataset contains 69,483,774 training rows, yielding 0.589490 epochs rather than 0.576880.
+  The H100 and TPU launch code pin `marin-dna/phylop-uniform-v1-cds@452a5a3538f22630c3dea94d441ac30216bb28ea`, so this was a reporting and ETA-denominator error, not a wrong-dataset training error.
+- Artifacts: The exact 33-row audit is `issue517_historical_effective_epochs.csv`, generated by `compute_historical_effective_epochs.py` under `.agents/artifacts/issue-517/evaluation/`.
+- Next action: Publish the epoch matrices, fixed-compute interpretation, and row-count correction to issue #517.
