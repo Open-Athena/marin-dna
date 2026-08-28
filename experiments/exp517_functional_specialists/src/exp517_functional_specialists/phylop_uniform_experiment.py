@@ -19,6 +19,7 @@ from exp517_functional_specialists.experiment import (
     HF_SAVE_STEPS,
     MARIN_COMMIT,
     MODEL,
+    MODEL_TOKENIZER_PATH,
     NATIVE_CHECKPOINT_STEPS,
     OPTIMIZER,
     PER_DEVICE_PARALLELISM,
@@ -271,6 +272,10 @@ def build_training(arm: PhylopUniformArm) -> ArtifactStep[LevanterCheckpoint]:
             pod,
             train_config=replace(
                 pod.train_config,
+                data=replace(
+                    pod.train_config.data,
+                    tokenizer=MODEL_TOKENIZER_PATH,
+                ),
                 trainer=replace(
                     pod.train_config.trainer,
                     seed=SEED,

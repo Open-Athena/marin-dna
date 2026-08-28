@@ -9,6 +9,7 @@ from exp517_functional_specialists.experiment import (
     DEFAULT_TPU_REGION,
     DEFAULT_TPU_VARIANT,
     HF_SAVE_STEPS,
+    MODEL_TOKENIZER_PATH,
     NATIVE_CHECKPOINT_STEPS,
     PER_DEVICE_PARALLELISM,
     SEED,
@@ -127,6 +128,7 @@ def test_phylop_fixed_specialist_recipe(monkeypatch) -> None:
     assert train.train_seq_len == SEQUENCE_LENGTH == 256
     assert train.data_seed == SEED
     assert train.hf_save_steps == HF_SAVE_STEPS
+    assert train.data.tokenizer == MODEL_TOKENIZER_PATH
     assert step.runtime_args["train_resources"].regions == [DEFAULT_TPU_REGION]
     assert step.runtime_args["train_resources"].device.variant == DEFAULT_TPU_VARIANT
     assert step.runtime_args["train_resources"].ram == DEFAULT_TPU_RAM
