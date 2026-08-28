@@ -1116,3 +1116,22 @@ Its current anchor path instead creates uniform conservation-selected windows an
   It requires preprocessing success, rejects a duplicate `d003`, validates a fresh internally consistent v3 snapshot for both eligible peers, selects the peer with more free H100s, persists and verifies each state transition, and then submits `/gonzalo/exp517-phylop-cds-h100-pdp2048-full-d003`.
 - Public record: The issue records the successful 2,048 calibration, the healthy full-cache build, and a correction from the pre-augmentation to the post-augmentation row-count ETA.
 - Next action: Confirm cache completion and accepted `d003` submission, then verify the actual one-H100 child, W&B progress, sustained throughput, and first full-run checkpoint before considering any TPU cancellation or additional H100 arm.
+
+### 2026-08-28 00:22 UTC - `FAS-517-050` full CDS H100 retry at per-device parallelism 1,024
+
+- Human decision: Retry the complete strict-phyloP CDS arm on one preemptible H100 with per-device parallelism 1,024, while preserving global batch 8,192, sequence length 256, seed 0, 5,000 optimizer steps, and all six existing TPU workflows.
+- Prior full-run result: The three-step 2,048 smoke was not predictive of sustained memory use.
+  The complete 2,048 run failed at optimizer step 5 when XLA requested another 52.65 GiB, so the H100 calibration moved to 1,024 without changing the scientific batch contract.
+- Reproducible snapshot: Commit `55fef9e1` records the 1,024 configuration, distinct W&B and checkpoint identities, and updated operating notes.
+  All 22 locked experiment tests passed in 4.17 seconds with 466,652 KiB peak RSS.
+- Dispatch: Iris accepted `/gonzalo/exp517-phylop-cds-h100-pdp1024-full-d001` on `cw-rno2a` at batch priority with one preemptible H100.
+  The training child is `/gonzalo/exp517-phylop-cds-h100-pdp1024-full-d001/run_levanter_train_lm-5adc1d44`.
+- Data reuse: The run reused the completed immutable token cache at `s3://marin-us-east-02a/marin/h100/inputs/phylop-uniform-cds-char-bos/2026.08.27`; no repeat tokenization was required.
+- Startup validation: The child reports exactly one H100, global batch 8,192, and per-device parallelism 1,024.
+  W&B registered `dna-exp517-phylop-uniform-0p25b-cds-h100-pdp1024-v1`, the first batch loaded in 206.5 seconds, and the first compiled train step took 83.7 seconds.
+- Progress: The run passed the prior step-5 failure point and reached step 30 with finite loss, zero Iris failures, and zero preemptions.
+  Steps 9 through 20 took 131 seconds, or 11.9 seconds per optimizer step after startup.
+- Preliminary ETA: Extrapolating that short steady-state interval gives approximately 16.5 hours for the remaining 4,980 steps.
+  This is an early uninterrupted-runtime estimate and excludes checkpoint, evaluation, data-stall, and preemption overhead.
+- Durable state: Dispatch intent, acceptance, and step-21 observation were persisted in the sweep database and uploaded as immutable, downloaded-and-SHA-256-verified snapshots under `gs://marin-us-east5/MarinDNA/exp517_phylop_uniform_specialists/sweep_state/coreweave-full-cds-pdp1024/`.
+- Next action: Verify continued progress after the startup window and validate the first durable full-run checkpoint near step 500 before expanding the H100 path to another arm or changing any TPU workflow.
