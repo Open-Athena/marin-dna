@@ -1310,3 +1310,30 @@ Its current anchor path instead creates uniform conservation-selected windows an
   In particular, the monotonic distal relation is hypothesis-generating rather than causal because the high-epoch annotation-first design is also the highest-AUPRC design.
 - Artifacts: The 32 exact experiment-by-variant points are in `issue517_epoch_performance_home_points.csv`; the eight correlations, exact p-values, slopes, and leave-one-out ranges are in `issue517_epoch_performance_correlations.csv`; and `correlate_epochs_with_home_performance.py` reproduces the audit without external dependencies.
 - Next action: Publish the same-size-only correlation table and its small-`n` caveat to issue #517.
+
+### 2026-08-28 16:18 UTC - `FAS-517-059` direct HAL-to-chain investigation
+
+- Question: Determine whether the 107 human-to-family-deduplicated-mammal coordinate mappings can be materialized from HAL and reused without exporting MAF or TAF.
+- Human decision: Build reusable whole-genome human-to-species chains rather than a coordinate cache specialized to the current uniform grid.
+  The ability to project arbitrary future tilings, anchor positions, window lengths, and annotations is the primary objective.
+- Research effort: Medium.
+  The search covered the official HAL representation, CLI, iterator, and unfinished chain sources; released Cactus 3.1.4 and 3.3.0 chain exporters; the UCSC chain specification; CAT's chaining precedent; the current issue #517 projection code and timing records; and issue #523.
+- Result: Released Cactus provides `cactus-hal2chains`, whose MAF/TAF-free pipeline streams `halLiftover --outPSL` through `pslPosTarget`, `axtChain`, and gzip.
+  This is a one-time whole-genome materialization step rather than a direct extraction of an already stored chain.
+- Representation: HAL is a hierarchical alignment graph with ancestral and paralogy edges.
+  UCSC chain is a scored pairwise block representation, so `axtChain` can introduce selection and grouping semantics beyond raw coordinate traversal.
+- Version finding: The currently pinned Cactus 3.1.4 contains the converter but schedules a separate Toil job and full HAL copy per pair.
+  Released Cactus 3.3.0 adds batch-level HAL sharing and concurrent pair pipelines, so any pilot should isolate and test 3.3.0 instead of silently changing the completed strict-control environment.
+- Direction caveat: Cactus writes `target_vs_query.chain.gz`, with `target` on the UCSC `tName` or source side.
+  A chain consumed as human-to-species liftOver must therefore put `Homo_sapiens` in `--targetGenomes`, put the destination species in `--queryGenomes`, and pass an explicit header-direction check.
+- Scientific caveat: The production mammal projector uses `halLiftover --noDupes`, while the official chain converter does not pass `--noDupes`.
+  Default chains are not assumed to be strict replacements because paralogous candidates and `axtChain` scoring may change mapping multiplicity or locus choice.
+- Scaling finding: Direct HAL is already batched into one BED and one invocation per species.
+  GPN projected 1,627,410 windows in 41m30s, whereas strict phyloP projected only 1,136,854 windows in 46m37s, so the prior 14.10-fold linear all-grid extrapolation is not empirically validated.
+- Design ranking: Whole-genome pairwise chains are the selected reusable artifact for arbitrary future intervals.
+  A coordinate-only cache of the 2,455,495,920 human-center/species requests could be more compact for the fixed grid but would lose the requested flexibility and is not the target deliverable.
+- Recommended pilot: Generate official-default and `--noDupes` chain variants for `Papio_anubis`, `Mus_musculus`, and `Loxodonta_africana`; benchmark generation resources and chain bytes; compare every center's mapping state, target coordinate, strand, and multiplicity with direct HAL; time all-grid chain liftOver; and calculate the reuse break-even point.
+- Negative results: MAF and TAF are unnecessary for chain production; HAL's apparent direct `hal2chain` binary is explicitly unfinished and untested; and the native multi-target column iterator is documented as an inefficient traversal, making a custom mapper a higher-risk follow-up rather than the first experiment.
+- Artifact: `.agents/artifacts/issue-517/projection/hal_to_chain_investigation.md` records the complete rationale, source ledger, and bounded pilot.
+- Execution boundary: No cloud job was launched and no projection backend was changed.
+- Next action: Publish the decision to issue #517, then implement the three-species EC2 parity and resource pilot under issue #523 as the gate to generating and pinning all 107 whole-genome chains.
