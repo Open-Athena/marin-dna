@@ -294,7 +294,7 @@ def validate_chain_direction(
         for raw_line in handle:
             if not raw_line.startswith("chain "):
                 stripped = raw_line.strip()
-                if stripped:
+                if stripped and not stripped.startswith("#"):
                     aligned_bases += int(stripped.split()[0])
                 continue
             fields = raw_line.split()

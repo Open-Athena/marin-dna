@@ -49,6 +49,8 @@ def test_validate_chain_direction_checks_names_sizes_and_aligned_bases(
     chain = tmp_path / "human_to_mouse.chain.gz"
     with gzip.open(chain, "wt") as handle:
         handle.write(
+            "##matrix=axtChain 16 91 114 91\n"
+            "# gap penalties\n"
             "chain 100 chr1 1000 + 10 40 chrM 800 - 20 50 1\n"
             "10\t2\t3\n"
             "18\n\n"
