@@ -18,13 +18,12 @@ author: gonzalobenegas
 
 ## Current TL;DR
 
-The exact producer `d06519ab` reproduced the approved complete Ensembl release 115 audit and remains the direct-MAF smoke baseline.
-The issue-specific non-mammal backend now uses 28 checksum-pinned UCSC hg38-to-target liftOver chains at snapshot `17ec5ddd`; the original uniform-anchor MultiZ path is unchanged.
-The 250-cell chain-versus-MAF smoke is not strictly identical, but its discrepancies are bounded and fully reconciled; standard single-best liftOver is accepted as a deliberate experimental backend change rather than an equivalent optimization.
-The full chain projection is the current gate.
-PR #518 remains a draft record for a long-lived experiment branch rather than a merge proposal.
-Paid projection, public Hugging Face publication, five-arm training, and development-only evaluation are approved; held-out even-autosome/Y evaluation remains unapproved.
-Training is Hugging Face-only at immutable public dataset revisions; S3 is workflow-owned producer storage only.
+The annotation-first five-arm experiment produced a 6/8 Mendelian diagonal, with large ncRNA and enhancer gains but lost synonymous and 5-prime-UTR ownership.
+The current center-1 uniform-grid experiments produced 7/8 row wins under GPN-Star-P selection and 8/8 under the strict historical phyloP selector.
+The strict phyloP matrix recovers #232's canonical 8/8 pattern with nearly the same mean home AUPRC and mean home-versus-best-nonhome margin; no paired strict-phyloP versus #232 home endpoint survives an eight-endpoint Bonferroni threshold.
+The strict uniform-grid enhancer remains far below the targeted #326 and #351 enhancer specialists, while the current unassigned-background arm has much more splicing signal than #232's background and should not be interpreted as the same negative control.
+All six strict-control runs and development-only VEP evaluations are complete.
+Held-out even-autosome/Y evaluation remains unapproved and untouched.
 
 ## Baseline
 
@@ -1204,3 +1203,38 @@ Its current anchor path instead creates uniform conservation-selected windows an
   The unassigned background arm is included as a control and wins no row.
 - Artifacts: Exact same-size phyloP-versus-GPN metrics are in `issue517_phylop_vs_gpn_metrics.csv`; paired Mendelian and complex-trait results are in the corresponding JSON files; and the issue-232-style strict-phyloP diagonal is accompanied by its source-data CSV under `.agents/artifacts/issue-517/evaluation/`.
 - Next action: Publish the exact artifacts and interpretation to issue #517, then terminate the completed evaluation clusters.
+
+### 2026-08-28 14:11 UTC - `FAS-517-056` historical diagonal comparison
+
+- Request: Compare the strict phyloP result with the earlier arm-diagonal experiments, in addition to the GPN-Star-P selector control.
+- Research effort: Low.
+  The internal pass covered issues #187, #232, #326, #351, the earlier annotation-first issue #517 matrix, their immutable evaluator registrations, and the canonical development metric and score artifacts.
+  The stop rule was reached after the two exact full-matrix predecessors and the two targeted enhancer follow-ups were identified; external literature would not change this internal experiment comparison.
+- Evaluation boundary: The exact matrices use the Mendelian Traits `train` development split, terminal step 4,999, `minus_llr_avg`, the same eight supported consequence subsets, and the established complete-group miRNA exclusion.
+  No held-out labels, predictions, or metrics were read.
+- Full-matrix result:
+
+  | Experiment | Diagonal wins | Mean home AUPRC | Mean home margin | Minimum margin | Background wins |
+  | --- | ---: | ---: | ---: | ---: | ---: |
+  | #232 uniform grid, phyloP, old full-window projector | 8/8 | 0.280374 | 0.118512 | +0.004817 | 0 |
+  | Earlier #517 annotation-first, phyloP, center-1 | 6/8 | 0.271671 | 0.121861 | -0.079187 | no background arm |
+  | #517 uniform grid, GPN-Star-P, center-1 | 7/8 | 0.279436 | 0.124137 | -0.018729 | 0 |
+  | #517 uniform grid, phyloP, center-1 | 8/8 | 0.272529 | 0.117997 | +0.012588 | 0 |
+
+- Pattern interpretation: Strict phyloP recovers the canonical #232 8/8 diagonal rather than merely improving on GPN's 7/8.
+  Its mean home AUPRC is 0.007845 below #232 and its mean diagonal margin is only 0.000515 lower, so the complete diagonal is a structural recovery rather than a broad AUPRC improvement.
+  Distal remains the weakest strict-phyloP margin at +0.012588, compared with +0.004817 in #232 and -0.018729 under GPN.
+- Paired strict-phyloP versus #232: Missense is the only nominal difference, at +0.022380 with 95% CI [+0.002365, +0.040664] and `p=0.022`.
+  The other seven home endpoints have `p>=0.076`; none of the eight comparisons passes the Bonferroni threshold of 0.00625.
+- Paired strict-phyloP versus annotation-first: Strict uniform tiling improves splicing by +0.116277 (`p=0.001`), synonymous by +0.143021 (`p=0.004`), and 5-prime UTR by +0.082420 (`p=0.001`).
+  It reduces ncRNA by -0.221071 (`p=0.001`) and distal by -0.187706 (`p=0.001`).
+  These five differences pass the eight-endpoint Bonferroni threshold and show a real design tradeoff rather than a uniform ordering.
+- Background readout: #232 background has mean AUPRC 0.109 across the eight rows and splicing AUPRC 0.099.
+  The current GPN and strict-phyloP complements have mean row AUPRCs 0.133 and 0.140, with splicing at 0.244 and 0.230.
+  Both still win zero rows, but the present complement includes cCRE-labelled windows rejected by Arm A and is not definition-compatible with #232's v4 background negative control.
+- Earlier experiments: #187 reported 5/8 diagonal wins but used a 1B model, v3 labels, and PairwiseAccuracy, so only its qualitative win pattern is comparable.
+  The targeted enhancer specialists reached distal point estimates of 0.299 for #326 Arm A, 0.272 for #326 Arm B, 0.308 for #351 tiled, and 0.366 for #351 centered, versus 0.135 for the strict-phyloP uniform Arm A.
+  #326 and #351 used the historical in-training metric and have no registered offline score artifacts for a paired comparison; #351 also has the documented centered-versus-tiled epoch confound.
+- Artifacts: The shared-scale four-panel SVG and PNG, exact 184-row source table, home-row margins, diagonal summary, paired JSON, plotting script, and remote Sky configuration are stored under `.agents/artifacts/issue-517/evaluation/`.
+- Source ledger: [#187](https://github.com/Open-Athena/marin-dna/issues/187) supplies the qualitative v3/1B predecessor; [#232](https://github.com/Open-Athena/marin-dna/issues/232) supplies the canonical registered six-arm matrix; [#326](https://github.com/Open-Athena/marin-dna/issues/326) and [#351](https://github.com/Open-Athena/marin-dna/issues/351) supply targeted enhancer point references; issue #517 and canonical `evals_v2` artifacts supply both current matrices and the annotation-first predecessor.
+- Next action: Publish the historical comparison and its definition caveats to issue #517, then terminate the completed audit node.
