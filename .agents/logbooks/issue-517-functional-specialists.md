@@ -1335,5 +1335,6 @@ Its current anchor path instead creates uniform conservation-selected windows an
 - Recommended pilot: Generate official-default and `--noDupes` chain variants for `Papio_anubis`, `Mus_musculus`, and `Loxodonta_africana`; benchmark generation resources and chain bytes; compare every center's mapping state, target coordinate, strand, and multiplicity with direct HAL; time all-grid chain liftOver; and calculate the reuse break-even point.
 - Negative results: MAF and TAF are unnecessary for chain production; HAL's apparent direct `hal2chain` binary is explicitly unfinished and untested; and the native multi-target column iterator is documented as an inefficient traversal, making a custom mapper a higher-risk follow-up rather than the first experiment.
 - Artifact: `.agents/artifacts/issue-517/projection/hal_to_chain_investigation.md` records the complete rationale, source ledger, and bounded pilot.
+- Public record: [Issue #517 decision and investigation](https://github.com/Open-Athena/marin-dna/issues/517#issuecomment-5454658109).
 - Execution boundary: No cloud job was launched and no projection backend was changed.
-- Next action: Publish the decision to issue #517, then implement the three-species EC2 parity and resource pilot under issue #523 as the gate to generating and pinning all 107 whole-genome chains.
+- Next action: After launch authorization, implement the three-species EC2 parity and resource pilot under issue #523 as the gate to generating and pinning all 107 whole-genome chains.
