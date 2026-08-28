@@ -49,13 +49,13 @@ from exp517_functional_specialists.phylop_uniform_h100_smoke import (
     validated_coreweave_prefix,
 )
 
-FULL_H100_PER_DEVICE_PARALLELISM = 2_048
+FULL_H100_PER_DEVICE_PARALLELISM = 1_024
 FULL_H100_NUM_SHARDS = 64
 FULL_H100_LOCAL_TOKENIZER_WORKERS = 16
 
 
 def selected_full_per_device_parallelism() -> int:
-    """Return the one-H100 microbatch validated by the three-step smoke."""
+    """Return the one-H100 microbatch selected after the full-run OOM."""
     raw = os.environ.get(
         "EXP517_H100_PDP",
         str(FULL_H100_PER_DEVICE_PARALLELISM),
@@ -66,7 +66,7 @@ def selected_full_per_device_parallelism() -> int:
         raise ValueError(f"EXP517_H100_PDP must be an integer, got {raw!r}") from error
     if value != FULL_H100_PER_DEVICE_PARALLELISM:
         raise ValueError(
-            "EXP517_H100_PDP must equal the validated one-H100 value "
+            "EXP517_H100_PDP must equal the selected one-H100 value "
             f"{FULL_H100_PER_DEVICE_PARALLELISM}, got {value}"
         )
     return value

@@ -53,7 +53,7 @@ def test_full_h100_tokenizes_complete_immutable_dataset() -> None:
     assert "h100-full" in config.tags
 
 
-def test_full_h100_uses_validated_one_gpu_recipe(
+def test_full_h100_uses_selected_one_gpu_recipe(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     _set_required_env(monkeypatch)
@@ -69,7 +69,7 @@ def test_full_h100_uses_validated_one_gpu_recipe(
     assert train.trainer.train_batch_size == BATCH_SIZE == 8_192
     assert train.trainer.per_device_parallelism == (
         FULL_H100_PER_DEVICE_PARALLELISM
-    ) == 2_048
+    ) == 1_024
     assert train.trainer.num_train_steps == TRAIN_STEPS == 5_000
     assert train.train_seq_len == SEQUENCE_LENGTH == 256
     assert train.data.tokenizer == MODEL_TOKENIZER_PATH
@@ -89,12 +89,12 @@ def test_full_h100_uses_validated_one_gpu_recipe(
     assert "test-key" not in repr(pod)
 
 
-def test_full_h100_rejects_unvalidated_microbatch(
+def test_full_h100_rejects_unselected_microbatch(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     _set_required_env(monkeypatch)
     monkeypatch.setenv("EXP517_H100_PDP", "4096")
-    with pytest.raises(ValueError, match="validated one-H100 value"):
+    with pytest.raises(ValueError, match="selected one-H100 value"):
         build_full_h100_training(ARMS["cds"])
 
 

@@ -211,8 +211,8 @@ The coordinator disables Iris auto-sync, installs the repository-pinned uv as an
 The top-level Iris job owns the CoreWeave peer selection; child jobs inherit that controller and must not attempt to federate back to the same peer.
 
 The measured calibration result is a verified OOM at per-device parallelism 8,192 and 4,096, followed by a successful 3/3-step run at 2,048.
-The successful run retained global batch 8,192 and saved both native and Hugging Face checkpoints.
-The full one-H100 path therefore fixes per-device parallelism at the validated value 2,048.
+The first full 2,048 run then reached step 5 before a later `jit__train_step` requested another 52.65 GiB and OOMed.
+The retry therefore uses per-device parallelism 1,024 while preserving global batch 8,192 through additional accumulation.
 
 The full path tokenizes the complete immutable selected arm into CoreWeave-local S3 and restores the exact 5,000-step schedule and 500-step checkpoint cadence.
 Run its tokenization-only mode first on one explicitly sized preemptible CoreWeave CPU task; it uses 16 local Zephyr workers because the pinned Fray CPU actor path does not attach a uv environment on the production peers.
@@ -224,14 +224,14 @@ uv run --python /usr/bin/python3.12 --locked \
   iris --cluster=marin job run \
   --no-wait --no-sync --user gonzalo --priority batch --preemptible \
   --target-cluster cw-rno2a \
-  --job-name exp517-phylop-cds-h100-pdp2048-full-d001 \
+  --job-name exp517-phylop-cds-h100-pdp1024-full-d001 \
   --cpu 1 --memory 2G --disk 9G \
   -e WANDB_API_KEY "$WANDB_API_KEY" \
   -e WANDB_ENTITY gonzalobenegas \
   -e WANDB_PROJECT marin \
   -e EXP517_H100_CLUSTER cw-rno2a \
   -e EXP517_H100_ARM cds \
-  -e EXP517_H100_PDP 2048 \
+  -e EXP517_H100_PDP 1024 \
   -e UV_PROJECT /app/experiments/exp517_functional_specialists/h100_smoke \
   -- bash -lc 'cd /tmp && UV_TOOL_DIR=/tmp/uv-tools UV_TOOL_BIN_DIR=/tmp/uv-bin uv tool install uv==0.11.31 && cd /app/experiments/exp517_functional_specialists && exec /tmp/uv-bin/uv run --project /app/experiments/exp517_functional_specialists/h100_smoke --locked python -m exp517_functional_specialists.phylop_uniform_h100_experiment --version 2026.08.27 --run'
 ```
