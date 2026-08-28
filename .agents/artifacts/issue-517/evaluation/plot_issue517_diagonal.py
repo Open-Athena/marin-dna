@@ -9,6 +9,8 @@ Run from the repository root with an evals_v2-compatible environment:
 
 Pass ``--metrics-dir`` to reuse local copies named
 ``<arm>-mendelian_traits.parquet`` instead of reading workflow-owned S3.
+Pass ``--model-prefix``, ``--output-stem``, and ``--title`` to render a
+selector-control diagonal without changing the established visual encoding.
 """
 
 from __future__ import annotations
@@ -70,20 +72,37 @@ def parse_args() -> argparse.Namespace:
         default=Path(__file__).parent,
         help="Directory for the SVG and source-data CSV.",
     )
+    parser.add_argument(
+        "--model-prefix",
+        default="exp517-gpn-uniform",
+        help="Model-name prefix before the arm slug and terminal step.",
+    )
+    parser.add_argument(
+        "--output-stem",
+        default="issue517_mendelian_diagonal",
+        help="Shared filename stem for the SVG and source-data CSV.",
+    )
+    parser.add_argument(
+        "--title",
+        default="Issue 517 terminal Mendelian AUPRC diagonal",
+        help="Figure title.",
+    )
     return parser.parse_args()
 
 
-def metric_path(arm_slug: str, metrics_dir: Path | None) -> str | Path:
+def metric_path(
+    arm_slug: str, metrics_dir: Path | None, model_prefix: str
+) -> str | Path:
     if metrics_dir is not None:
         return metrics_dir / f"{arm_slug}-mendelian_traits.parquet"
-    model = f"exp517-gpn-uniform-{arm_slug}-step-4999"
+    model = f"{model_prefix}-{arm_slug}-step-4999"
     return f"{S3_PREFIX}/{model}/mendelian_traits.parquet"
 
 
-def load_metrics(metrics_dir: Path | None) -> pd.DataFrame:
+def load_metrics(metrics_dir: Path | None, model_prefix: str) -> pd.DataFrame:
     records: list[dict[str, str | float | int]] = []
     for arm_label, arm_slug in ARMS:
-        frame = pd.read_parquet(metric_path(arm_slug, metrics_dir))
+        frame = pd.read_parquet(metric_path(arm_slug, metrics_dir, model_prefix))
         frame = frame[frame["score_type"].eq(SCORE_TYPE)].set_index("subset")
         for subset_label, subset_slug in SUBSETS:
             row = frame.loc[subset_slug]
@@ -105,7 +124,7 @@ def load_metrics(metrics_dir: Path | None) -> pd.DataFrame:
     return result
 
 
-def plot_diagonal(metrics: pd.DataFrame, output_path: Path) -> None:
+def plot_diagonal(metrics: pd.DataFrame, output_path: Path, title: str) -> None:
     arm_order = [label for label, _ in ARMS]
     subset_order = [label for label, _ in SUBSETS]
     values = metrics.pivot(index="subset", columns="arm", values="value").loc[
@@ -167,7 +186,7 @@ def plot_diagonal(metrics: pd.DataFrame, output_path: Path) -> None:
             zorder=5,
         )
 
-    ax.set_title("Issue 517 terminal Mendelian AUPRC diagonal", pad=12)
+    ax.set_title(title, pad=12)
     ax.set_xlabel("Training arm")
     ax.set_ylabel("Mendelian variant subset")
     ax.set_xticklabels(ax.get_xticklabels(), rotation=28, ha="right")
@@ -201,9 +220,9 @@ def plot_diagonal(metrics: pd.DataFrame, output_path: Path) -> None:
 def main() -> None:
     args = parse_args()
     args.output_dir.mkdir(parents=True, exist_ok=True)
-    metrics = load_metrics(args.metrics_dir)
-    metrics.to_csv(args.output_dir / "issue517_mendelian_diagonal_data.csv", index=False)
-    plot_diagonal(metrics, args.output_dir / "issue517_mendelian_diagonal.svg")
+    metrics = load_metrics(args.metrics_dir, args.model_prefix)
+    metrics.to_csv(args.output_dir / f"{args.output_stem}_data.csv", index=False)
+    plot_diagonal(metrics, args.output_dir / f"{args.output_stem}.svg", args.title)
 
 
 if __name__ == "__main__":
