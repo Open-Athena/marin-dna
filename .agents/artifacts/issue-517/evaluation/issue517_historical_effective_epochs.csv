@@ -1,10 +1,4 @@
 experiment,arm,train_rows,optimizer_steps,global_batch_size,sequence_presentations,effective_row_epochs,source
-issue187_v3,CDS,78387828,5000,8192,40960000,0.522530,issue #187 body
-issue187_v3,3-prime UTR,10305306,5000,8192,40960000,3.974652,issue #187 body
-issue187_v3,ncRNA exon,15277064,5000,8192,40960000,2.681143,issue #187 body
-issue187_v3,TSS / 5-prime UTR,8124514,5000,8192,40960000,5.041532,issue #187 body
-issue187_v3,Enhancer,96639800,5000,8192,40960000,0.423842,issue #187 body
-issue187_v3,Background,15145768,5000,8192,40960000,2.704386,issue #187 body
 issue232_v4,CDS,57591204,5000,8192,40960000,0.711220,issue #232 body
 issue232_v4,3-prime UTR,12586492,5000,8192,40960000,3.254282,issue #232 body
 issue232_v4,ncRNA exon,16319886,5000,8192,40960000,2.509821,issue #232 body

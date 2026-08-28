@@ -25,12 +25,6 @@ class TrainingDataset:
 
 
 DATASETS = (
-    TrainingDataset("issue187_v3", "CDS", 78_387_828, "issue #187 body"),
-    TrainingDataset("issue187_v3", "3-prime UTR", 10_305_306, "issue #187 body"),
-    TrainingDataset("issue187_v3", "ncRNA exon", 15_277_064, "issue #187 body"),
-    TrainingDataset("issue187_v3", "TSS / 5-prime UTR", 8_124_514, "issue #187 body"),
-    TrainingDataset("issue187_v3", "Enhancer", 96_639_800, "issue #187 body"),
-    TrainingDataset("issue187_v3", "Background", 15_145_768, "issue #187 body"),
     TrainingDataset("issue232_v4", "CDS", 57_591_204, "issue #232 body"),
     TrainingDataset("issue232_v4", "3-prime UTR", 12_586_492, "issue #232 body"),
     TrainingDataset("issue232_v4", "ncRNA exon", 16_319_886, "issue #232 body"),
@@ -169,7 +163,7 @@ DATASETS = (
 def main() -> None:
     assert TRAIN_STEPS > 0
     assert GLOBAL_BATCH_SIZE > 0
-    assert len(DATASETS) == 33
+    assert len(DATASETS) == 27
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     with OUTPUT_PATH.open("w", newline="") as output:
         writer = csv.DictWriter(

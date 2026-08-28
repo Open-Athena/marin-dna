@@ -1,0 +1,9 @@
+subset,home_arm,n_experiments,pearson_r,pearson_exact_p,spearman_rho,spearman_exact_p,auprc_per_additional_epoch,leave_one_out_pearson_min,leave_one_out_pearson_max,leave_one_out_sign_stable
+Missense,CDS,4,-0.867693,0.125000,-1.000000,0.083333,-0.095932,-0.989225,-0.822652,True
+Synonymous,CDS,4,-0.943572,0.041667,-1.000000,0.083333,-0.477128,-0.999740,-0.938516,True
+Splicing,CDS,4,-0.861348,0.125000,-0.800000,0.333333,-0.425036,-0.988591,0.266899,False
+3′ UTR,3′ UTR,4,-0.191964,0.833333,-0.200000,0.916667,-0.007141,-0.689663,0.992840,False
+ncRNA,ncRNA exon,4,0.976303,0.125000,0.800000,0.333333,0.043137,0.318092,0.999023,True
+5′ UTR,TSS / 5′ UTR,4,-0.755005,0.333333,-0.200000,0.916667,-0.029698,-0.978355,0.939294,False
+Promoter,TSS / 5′ UTR,4,-0.782772,0.125000,-0.800000,0.333333,-0.009072,-0.962995,-0.462358,True
+Distal,Enhancer,4,0.996549,0.041667,1.000000,0.083333,0.163359,0.954056,1.000000,True
