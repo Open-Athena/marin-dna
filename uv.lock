@@ -183,10 +183,8 @@ dependencies = [
     { name = "absl-py" },
     { name = "flax", version = "0.12.8", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform == 'linux' or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
     { name = "flax", version = "0.12.9", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform != 'linux' or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
-    { name = "jax", version = "0.11.0", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform == 'linux' or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
-    { name = "jax", version = "0.11.1", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform != 'linux' or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
-    { name = "jaxlib", version = "0.11.0", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform == 'linux' or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
-    { name = "jaxlib", version = "0.11.1", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform != 'linux' or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
+    { name = "jax" },
+    { name = "jaxlib" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/85/b2/028d15474268205dc2a7382759a51eb8903bd3a218a9d261874e2ec772a4/aqtp-0.9.0.tar.gz", hash = "sha256:a42f03f0de5ed54d0d0d9437741a44f6408eaed48103a3434f0ad405ff86874a", size = 885899, upload-time = "2025-08-01T17:54:59.738Z" }
 wheels = [
@@ -436,10 +434,8 @@ version = "0.1.92"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "absl-py" },
-    { name = "jax", version = "0.11.0", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform == 'linux' or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
-    { name = "jax", version = "0.11.1", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform != 'linux' or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
-    { name = "jaxlib", version = "0.11.0", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform == 'linux' or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
-    { name = "jaxlib", version = "0.11.1", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform != 'linux' or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
+    { name = "jax" },
+    { name = "jaxlib" },
     { name = "numpy" },
     { name = "toolz" },
     { name = "typing-extensions" },
@@ -542,7 +538,7 @@ name = "cuda-bindings"
 version = "13.3.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "cuda-pathfinder", marker = "sys_platform == 'linux'" },
+    { name = "cuda-pathfinder", marker = "(sys_platform == 'linux' and extra == 'extra-9-marin-dna-gpu') or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/ce/67/5e7dba1ba576dd73da5dee894ca076ca5e959450dfff66d6d510a255d1f7/cuda_bindings-13.3.1-cp312-cp312-manylinux_2_24_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:c7855c4868aabc0cfae28abbe83d56734bdfbd08f08fc234ac1912a12858bf49", size = 6025351, upload-time = "2026-05-29T23:11:49.685Z" },
@@ -593,37 +589,37 @@ wheels = [
 
 [package.optional-dependencies]
 cublas = [
-    { name = "nvidia-cublas", marker = "sys_platform == 'linux'" },
+    { name = "nvidia-cublas", marker = "(sys_platform == 'linux' and extra == 'extra-9-marin-dna-gpu') or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
 ]
 cudart = [
-    { name = "nvidia-cuda-runtime", marker = "sys_platform == 'linux'" },
+    { name = "nvidia-cuda-runtime", marker = "(sys_platform == 'linux' and extra == 'extra-9-marin-dna-gpu') or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
 ]
 cufft = [
-    { name = "nvidia-cufft", marker = "sys_platform == 'linux'" },
+    { name = "nvidia-cufft", marker = "(sys_platform == 'linux' and extra == 'extra-9-marin-dna-gpu') or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
 ]
 cufile = [
-    { name = "nvidia-cufile", marker = "sys_platform == 'linux'" },
+    { name = "nvidia-cufile", marker = "(sys_platform == 'linux' and extra == 'extra-9-marin-dna-gpu') or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
 ]
 cupti = [
-    { name = "nvidia-cuda-cupti", marker = "sys_platform == 'linux'" },
+    { name = "nvidia-cuda-cupti", marker = "(sys_platform == 'linux' and extra == 'extra-9-marin-dna-gpu') or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
 ]
 curand = [
-    { name = "nvidia-curand", marker = "sys_platform == 'linux'" },
+    { name = "nvidia-curand", marker = "(sys_platform == 'linux' and extra == 'extra-9-marin-dna-gpu') or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
 ]
 cusolver = [
-    { name = "nvidia-cusolver", marker = "sys_platform == 'linux'" },
+    { name = "nvidia-cusolver", marker = "(sys_platform == 'linux' and extra == 'extra-9-marin-dna-gpu') or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
 ]
 cusparse = [
-    { name = "nvidia-cusparse", marker = "sys_platform == 'linux'" },
+    { name = "nvidia-cusparse", marker = "(sys_platform == 'linux' and extra == 'extra-9-marin-dna-gpu') or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
 ]
 nvjitlink = [
-    { name = "nvidia-nvjitlink", marker = "sys_platform == 'linux'" },
+    { name = "nvidia-nvjitlink", marker = "(sys_platform == 'linux' and extra == 'extra-9-marin-dna-gpu') or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
 ]
 nvrtc = [
-    { name = "nvidia-cuda-nvrtc", marker = "sys_platform == 'linux'" },
+    { name = "nvidia-cuda-nvrtc", marker = "(sys_platform == 'linux' and extra == 'extra-9-marin-dna-gpu') or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
 ]
 nvtx = [
-    { name = "nvidia-nvtx", marker = "sys_platform == 'linux'" },
+    { name = "nvidia-nvtx", marker = "(sys_platform == 'linux' and extra == 'extra-9-marin-dna-gpu') or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
 ]
 
 [[package]]
@@ -780,8 +776,7 @@ name = "equinox"
 version = "0.13.8"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "jax", version = "0.11.0", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform == 'linux' or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
-    { name = "jax", version = "0.11.1", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform != 'linux' or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
+    { name = "jax" },
     { name = "jaxtyping" },
     { name = "typing-extensions" },
     { name = "wadler-lindig" },
@@ -910,7 +905,7 @@ resolution-markers = [
     "sys_platform == 'linux' and extra != 'extra-9-marin-dna-gpu' and extra != 'extra-9-marin-dna-tpu'",
 ]
 dependencies = [
-    { name = "jax", version = "0.11.0", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform == 'linux' or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
+    { name = "jax", marker = "sys_platform == 'linux' or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
     { name = "msgpack", marker = "sys_platform == 'linux' or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
     { name = "numpy", marker = "sys_platform == 'linux' or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
     { name = "optax", marker = "sys_platform == 'linux' or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
@@ -934,7 +929,7 @@ resolution-markers = [
     "sys_platform == 'darwin'",
 ]
 dependencies = [
-    { name = "jax", version = "0.11.1", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform != 'linux' or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
+    { name = "jax", marker = "sys_platform != 'linux' or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
     { name = "msgpack", marker = "sys_platform != 'linux' or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
     { name = "numpy", marker = "sys_platform != 'linux' or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
     { name = "optax", marker = "sys_platform != 'linux' or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
@@ -1463,71 +1458,45 @@ wheels = [
 
 [[package]]
 name = "jax"
-version = "0.11.0"
-source = { registry = "https://pypi.org/simple" }
-resolution-markers = [
-    "platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu'",
-    "platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu'",
-    "platform_machine != 'aarch64' and platform_machine != 'x86_64' and sys_platform == 'linux' and extra != 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu'",
-    "sys_platform == 'linux' and extra == 'extra-9-marin-dna-gpu' and extra != 'extra-9-marin-dna-tpu'",
-    "sys_platform == 'linux' and extra != 'extra-9-marin-dna-gpu' and extra != 'extra-9-marin-dna-tpu'",
-]
-dependencies = [
-    { name = "jaxlib", version = "0.11.0", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform == 'linux' or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
-    { name = "ml-dtypes", marker = "sys_platform == 'linux' or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
-    { name = "numpy", marker = "sys_platform == 'linux' or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
-    { name = "opt-einsum", marker = "sys_platform == 'linux' or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
-    { name = "scipy", marker = "sys_platform == 'linux' or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/81/20/90a137c178de8f2b9170bd4dfb934e261213fdaac67e5c5183b132be85e7/jax-0.11.0.tar.gz", hash = "sha256:a2feb7cfa48bb35d36b8ecec16a4ec24044dec01935f779b28b017213697b195", size = 2813185, upload-time = "2026-07-16T19:00:14.519Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/d4/5a/26a1305f8978bc41f889a4172198c7d8976e8e394fc4d03597d9edfd6b7e/jax-0.11.0-py3-none-any.whl", hash = "sha256:b31ed66c4321d5c9e48b861f51a72ed5f7960c93514296202d2041cbb9ac45bf", size = 3255281, upload-time = "2026-07-16T18:58:25.02Z" },
-]
-
-[package.optional-dependencies]
-cuda13 = [
-    { name = "jax-cuda13-plugin", extra = ["with-cuda"], marker = "(sys_platform == 'linux' and extra == 'extra-9-marin-dna-gpu') or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
-    { name = "jaxlib", version = "0.11.0", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform == 'linux'" },
-]
-
-[[package]]
-name = "jax"
 version = "0.11.1"
 source = { registry = "https://pypi.org/simple" }
-resolution-markers = [
-    "sys_platform == 'darwin'",
-]
 dependencies = [
-    { name = "jaxlib", version = "0.11.1", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform != 'linux' or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
-    { name = "ml-dtypes", marker = "sys_platform != 'linux' or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
-    { name = "numpy", marker = "sys_platform != 'linux' or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
-    { name = "opt-einsum", marker = "sys_platform != 'linux' or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
-    { name = "scipy", marker = "sys_platform != 'linux' or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
+    { name = "jaxlib" },
+    { name = "ml-dtypes" },
+    { name = "numpy" },
+    { name = "opt-einsum" },
+    { name = "scipy" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/90/aa/c3b6ac3863a490661e255d2356802b54d57b533460fa221d30743d81a6c1/jax-0.11.1.tar.gz", hash = "sha256:43e0d45b1dac002eca04c2de73298395225dd0d4651e3f573a540eaa18abfd80", size = 2864119, upload-time = "2026-08-17T20:31:29.938Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/8f/f4/5f9a286e1eeca9faa8b83885edccf63ab2f1b22e17f6a5ea66ac86b1afe4/jax-0.11.1-py3-none-any.whl", hash = "sha256:72ed60bf85a0b53d0f5b5cd61e37a8b25f369f6f88481feb98ab489894861a82", size = 3302513, upload-time = "2026-08-17T20:29:00.294Z" },
 ]
 
+[package.optional-dependencies]
+cuda13 = [
+    { name = "jax-cuda13-plugin", extra = ["with-cuda"], marker = "(sys_platform == 'linux' and extra == 'extra-9-marin-dna-gpu') or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
+    { name = "jaxlib", marker = "sys_platform == 'linux'" },
+]
+
 [[package]]
 name = "jax-cuda13-pjrt"
-version = "0.11.0"
+version = "0.11.1"
 source = { registry = "https://pypi.org/simple" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/dd/cd/8fa8034e2f7bc50a78c2319f576aedf06c633b94b3e5d187fb9becfc1379/jax_cuda13_pjrt-0.11.0-py3-none-manylinux_2_27_aarch64.whl", hash = "sha256:e72c7b6b266b3fbe85792b2b4569b6c87447e77c454770d5afcc081a0b87d140", size = 120632519, upload-time = "2026-07-16T18:58:54.921Z" },
-    { url = "https://files.pythonhosted.org/packages/6e/0e/140944fc5cc1e0d5891b78209fb70a2f1ce951a656292f598904ac7efe5d/jax_cuda13_pjrt-0.11.0-py3-none-manylinux_2_27_x86_64.whl", hash = "sha256:814092a06a4da93a0b01df9bcdf5f8e0900d6c0a4c3ca7e7ec4ec967de7e96d9", size = 125815692, upload-time = "2026-07-16T18:58:59.251Z" },
+    { url = "https://files.pythonhosted.org/packages/4b/5e/6f98d6dc8769c7cacf2dbe7084d92cabcfbaaf9e0e0f5b5eaadd1ab85c7a/jax_cuda13_pjrt-0.11.1-py3-none-manylinux_2_27_aarch64.whl", hash = "sha256:819c744e35ddf02724bf4596a628d2be387369a87cda60575137ee437ecd797a", size = 125801938, upload-time = "2026-08-17T20:29:40.449Z" },
+    { url = "https://files.pythonhosted.org/packages/19/14/fe7b8670005fbdc2989f45a19192c979fb91334c80888147f0f34efaf19e/jax_cuda13_pjrt-0.11.1-py3-none-manylinux_2_27_x86_64.whl", hash = "sha256:4ca8a261a5485adb852fde954e4b9145f542c0d8af4704a88e05faee3541af21", size = 130972373, upload-time = "2026-08-17T20:29:45.712Z" },
 ]
 
 [[package]]
 name = "jax-cuda13-plugin"
-version = "0.11.0"
+version = "0.11.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "jax-cuda13-pjrt", marker = "sys_platform == 'linux'" },
 ]
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/b3/89/cbc101ba3b6f56f054ff9f905c809e36bb27402c7d1039b775cfa95ca7a1/jax_cuda13_plugin-0.11.0-cp312-cp312-manylinux_2_27_aarch64.whl", hash = "sha256:3a3c66ffefd95281227c73b210b2ea25bdeaf3fb6f77c4f40d16582f6ed68411", size = 7547523, upload-time = "2026-07-16T18:59:02.629Z" },
-    { url = "https://files.pythonhosted.org/packages/48/74/c2a0bde01f09402e6ea2e476cf43816f0c58983afb2451077c49d2006cb3/jax_cuda13_plugin-0.11.0-cp312-cp312-manylinux_2_27_x86_64.whl", hash = "sha256:e87d2f7e17b29218dc2d095364a21f02f94e845650bf811769c38b4730681593", size = 7570766, upload-time = "2026-07-16T18:59:04.27Z" },
+    { url = "https://files.pythonhosted.org/packages/94/27/366e77443c96427bb47b35a6b65b681de8b952ffadabb38a40be592410df/jax_cuda13_plugin-0.11.1-cp312-cp312-manylinux_2_27_aarch64.whl", hash = "sha256:f6e763839fc2871cea7b082ba611cd3a5b9fc5086cb440fbb4c92098f9b1b567", size = 7889786, upload-time = "2026-08-17T20:29:48.612Z" },
+    { url = "https://files.pythonhosted.org/packages/94/80/1f361f432281f5d43d12960d78fc609abe51708903e26a00518f5a8566d3/jax_cuda13_plugin-0.11.1-cp312-cp312-manylinux_2_27_x86_64.whl", hash = "sha256:db348b9199810be5b5380c1139b4d4802d6dec6f0ca6bf19fcb818805341f590", size = 7934753, upload-time = "2026-08-17T20:29:50.408Z" },
 ]
 
 [package.optional-dependencies]
@@ -1553,7 +1522,7 @@ version = "0.3.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "absl-py", marker = "sys_platform == 'linux'" },
-    { name = "jax", version = "0.11.0", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform == 'linux'" },
+    { name = "jax", marker = "sys_platform == 'linux'" },
     { name = "triton", marker = "sys_platform == 'linux'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/1f/04/9a54927ffa73c2cce3751391dd7d2f33aa8663c00febcc2a69325c708ba6/jax_triton-0.3.1.tar.gz", hash = "sha256:8ee1e53dfb199f5bebedbe743854f351fc30d931eede82b953c1bbeb9c22e590", size = 16283, upload-time = "2026-02-27T22:49:46.318Z" }
@@ -1563,37 +1532,12 @@ wheels = [
 
 [[package]]
 name = "jaxlib"
-version = "0.11.0"
-source = { registry = "https://pypi.org/simple" }
-resolution-markers = [
-    "platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu'",
-    "platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu'",
-    "platform_machine != 'aarch64' and platform_machine != 'x86_64' and sys_platform == 'linux' and extra != 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu'",
-    "sys_platform == 'linux' and extra == 'extra-9-marin-dna-gpu' and extra != 'extra-9-marin-dna-tpu'",
-    "sys_platform == 'linux' and extra != 'extra-9-marin-dna-gpu' and extra != 'extra-9-marin-dna-tpu'",
-]
-dependencies = [
-    { name = "ml-dtypes", marker = "sys_platform == 'linux' or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
-    { name = "numpy", marker = "sys_platform == 'linux' or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
-    { name = "scipy", marker = "sys_platform == 'linux' or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
-]
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/04/13/629fd9f50e15424358b7c53b6ec729e2d7163d64942817bee9adeee04ed1/jaxlib-0.11.0-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:f5bf0b3bfc2ef4778580047389dacb51ae000e50c6b3b6f98d10788927066c97", size = 62546563, upload-time = "2026-07-16T18:59:16.788Z" },
-    { url = "https://files.pythonhosted.org/packages/8e/1d/a85feebcfc6fa702bcaadd74f3c13283e1613f7598de5ca69bdbaf4c2671/jaxlib-0.11.0-cp312-cp312-manylinux_2_27_aarch64.whl", hash = "sha256:1b767c4d7ad4dfc6358313b63ae6d83c3571d3ce966de04d8aaf29eb44633786", size = 82155667, upload-time = "2026-07-16T18:59:20.477Z" },
-    { url = "https://files.pythonhosted.org/packages/86/f0/89c34a4877628edea6585699e42f7d3ed4c1e50140ade9c6efce85a0ab84/jaxlib-0.11.0-cp312-cp312-manylinux_2_27_x86_64.whl", hash = "sha256:7ea9dc06d94f536deabcf304513143bc89f51173ddfd786d44f8ac303efdf643", size = 87263507, upload-time = "2026-07-16T18:59:24.258Z" },
-]
-
-[[package]]
-name = "jaxlib"
 version = "0.11.1"
 source = { registry = "https://pypi.org/simple" }
-resolution-markers = [
-    "sys_platform == 'darwin'",
-]
 dependencies = [
-    { name = "ml-dtypes", marker = "sys_platform != 'linux' or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
-    { name = "numpy", marker = "sys_platform != 'linux' or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
-    { name = "scipy", marker = "sys_platform != 'linux' or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
+    { name = "ml-dtypes" },
+    { name = "numpy" },
+    { name = "scipy" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/6a/b4/9a7caf8704536e694ab8b4286eb4afa2224f3f75283f370d2246343e7bbc/jaxlib-0.11.1-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:384f633331c012491ccd65c38d47cd80d4131f5b3852694766bffa9385ddc9f3", size = 63173264, upload-time = "2026-08-17T20:30:07.721Z" },
@@ -1606,10 +1550,8 @@ name = "jaxopt"
 version = "0.8.5"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "jax", version = "0.11.0", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform == 'linux' or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
-    { name = "jax", version = "0.11.1", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform != 'linux' or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
-    { name = "jaxlib", version = "0.11.0", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform == 'linux' or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
-    { name = "jaxlib", version = "0.11.1", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform != 'linux' or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
+    { name = "jax" },
+    { name = "jaxlib" },
     { name = "numpy" },
     { name = "scipy" },
 ]
@@ -1764,15 +1706,15 @@ wheels = [
 
 [[package]]
 name = "libtpu"
-version = "0.0.44.1"
+version = "0.0.46"
 source = { registry = "https://pypi.org/simple" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/6f/66/e57cdbcfaeb1c232b685ee78c15e37a5a7cb3889e3f604db6ca80c0717a5/libtpu-0.0.44.1-cp312-cp312-manylinux_2_31_x86_64.whl", hash = "sha256:4a96b7c320f63267e6ce82f323c2d8fca68395170ac98db4eb29d8e3cca2edf9", size = 215596766, upload-time = "2026-07-27T23:48:43.042Z" },
+    { url = "https://files.pythonhosted.org/packages/5a/66/347b5cde406248b0f1a2e2238e968bfaf90ca7760885654c18fdf0de5882/libtpu-0.0.46-cp312-cp312-manylinux_2_31_x86_64.whl", hash = "sha256:194872987833569e68c2d7cac134cedd0832f440c470474ccbfe301a7fd23212", size = 216541591, upload-time = "2026-08-14T02:10:50.212Z" },
 ]
 
 [[package]]
 name = "marin-core"
-version = "0.2.86.dev32222909699"
+version = "0.2.94.dev33196045049"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "backports-zstd" },
@@ -1785,8 +1727,7 @@ dependencies = [
     { name = "google-api-python-client" },
     { name = "google-cloud-storage" },
     { name = "huggingface-hub" },
-    { name = "jax", version = "0.11.0", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform == 'linux' or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
-    { name = "jax", version = "0.11.1", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform != 'linux' or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
+    { name = "jax" },
     { name = "jaxopt" },
     { name = "marin-finestore" },
     { name = "marin-fray" },
@@ -1812,15 +1753,15 @@ dependencies = [
     { name = "transformers" },
     { name = "wandb" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/32/53/a854257f0036e40e26a8bd85a4db8d73316028fc2f940b42faed000d00c3/marin_core-0.2.86.dev32222909699.tar.gz", hash = "sha256:6e613aec021c9f6852859e73153cecf457a36635f805be7f868cab1bfdc4c57f", size = 668444, upload-time = "2026-08-19T06:20:41.925Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/11/30/ba57b641c67cd0c050111d6e9e2a2a0eb75cdd624474bcce9394feeaf5c8/marin_core-0.2.94.dev33196045049.tar.gz", hash = "sha256:84c78ec9aa38cd36d91d84718c50fa9787e5bc4d3fefdec2b1e25ffde35e0ac6", size = 670203, upload-time = "2026-08-28T17:45:42.954Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/3d/d7/83edc05551fa27c5049c46757dfdc0add9666093f55c2dbc1cc82c4a11a5/marin_core-0.2.86.dev32222909699-py3-none-any.whl", hash = "sha256:3057ec032a7409b0a4766161f736417aafad15f989451d51bb5f4a1b9e6910b1", size = 792688, upload-time = "2026-08-19T06:20:29.423Z" },
+    { url = "https://files.pythonhosted.org/packages/f5/11/bdc56668980585602163d650781e6938a8d13e1fd5bdf3bd32196deeae34/marin_core-0.2.94.dev33196045049-py3-none-any.whl", hash = "sha256:3c57a2bb215fa72e641df382d6d081fe171cd3f052a61818999442fa6830a613", size = 794277, upload-time = "2026-08-28T17:45:29.066Z" },
 ]
 
 [package.optional-dependencies]
 gpu = [
     { name = "flash-attn-4", extra = ["cu13"], marker = "(sys_platform == 'linux' and extra == 'extra-9-marin-dna-gpu') or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
-    { name = "jax", version = "0.11.0", source = { registry = "https://pypi.org/simple" }, extra = ["cuda13"], marker = "(sys_platform == 'linux' and extra == 'extra-9-marin-dna-gpu') or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
+    { name = "jax", extra = ["cuda13"], marker = "(sys_platform == 'linux' and extra == 'extra-9-marin-dna-gpu') or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
     { name = "jax-triton", marker = "sys_platform == 'linux'" },
     { name = "nvidia-cublas", marker = "sys_platform == 'linux'" },
     { name = "nvidia-cutlass-dsl", extra = ["cu13"], marker = "(sys_platform == 'linux' and extra == 'extra-9-marin-dna-gpu') or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
@@ -1830,11 +1771,12 @@ gpu = [
     { name = "triton", marker = "sys_platform == 'linux'" },
 ]
 tpu = [
-    { name = "jax", version = "0.11.0", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform == 'linux'" },
-    { name = "jaxlib", version = "0.11.0", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform == 'linux'" },
+    { name = "jax", marker = "sys_platform == 'linux'" },
+    { name = "jaxlib", marker = "sys_platform == 'linux'" },
     { name = "libtpu", marker = "sys_platform == 'linux'" },
     { name = "torch", version = "2.11.0+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "sys_platform == 'linux'" },
-    { name = "torchvision", version = "0.26.0+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "(platform_machine == 'aarch64' and sys_platform == 'linux') or (platform_machine == 'x86_64' and sys_platform == 'linux')" },
+    { name = "torchvision", version = "0.26.0", source = { registry = "https://pypi.org/simple" }, marker = "(platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-9-marin-dna-tpu') or (platform_machine != 'aarch64' and extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu') or (sys_platform != 'linux' and extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
+    { name = "torchvision", version = "0.26.0+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-9-marin-dna-tpu') or (platform_machine != 'x86_64' and extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu') or (sys_platform != 'linux' and extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
 ]
 
 [[package]]
@@ -1877,12 +1819,12 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "biopython", specifier = ">=1.85" },
-    { name = "marin-core", specifier = "==0.2.86.dev32222909699" },
-    { name = "marin-core", extras = ["gpu"], marker = "sys_platform == 'linux' and extra == 'gpu'", specifier = "==0.2.86.dev32222909699" },
-    { name = "marin-core", extras = ["tpu"], marker = "sys_platform == 'linux' and extra == 'tpu'", specifier = "==0.2.86.dev32222909699" },
-    { name = "marin-dupekit", specifier = "==0.1.6.dev31131847556" },
-    { name = "marin-finelog", specifier = "==0.2.30.dev32169503727" },
-    { name = "marin-iris", extras = ["controller"], specifier = "==0.2.86.dev32222909699" },
+    { name = "marin-core", specifier = "==0.2.94.dev33196045049" },
+    { name = "marin-core", extras = ["gpu"], marker = "sys_platform == 'linux' and extra == 'gpu'", specifier = "==0.2.94.dev33196045049" },
+    { name = "marin-core", extras = ["tpu"], marker = "sys_platform == 'linux' and extra == 'tpu'", specifier = "==0.2.94.dev33196045049" },
+    { name = "marin-dupekit", specifier = "==0.1.7.dev32497398902" },
+    { name = "marin-finelog", specifier = "==0.2.40.dev33113823668" },
+    { name = "marin-iris", extras = ["controller"], specifier = "==0.2.94.dev33196045049" },
     { name = "numpy" },
     { name = "polars" },
     { name = "polars-bio", specifier = ">=0.33.0,<0.34.0" },
@@ -1905,14 +1847,14 @@ dev = [
 
 [[package]]
 name = "marin-dupekit"
-version = "0.1.6.dev31131847556"
+version = "0.1.7.dev32497398902"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "marin-dupekit-native" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/70/3e/c908ebae564430ba15d4f4847468519458dde2b3a7d2577242743d15fa68/marin_dupekit-0.1.6.dev31131847556.tar.gz", hash = "sha256:edc7b640d166718ea5640ce419e89b0400a9d65e9c42774c931a6a9e4e61cf43", size = 17952, upload-time = "2026-08-07T00:12:16.253Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/9a/74/f31549d08064b8f21a0d58aaed8cf5383dec0123345b9b526f70be70086c/marin_dupekit-0.1.7.dev32497398902.tar.gz", hash = "sha256:fd395e4aab6c0fdfa175e309097086df0b38e90652ff2308c96540886c77e568", size = 17954, upload-time = "2026-08-21T15:56:56.739Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/1b/cf/a0b850a114566f7225f6f701e1cccac2746d34f254bfbad188bfdfea0d1c/marin_dupekit-0.1.6.dev31131847556-py3-none-any.whl", hash = "sha256:5eac0c134646ad8661d1f9a1c496ea33c41dd2a39d3f4b79dc89b0fe2601a085", size = 9254, upload-time = "2026-08-07T00:12:08.969Z" },
+    { url = "https://files.pythonhosted.org/packages/ec/d7/07e4753e3fb2684f4c40006dfd71963c06d7fadcc91a3d73c9d7a006d104/marin_dupekit-0.1.7.dev32497398902-py3-none-any.whl", hash = "sha256:3bebd01572f5c6ac86ea9b050c68e9839bc0db22157d1bb56b5528f8fca2cc70", size = 9254, upload-time = "2026-08-21T15:56:48.577Z" },
 ]
 
 [[package]]
@@ -1932,7 +1874,7 @@ wheels = [
 
 [[package]]
 name = "marin-finelog"
-version = "0.2.30.dev32169503727"
+version = "0.2.40.dev33113823668"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "click" },
@@ -1947,72 +1889,71 @@ dependencies = [
     { name = "pyyaml" },
     { name = "zstandard" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/e7/8c/6905cd17c1a0bd5e4e9fe1f7ab5893fb3c0d5909d1779030aa49b487ec62/marin_finelog-0.2.30.dev32169503727.tar.gz", hash = "sha256:4124f2953632152b73321113b2377c096cb087af8a8b1e3bdad220b87538407a", size = 112350, upload-time = "2026-08-18T18:41:40.127Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/cc/fb/8e9ffc95d4c4c05f19430fa9481288a0e4b6e1d926d7c2d072bce545285e/marin_finelog-0.2.40.dev33113823668.tar.gz", hash = "sha256:c0308881994ce6437cca5cf738ea6b3a453774be9f3cf11ef268b1a49c3fccbd", size = 117812, upload-time = "2026-08-27T21:06:18.1Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/3a/70/40cc3a84fa89a48fc27dea42fdafbfdd0fc4fc84ac96dd634b6424614ee9/marin_finelog-0.2.30.dev32169503727-py3-none-any.whl", hash = "sha256:a87d3f771a8f8edd13f2e93adc96474d557c3d0a7b7bf2e90eff9070c4fda496", size = 111886, upload-time = "2026-08-18T18:41:25.576Z" },
+    { url = "https://files.pythonhosted.org/packages/6c/88/47e2eb992e4857e1535210bddd843547c0de2e0029b8839009b1b9cd10ee/marin_finelog-0.2.40.dev33113823668-py3-none-any.whl", hash = "sha256:3777d5a7d90cbc20b815bbd91ef61142f18811e2f25d873f915f1e7b8ff19c75", size = 114863, upload-time = "2026-08-27T21:06:01.71Z" },
 ]
 
 [[package]]
 name = "marin-finelog-server"
-version = "0.2.30.dev32169503727"
+version = "0.2.40.dev33113823668"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/c0/04/5236b4c0b60a08f84277a49fd90e410b692e8ce6130bda347702f136ed1c/marin_finelog_server-0.2.30.dev32169503727.tar.gz", hash = "sha256:e9c760e97f59c8ea017b6b5f1139ce3819b961ca68f34b69bd23a9fe4561a130", size = 381786, upload-time = "2026-08-18T18:41:41.248Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/cb/08/4a1d3100db3e13e31997bddc6d64abd79ea73c39ee6443874238c91023d1/marin_finelog_server-0.2.40.dev33113823668.tar.gz", hash = "sha256:6df949c2ce18f32a687c7229e3d4e3a8357679bc0a6e96ebcbd880e2a8be040e", size = 433557, upload-time = "2026-08-27T21:06:19.257Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/91/b4/effae0253a46cc131852dcd15d67997ba0d46d2ad04c753ccb65fa871a3f/marin_finelog_server-0.2.30.dev32169503727-cp312-abi3-macosx_10_12_x86_64.whl", hash = "sha256:c8069c5f2b178316d142690ee511b8e915afd0c978a7de0557c9a0a5fe36e9b3", size = 40998433, upload-time = "2026-08-18T18:41:28.004Z" },
-    { url = "https://files.pythonhosted.org/packages/7c/8d/60eeb9b52d2457921eb4896ae10c575aff90ec153c71cd103982783eb38c/marin_finelog_server-0.2.30.dev32169503727-cp312-abi3-macosx_11_0_arm64.whl", hash = "sha256:daae96b8d4f1b7359c899db664f2ac8bd0f524f0f0a635cedd2de0e2e7cf7911", size = 38830486, upload-time = "2026-08-18T18:41:31.394Z" },
-    { url = "https://files.pythonhosted.org/packages/0a/d1/31eb5042b5f8a4f6dd9a0d7afa205b6257163d24dd09853290d8a9870550/marin_finelog_server-0.2.30.dev32169503727-cp312-abi3-manylinux_2_28_aarch64.whl", hash = "sha256:e1b746bb16deb2a50686f5b691cb997da65161a619f20bd95661631360be5b94", size = 40419940, upload-time = "2026-08-18T18:41:34.528Z" },
-    { url = "https://files.pythonhosted.org/packages/b6/2d/0fd8ba4b3d73578cdc45659e3535dbf12185b101a24e5cfdcc605e2901a8/marin_finelog_server-0.2.30.dev32169503727-cp312-abi3-manylinux_2_28_x86_64.whl", hash = "sha256:bfe217753db0d9e9bf65b68cb999aac8a4bfc9248e1e3b1220f239ce715c9207", size = 42988426, upload-time = "2026-08-18T18:41:37.756Z" },
+    { url = "https://files.pythonhosted.org/packages/77/26/db212c734cdd50b186a0d4438fd8192dd8809532259d24c38df3f39a35a1/marin_finelog_server-0.2.40.dev33113823668-cp312-abi3-macosx_10_12_x86_64.whl", hash = "sha256:99a46a750cddec61de132b08500cf80dcb460b7f021beb27ac4510b7876a6f76", size = 41267600, upload-time = "2026-08-27T21:06:04.556Z" },
+    { url = "https://files.pythonhosted.org/packages/49/45/4b8dc288f244cb7589f7033c611e6b5fd05afd3bf41297ee7de7e3bac949/marin_finelog_server-0.2.40.dev33113823668-cp312-abi3-macosx_11_0_arm64.whl", hash = "sha256:d295d6b81fef17f2ecdc45fcd9fb3c968364de898ec11f3f6fc970d61fc677c0", size = 39017260, upload-time = "2026-08-27T21:06:08.168Z" },
+    { url = "https://files.pythonhosted.org/packages/0d/e4/353e7dfb1a6333287feed5940ac954f10cec6062bcd97e339155f2d2efca/marin_finelog_server-0.2.40.dev33113823668-cp312-abi3-manylinux_2_28_aarch64.whl", hash = "sha256:d03d7f31c5aa8a1faa189cf377a8a0cfa02949f2f4d61f36b215f5d039116635", size = 40588810, upload-time = "2026-08-27T21:06:11.54Z" },
+    { url = "https://files.pythonhosted.org/packages/82/5f/bb112bdb82fa601ef300852a9d4e21c3c909a81747b96c5eb8d71cca4555/marin_finelog_server-0.2.40.dev33113823668-cp312-abi3-manylinux_2_28_x86_64.whl", hash = "sha256:32f770e5733694ff78b3b0a3e6057d8cc1ba929862b6816880096f875dd8a4f8", size = 43242613, upload-time = "2026-08-27T21:06:15.528Z" },
 ]
 
 [[package]]
 name = "marin-finestore"
-version = "0.2.86.dev32222909699"
+version = "0.2.94.dev33196045049"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "marin-rigging" },
     { name = "pyarrow" },
     { name = "pydantic" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/3e/4c/e5d75e9b7e978a67abafdfcdb328d88345d039cbc5e20efd05333a33b0a0/marin_finestore-0.2.86.dev32222909699.tar.gz", hash = "sha256:0694d43f73e064858a2197c1253345b87c6ed55241438cd8340f17d9ca9736e4", size = 38976, upload-time = "2026-08-19T06:20:43.129Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/c2/ef/39ce93579272ac9af3e78b1732f0ff92e5ca88fb422491eb9043349d4628/marin_finestore-0.2.94.dev33196045049.tar.gz", hash = "sha256:64228d31188b3ce74807b916a32c2a5fa9f9fdcff31889a1c57b89004acd240e", size = 45925, upload-time = "2026-08-28T17:45:44.197Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/6d/e9/09d33a3b06aca13318dbcd26298881f86bc3c855255e8459a356990f93d6/marin_finestore-0.2.86.dev32222909699-py3-none-any.whl", hash = "sha256:fb441b058a4d438ccff4278a4b38fede2065477b10f1bdca8a00ce2b5514570b", size = 32271, upload-time = "2026-08-19T06:20:31.105Z" },
+    { url = "https://files.pythonhosted.org/packages/1a/a1/eb17da388f33dfda65dd78a3ee062b416a71706aaf16338cddf366512117/marin_finestore-0.2.94.dev33196045049-py3-none-any.whl", hash = "sha256:3f1f1767a3e7c1d33c371880c94798f1338f1b64d69898eb075e5af63a35fb96", size = 36565, upload-time = "2026-08-28T17:45:31.084Z" },
 ]
 
 [[package]]
 name = "marin-fray"
-version = "0.2.86.dev32222909699"
+version = "0.2.94.dev33196045049"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "cloudpickle" },
     { name = "humanfriendly" },
     { name = "marin-rigging" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/2e/10/a619cd1e2bdcc032fbc69d9569626daf8f31651d38137589b94509b7b97e/marin_fray-0.2.86.dev32222909699.tar.gz", hash = "sha256:f915d7b6f7eca7861bb6e8f67c035d16fc1877fdf3b65e93738c4d57009cd019", size = 36368, upload-time = "2026-08-19T06:20:44.116Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/46/8e/fb4e6c6cb3ca31df4a6a06e9845ff59c77820c5d335d415cbab3e434f319/marin_fray-0.2.94.dev33196045049.tar.gz", hash = "sha256:8bc16cd9827ac3b5f311379cc42a259e45821727f004853b152cb33ce470ac11", size = 36419, upload-time = "2026-08-28T17:45:45.417Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/ee/09/54c72ad7aabaffa2edf5afbe6073f2fd6a7a5fe9b9ace03dc0958f650312/marin_fray-0.2.86.dev32222909699-py3-none-any.whl", hash = "sha256:d6abb8762379ec282c6f3c9d36c7f0de8376c7c3a2fe903dcfd6188a315bbabc", size = 30876, upload-time = "2026-08-19T06:20:32.39Z" },
+    { url = "https://files.pythonhosted.org/packages/5c/e9/54b365d0a411a52759f8de76f89bfa90d23d589eae5ffc66a6d802c4958b/marin_fray-0.2.94.dev33196045049-py3-none-any.whl", hash = "sha256:e4d1e822cef4b25f7e54eed4c32f704e4dc8f76c60a63e562b491e9767368cd6", size = 30877, upload-time = "2026-08-28T17:45:32.383Z" },
 ]
 
 [[package]]
 name = "marin-haliax"
-version = "0.2.86.dev32222909699"
+version = "0.2.94.dev33196045049"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aqtp" },
     { name = "equinox" },
-    { name = "jax", version = "0.11.0", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform == 'linux' or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
-    { name = "jax", version = "0.11.1", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform != 'linux' or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
+    { name = "jax" },
     { name = "jaxtyping" },
     { name = "jmp" },
     { name = "safetensors" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/e0/a5/a0882d247f3daebee293b87d0adadcec6eec3dbb50b1972a36238e443619/marin_haliax-0.2.86.dev32222909699.tar.gz", hash = "sha256:61a496fb3f4d50ffbf40b3a4f657428280dbe26d3ad40bb31c65fc7053bc9654", size = 780196, upload-time = "2026-08-19T06:20:45.148Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/7e/db/951648936caf1c2f54460706b411a30e7ce338c64f5bf21c4ea3f8036d87/marin_haliax-0.2.94.dev33196045049.tar.gz", hash = "sha256:f1598d72b94068cc83c2e180908c58cf75834fd9c03bca5d38ff270a36d7a109", size = 780848, upload-time = "2026-08-28T17:45:46.731Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/24/23/45e33c1ff2fad58f0229ee539a32f66b00a0445c609546f44ff356befe46/marin_haliax-0.2.86.dev32222909699-py3-none-any.whl", hash = "sha256:883a4ad434f1eaf439c9b02369d378c97ec35166cfa09729432059bcabca1e92", size = 158901, upload-time = "2026-08-19T06:20:33.617Z" },
+    { url = "https://files.pythonhosted.org/packages/18/bd/6f608bdb694db67d81fbb00f01ec33b80408a57335210792aa40117b464b/marin_haliax-0.2.94.dev33196045049-py3-none-any.whl", hash = "sha256:cf84bb0de2cec0881cc7b6d24ddef4dd7bdf9d8037f1aae4a64a51dbd317a5bc", size = 159143, upload-time = "2026-08-28T17:45:33.764Z" },
 ]
 
 [[package]]
 name = "marin-iris"
-version = "0.2.86.dev32222909699"
+version = "0.2.94.dev33196045049"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "click" },
@@ -2042,9 +1983,9 @@ dependencies = [
     { name = "uvicorn", extra = ["standard"] },
     { name = "zstandard" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/b1/c6/6dfcdc7b62427f66d64689de9afdc8cb3321eff6809dd0602d240c02dd00/marin_iris-0.2.86.dev32222909699.tar.gz", hash = "sha256:39dabef5213fa81674517abe1751650e98c994a87d8b025d8a40e79f65690f0a", size = 951159, upload-time = "2026-08-19T06:20:46.695Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/ef/3d/05801788c857f06521f67b27ecd8b3c8127055c76af2d38c99242531256e/marin_iris-0.2.94.dev33196045049.tar.gz", hash = "sha256:7eadfb2576685aab5502d2b059afb0bf4d35092eb240264ee466242d12ca4f6c", size = 977691, upload-time = "2026-08-28T17:45:48.438Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/1c/9a/532ee446d135a403cb83b268a01b60f498e5674d578e413f77a3b7a780ab/marin_iris-0.2.86.dev32222909699-py3-none-any.whl", hash = "sha256:61dba738c90cbf612d37e83d5776728a41c06b41561fc9ef1b4203fc9dd86d19", size = 1138611, upload-time = "2026-08-19T06:20:35.276Z" },
+    { url = "https://files.pythonhosted.org/packages/b6/9c/2bbfeff62032674b57b76c50758efff39062dc5c40a510e6c93e553308e0/marin_iris-0.2.94.dev33196045049-py3-none-any.whl", hash = "sha256:adea9ca0ef39c5a6073f754bc50939ed22a9a037fe17eedf44edfa9186ef72b3", size = 1168767, upload-time = "2026-08-28T17:45:35.513Z" },
 ]
 
 [package.optional-dependencies]
@@ -2067,7 +2008,7 @@ wheels = [
 
 [[package]]
 name = "marin-levanter"
-version = "0.2.86.dev32222909699"
+version = "0.2.94.dev33196045049"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "async-lru" },
@@ -2085,12 +2026,12 @@ dependencies = [
     { name = "gitpython" },
     { name = "humanfriendly" },
     { name = "immutabledict" },
-    { name = "jax", version = "0.11.0", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform == 'linux' or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
-    { name = "jax", version = "0.11.1", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform != 'linux' or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
+    { name = "jax" },
     { name = "jaxtyping" },
     { name = "jinja2" },
     { name = "jmp" },
     { name = "lenses" },
+    { name = "marin-finelog" },
     { name = "marin-finestore" },
     { name = "marin-fray" },
     { name = "marin-haliax" },
@@ -2112,9 +2053,9 @@ dependencies = [
     { name = "wandb" },
     { name = "zstandard" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/f1/1a/5e726a7428916490041e5d02e249bcb20de9e3e69fa9c388d690b36caaf4/marin_levanter-0.2.86.dev32222909699.tar.gz", hash = "sha256:7120492e25b8265d60ef1ff3e608ba8df9538ff3ed00557fe475dc4c7ececc45", size = 732333, upload-time = "2026-08-19T06:20:48.102Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/99/42/3cde9569403ededf4ac93ca9af7d77f104b564a6051cb0f1d1dd222498b2/marin_levanter-0.2.94.dev33196045049.tar.gz", hash = "sha256:4f9afa0d390bb16f21478c39c6334906896e61094b08ed93ba532dc3d193d8c3", size = 755344, upload-time = "2026-08-28T17:45:49.837Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/83/72/1ca0371f144d802826ebcd62f6c028da96be7a13eebd29c9408ed825ac74/marin_levanter-0.2.86.dev32222909699-py3-none-any.whl", hash = "sha256:319a7d7e2551e80802383574f5427000fb94744a506eb123f8f6ca4f57bc351a", size = 883454, upload-time = "2026-08-19T06:20:37.338Z" },
+    { url = "https://files.pythonhosted.org/packages/a2/47/235e4f34e003c9677805646b4d17573e89859634fcc765fdcb2754530c15/marin_levanter-0.2.94.dev33196045049-py3-none-any.whl", hash = "sha256:44a8c41f9ec29181a30ef1f477366b65155b7f2aa398689c3bd43dbd515aedbe", size = 908887, upload-time = "2026-08-28T17:45:37.289Z" },
 ]
 
 [package.optional-dependencies]
@@ -2126,7 +2067,7 @@ serve = [
 
 [[package]]
 name = "marin-rigging"
-version = "0.2.86.dev32222909699"
+version = "0.2.94.dev33196045049"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aiobotocore" },
@@ -2145,9 +2086,9 @@ dependencies = [
     { name = "starlette" },
     { name = "zstandard" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/3a/b3/71a171dee814fa85668c612ce50c5effa5fd5529804dd944ed644fe759f4/marin_rigging-0.2.86.dev32222909699.tar.gz", hash = "sha256:5549c2cd871fb72e0126f284dffb0a4c72c85bba9f4b9ad31ea4466601eea717", size = 211988, upload-time = "2026-08-19T06:20:49.277Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/3f/6f/05702b244fddc19ec01f9e3dca9e5915ad00639216133605a958685165fb/marin_rigging-0.2.94.dev33196045049.tar.gz", hash = "sha256:6bf73e723ad58e146a9357a16299e02102db2314b5249f2851fa4e4235a7acab", size = 213351, upload-time = "2026-08-28T17:45:51.434Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/0e/15/b7393816d757a9299190752a58d5adc9c9dd617980e9a875224b072e275f/marin_rigging-0.2.86.dev32222909699-py3-none-any.whl", hash = "sha256:e5b47ed70a3ae3705a157e6047952f0c3fa84142947aef6cb617216f3f085afa", size = 430087, upload-time = "2026-08-19T06:20:39.255Z" },
+    { url = "https://files.pythonhosted.org/packages/74/dd/b3b1150f1a081ac37801c0887cc21946858aa8e6a42691f33b0bfdcbbafc/marin_rigging-0.2.94.dev33196045049-py3-none-any.whl", hash = "sha256:ab97a0eaee161207328be9af599d2b8dcdd04cd7ac14a30c83d7688b6fdbe8f5", size = 430839, upload-time = "2026-08-28T17:45:39.182Z" },
 ]
 
 [package.optional-dependencies]
@@ -2160,7 +2101,7 @@ secrets = [
 
 [[package]]
 name = "marin-zephyr"
-version = "0.2.86.dev32222909699"
+version = "0.2.94.dev33196045049"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "braceexpand" },
@@ -2179,9 +2120,9 @@ dependencies = [
     { name = "xxhash" },
     { name = "zstandard" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/9d/28/ba7cd516a3b5786c33f52ac4008035084ae8d1ccbe4e56512becafdade90/marin_zephyr-0.2.86.dev32222909699.tar.gz", hash = "sha256:13dd96f6878f75023c86efb4c993700852ebe901300a36b12e9eba678168c17f", size = 98282, upload-time = "2026-08-19T06:20:50.254Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/ea/6f/b680c160174bb48db7ee942ca8fb5257fa36c2f4f2bb055de7ba75a6c3ae/marin_zephyr-0.2.94.dev33196045049.tar.gz", hash = "sha256:f75aa84aa7d6a0e13e6bf86d78d7ba838348baf504a8bcd84961f65bf7f22adb", size = 101063, upload-time = "2026-08-28T17:45:52.831Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/f8/13/259c7c9b1243d6e48349a456113da8df4e330ac3c42d9958c47fb0136194/marin_zephyr-0.2.86.dev32222909699-py3-none-any.whl", hash = "sha256:9c6b5b69edda8ad97f9b3b36d71b6b1d22b004b2065a41180798c7b8a784fac0", size = 110042, upload-time = "2026-08-19T06:20:40.584Z" },
+    { url = "https://files.pythonhosted.org/packages/00/3f/984e60769f5a026cef2f51b72280062b7c8c4a6add7a5610abe8315e0ee0/marin_zephyr-0.2.94.dev33196045049-py3-none-any.whl", hash = "sha256:769d5b3f85ba7daab6f9b9dc0e6b71a5005bcba6e9ba279f8e6e3d450c1219f2", size = 113371, upload-time = "2026-08-28T17:45:41.107Z" },
 ]
 
 [[package]]
@@ -2529,7 +2470,7 @@ name = "nvidia-cudnn-cu13"
 version = "9.19.0.56"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "nvidia-cublas", marker = "sys_platform == 'linux'" },
+    { name = "nvidia-cublas", marker = "(sys_platform == 'linux' and extra == 'extra-9-marin-dna-gpu') or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/f1/84/26025437c1e6b61a707442184fa0c03d083b661adf3a3eecfd6d21677740/nvidia_cudnn_cu13-9.19.0.56-py3-none-manylinux_2_27_aarch64.whl", hash = "sha256:6ed29ffaee1176c612daf442e4dd6cfeb6a0caa43ddcbeb59da94953030b1be4", size = 433781201, upload-time = "2026-02-03T20:40:53.805Z" },
@@ -2541,7 +2482,7 @@ name = "nvidia-cufft"
 version = "12.0.0.61"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "nvidia-nvjitlink", marker = "sys_platform == 'linux'" },
+    { name = "nvidia-nvjitlink", marker = "(sys_platform == 'linux' and extra == 'extra-9-marin-dna-gpu') or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/8b/ae/f417a75c0259e85c1d2f83ca4e960289a5f814ed0cea74d18c353d3e989d/nvidia_cufft-12.0.0.61-py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:2708c852ef8cd89d1d2068bdbece0aa188813a0c934db3779b9b1faa8442e5f5", size = 214053554, upload-time = "2025-09-04T08:31:38.196Z" },
@@ -2571,9 +2512,9 @@ name = "nvidia-cusolver"
 version = "12.0.4.66"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "nvidia-cublas", marker = "sys_platform == 'linux'" },
-    { name = "nvidia-cusparse", marker = "sys_platform == 'linux'" },
-    { name = "nvidia-nvjitlink", marker = "sys_platform == 'linux'" },
+    { name = "nvidia-cublas", marker = "(sys_platform == 'linux' and extra == 'extra-9-marin-dna-gpu') or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
+    { name = "nvidia-cusparse", marker = "(sys_platform == 'linux' and extra == 'extra-9-marin-dna-gpu') or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
+    { name = "nvidia-nvjitlink", marker = "(sys_platform == 'linux' and extra == 'extra-9-marin-dna-gpu') or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/c8/c3/b30c9e935fc01e3da443ec0116ed1b2a009bb867f5324d3f2d7e533e776b/nvidia_cusolver-12.0.4.66-py3-none-manylinux_2_27_aarch64.whl", hash = "sha256:02c2457eaa9e39de20f880f4bd8820e6a1cfb9f9a34f820eb12a155aa5bc92d2", size = 223467760, upload-time = "2025-09-04T08:33:04.222Z" },
@@ -2585,7 +2526,7 @@ name = "nvidia-cusparse"
 version = "12.6.3.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "nvidia-nvjitlink", marker = "sys_platform == 'linux'" },
+    { name = "nvidia-nvjitlink", marker = "(sys_platform == 'linux' and extra == 'extra-9-marin-dna-gpu') or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/f8/94/5c26f33738ae35276672f12615a64bd008ed5be6d1ebcb23579285d960a9/nvidia_cusparse-12.6.3.3-py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:80bcc4662f23f1054ee334a15c72b8940402975e0eab63178fc7e670aa59472c", size = 162155568, upload-time = "2025-09-04T08:33:42.864Z" },
@@ -2811,10 +2752,8 @@ source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "absl-py" },
     { name = "chex" },
-    { name = "jax", version = "0.11.0", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform == 'linux' or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
-    { name = "jax", version = "0.11.1", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform != 'linux' or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
-    { name = "jaxlib", version = "0.11.0", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform == 'linux' or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
-    { name = "jaxlib", version = "0.11.1", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform != 'linux' or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
+    { name = "jax" },
+    { name = "jaxlib" },
     { name = "numpy" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/6d/3b/90c11f740a3538200b61cd2b7d9346959cb9e31e0bdea3d2f886b7262203/optax-0.2.6.tar.gz", hash = "sha256:ba8d1e12678eba2657484d6feeca4fb281b8066bdfd5efbfc0f41b87663109c0", size = 269660, upload-time = "2025-09-15T22:41:24.76Z" }
@@ -2831,8 +2770,7 @@ dependencies = [
     { name = "aiofiles" },
     { name = "etils", extra = ["epath", "epy"] },
     { name = "humanize" },
-    { name = "jax", version = "0.11.0", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform == 'linux' or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
-    { name = "jax", version = "0.11.1", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform != 'linux' or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
+    { name = "jax" },
     { name = "msgpack" },
     { name = "numpy" },
     { name = "prometheus-client" },
@@ -3806,20 +3744,20 @@ resolution-markers = [
     "sys_platform == 'linux'",
 ]
 dependencies = [
-    { name = "cuda-bindings", marker = "sys_platform == 'linux'" },
+    { name = "cuda-bindings", marker = "(sys_platform == 'linux' and extra == 'extra-9-marin-dna-gpu') or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
     { name = "cuda-toolkit", extra = ["cublas", "cudart", "cufft", "cufile", "cupti", "curand", "cusolver", "cusparse", "nvjitlink", "nvrtc", "nvtx"], marker = "(sys_platform == 'linux' and extra == 'extra-9-marin-dna-gpu') or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
-    { name = "filelock", marker = "sys_platform == 'linux'" },
-    { name = "fsspec", marker = "sys_platform == 'linux'" },
-    { name = "jinja2", marker = "sys_platform == 'linux'" },
-    { name = "networkx", marker = "sys_platform == 'linux'" },
-    { name = "nvidia-cudnn-cu13", marker = "sys_platform == 'linux'" },
-    { name = "nvidia-cusparselt-cu13", marker = "sys_platform == 'linux'" },
-    { name = "nvidia-nccl-cu13", marker = "sys_platform == 'linux'" },
-    { name = "nvidia-nvshmem-cu13", marker = "sys_platform == 'linux'" },
-    { name = "setuptools", version = "81.0.0", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform == 'linux'" },
-    { name = "sympy", marker = "sys_platform == 'linux'" },
-    { name = "triton", marker = "sys_platform == 'linux'" },
-    { name = "typing-extensions", marker = "sys_platform == 'linux'" },
+    { name = "filelock", marker = "(sys_platform == 'linux' and extra == 'extra-9-marin-dna-gpu') or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
+    { name = "fsspec", marker = "(sys_platform == 'linux' and extra == 'extra-9-marin-dna-gpu') or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
+    { name = "jinja2", marker = "(sys_platform == 'linux' and extra == 'extra-9-marin-dna-gpu') or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
+    { name = "networkx", marker = "(sys_platform == 'linux' and extra == 'extra-9-marin-dna-gpu') or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
+    { name = "nvidia-cudnn-cu13", marker = "(sys_platform == 'linux' and extra == 'extra-9-marin-dna-gpu') or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
+    { name = "nvidia-cusparselt-cu13", marker = "(sys_platform == 'linux' and extra == 'extra-9-marin-dna-gpu') or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
+    { name = "nvidia-nccl-cu13", marker = "(sys_platform == 'linux' and extra == 'extra-9-marin-dna-gpu') or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
+    { name = "nvidia-nvshmem-cu13", marker = "(sys_platform == 'linux' and extra == 'extra-9-marin-dna-gpu') or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
+    { name = "setuptools", version = "81.0.0", source = { registry = "https://pypi.org/simple" }, marker = "(sys_platform == 'linux' and extra == 'extra-9-marin-dna-gpu') or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
+    { name = "sympy", marker = "(sys_platform == 'linux' and extra == 'extra-9-marin-dna-gpu') or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
+    { name = "triton", marker = "(sys_platform == 'linux' and extra == 'extra-9-marin-dna-gpu') or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
+    { name = "typing-extensions", marker = "(sys_platform == 'linux' and extra == 'extra-9-marin-dna-gpu') or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/6f/8b/69e3008d78e5cee2b30183340cc425081b78afc5eff3d080daab0adda9aa/torch-2.11.0-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:4b5866312ee6e52ea625cd211dcb97d6a2cdc1131a5f15cc0d87eec948f6dd34", size = 80606338, upload-time = "2026-03-23T18:11:34.781Z" },
@@ -3837,13 +3775,13 @@ resolution-markers = [
     "platform_machine != 'aarch64' and platform_machine != 'x86_64' and sys_platform == 'linux'",
 ]
 dependencies = [
-    { name = "filelock", marker = "sys_platform == 'linux'" },
-    { name = "fsspec", marker = "sys_platform == 'linux'" },
-    { name = "jinja2", marker = "sys_platform == 'linux'" },
-    { name = "networkx", marker = "sys_platform == 'linux'" },
-    { name = "setuptools", version = "81.0.0", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform == 'linux'" },
-    { name = "sympy", marker = "sys_platform == 'linux'" },
-    { name = "typing-extensions", marker = "sys_platform == 'linux'" },
+    { name = "filelock", marker = "(sys_platform == 'linux' and extra == 'extra-9-marin-dna-tpu') or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
+    { name = "fsspec", marker = "(sys_platform == 'linux' and extra == 'extra-9-marin-dna-tpu') or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
+    { name = "jinja2", marker = "(sys_platform == 'linux' and extra == 'extra-9-marin-dna-tpu') or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
+    { name = "networkx", marker = "(sys_platform == 'linux' and extra == 'extra-9-marin-dna-tpu') or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
+    { name = "setuptools", version = "81.0.0", source = { registry = "https://pypi.org/simple" }, marker = "(sys_platform == 'linux' and extra == 'extra-9-marin-dna-tpu') or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
+    { name = "sympy", marker = "(sys_platform == 'linux' and extra == 'extra-9-marin-dna-tpu') or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
+    { name = "typing-extensions", marker = "(sys_platform == 'linux' and extra == 'extra-9-marin-dna-tpu') or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
 ]
 wheels = [
     { url = "https://download-r2.pytorch.org/whl/cpu/torch-2.11.0%2Bcpu-cp312-cp312-linux_s390x.whl", hash = "sha256:2db3ae5404e32cb42b5fcbd94f13607761eaec0cf1687fde95095289d1e26cfb", upload-time = "2026-04-28T00:06:06Z" },
@@ -3870,12 +3808,14 @@ name = "torchvision"
 version = "0.26.0"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
-    "sys_platform == 'linux'",
+    "platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu'",
+    "sys_platform == 'linux' and extra == 'extra-9-marin-dna-gpu' and extra != 'extra-9-marin-dna-tpu'",
 ]
 dependencies = [
-    { name = "numpy", marker = "sys_platform == 'linux'" },
-    { name = "pillow", marker = "sys_platform == 'linux'" },
-    { name = "torch", version = "2.11.0", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform == 'linux'" },
+    { name = "numpy", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-9-marin-dna-tpu') or (sys_platform == 'linux' and extra == 'extra-9-marin-dna-gpu') or (sys_platform != 'linux' and extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
+    { name = "pillow", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-9-marin-dna-tpu') or (sys_platform == 'linux' and extra == 'extra-9-marin-dna-gpu') or (sys_platform != 'linux' and extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
+    { name = "torch", version = "2.11.0", source = { registry = "https://pypi.org/simple" }, marker = "(sys_platform == 'linux' and extra == 'extra-9-marin-dna-gpu') or (extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
+    { name = "torch", version = "2.11.0+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "(platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-9-marin-dna-tpu') or (platform_machine != 'aarch64' and extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu') or (sys_platform != 'linux' and extra == 'extra-9-marin-dna-gpu' and extra == 'extra-9-marin-dna-tpu')" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/ae/e7/56b47cc3b132aea90ccce22bcb8975dec688b002150012acc842846039d0/torchvision-0.26.0-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:c409e1c3fdebec7a3834465086dbda8bf7680eff79abf7fd2f10c6b59520a7a4", size = 1863502, upload-time = "2026-03-23T18:12:57.326Z" },
@@ -3889,12 +3829,11 @@ version = "0.26.0+cpu"
 source = { registry = "https://download.pytorch.org/whl/cpu" }
 resolution-markers = [
     "platform_machine == 'x86_64' and sys_platform == 'linux'",
-    "platform_machine == 'aarch64' and sys_platform == 'linux'",
 ]
 dependencies = [
-    { name = "numpy", marker = "sys_platform == 'linux'" },
-    { name = "pillow", marker = "sys_platform == 'linux'" },
-    { name = "torch", version = "2.11.0+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "sys_platform == 'linux'" },
+    { name = "numpy", marker = "platform_machine == 'x86_64' and sys_platform == 'linux'" },
+    { name = "pillow", marker = "platform_machine == 'x86_64' and sys_platform == 'linux'" },
+    { name = "torch", version = "2.11.0+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "platform_machine == 'x86_64' and sys_platform == 'linux'" },
 ]
 wheels = [
     { url = "https://download-r2.pytorch.org/whl/cpu/torchvision-0.26.0%2Bcpu-cp312-cp312-manylinux_2_28_aarch64.whl", hash = "sha256:17f0b542331fc94230b4214c6d123f038af7330fd81019608c0d2402f3bc3079", upload-time = "2026-03-23T15:36:09Z" },

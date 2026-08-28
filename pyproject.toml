@@ -9,10 +9,10 @@ description = "Lightweight genomic primitives for MarinDNA projects"
 requires-python = ">=3.12,<3.13"
 dependencies = [
     "biopython>=1.85",
-    "marin-core==0.2.86.dev32222909699",
-    "marin-dupekit==0.1.6.dev31131847556",
-    "marin-finelog==0.2.30.dev32169503727",
-    "marin-iris[controller]==0.2.86.dev32222909699",
+    "marin-core==0.2.94.dev33196045049",
+    "marin-dupekit==0.1.7.dev32497398902",
+    "marin-finelog==0.2.40.dev33113823668",
+    "marin-iris[controller]==0.2.94.dev33196045049",
     "numpy",
     "polars",
     "polars-bio>=0.33.0,<0.34.0",
@@ -22,12 +22,12 @@ dependencies = [
 
 [project.optional-dependencies]
 gpu = [
-    "marin-core[gpu]==0.2.86.dev32222909699; sys_platform == 'linux'",
+    "marin-core[gpu]==0.2.94.dev33196045049; sys_platform == 'linux'",
     "torch==2.11.0; sys_platform == 'linux'",
     "torchvision==0.26.0; sys_platform == 'linux'",
 ]
 tpu = [
-    "marin-core[tpu]==0.2.86.dev32222909699; sys_platform == 'linux'",
+    "marin-core[tpu]==0.2.94.dev33196045049; sys_platform == 'linux'",
     "torch==2.11.0; sys_platform == 'linux'",
     "torchvision==0.26.0+cpu; sys_platform == 'linux' and platform_machine == 'x86_64'",
 ]
