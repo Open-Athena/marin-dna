@@ -94,6 +94,46 @@ Mapped BED intervals remain 0-based and half-open, must span exactly one base, a
 The stable dataset value `alignment_source=ucsc_multiz100way` continues to identify the pinned UCSC non-mammal assembly cohort.
 The issue #517 cards state that the projection operation uses the matching pairwise liftOver chain.
 
+## Issue #523 HAL-derived mammal chain pilot
+
+`workflow/hal_chains.Snakefile` is an additive three-species pilot for materializing reusable whole-genome human-to-mammal UCSC chains directly from the Zoonomia HAL.
+It does not change or overwrite any completed projection path.
+
+The pilot uses the direct Cactus 3.3.0 conversion pipeline `halLiftover --outPSL | pslPosTarget | axtChain | gzip` without a MAF or TAF export.
+It generates the supported default chain and a strict candidate that adds `halLiftover --noDupes` for `Papio_anubis`, `Mus_musculus`, and `Loxodonta_africana`.
+Every chain header must place `Homo_sapiens` on the UCSC target/reference side and the destination mammal on the query side.
+
+The parity audit reuses the immutable 1,136,854-query strict-phyloP BED and its direct `halLiftover --noDupes` outputs.
+It compares every mapped or unmapped state, target sequence, 0-based half-open coordinate, strand, and mapping multiplicity.
+The strict candidate also receives a liftOver-only timing run over all 22,948,560 uniform-grid centers.
+
+The 1.26-TB HAL is staged once on a dedicated on-demand `r6id.12xlarge` with 384 GiB RAM and 2×1,425-GB instance-store NVMe.
+All six pair pipelines read that one local HAL file, with at most two running concurrently so they share the staged bytes and OS page cache.
+Each pipeline reserves 170 GiB within a 360-GiB Snakemake memory budget, leaving scheduler headroom while avoiding the per-pair HAL copies made by the older Cactus 3.1.4 Toil converter.
+Generation metrics include GNU-time process usage, node memory and page-cache samples, minimum free disk, compressed chain bytes, SHA-256, chain/header counts, and aligned block bases.
+
+Run tests, dry-run, and execute through `sky/hal_chain_pilot.yaml`:
+
+```bash
+sky launch -c issue-523-hal-chains \
+  sky/hal_chain_pilot.yaml \
+  --env TARGET=tests --env DRY_RUN=0 \
+  --env PIPELINE_COMMIT_SHA="$(git rev-parse HEAD)"
+
+sky exec issue-523-hal-chains \
+  sky/hal_chain_pilot.yaml \
+  --env TARGET=all --env DRY_RUN=1 \
+  --env PIPELINE_COMMIT_SHA="$(git rev-parse HEAD)"
+
+sky exec issue-523-hal-chains \
+  sky/hal_chain_pilot.yaml \
+  --env TARGET=all --env DRY_RUN=0 \
+  --env PIPELINE_COMMIT_SHA="$(git rev-parse HEAD)"
+```
+
+The Snakemake storage profile owns the durable chains, parity artifacts, and timing summaries under the commit- and configuration-keyed `hal-chains-pilot-v1` namespace.
+The staged HAL, generated 2bits, full-genome BEDs, and raw full-grid liftOver outputs remain NVMe-local and disappear when the worker is terminated.
+
 ## Issue #517 GPN-Star-P uniform grid
 
 The GPN entry point reproduces the historical 255 bp, 128 bp-stride grid and scores it with canonical calibrated entropy from the primate `gpn-star-hg38-p243-200m` model.
