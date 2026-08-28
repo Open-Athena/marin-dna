@@ -286,8 +286,8 @@ def validate_chain_direction(
     query_chrom_sizes: str | Path,
 ) -> dict[str, int]:
     """Require every chain header to use the requested target/query assemblies."""
-    target_names = set(read_chrom_sizes(target_chrom_sizes))
-    query_names = set(read_chrom_sizes(query_chrom_sizes))
+    target_sizes = read_chrom_sizes(target_chrom_sizes)
+    query_sizes = read_chrom_sizes(query_chrom_sizes)
     chain_count = 0
     aligned_bases = 0
     with gzip.open(chain_path, "rt") as handle:
@@ -299,11 +299,11 @@ def validate_chain_direction(
                 continue
             fields = raw_line.split()
             assert len(fields) == 13, f"invalid chain header: {raw_line!r}"
-            assert fields[2] in target_names, f"unexpected chain tName: {fields[2]}"
-            assert int(fields[3]) == target_names[fields[2]]
+            assert fields[2] in target_sizes, f"unexpected chain tName: {fields[2]}"
+            assert int(fields[3]) == target_sizes[fields[2]]
             assert fields[4] == "+"
-            assert fields[7] in query_names, f"unexpected chain qName: {fields[7]}"
-            assert int(fields[8]) == query_names[fields[7]]
+            assert fields[7] in query_sizes, f"unexpected chain qName: {fields[7]}"
+            assert int(fields[8]) == query_sizes[fields[7]]
             assert fields[9] in {"+", "-"}
             chain_count += 1
     assert chain_count > 0, f"chain contains no headers: {chain_path}"
