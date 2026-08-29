@@ -188,7 +188,7 @@ rule benchmark_directional_smoke_direct_hal:
         centers=local(SMOKE_CENTER_BED),
     output:
         bed=temp(local(SMOKE_DIRECT_BED)),
-        metrics=SMOKE_DIRECT_METRICS,
+        metrics=local(SMOKE_DIRECT_METRICS),
     wildcard_constraints:
         species=SPECIES_RE,
     resources:
@@ -215,8 +215,8 @@ rule generate_directional_smoke_chain:
         destination_sizes=local(GENOME_SIZES.replace("{genome}", "{species}")),
         destination_twobit=local(GENOME_TWOBIT.replace("{genome}", "{species}")),
     output:
-        chain=SMOKE_CHAIN,
-        metrics=SMOKE_CHAIN_METRICS,
+        chain=local(SMOKE_CHAIN),
+        metrics=local(SMOKE_CHAIN_METRICS),
     wildcard_constraints:
         species=SPECIES_RE,
     resources:
@@ -246,7 +246,7 @@ rule liftover_directional_smoke_chain:
     output:
         mapped=temp(local(SMOKE_MAPPED)),
         unmapped=temp(local(SMOKE_UNMAPPED)),
-        metrics=SMOKE_LIFTOVER_METRICS,
+        metrics=local(SMOKE_LIFTOVER_METRICS),
     wildcard_constraints:
         species=SPECIES_RE,
     resources:
@@ -268,8 +268,8 @@ rule gate_directional_smoke_parity:
         direct=local(SMOKE_DIRECT_BED),
         chain=local(SMOKE_MAPPED),
     output:
-        summary=SMOKE_PARITY_SUMMARY,
-        discrepancies=SMOKE_PARITY_DISCREPANCIES,
+        summary=local(SMOKE_PARITY_SUMMARY),
+        discrepancies=local(SMOKE_PARITY_DISCREPANCIES),
     wildcard_constraints:
         species=SPECIES_RE,
     resources:

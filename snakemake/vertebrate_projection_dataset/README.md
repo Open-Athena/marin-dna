@@ -107,6 +107,7 @@ The pinned tools are Cactus 3.3.0 and Kent 482, including `pslSwap`.
 The first target is a cheap correctness gate over twelve discontiguous 100-kb human regions and all 9,374 production-phase uniform-grid centers inside them.
 It independently requires exact direct-HAL versus chain parity for `Papio_anubis`, `Mus_musculus`, and `Loxodonta_africana`.
 Only after all three species pass may the `full_baboon` rule generate one whole-genome `Papio_anubis` candidate.
+All smoke outputs remain on ephemeral EC2 NVMe and are not published.
 
 The whole-genome audit reuses the immutable 1,136,854-query strict-phyloP BED and its direct `halLiftover --noDupes` output.
 It compares every mapped or unmapped state, destination sequence, 0-based half-open coordinate, strand, and mapping multiplicity.
@@ -122,22 +123,26 @@ Run tests, dry-run the smoke DAG, execute the smoke gate, and then request the s
 sky launch -c issue-523-hal-chains \
   sky/hal_chain_directional_pilot.yaml \
   --env TARGET=tests --env DRY_RUN=0 \
+  --env DURABLE_OUTPUTS=0 \
   --env PIPELINE_COMMIT_SHA="$(git rev-parse HEAD)" \
   -i 30 --down
 
 sky exec issue-523-hal-chains \
   sky/hal_chain_directional_pilot.yaml \
   --env TARGET=smoke --env DRY_RUN=1 \
+  --env DURABLE_OUTPUTS=0 \
   --env PIPELINE_COMMIT_SHA="$(git rev-parse HEAD)"
 
 sky exec issue-523-hal-chains \
   sky/hal_chain_directional_pilot.yaml \
   --env TARGET=smoke --env DRY_RUN=0 \
+  --env DURABLE_OUTPUTS=0 \
   --env PIPELINE_COMMIT_SHA="$(git rev-parse HEAD)"
 
 sky exec issue-523-hal-chains \
   sky/hal_chain_directional_pilot.yaml \
   --env TARGET=full_baboon --env DRY_RUN=0 \
+  --env DURABLE_OUTPUTS=1 \
   --env PIPELINE_COMMIT_SHA="$(git rev-parse HEAD)"
 ```
 

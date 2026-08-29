@@ -15,6 +15,7 @@ envs:
   PIPELINE_COMMIT_SHA: ""
   TARGET: smoke
   DRY_RUN: "0"
+  DURABLE_OUTPUTS: "0"
 
 setup: |
   set -euxo pipefail
@@ -68,6 +69,7 @@ run: |
   command -v liftOver
   test -x /usr/bin/time
   test -n "$PIPELINE_COMMIT_SHA"
+  test "$DURABLE_OUTPUTS" = "0" -o "$DURABLE_OUTPUTS" = "1"
   case "$TARGET" in
     tests|smoke|full_baboon) ;;
     *)
@@ -75,6 +77,11 @@ run: |
       exit 1
       ;;
   esac
+  if [ "$TARGET" = "smoke" ]; then
+    test "$DURABLE_OUTPUTS" = "0"
+  elif [ "$TARGET" = "full_baboon" ]; then
+    test "$DURABLE_OUTPUTS" = "1"
+  fi
 
   if [ "$TARGET" = "tests" ]; then
     cd snakemake/vertebrate_projection_dataset
@@ -138,11 +145,15 @@ run: |
   if [ "$DRY_RUN" = "1" ]; then
     SNAKEMAKE_MODE+=(--dry-run)
   fi
+  SNAKEMAKE_PROFILE=()
+  if [ "$DURABLE_OUTPUTS" = "1" ]; then
+    SNAKEMAKE_PROFILE+=(--profile workflow/profiles/default)
+  fi
 
   cd snakemake/vertebrate_projection_dataset
   uv run --locked snakemake "$TARGET" "${SNAKEMAKE_MODE[@]}" \
     --snakefile workflow/hal_chains_directional.Snakefile \
-    --profile workflow/profiles/default \
+    "${SNAKEMAKE_PROFILE[@]}" \
     --cores 48 \
     --resources mem_mb=360000 chain_generation=2 genome_assets=2 full_grid_liftover=1 \
     --rerun-incomplete \
