@@ -35,7 +35,8 @@ PIPELINE_CONFIG_SHA256 = hash_pipeline_config(config)
 RESULTS = (
     f"results/{PIPELINE_VERSION}/{PIPELINE_COMMIT}/{PIPELINE_CONFIG_SHA256}/{TIER}"
 )
-PRODUCER_MANIFEST = f"{RESULTS}/metadata/producer.json"
+SMOKE_PRODUCER_MANIFEST = f"{RESULTS}/metadata/smoke-producer.json"
+FULL_PRODUCER_MANIFEST = f"{RESULTS}/metadata/producer.json"
 
 SOURCE_GENOME = str(config["source_genome"])
 assert SOURCE_GENOME == "Homo_sapiens"
@@ -98,9 +99,22 @@ FULL_GRID_UNMAPPED = f"{RESULTS}/full_grid/{FULL_SPECIES}.unmapped.bed"
 FULL_GRID_METRICS = f"{RESULTS}/full_grid/{FULL_SPECIES}.liftover.json"
 
 
-rule hal_chain_directional_producer_manifest:
+rule hal_chain_directional_smoke_producer_manifest:
     output:
-        PRODUCER_MANIFEST,
+        local(SMOKE_PRODUCER_MANIFEST),
+    run:
+        write_producer_manifest(
+            output[0],
+            pipeline_commit=PIPELINE_COMMIT,
+            config_sha256=PIPELINE_CONFIG_SHA256,
+            pipeline_version=PIPELINE_VERSION,
+            tier=TIER,
+        )
+
+
+rule hal_chain_directional_full_producer_manifest:
+    output:
+        FULL_PRODUCER_MANIFEST,
     run:
         write_producer_manifest(
             output[0],
@@ -287,7 +301,9 @@ rule gate_directional_smoke_parity:
 
 rule generate_full_baboon_directional_chain:
     input:
-        smoke_gate=expand(SMOKE_PARITY_SUMMARY, species=SMOKE_SPECIES),
+        smoke_gate=[
+            local(SMOKE_PARITY_SUMMARY.format(species=s)) for s in SMOKE_SPECIES
+        ],
         hal=local(HAL_PATH),
         validation=local(HAL_VALIDATION),
         source_bed=local(GENOME_BED.format(genome=SOURCE_GENOME)),
