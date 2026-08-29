@@ -17,7 +17,9 @@ author: gonzalobenegas
 
 ## Current TL;DR
 
-- Status: The first producer hit a chain-comment parsing bug after completing the baboon conversion; the fixed producer passes all 262 project tests, and the still-running elephant output is protected by same-filesystem recovery links before the old validator runs.
+- Status: A 100-kb TP53 regional preflight completes in 1.32 seconds or less per chain recipe, but exact parity is 91.2% for the strict `--noDupes` recipe and 97.1% for the default recipe with `liftOver -multiple`.
+  No fixed-producer whole-genome rerun will start until the remaining directional and chain-conversion differences are understood.
+  The old elephant producer remains active and its output is protected by same-filesystem recovery links.
 - Selected artifact: Whole-genome human-to-species chains, because later tilings, window lengths, anchor positions, and arbitrary annotations must not require another HAL traversal.
 - Pilot: Build supported-default and `--noDupes` candidates for `Papio_anubis`, `Mus_musculus`, and `Loxodonta_africana` from one NVMe-staged HAL, with at most two pair pipelines running concurrently.
 - Gate: Compare all 1,136,854 strict-phyloP center mappings with their immutable direct-HAL outputs before accepting either chain recipe.
@@ -35,7 +37,8 @@ author: gonzalobenegas
 ### Active
 
 - `HALC-523-H1`: A whole-genome chain generated from `halLiftover --outPSL --noDupes` reproduces the current direct center-1 mappings closely enough to become the reusable scientific backend.
-  Next test: Exact three-species parity over 1,136,854 queries per species.
+  Regional evidence: The reverse-direction `--noDupes` TP53 chain reproduced 712 of 781 queries exactly.
+  Next test: Generate the PSL in the human-to-baboon direction, swap it into human-source chain orientation, and repeat the regional audit before an expensive whole-genome rerun.
 - `HALC-523-H2`: Two concurrent chain pipelines can safely share one NVMe HAL copy and OS page cache on an `r6id.12xlarge` with 384 GiB RAM.
   Next test: Measure GNU-time RSS and five-second node memory, cache, dirty-page, and free-disk samples during the first concurrent pair.
 - `HALC-523-H3`: Once generated, a chain can project all 22,948,560 uniform-grid centers fast enough that future selector experiments should filter after projection.
@@ -61,6 +64,8 @@ author: gonzalobenegas
 - 2026-08-28: Use the released Cactus 3.3.0 HAL→PSL→chain pipeline in an isolated additive workflow.
 - 2026-08-28: Compare the supported default chain with a strict candidate that adds `--noDupes`.
 - 2026-08-28: Stage the HAL once on on-demand EC2 and run at most two pair pipelines concurrently.
+- 2026-08-29: Require a 100-kb TP53 parity preflight before starting another whole-genome chain producer.
+  Allow the already-running elephant producer to finish for whole-genome evidence.
 
 ## Entry Log
 
@@ -135,3 +140,29 @@ author: gonzalobenegas
 - Interpretation: The failure does not reject the HAL-to-chain method; it exposes a missing chain-format case in our validator.
   Baboon must be regenerated, while elephant's completed chain bytes and runtime evidence should survive the same validator failure.
 - Next action: Wait for the old elephant process to finish, validate and account for the preserved chain, then launch the fixed producer without restaging the HAL.
+
+### 2026-08-29 00:03 UTC - `HALC-523-005` add a 100-kb TP53 regional parity preflight
+
+- Hypothesis: A single-gene regional chain can test the HAL→PSL→chain format and mapping semantics in seconds before committing hours to whole-genome generation.
+- Commit hash: `9f048d8763e69faa8dce6978f669b86839fcccf3`.
+- Region: Ensembl release 115 TP53 gene interval `chr17:7,661,778-7,687,546`, converted from GTF 1-based closed coordinates to 0-based half-open coordinates.
+  The test uses the centered 100-kb human interval `chr17:7,624,662-7,724,662`, its main baboon ortholog span `CM001506.2:7,324,887-7,432,036`, and 781 one-base queries aligned to the production 128-bp tiling stride.
+- Config: Existing staged Zoonomia HAL; `Homo_sapiens` source; `Papio_anubis` destination; Cactus 3.3.0; UCSC Kent 482; `axtChain -linearGap=medium`; `liftOver -minMatch=0.95`.
+- Strict result: The regional `--noDupes` chain finished in 0.909 seconds with 58 chains, 91,147 aligned block bases, 3,717 compressed bytes, and 321,856 KiB maximum RSS.
+  Direct HAL mapping took 0.043 seconds and chain `liftOver` took 0.008 seconds.
+  Exact parity was 712/781 (91.17%): 629 exact mapped, 83 exact unmapped, 50 direct-only, 14 chain-only, and 5 coordinate conflicts.
+- Default result: The regional default chain finished in 1.318 seconds with 75 chains, 94,211 aligned block bases, 4,242 compressed bytes, and 393,504 KiB maximum RSS.
+  Ordinary `liftOver` reproduced 728/781 queries exactly (93.21%).
+  Direct default HAL produced multiple mappings for 47 queries, while ordinary `liftOver` emitted no multiple mappings.
+- Multiple-mapping control: `liftOver -multiple` increased default exact parity to 758/781 (97.06%): 679 exact mapped, 79 exact unmapped, 14 mapping conflicts, and 9 direct-only.
+  It recovered multiple mappings for 34 queries, versus 47 from direct HAL.
+- Diagnostic: The strict discrepancies span the locus instead of clustering at the test interval boundaries.
+  The direct baseline mapped 683 queries to `CM001506.2` and one to `CM001495.2`; the strict chain mapped 648 queries only to `CM001506.2`.
+- Interpretation (`exploratory`): The regional harness is fast enough to become a mandatory preflight.
+  The current reverse-direction `--noDupes` recipe does not meet an exact-parity gate, and the default recipe needs `liftOver -multiple` to represent duplicated mappings.
+  One species and one regional chain do not establish the eventual whole-genome parity rate because `axtChain` decisions can depend on wider context.
+- Concurrent producer: Sky job 7 remains active on `Loxodonta_africana/default` after 6 hours 59 minutes at 99.6% CPU.
+  Its protected chain, timing, and stderr hard links are still present; all three files remain empty while the pipeline is open.
+- Decision: Do not launch the fixed whole-genome rerun yet.
+  Let the existing elephant producer finish, and use the regional harness to test a direction-matched human-to-baboon PSL recipe first.
+- Next action: Add the missing pinned PSL/chain orientation utility, test the direction-matched strict recipe on TP53, then decide which recipe deserves a whole-genome rerun.
