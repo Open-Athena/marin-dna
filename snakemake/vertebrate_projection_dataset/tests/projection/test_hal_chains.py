@@ -8,9 +8,12 @@ import polars as pl
 
 from marin_dna_vertebrate_projection.projection.hal_chains import (
     _parse_gnu_time,
+    build_direction_matched_hal_to_chain_pipeline,
     build_hal_to_chain_pipeline,
     validate_chain_direction,
     write_chain_parity_audit,
+    write_exact_chain_parity_audit,
+    write_regional_smoke_beds,
     write_uniform_grid_center_bed,
 )
 
@@ -36,6 +39,27 @@ def test_build_hal_to_chain_pipeline_matches_released_cactus_direction() -> None
         "Homo_sapiens /dev/stdout | pslPosTarget /dev/stdin /dev/stdout | "
         "axtChain -psl -verbose=0 -linearGap=medium /dev/stdin human.2bit "
         "mouse.2bit /dev/stdout | gzip -n -c > human_to_mouse.chain.gz"
+    )
+
+
+def test_build_direction_matched_pipeline_swaps_psl_and_keeps_negative_scores() -> None:
+    observed = build_direction_matched_hal_to_chain_pipeline(
+        hal_path="alignment.hal",
+        source_genome="Homo_sapiens",
+        source_bed="human.bed",
+        destination_genome="Papio_anubis",
+        source_twobit="human.2bit",
+        destination_twobit="baboon.2bit",
+        output_chain="human_to_baboon.chain.gz",
+        min_score=-1_000_000,
+        linear_gap="medium",
+    )
+    assert observed == (
+        "halLiftover --noDupes --outPSL alignment.hal Homo_sapiens human.bed "
+        "Papio_anubis /dev/stdout | pslSwap /dev/stdin /dev/stdout | "
+        "pslPosTarget /dev/stdin /dev/stdout | axtChain -psl -verbose=0 "
+        "-linearGap=medium -minScore=-1000000 /dev/stdin human.2bit "
+        "baboon.2bit /dev/stdout | gzip -n -c > human_to_baboon.chain.gz"
     )
 
 
@@ -128,6 +152,83 @@ def test_write_chain_parity_audit_classifies_every_query(tmp_path: Path) -> None
         "direct-only",
         "conflict",
     }
+
+
+def test_write_exact_chain_parity_audit_accepts_empty_discrepancies(
+    tmp_path: Path,
+) -> None:
+    input_bed = tmp_path / "input.bed"
+    direct_bed = tmp_path / "direct.bed"
+    chain_bed = tmp_path / "chain.bed"
+    summary = tmp_path / "summary.json"
+    discrepancies = tmp_path / "discrepancies.parquet"
+    rows = [("chr1", 1, 2, "mapped", 0, "+")]
+    _write_bed(input_bed, rows)
+    _write_bed(direct_bed, [("target", 11, 12, "mapped", 0, "+")])
+    _write_bed(chain_bed, [("target", 11, 12, "mapped", 0, "+")])
+    observed = write_exact_chain_parity_audit(
+        input_bed=input_bed,
+        direct_bed=direct_bed,
+        chain_bed=chain_bed,
+        summary_path=summary,
+        discrepancies_path=discrepancies,
+        expected_queries=1,
+    )
+    assert observed["exact_fraction"] == 1.0
+    assert pl.read_parquet(discrepancies).height == 0
+
+
+def test_write_exact_chain_parity_audit_removes_failed_gate_outputs(
+    tmp_path: Path,
+) -> None:
+    input_bed = tmp_path / "input.bed"
+    direct_bed = tmp_path / "direct.bed"
+    chain_bed = tmp_path / "chain.bed"
+    summary = tmp_path / "summary.json"
+    discrepancies = tmp_path / "discrepancies.parquet"
+    rows = [("chr1", 1, 2, "mapped", 0, "+")]
+    _write_bed(input_bed, rows)
+    _write_bed(direct_bed, [("target", 11, 12, "mapped", 0, "+")])
+    chain_bed.write_text("")
+    try:
+        write_exact_chain_parity_audit(
+            input_bed=input_bed,
+            direct_bed=direct_bed,
+            chain_bed=chain_bed,
+            summary_path=summary,
+            discrepancies_path=discrepancies,
+            expected_queries=1,
+        )
+    except AssertionError:
+        pass
+    else:
+        raise AssertionError("non-exact parity unexpectedly passed")
+    assert not summary.exists()
+    assert not discrepancies.exists()
+
+
+def test_write_regional_smoke_beds_uses_global_grid_phase(tmp_path: Path) -> None:
+    region_bed = tmp_path / "regions.bed"
+    centers_bed = tmp_path / "centers.bed"
+    write_regional_smoke_beds(
+        regions=[
+            {"name": "one", "chrom": "chr1", "start": 100, "end": 300},
+            {"name": "two", "chrom": "chr2", "start": 500, "end": 600},
+        ],
+        region_bed_path=region_bed,
+        centers_bed_path=centers_bed,
+        step_size=128,
+        center_offset=127,
+        expected_queries=3,
+    )
+    assert region_bed.read_text() == (
+        "chr1\t100\t300\tone\t0\t+\n" "chr2\t500\t600\ttwo\t0\t+\n"
+    )
+    assert centers_bed.read_text() == (
+        "chr1\t127\t128\tsmoke_one_000000000127\t0\t+\n"
+        "chr1\t255\t256\tsmoke_one_000000000255\t0\t+\n"
+        "chr2\t511\t512\tsmoke_two_000000000511\t0\t+\n"
+    )
 
 
 def test_write_uniform_grid_center_bed_is_half_open_and_skips_undefined(

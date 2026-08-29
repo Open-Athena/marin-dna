@@ -194,6 +194,62 @@ def build_hal_to_chain_pipeline(
     return " | ".join(commands) + f" > {shlex.quote(str(output_chain))}"
 
 
+def build_direction_matched_hal_to_chain_pipeline(
+    *,
+    hal_path: str | Path,
+    source_genome: str,
+    source_bed: str | Path,
+    destination_genome: str,
+    source_twobit: str | Path,
+    destination_twobit: str | Path,
+    output_chain: str | Path,
+    min_score: int,
+    linear_gap: str,
+) -> str:
+    """Build the direction-matched HAL→PSL→human-target-chain recipe.
+
+    ``halLiftover`` projects source intervals in the same direction that will
+    later be benchmarked. ``pslSwap`` then restores the UCSC convention in
+    which the human source is the chain target and the destination genome is
+    the chain query.
+    """
+    source_genome = _validate_genome_name(source_genome)
+    destination_genome = _validate_genome_name(destination_genome)
+    assert linear_gap in {"medium", "loose"}
+    assert -(2**31) <= min_score < 2**31
+    commands = [
+        shlex.join(
+            [
+                "halLiftover",
+                "--noDupes",
+                "--outPSL",
+                str(hal_path),
+                source_genome,
+                str(source_bed),
+                destination_genome,
+                "/dev/stdout",
+            ]
+        ),
+        shlex.join(["pslSwap", "/dev/stdin", "/dev/stdout"]),
+        shlex.join(["pslPosTarget", "/dev/stdin", "/dev/stdout"]),
+        shlex.join(
+            [
+                "axtChain",
+                "-psl",
+                "-verbose=0",
+                f"-linearGap={linear_gap}",
+                f"-minScore={min_score}",
+                "/dev/stdin",
+                str(source_twobit),
+                str(destination_twobit),
+                "/dev/stdout",
+            ]
+        ),
+        shlex.join(["gzip", "-n", "-c"]),
+    ]
+    return " | ".join(commands) + f" > {shlex.quote(str(output_chain))}"
+
+
 def _read_meminfo() -> dict[str, int]:
     fields: dict[str, int] = {}
     with Path("/proc/meminfo").open() as handle:
@@ -408,6 +464,109 @@ def run_hal_to_chain(
             stderr_file.unlink()
 
 
+def run_direction_matched_hal_to_chain(
+    *,
+    hal_path: str | Path,
+    source_genome: str,
+    source_bed: str | Path,
+    source_chrom_sizes: str | Path,
+    source_twobit: str | Path,
+    destination_genome: str,
+    destination_chrom_sizes: str | Path,
+    destination_twobit: str | Path,
+    output_chain: str | Path,
+    output_metrics: str | Path,
+    min_score: int,
+    linear_gap: str = "medium",
+) -> dict[str, object]:
+    """Generate one direction-matched human-target chain atomically."""
+    output = Path(output_chain)
+    metrics_path = Path(output_metrics)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    metrics_path.parent.mkdir(parents=True, exist_ok=True)
+    partial = output.with_name(f".{output.name}.partial")
+    time_file = metrics_path.with_name(f".{metrics_path.name}.time.partial")
+    stderr_file = metrics_path.with_name(f".{metrics_path.name}.stderr.partial")
+    for path in (partial, time_file, stderr_file):
+        path.unlink(missing_ok=True)
+
+    command = build_direction_matched_hal_to_chain_pipeline(
+        hal_path=hal_path,
+        source_genome=source_genome,
+        source_bed=source_bed,
+        destination_genome=destination_genome,
+        source_twobit=source_twobit,
+        destination_twobit=destination_twobit,
+        output_chain=partial,
+        min_score=min_score,
+        linear_gap=linear_gap,
+    )
+    started_at = datetime.now(UTC)
+    started = time.perf_counter()
+    try:
+        with _SystemMonitor(output) as monitor, stderr_file.open("w") as stderr:
+            subprocess.run(
+                [
+                    "/usr/bin/time",
+                    "-v",
+                    "-o",
+                    str(time_file),
+                    "bash",
+                    "-o",
+                    "pipefail",
+                    "-c",
+                    command,
+                ],
+                check=True,
+                stderr=stderr,
+            )
+        wall_seconds = time.perf_counter() - started
+        direction = validate_chain_direction(
+            partial,
+            target_chrom_sizes=source_chrom_sizes,
+            query_chrom_sizes=destination_chrom_sizes,
+        )
+        payload: dict[str, object] = {
+            "schema_version": 1,
+            "recipe": "direction_matched_no_dupes_psl_swap",
+            "started_at_utc": started_at.isoformat(),
+            "finished_at_utc": datetime.now(UTC).isoformat(),
+            "wall_seconds": wall_seconds,
+            "source_genome": source_genome,
+            "destination_genome": destination_genome,
+            "hal_projection_direction": f"{source_genome}_to_{destination_genome}",
+            "chain_direction": f"{source_genome}_to_{destination_genome}",
+            "no_dupes": True,
+            "psl_swapped": True,
+            "linear_gap": linear_gap,
+            "min_score": min_score,
+            "command": command.replace(str(partial), str(output)),
+            "hal_bytes": Path(hal_path).stat().st_size,
+            "chain_bytes": partial.stat().st_size,
+            "chain_sha256": _sha256(partial),
+            "direction_audit": direction,
+            "system_monitor": monitor.summary(),
+            "gnu_time": _parse_gnu_time(time_file),
+            "tool_versions": {
+                "halLiftover": _tool_version(["halLiftover", "--help"]),
+                "pslSwap": _tool_version(["pslSwap"]),
+                "pslPosTarget": _tool_version(["pslPosTarget"]),
+                "axtChain": _tool_version(["axtChain"]),
+            },
+            "stderr_bytes": stderr_file.stat().st_size,
+            "stderr_sha256": _sha256(stderr_file),
+        }
+        partial.replace(output)
+        _atomic_json(metrics_path, payload)
+        stderr_file.unlink(missing_ok=True)
+        return payload
+    finally:
+        for path in (partial, time_file):
+            path.unlink(missing_ok=True)
+        if stderr_file.exists() and stderr_file.stat().st_size == 0:
+            stderr_file.unlink()
+
+
 def _count_bed_records(path: str | Path) -> int:
     count = 0
     with Path(path).open() as handle:
@@ -415,6 +574,78 @@ def _count_bed_records(path: str | Path) -> int:
             if raw_line.strip() and not raw_line.startswith("#"):
                 count += 1
     return count
+
+
+def run_direct_hal_benchmark(
+    *,
+    hal_path: str | Path,
+    source_genome: str,
+    source_bed: str | Path,
+    destination_genome: str,
+    output_bed: str | Path,
+    metrics_path: str | Path,
+    expected_queries: int,
+) -> dict[str, object]:
+    """Run the direction-matched direct HAL control and record its runtime."""
+    source_genome = _validate_genome_name(source_genome)
+    destination_genome = _validate_genome_name(destination_genome)
+    output = Path(output_bed)
+    metrics = Path(metrics_path)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    metrics.parent.mkdir(parents=True, exist_ok=True)
+    partial = output.with_name(f".{output.name}.partial")
+    time_file = metrics.with_name(f".{metrics.name}.time.partial")
+    for path in (partial, time_file):
+        path.unlink(missing_ok=True)
+    command = [
+        "halLiftover",
+        "--noDupes",
+        str(hal_path),
+        source_genome,
+        str(source_bed),
+        destination_genome,
+        str(partial),
+    ]
+    started_at = datetime.now(UTC)
+    started = time.perf_counter()
+    try:
+        assert _count_bed_records(source_bed) == expected_queries
+        with _SystemMonitor(output) as monitor:
+            subprocess.run(
+                ["/usr/bin/time", "-v", "-o", str(time_file), *command],
+                check=True,
+            )
+        wall_seconds = time.perf_counter() - started
+        input_names = set(_read_bed6(source_bed)["query_name"])
+        direct = _read_bed6(partial)
+        direct_names = set(direct["query_name"])
+        assert direct_names <= input_names
+        payload: dict[str, object] = {
+            "schema_version": 1,
+            "started_at_utc": started_at.isoformat(),
+            "finished_at_utc": datetime.now(UTC).isoformat(),
+            "wall_seconds": wall_seconds,
+            "source_genome": source_genome,
+            "destination_genome": destination_genome,
+            "no_dupes": True,
+            "expected_queries": expected_queries,
+            "mapped_queries": len(direct_names),
+            "unmapped_queries": expected_queries - len(direct_names),
+            "output_mapping_records": direct.height,
+            "command": shlex.join(command).replace(str(partial), str(output)),
+            "hal_bytes": Path(hal_path).stat().st_size,
+            "output_bytes": partial.stat().st_size,
+            "output_sha256": _sha256(partial),
+            "system_monitor": monitor.summary(),
+            "gnu_time": _parse_gnu_time(time_file),
+            "tool_version": _tool_version(["halLiftover", "--help"]),
+        }
+        partial.replace(output)
+        _atomic_json(metrics, payload)
+        return payload
+    finally:
+        for path in (partial, time_file):
+            path.unlink(missing_ok=True)
 
 
 def run_liftover_benchmark(
@@ -600,6 +831,95 @@ def write_chain_parity_audit(
     discrepancies.write_parquet(output)
     _atomic_json(summary_path, payload)
     return payload
+
+
+def write_exact_chain_parity_audit(
+    *,
+    input_bed: str | Path,
+    direct_bed: str | Path,
+    chain_bed: str | Path,
+    summary_path: str | Path,
+    discrepancies_path: str | Path,
+    expected_queries: int,
+) -> dict[str, object]:
+    """Write a parity audit and fail the smoke gate unless every query agrees."""
+    summary = Path(summary_path)
+    discrepancies = Path(discrepancies_path)
+    try:
+        payload = write_chain_parity_audit(
+            input_bed=input_bed,
+            direct_bed=direct_bed,
+            chain_bed=chain_bed,
+            summary_path=summary,
+            discrepancies_path=discrepancies,
+            expected_queries=expected_queries,
+        )
+        assert payload["exact_queries"] == expected_queries, (
+            f"direction-matched chain parity was {payload['exact_queries']} "
+            f"of {expected_queries}, expected exact parity"
+        )
+        assert discrepancies.stat().st_size > 0
+        assert pl.read_parquet(discrepancies).height == 0
+        return payload
+    except BaseException:
+        summary.unlink(missing_ok=True)
+        discrepancies.unlink(missing_ok=True)
+        raise
+
+
+def write_regional_smoke_beds(
+    *,
+    regions: list[dict[str, object]],
+    region_bed_path: str | Path,
+    centers_bed_path: str | Path,
+    step_size: int,
+    center_offset: int,
+    expected_queries: int,
+) -> None:
+    """Write discontiguous human regions and production-grid center queries."""
+    assert step_size > 0 and 0 <= center_offset < step_size
+    region_output = Path(region_bed_path)
+    centers_output = Path(centers_bed_path)
+    for output in (region_output, centers_output):
+        output.parent.mkdir(parents=True, exist_ok=True)
+    region_partial = region_output.with_name(f".{region_output.name}.partial")
+    centers_partial = centers_output.with_name(f".{centers_output.name}.partial")
+    for partial in (region_partial, centers_partial):
+        partial.unlink(missing_ok=True)
+
+    seen_names: set[str] = set()
+    query_count = 0
+    try:
+        with region_partial.open("w") as region_handle, centers_partial.open(
+            "w"
+        ) as centers_handle:
+            for region in regions:
+                name = str(region["name"])
+                chrom = str(region["chrom"])
+                start = int(region["start"])
+                end = int(region["end"])
+                assert _GENOME_NAME.fullmatch(name), f"unsafe region name: {name!r}"
+                assert chrom and "\t" not in chrom and "\n" not in chrom
+                assert name not in seen_names
+                assert 0 <= start < end
+                seen_names.add(name)
+                region_handle.write(f"{chrom}\t{start}\t{end}\t{name}\t0\t+\n")
+                first_center = start + ((center_offset - start) % step_size)
+                for center in range(first_center, end, step_size):
+                    query_name = f"smoke_{name}_{center:012d}"
+                    centers_handle.write(
+                        f"{chrom}\t{center}\t{center + 1}\t{query_name}\t0\t+\n"
+                    )
+                    query_count += 1
+        assert len(seen_names) == len(regions) and seen_names
+        assert query_count == expected_queries, (
+            f"regional smoke query count {query_count} != {expected_queries}"
+        )
+        region_partial.replace(region_output)
+        centers_partial.replace(centers_output)
+    finally:
+        region_partial.unlink(missing_ok=True)
+        centers_partial.unlink(missing_ok=True)
 
 
 def write_uniform_grid_center_bed(

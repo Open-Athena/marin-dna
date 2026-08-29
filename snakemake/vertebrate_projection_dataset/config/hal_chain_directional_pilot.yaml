@@ -1,0 +1,101 @@
+pipeline_version: hal-chains-directional-pilot-v1
+tier: full
+
+cactus_version: 3.3.0
+kent_version: 482
+hal_s3_uri: s3://oa-bolinas/staging/447-mammalian-2022v1.hal
+hal_stage_path: /mnt/nvme/vertebrate_projection/staging/447-mammalian-2022v1.hal
+hal_validation_path: /mnt/nvme/vertebrate_projection/staging/hal-chain-directional-pilot-validated.txt
+source_genome: Homo_sapiens
+smoke_species:
+  - Papio_anubis
+  - Mus_musculus
+  - Loxodonta_africana
+full_species: Papio_anubis
+linear_gap: medium
+chain_min_score: -1000000
+
+# Twelve discontiguous 100-kb regions spanning autosomes and sex chromosomes.
+# Coordinates are 0-based, half-open; center queries retain the production
+# uniform grid's global phase (coordinate modulo 128 equals 127).
+smoke_regions:
+  - name: tp53
+    chrom: chr17
+    start: 7624662
+    end: 7724662
+  - name: hla
+    chrom: chr6
+    start: 29500000
+    end: 29600000
+  - name: chr1_10m
+    chrom: chr1
+    start: 10000000
+    end: 10100000
+  - name: chr2_200m
+    chrom: chr2
+    start: 200000000
+    end: 200100000
+  - name: chr5_70m
+    chrom: chr5
+    start: 70900000
+    end: 71000000
+  - name: chr7_155m
+    chrom: chr7
+    start: 155000000
+    end: 155100000
+  - name: chr9_138m
+    chrom: chr9
+    start: 138000000
+    end: 138100000
+  - name: chr11_5m
+    chrom: chr11
+    start: 5000000
+    end: 5100000
+  - name: chr13_100m
+    chrom: chr13
+    start: 100000000
+    end: 100100000
+  - name: chr19_54m
+    chrom: chr19
+    start: 54700000
+    end: 54800000
+  - name: chrx_153m
+    chrom: chrX
+    start: 153000000
+    end: 153100000
+  - name: chry_15m
+    chrom: chrY
+    start: 15000000
+    end: 15100000
+smoke_expected_queries: 9374
+
+strict_phylop_baseline_root: results/phylop-uniform-v1/2162b6aa8299a9748eeb8031318b49072bb8c3fc/94d512050de327f96fda1105ce9c6ae5562944e402802516c7cde54795d8cdd1/full
+validation_expected_queries: 1136854
+uniform_grid_expected_queries: 22948560
+window_size: 255
+step_size: 128
+standard_chroms:
+  - chr1
+  - chr2
+  - chr3
+  - chr4
+  - chr5
+  - chr6
+  - chr7
+  - chr8
+  - chr9
+  - chr10
+  - chr11
+  - chr12
+  - chr13
+  - chr14
+  - chr15
+  - chr16
+  - chr17
+  - chr18
+  - chr19
+  - chr20
+  - chr21
+  - chr22
+  - chrX
+  - chrY
