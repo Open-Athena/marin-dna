@@ -144,6 +144,12 @@ sky exec issue-523-hal-chains \
 The Snakemake storage profile owns the durable chains, parity artifacts, and timing summaries under the commit- and configuration-keyed `hal-chains-directional-pilot-v1` namespace.
 The staged HAL, generated 2bits, full-genome BEDs, and raw full-grid liftOver outputs remain NVMe-local and disappear when the worker is terminated.
 
+After the three-species exact gate passes, `marin-dna-run-hal-chain-ramp` can generate the complete 107-target family-deduplicated cohort from `config/zoonomia_447_family_dedup.tsv` while sharing the staged HAL and persistent per-genome 2bit assets.
+`config/hal_chain_directional_ramp.yaml` starts two workers and doubles the target concurrency after each ten-minute observation interval up to 40 workers.
+It holds concurrency when available RAM falls below 96 GiB, free NVMe falls below 256 GiB, CPU busy time exceeds 85%, CPU iowait exceeds 25%, or one-minute load exceeds 0.8 per vCPU.
+Each worker streams HAL→PSL→chain without an intermediate PSL, validates chain direction and chromosome sizes, records the same GNU-time and node metrics as the pilot, uploads the chain and metrics, verifies their object sizes, and removes the local chain only after both durable objects are present.
+The controller publishes its exact cohort, smoke-gate evidence, producer identity, decisions, active/completed sets, retries, and terminal status under the commit- and configuration-keyed `hal-chains-directional-ramp-v1` namespace.
+
 ## Issue #517 GPN-Star-P uniform grid
 
 The GPN entry point reproduces the historical 255 bp, 128 bp-stride grid and scores it with canonical calibrated entropy from the primate `gpn-star-hg38-p243-200m` model.
