@@ -209,3 +209,22 @@ author: gonzalobenegas
 - Ephemeral data: Termination discarded the 1.2627-TB staged HAL, derived 2bit/genome assets, unfinished elephant files, and other NVMe-only workflow state.
   The immutable source HAL remains in S3, the workflow and logbook are committed, and the TP53 result archive is preserved in the current workspace pending an authorized durable destination.
 - Next action on resume: Rebase onto current `origin/main`, implement the direction-matched strict recipe with pinned Kent-482 `pslSwap` and an explicit negative minimum score, validate a diverse regional panel, then restage the HAL only when ready to launch the whole-genome baboon candidate.
+
+### 2026-08-29 18:07 UTC - `HALC-523-008` pass the regional gate and launch the adaptive 107-species ramp
+
+- Human decision: Authorize durable smoke-test artifacts, the complete 107-target whole-genome chain build, and an adaptive concurrency ramp on the existing EC2 node.
+- Gate producer: `11322912b8564427ed8aa428f9beb87de3574308` with Cactus 3.3.0, Kent 482, human-to-target `--noDupes`, `pslSwap`, `pslPosTarget`, and `axtChain -minScore=-1000000`.
+- Staging result: The 1,262,706,573,453-byte HAL transferred to local NVMe in 40 minutes 53 seconds and passed size and genome validation.
+- Exact gate: All 9,374 regional queries matched direct HAL outcomes for each representative target with zero multiple mappings.
+  Baboon had 6,846 exact mapped and 2,528 exact unmapped queries, mouse had 1,529 and 7,845, and elephant had 2,270 and 7,104.
+- Full baboon: Sky job 6 started the whole-genome direction-matched chain at 17:26:39 UTC and remained active through this checkpoint.
+- Ramp snapshot: `fe1817117b6a460a7066785b97daafd2e05d3785` adds the exact 107-target cohort, resumable per-species workers, verified durable uploads, an externally managed baboon requirement, and controller state publication.
+- Verification: The EC2 node passed all 269 project tests, the default 79-job Snakemake DAG dry-run, and the controller CLI check.
+  Follow-up commit `08c7543e` passed the same 269 tests and Ruff check and format validation in a separate EC2 worktree; its changes are formatting-only and do not alter the pinned running controller.
+- Launch: At 18:00:47 UTC, the controller launched `Mus_musculus` and `Loxodonta_africana` at concurrency 2 beside the active baboon process.
+  One whole-genome `halLiftover` invocation is planned for each of the 107 targets.
+- First controller sample: 356 GiB available RAM, 1.3 TiB free NVMe, 6.8% CPU busy, 0.09% iowait, load/vCPU 0.067, and zero failures.
+- Ramp policy: Evaluate every ten minutes and double 2→4→8→16→32→40 only while all memory, disk, CPU, iowait, and load gates pass.
+- Lifecycle: Sky job 8 runs a one-CPU sentinel tied to the controller PID so cluster autostop remains aware of the externally supervised work after job 6 finishes.
+- Durable record: The issue body and launch status are current at https://github.com/Open-Athena/marin-dna/issues/523#issuecomment-5463995670.
+- Next action: Observe the first concurrency decision, verify the first completed whole-genome chain and metrics objects, and continue reporting retries, resource pressure, wall time, and cost through terminal cohort status.
