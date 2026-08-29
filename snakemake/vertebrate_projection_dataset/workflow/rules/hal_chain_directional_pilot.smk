@@ -256,7 +256,7 @@ rule generate_directional_smoke_chain:
 rule liftover_directional_smoke_chain:
     input:
         bed=local(SMOKE_CENTER_BED),
-        chain=SMOKE_CHAIN,
+        chain=local(SMOKE_CHAIN),
     output:
         mapped=temp(local(SMOKE_MAPPED)),
         unmapped=temp(local(SMOKE_UNMAPPED)),
