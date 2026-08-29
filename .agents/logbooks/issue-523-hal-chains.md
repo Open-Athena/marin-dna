@@ -17,9 +17,9 @@ author: gonzalobenegas
 
 ## Current TL;DR
 
-- Status: A direction-matched strict TP53 chain reproduces all 781 direct `halLiftover --noDupes` outcomes exactly when the human-to-baboon PSL is swapped into human-source chain orientation and `axtChain` retains negative-scoring chains.
-  This is a regional result and still needs whole-genome validation.
-  The old elephant producer remains active and its output is protected by same-filesystem recovery links.
+- Status: Paused at the user's request after the exact TP53 regional result.
+  Sky job 7 was cancelled and the `issue-523-hal-chains` EC2 cluster was terminated, so compute billing has stopped.
+  The direction-matched strict TP53 chain reproduces all 781 direct `halLiftover --noDupes` outcomes exactly, but this regional result still needs whole-genome validation.
 - Selected artifact: Whole-genome human-to-species chains, because later tilings, window lengths, anchor positions, and arbitrary annotations must not require another HAL traversal.
 - Pilot: Build supported-default and `--noDupes` candidates for `Papio_anubis`, `Mus_musculus`, and `Loxodonta_africana` from one NVMe-staged HAL, with at most two pair pipelines running concurrently.
 - Gate: Compare all 1,136,854 strict-phyloP center mappings with their immutable direct-HAL outputs before accepting either chain recipe.
@@ -68,6 +68,8 @@ author: gonzalobenegas
 - 2026-08-29: Require a 100-kb TP53 parity preflight before starting another whole-genome chain producer.
   Allow the already-running elephant producer to finish for whole-genome evidence.
 - 2026-08-29: Promote the direction-matched strict recipe with a negative `axtChain` minimum score to the next whole-genome candidate after it achieved 781/781 exact TP53 parity.
+- 2026-08-29: Cancel Sky job 7 and terminate the EC2 cluster to stop spend while the work is unsupervised.
+  Preserve the 129,112-byte TP53 smoke archive on the permanent branch; restage the source HAL from S3 when work resumes.
 
 ## Entry Log
 
@@ -191,3 +193,18 @@ author: gonzalobenegas
 - Decision: Replace the reverse-direction strict candidate in the next whole-genome run with the direction-matched strict recipe and measure output-size inflation explicitly.
   Keep the completed reverse-direction regional results as negative controls.
 - Next action: Add pinned `pslSwap` support and an explicit minimum-score parameter to the experimental workflow, run locked tests and a remote dry-run, then generate one whole-genome baboon candidate from the staged HAL.
+
+### 2026-08-29 01:11 UTC - `HALC-523-007` cancel the producer and terminate EC2
+
+- Human decision: Pause the experiment during an unsupervised period and stop further cloud spend.
+- Cancellation: `sky cancel issue-523-hal-chains 7 -y` changed Sky job 7 from `RUNNING` to `CANCELLED`.
+  The cancelled process was still in the reverse-direction `Loxodonta_africana/default` `halLiftover` after about eight hours, so it produced no finalized chain.
+- Preservation: The TP53 smoke directory contained 50 files and 409,498 bytes, including a manifest covering 49 payload files and 399,967 payload bytes.
+  It was archived as `.agents/artifacts/issue-523-hal-chains/issue523-tp53-regional-smoke-v1.tar.gz` with 129,112 bytes and SHA-256 `f7a3b9aff52f0778907f6f389a3a494afd3da2ced66c4f896118c684b6b9495e`.
+- Storage decision: The intended `s3://oa-bolinas/issues/523/tp53-regional-smoke/2026-08-29-direction-matched-v1/` upload was not performed because that genomic payload and destination required separate explicit authorization.
+  The small archive was copied to the permanent research branch instead.
+- Termination: `sky down issue-523-hal-chains -y` completed successfully.
+  A refreshed Sky status reports that `issue-523-hal-chains` is not found, confirming that EC2 compute billing has stopped.
+- Ephemeral data: Termination discarded the 1.2627-TB staged HAL, derived 2bit/genome assets, unfinished elephant files, and other NVMe-only workflow state.
+  The immutable source HAL remains in S3, the workflow and logbook are committed, and the TP53 result archive is preserved on the branch.
+- Next action on resume: Rebase onto current `origin/main`, implement the direction-matched strict recipe with pinned Kent-482 `pslSwap` and an explicit negative minimum score, validate a diverse regional panel, then restage the HAL only when ready to launch the whole-genome baboon candidate.
