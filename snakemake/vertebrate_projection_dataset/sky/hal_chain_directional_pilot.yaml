@@ -148,6 +148,8 @@ run: |
   SNAKEMAKE_PROFILE=()
   if [ "$DURABLE_OUTPUTS" = "1" ]; then
     SNAKEMAKE_PROFILE+=(--profile workflow/profiles/default)
+  else
+    SNAKEMAKE_PROFILE+=(--default-storage-provider fs --default-storage-prefix "")
   fi
 
   cd snakemake/vertebrate_projection_dataset
