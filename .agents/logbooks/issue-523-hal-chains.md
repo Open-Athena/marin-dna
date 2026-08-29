@@ -228,3 +228,25 @@ author: gonzalobenegas
 - Lifecycle: Sky job 8 runs a one-CPU sentinel tied to the controller PID so cluster autostop remains aware of the externally supervised work after job 6 finishes.
 - Durable record: The issue body and launch status are current at https://github.com/Open-Athena/marin-dna/issues/523#issuecomment-5463995670.
 - Next action: Observe the first concurrency decision, verify the first completed whole-genome chain and metrics objects, and continue reporting retries, resource pressure, wall time, and cost through terminal cohort status.
+
+### 2026-08-29 20:05 UTC - `HALC-523-009` recover the HAL and restart at eight workers
+
+- Failure: The v1 controller increased to 32 workers and exhausted the 384-GiB node before any whole-genome chain finalized.
+  Its last durable healthy sample retained about 60 GiB available RAM, followed by an observed collapse to about 1.8 GiB and loss of SSH and Ray responsiveness.
+- Recovery: Rebooting EC2 instance `i-0323e820685d4e2b1` restored SSH without erasing instance-store data.
+  Both NVMe members assembled as the original clean RAID0 filesystem, and the staged HAL remains intact at 1,262,706,573,453 bytes.
+- Lifecycle protection: SkyPilot retained a stale 30-minute autodown policy but could not cancel it while the rebooted cluster was in `INIT` state.
+  EC2 API stop and termination protection are enabled until intentional retirement so that the preserved HAL cannot be deleted by that stale policy.
+- Publication search: The official CGL 447-way release lists HAL, MAF, tree, checksums, and construction notes but no chain archive or chain directory.
+  The Cactus documentation instructs users to generate chains with `cactus-hal2chains`, and an independent Cactus issue records another attempt to generate human-query chains from the same 447-way HAL.
+  UCSC's selected `hg38` liftOver chains use mixed target assemblies and alignment recipes, so they do not provide the strict exact-HAL control required here.
+- Recovery snapshot: `b86897b7050bc9fdf397dd6abfb3af11fc876f86` creates the separate `hal-chains-directional-ramp-v2` namespace, fixes concurrency at eight, reserves 32 GiB for every admitted worker, and retains a projected 96-GiB memory floor.
+- Verification: All 270 locked project tests passed remotely on the recovered EC2 node.
+  The changed controller and test passed Ruff check and format validation, and the controller CLI check passed.
+- Provenance correction: A first metadata-only start used a nonexistent full commit hash and was stopped before any `halLiftover` worker launched.
+  Exactly three small metadata objects under that incorrect S3 prefix were deleted, and the prefix was verified empty before the corrected launch.
+- Launch: The corrected controller started at 20:03:31 UTC with the verified recovery commit and configuration SHA-256 `d035c2561f6be3b11449647adfe9ce865884aef7da8b7e06b817d8a75c7f37f9`.
+  Its first durable state has eight active workers, 99 queued species, zero completed species, and zero failures.
+- First resources: About 365 GiB available RAM, 1.27 TiB free NVMe, 17.1% aggregate CPU busy, 1.3% iowait, and load/vCPU 0.048.
+- Durable status: https://github.com/Open-Athena/marin-dna/issues/523#issuecomment-5464610246.
+- Next action: Inspect the first finalized chain and metrics object, confirm sustained memory behavior at eight workers, and continue the cohort without increasing concurrency.
