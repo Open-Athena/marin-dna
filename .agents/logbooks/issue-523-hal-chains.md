@@ -17,8 +17,8 @@ author: gonzalobenegas
 
 ## Current TL;DR
 
-- Status: A 100-kb TP53 regional preflight completes in 1.32 seconds or less per chain recipe, but exact parity is 91.2% for the strict `--noDupes` recipe and 97.1% for the default recipe with `liftOver -multiple`.
-  No fixed-producer whole-genome rerun will start until the remaining directional and chain-conversion differences are understood.
+- Status: A direction-matched strict TP53 chain reproduces all 781 direct `halLiftover --noDupes` outcomes exactly when the human-to-baboon PSL is swapped into human-source chain orientation and `axtChain` retains negative-scoring chains.
+  This is a regional result and still needs whole-genome validation.
   The old elephant producer remains active and its output is protected by same-filesystem recovery links.
 - Selected artifact: Whole-genome human-to-species chains, because later tilings, window lengths, anchor positions, and arbitrary annotations must not require another HAL traversal.
 - Pilot: Build supported-default and `--noDupes` candidates for `Papio_anubis`, `Mus_musculus`, and `Loxodonta_africana` from one NVMe-staged HAL, with at most two pair pipelines running concurrently.
@@ -38,7 +38,8 @@ author: gonzalobenegas
 
 - `HALC-523-H1`: A whole-genome chain generated from `halLiftover --outPSL --noDupes` reproduces the current direct center-1 mappings closely enough to become the reusable scientific backend.
   Regional evidence: The reverse-direction `--noDupes` TP53 chain reproduced 712 of 781 queries exactly.
-  Next test: Generate the PSL in the human-to-baboon direction, swap it into human-source chain orientation, and repeat the regional audit before an expensive whole-genome rerun.
+  The direction-matched strict recipe with `axtChain -minScore=-1000000` reproduced 781 of 781 exactly.
+  Next test: Generate a whole-genome baboon candidate with the direction-matched strict recipe and measure parity, chain size, and runtime.
 - `HALC-523-H2`: Two concurrent chain pipelines can safely share one NVMe HAL copy and OS page cache on an `r6id.12xlarge` with 384 GiB RAM.
   Next test: Measure GNU-time RSS and five-second node memory, cache, dirty-page, and free-disk samples during the first concurrent pair.
 - `HALC-523-H3`: Once generated, a chain can project all 22,948,560 uniform-grid centers fast enough that future selector experiments should filter after projection.
@@ -66,6 +67,7 @@ author: gonzalobenegas
 - 2026-08-28: Stage the HAL once on on-demand EC2 and run at most two pair pipelines concurrently.
 - 2026-08-29: Require a 100-kb TP53 parity preflight before starting another whole-genome chain producer.
   Allow the already-running elephant producer to finish for whole-genome evidence.
+- 2026-08-29: Promote the direction-matched strict recipe with a negative `axtChain` minimum score to the next whole-genome candidate after it achieved 781/781 exact TP53 parity.
 
 ## Entry Log
 
@@ -166,3 +168,26 @@ author: gonzalobenegas
 - Decision: Do not launch the fixed whole-genome rerun yet.
   Let the existing elephant producer finish, and use the regional harness to test a direction-matched human-to-baboon PSL recipe first.
 - Next action: Add the missing pinned PSL/chain orientation utility, test the direction-matched strict recipe on TP53, then decide which recipe deserves a whole-genome rerun.
+
+### 2026-08-29 00:14 UTC - `HALC-523-006` achieve exact regional parity with a direction-matched strict chain
+
+- Hypothesis: The strict mismatch comes from applying `--noDupes` in the reverse direction and from `axtChain` dropping low-scoring PSL alignments.
+- Base commit: `647c9c108a775d6c21b6eae23b67023a57c7ba24`.
+- Orientation utility: Bioconda `ucsc-pslswap=482`, package SHA-256 `6c4c21b969e8794c5fa5a0e4ae6c85defdf7d85fa50d29e19eff9594544ce955`, executable SHA-256 `20e81ed41e19e9baa78dbfaa866343b3f037d30faf417a40eb5436e9e42fd6f7`.
+  Its checksum-pinned `libiconv=1.18` and `mysql-connector-c=6.1.11` runtime packages were staged only on the existing EC2 worker.
+- Direction-matched command: `halLiftover --noDupes --outPSL HAL Homo_sapiens TP53.bed Papio_anubis stdout | pslSwap | pslPosTarget | axtChain -psl -linearGap=medium | gzip`.
+  This applies `--noDupes` in the same human-to-baboon direction as the direct-HAL baseline, then swaps the PSL so the chain still has human on the UCSC target/source side.
+- Default-score result: The direction-matched chain took 1.011 seconds and reproduced 764/781 queries exactly (97.82%).
+  All 17 discrepancies were direct-only; there were no chain-only mappings or coordinate conflicts.
+- Zero-score result: Adding `axtChain -minScore=0` took 1.028 seconds and reproduced 777/781 exactly (99.49%).
+  All four discrepancies remained direct-only.
+- Diagnostic: The four remaining direct mappings sit in PSL records containing short, mismatch-heavy blocks; two records have zero matching bases.
+  These alignments have negative chain scores and are discarded even at a zero minimum score.
+- Negative-score result: `axtChain -minScore=-1000000` took 1.000 seconds, produced a 9,702-byte chain with 401 chains and 87,961 aligned block bases, and reproduced 781/781 queries exactly.
+  It mapped the same 684 queries as direct HAL and left the same 97 queries unmapped, with no multiple mappings, chain-only mappings, direct-only mappings, or coordinate conflicts.
+  `liftOver` took 0.010 seconds.
+- Interpretation (`exploratory`): Direction matching and preservation of negative-scoring chains are both required for exact TP53 parity.
+  Exact regional parity supports this as the next whole-genome candidate, but it does not establish whole-genome parity or bound chain-size inflation from retaining low-scoring chains.
+- Decision: Replace the reverse-direction strict candidate in the next whole-genome run with the direction-matched strict recipe and measure output-size inflation explicitly.
+  Keep the completed reverse-direction regional results as negative controls.
+- Next action: Add pinned `pslSwap` support and an explicit minimum-score parameter to the experimental workflow, run locked tests and a remote dry-run, then generate one whole-genome baboon candidate from the staged HAL.
