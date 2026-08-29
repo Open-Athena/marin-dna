@@ -15,7 +15,7 @@ envs:
   PIPELINE_COMMIT_SHA: ""
   TARGET: smoke
   DRY_RUN: "0"
-  DURABLE_OUTPUTS: "0"
+  DURABLE_OUTPUTS: "1"
 
 setup: |
   set -euxo pipefail
@@ -77,9 +77,7 @@ run: |
       exit 1
       ;;
   esac
-  if [ "$TARGET" = "smoke" ]; then
-    test "$DURABLE_OUTPUTS" = "0"
-  elif [ "$TARGET" = "full_baboon" ]; then
+  if [ "$TARGET" = "full_baboon" ]; then
     test "$DURABLE_OUTPUTS" = "1"
   fi
 

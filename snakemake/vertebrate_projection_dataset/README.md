@@ -107,7 +107,7 @@ The pinned tools are Cactus 3.3.0 and Kent 482, including `pslSwap`.
 The first target is a cheap correctness gate over twelve discontiguous 100-kb human regions and all 9,374 production-phase uniform-grid centers inside them.
 It independently requires exact direct-HAL versus chain parity for `Papio_anubis`, `Mus_musculus`, and `Loxodonta_africana`.
 Only after all three species pass may the `full_baboon` rule generate one whole-genome `Papio_anubis` candidate.
-All smoke outputs remain on ephemeral EC2 NVMe and are not published.
+The retained smoke chains, timing metrics, exact-parity summaries, empty-or-populated discrepancy tables, and producer manifest are published through the same durable storage profile as the full candidate.
 
 The whole-genome audit reuses the immutable 1,136,854-query strict-phyloP BED and its direct `halLiftover --noDupes` output.
 It compares every mapped or unmapped state, destination sequence, 0-based half-open coordinate, strand, and mapping multiplicity.
@@ -117,7 +117,8 @@ The 1.26-TB HAL is staged once on a dedicated on-demand `r6id.12xlarge` with 384
 The smoke jobs and optional whole-genome job share that staged file and generated 2bit assets.
 Generation metrics include GNU-time process usage, node memory and page-cache samples, minimum free disk, compressed chain bytes, SHA-256, chain/header counts, and aligned block bases.
 
-Run tests, dry-run the smoke DAG, execute the smoke gate, and then request the single full candidate through `sky/hal_chain_directional_pilot.yaml`:
+Run tests, dry-run the combined DAG, and then request the single full candidate through `sky/hal_chain_directional_pilot.yaml`.
+The `full_baboon` target reruns the smoke gate and proceeds to the whole-genome candidate in the same job, so the staged HAL is reused without an idle handoff:
 
 ```bash
 sky launch -c issue-523-hal-chains \
@@ -129,14 +130,8 @@ sky launch -c issue-523-hal-chains \
 
 sky exec issue-523-hal-chains \
   sky/hal_chain_directional_pilot.yaml \
-  --env TARGET=smoke --env DRY_RUN=1 \
-  --env DURABLE_OUTPUTS=0 \
-  --env PIPELINE_COMMIT_SHA="$(git rev-parse HEAD)"
-
-sky exec issue-523-hal-chains \
-  sky/hal_chain_directional_pilot.yaml \
-  --env TARGET=smoke --env DRY_RUN=0 \
-  --env DURABLE_OUTPUTS=0 \
+  --env TARGET=full_baboon --env DRY_RUN=1 \
+  --env DURABLE_OUTPUTS=1 \
   --env PIPELINE_COMMIT_SHA="$(git rev-parse HEAD)"
 
 sky exec issue-523-hal-chains \

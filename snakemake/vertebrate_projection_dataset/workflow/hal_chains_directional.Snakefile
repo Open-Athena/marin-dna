@@ -9,22 +9,22 @@ include: "rules/hal_chain_directional_pilot.smk"
 
 rule smoke:
     input:
-        manifest=local(SMOKE_PRODUCER_MANIFEST),
-        chains=[local(SMOKE_CHAIN.format(species=s)) for s in SMOKE_SPECIES],
+        manifest=SMOKE_PRODUCER_MANIFEST,
+        chains=[SMOKE_CHAIN.format(species=s) for s in SMOKE_SPECIES],
         chain_metrics=[
-            local(SMOKE_CHAIN_METRICS.format(species=s)) for s in SMOKE_SPECIES
+            SMOKE_CHAIN_METRICS.format(species=s) for s in SMOKE_SPECIES
         ],
         direct_metrics=[
-            local(SMOKE_DIRECT_METRICS.format(species=s)) for s in SMOKE_SPECIES
+            SMOKE_DIRECT_METRICS.format(species=s) for s in SMOKE_SPECIES
         ],
         liftover_metrics=[
-            local(SMOKE_LIFTOVER_METRICS.format(species=s)) for s in SMOKE_SPECIES
+            SMOKE_LIFTOVER_METRICS.format(species=s) for s in SMOKE_SPECIES
         ],
         parity_summaries=[
-            local(SMOKE_PARITY_SUMMARY.format(species=s)) for s in SMOKE_SPECIES
+            SMOKE_PARITY_SUMMARY.format(species=s) for s in SMOKE_SPECIES
         ],
         parity_discrepancies=[
-            local(SMOKE_PARITY_DISCREPANCIES.format(species=s))
+            SMOKE_PARITY_DISCREPANCIES.format(species=s)
             for s in SMOKE_SPECIES
         ],
 

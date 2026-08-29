@@ -101,7 +101,7 @@ FULL_GRID_METRICS = f"{RESULTS}/full_grid/{FULL_SPECIES}.liftover.json"
 
 rule hal_chain_directional_smoke_producer_manifest:
     output:
-        local(SMOKE_PRODUCER_MANIFEST),
+        SMOKE_PRODUCER_MANIFEST,
     run:
         write_producer_manifest(
             output[0],
@@ -202,7 +202,7 @@ rule benchmark_directional_smoke_direct_hal:
         centers=local(SMOKE_CENTER_BED),
     output:
         bed=temp(local(SMOKE_DIRECT_BED)),
-        metrics=local(SMOKE_DIRECT_METRICS),
+        metrics=SMOKE_DIRECT_METRICS,
     wildcard_constraints:
         species=SPECIES_RE,
     resources:
@@ -229,8 +229,8 @@ rule generate_directional_smoke_chain:
         destination_sizes=local(GENOME_SIZES.replace("{genome}", "{species}")),
         destination_twobit=local(GENOME_TWOBIT.replace("{genome}", "{species}")),
     output:
-        chain=local(SMOKE_CHAIN),
-        metrics=local(SMOKE_CHAIN_METRICS),
+        chain=SMOKE_CHAIN,
+        metrics=SMOKE_CHAIN_METRICS,
     wildcard_constraints:
         species=SPECIES_RE,
     resources:
@@ -256,11 +256,11 @@ rule generate_directional_smoke_chain:
 rule liftover_directional_smoke_chain:
     input:
         bed=local(SMOKE_CENTER_BED),
-        chain=local(SMOKE_CHAIN),
+        chain=SMOKE_CHAIN,
     output:
         mapped=temp(local(SMOKE_MAPPED)),
         unmapped=temp(local(SMOKE_UNMAPPED)),
-        metrics=local(SMOKE_LIFTOVER_METRICS),
+        metrics=SMOKE_LIFTOVER_METRICS,
     wildcard_constraints:
         species=SPECIES_RE,
     resources:
@@ -282,8 +282,8 @@ rule gate_directional_smoke_parity:
         direct=local(SMOKE_DIRECT_BED),
         chain=local(SMOKE_MAPPED),
     output:
-        summary=local(SMOKE_PARITY_SUMMARY),
-        discrepancies=local(SMOKE_PARITY_DISCREPANCIES),
+        summary=SMOKE_PARITY_SUMMARY,
+        discrepancies=SMOKE_PARITY_DISCREPANCIES,
     wildcard_constraints:
         species=SPECIES_RE,
     resources:
@@ -302,7 +302,7 @@ rule gate_directional_smoke_parity:
 rule generate_full_baboon_directional_chain:
     input:
         smoke_gate=[
-            local(SMOKE_PARITY_SUMMARY.format(species=s)) for s in SMOKE_SPECIES
+            SMOKE_PARITY_SUMMARY.format(species=s) for s in SMOKE_SPECIES
         ],
         hal=local(HAL_PATH),
         validation=local(HAL_VALIDATION),
