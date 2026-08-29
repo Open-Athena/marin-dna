@@ -91,16 +91,12 @@ def next_concurrency(
     """Double concurrency only when every measured safety gate passes."""
     assert 1 <= current <= maximum
     safe = (
-        int(snapshot["mem_available_bytes"])
-        >= thresholds.minimum_mem_available_bytes
-        and int(snapshot["disk_free_bytes"])
-        >= thresholds.minimum_disk_free_bytes
-        and float(snapshot["cpu_busy_fraction"])
-        <= thresholds.maximum_cpu_busy_fraction
+        int(snapshot["mem_available_bytes"]) >= thresholds.minimum_mem_available_bytes
+        and int(snapshot["disk_free_bytes"]) >= thresholds.minimum_disk_free_bytes
+        and float(snapshot["cpu_busy_fraction"]) <= thresholds.maximum_cpu_busy_fraction
         and float(snapshot["cpu_iowait_fraction"])
         <= thresholds.maximum_cpu_iowait_fraction
-        and float(snapshot["load_per_cpu"])
-        <= thresholds.maximum_load_per_cpu
+        and float(snapshot["load_per_cpu"]) <= thresholds.maximum_load_per_cpu
     )
     return min(maximum, current * 2) if safe else current
 
@@ -155,17 +151,13 @@ def _s3_size(uri: str) -> int | None:
 
 
 def _upload(path: Path, uri: str) -> None:
-    subprocess.run(
-        ["aws", "s3", "cp", str(path), uri, "--no-progress"], check=True
-    )
+    subprocess.run(["aws", "s3", "cp", str(path), uri, "--no-progress"], check=True)
     assert _s3_size(uri) == path.stat().st_size
 
 
 def _download_json(uri: str, directory: Path) -> dict[str, Any]:
     output = directory / f"{len(list(directory.iterdir())):03d}.json"
-    subprocess.run(
-        ["aws", "s3", "cp", uri, str(output), "--no-progress"], check=True
-    )
+    subprocess.run(["aws", "s3", "cp", uri, str(output), "--no-progress"], check=True)
     payload = json.loads(output.read_text())
     assert isinstance(payload, dict)
     return payload
@@ -184,8 +176,10 @@ def _result_identity(
             str(config["tier"]),
         ]
     )
-    return config_sha256, relative, (
-        f"{str(config['s3_results_root']).rstrip('/')}/{relative}"
+    return (
+        config_sha256,
+        relative,
+        (f"{str(config['s3_results_root']).rstrip('/')}/{relative}"),
     )
 
 
