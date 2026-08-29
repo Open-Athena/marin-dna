@@ -150,6 +150,10 @@ It holds concurrency when available RAM falls below 96 GiB, free NVMe falls belo
 Each worker streams HAL→PSL→chain without an intermediate PSL, validates chain direction and chromosome sizes, records the same GNU-time and node metrics as the pilot, uploads the chain and metrics, verifies their object sizes, and removes the local chain only after both durable objects are present.
 The controller publishes its exact cohort, smoke-gate evidence, producer identity, decisions, active/completed sets, retries, and terminal status under the commit- and configuration-keyed `hal-chains-directional-ramp-v1` namespace.
 
+The first adaptive run exhausted the 384-GiB node after increasing from 16 to 32 workers, before any chain finalized.
+`config/hal_chain_directional_recovery.yaml` preserves that failed namespace and restarts all 107 targets under `hal-chains-directional-ramp-v2` with a fixed eight-worker cap.
+The recovery controller reserves 32 GiB for every newly admitted worker and requires the projected post-admission node memory to retain the 96-GiB safety floor.
+
 ## Issue #517 GPN-Star-P uniform grid
 
 The GPN entry point reproduces the historical 255 bp, 128 bp-stride grid and scores it with canonical calibrated entropy from the primate `gpn-star-hg38-p243-200m` model.

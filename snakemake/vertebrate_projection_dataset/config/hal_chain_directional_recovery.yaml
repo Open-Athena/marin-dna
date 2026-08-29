@@ -1,0 +1,42 @@
+pipeline_version: hal-chains-directional-ramp-v2
+tier: full
+
+cactus_version: 3.3.0
+kent_version: 482
+hal_s3_uri: s3://oa-bolinas/staging/447-mammalian-2022v1.hal
+hal_stage_path: /mnt/nvme/vertebrate_projection/staging/447-mammalian-2022v1.hal
+source_genome: Homo_sapiens
+target_manifest: config/zoonomia_447_family_dedup.tsv
+linear_gap: medium
+chain_min_score: -1000000
+
+local_asset_root: /mnt/nvme/vertebrate_projection/hal-chain-directional-ramp-assets
+local_work_root: /mnt/nvme/vertebrate_projection/hal-chain-directional-ramp-recovery
+s3_results_root: s3://oa-bolinas/snakemake/vertebrate_projection_dataset/results
+
+bootstrap_source_asset_root: /mnt/nvme/vertebrate_projection/results/hal-chains-directional-pilot-v1/11322912b8564427ed8aa428f9beb87de3574308/5efcfd58ae55f5d420dc12459a68199332c3163730c9f7057f2730d96f170aef/full/genomes
+
+smoke_gate_uris:
+  Papio_anubis: s3://oa-bolinas/snakemake/vertebrate_projection_dataset/results/hal-chains-directional-pilot-v1/11322912b8564427ed8aa428f9beb87de3574308/5efcfd58ae55f5d420dc12459a68199332c3163730c9f7057f2730d96f170aef/full/smoke/Papio_anubis/parity.json
+  Mus_musculus: s3://oa-bolinas/snakemake/vertebrate_projection_dataset/results/hal-chains-directional-pilot-v1/11322912b8564427ed8aa428f9beb87de3574308/5efcfd58ae55f5d420dc12459a68199332c3163730c9f7057f2730d96f170aef/full/smoke/Mus_musculus/parity.json
+  Loxodonta_africana: s3://oa-bolinas/snakemake/vertebrate_projection_dataset/results/hal-chains-directional-pilot-v1/11322912b8564427ed8aa428f9beb87de3574308/5efcfd58ae55f5d420dc12459a68199332c3163730c9f7057f2730d96f170aef/full/smoke/Loxodonta_africana/parity.json
+
+external_species: {}
+
+priority_species:
+  - Papio_anubis
+  - Mus_musculus
+  - Loxodonta_africana
+
+initial_concurrency: 8
+maximum_concurrency: 8
+ramp_interval_seconds: 600
+poll_interval_seconds: 15
+state_upload_interval_seconds: 60
+minimum_mem_available_bytes: 103079215104
+minimum_disk_free_bytes: 274877906944
+maximum_cpu_busy_fraction: 0.85
+maximum_cpu_iowait_fraction: 0.25
+maximum_load_per_cpu: 0.80
+worker_memory_reservation_bytes: 34359738368
+maximum_attempts: 2

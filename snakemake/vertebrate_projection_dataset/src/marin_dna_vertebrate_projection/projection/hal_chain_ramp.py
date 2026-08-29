@@ -39,6 +39,7 @@ class RampThresholds:
     maximum_cpu_busy_fraction: float
     maximum_cpu_iowait_fraction: float
     maximum_load_per_cpu: float
+    worker_memory_reservation_bytes: int = 0
 
 
 def read_target_species(path: str | Path, source_genome: str) -> list[str]:
@@ -90,15 +91,38 @@ def next_concurrency(
 ) -> int:
     """Double concurrency only when every measured safety gate passes."""
     assert 1 <= current <= maximum
+    proposed = min(maximum, current * 2)
+    projected_memory = int(snapshot["mem_available_bytes"]) - (
+        (proposed - current) * thresholds.worker_memory_reservation_bytes
+    )
     safe = (
         int(snapshot["mem_available_bytes"]) >= thresholds.minimum_mem_available_bytes
+        and projected_memory >= thresholds.minimum_mem_available_bytes
         and int(snapshot["disk_free_bytes"]) >= thresholds.minimum_disk_free_bytes
         and float(snapshot["cpu_busy_fraction"]) <= thresholds.maximum_cpu_busy_fraction
         and float(snapshot["cpu_iowait_fraction"])
         <= thresholds.maximum_cpu_iowait_fraction
         and float(snapshot["load_per_cpu"]) <= thresholds.maximum_load_per_cpu
     )
-    return min(maximum, current * 2) if safe else current
+    return proposed if safe else current
+
+
+def worker_admission_slots(
+    active_workers: int,
+    target_concurrency: int,
+    mem_available_bytes: int,
+    thresholds: RampThresholds,
+) -> int:
+    """Return worker slots that preserve the configured memory headroom."""
+    assert 0 <= active_workers <= target_concurrency
+    missing_workers = target_concurrency - active_workers
+    if thresholds.worker_memory_reservation_bytes <= 0:
+        return missing_workers
+    reservable_bytes = max(
+        0, mem_available_bytes - thresholds.minimum_mem_available_bytes
+    )
+    memory_slots = reservable_bytes // thresholds.worker_memory_reservation_bytes
+    return min(missing_workers, memory_slots)
 
 
 def _atomic_json(path: Path, payload: dict[str, Any]) -> None:
@@ -111,7 +135,10 @@ def _atomic_json(path: Path, payload: dict[str, Any]) -> None:
 def _load_config(path: str | Path) -> dict[str, Any]:
     payload = yaml.safe_load(Path(path).read_text())
     assert isinstance(payload, dict)
-    assert payload["pipeline_version"] == "hal-chains-directional-ramp-v1"
+    assert payload["pipeline_version"] in {
+        "hal-chains-directional-ramp-v1",
+        "hal-chains-directional-ramp-v2",
+    }
     assert payload["tier"] == "full"
     assert payload["cactus_version"] == "3.3.0"
     assert int(payload["kent_version"]) == 482
@@ -418,6 +445,9 @@ def run_controller(config_path: str | Path, pipeline_commit: str) -> int:
         maximum_cpu_busy_fraction=float(config["maximum_cpu_busy_fraction"]),
         maximum_cpu_iowait_fraction=float(config["maximum_cpu_iowait_fraction"]),
         maximum_load_per_cpu=float(config["maximum_load_per_cpu"]),
+        worker_memory_reservation_bytes=int(
+            config.get("worker_memory_reservation_bytes", 0)
+        ),
     )
     target_concurrency = int(config["initial_concurrency"])
     maximum_concurrency = int(config["maximum_concurrency"])
@@ -455,6 +485,9 @@ def run_controller(config_path: str | Path, pipeline_commit: str) -> int:
                 "external_species_status": external_status,
                 "scheduled_species": len(scheduled_targets),
                 "target_concurrency": target_concurrency,
+                "worker_memory_reservation_bytes": (
+                    thresholds.worker_memory_reservation_bytes
+                ),
                 "active_species": sorted(active),
                 "completed_species": sorted(completed),
                 "failed_species": failures,
@@ -491,14 +524,8 @@ def run_controller(config_path: str | Path, pipeline_commit: str) -> int:
         record("worker_started", species=species, attempt=attempts[species])
 
     record("controller_started", initial_concurrency=target_concurrency)
-    snapshot: dict[str, int | float] = {
-        "time_utc": datetime.now(UTC).timestamp(),
-        "mem_available_bytes": 0,
-        "disk_free_bytes": 0,
-        "cpu_busy_fraction": 0.0,
-        "cpu_iowait_fraction": 0.0,
-        "load_per_cpu": 0.0,
-    }
+    time.sleep(1)
+    snapshot, previous_cpu = _node_snapshot(work_root, previous_cpu)
     try:
         while remaining or active:
             for species, (process, handle) in list(active.items()):
@@ -519,8 +546,15 @@ def run_controller(config_path: str | Path, pipeline_commit: str) -> int:
                     failures[species] = returncode
                     record("worker_failed", species=species, returncode=returncode)
 
-            while remaining and len(active) < target_concurrency:
+            admission_slots = worker_admission_slots(
+                len(active),
+                target_concurrency,
+                int(snapshot["mem_available_bytes"]),
+                thresholds,
+            )
+            while remaining and admission_slots > 0:
                 launch(remaining.popleft())
+                admission_slots -= 1
 
             time.sleep(poll_interval)
             snapshot, previous_cpu = _node_snapshot(work_root, previous_cpu)

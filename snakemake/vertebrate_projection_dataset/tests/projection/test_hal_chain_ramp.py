@@ -7,6 +7,7 @@ from marin_dna_vertebrate_projection.projection.hal_chain_ramp import (
     next_concurrency,
     read_target_species,
     validate_smoke_gate_payloads,
+    worker_admission_slots,
 )
 
 
@@ -64,3 +65,28 @@ def test_next_concurrency_doubles_only_when_all_gates_pass() -> None:
     assert next_concurrency(32, 40, safe, thresholds) == 40
     unsafe = {**safe, "cpu_iowait_fraction": 0.26}
     assert next_concurrency(4, 40, unsafe, thresholds) == 4
+
+
+def test_memory_projection_blocks_unsafe_concurrency_and_worker_admission() -> None:
+    thresholds = RampThresholds(
+        minimum_mem_available_bytes=100,
+        minimum_disk_free_bytes=200,
+        maximum_cpu_busy_fraction=0.85,
+        maximum_cpu_iowait_fraction=0.25,
+        maximum_load_per_cpu=0.80,
+        worker_memory_reservation_bytes=40,
+    )
+    snapshot = {
+        "mem_available_bytes": 179,
+        "disk_free_bytes": 201,
+        "cpu_busy_fraction": 0.50,
+        "cpu_iowait_fraction": 0.01,
+        "load_per_cpu": 0.50,
+    }
+    assert next_concurrency(2, 8, snapshot, thresholds) == 2
+    assert (
+        next_concurrency(2, 8, {**snapshot, "mem_available_bytes": 180}, thresholds)
+        == 4
+    )
+    assert worker_admission_slots(2, 8, 179, thresholds) == 1
+    assert worker_admission_slots(2, 8, 99, thresholds) == 0
