@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import math
 
+import cloudpickle
 import pytest
 from marin.execution.lazy import StepContext
 
@@ -23,6 +24,7 @@ from exp535_4b_uniform_five_region.experiment import (
     TPU_REGION,
     TPU_VARIANT,
     TPU_ZONE,
+    TrainOnlyLmDataConfig,
     _require_preemptible_iris_capacity,
     _resources,
     build_training,
@@ -58,6 +60,8 @@ def test_production_is_full_state_resume_with_uniform_cached_data(monkeypatch) -
     assert train.data_seed == DATA_SEED == 535
     assert train.eval_harness is None
     assert train.labeled_eval is None
+    assert isinstance(train.data, TrainOnlyLmDataConfig)
+    assert train.data.tagged_eval_sets(object()) == []
     assert train.data.auto_build_caches is False
     assert train.data.train_weights == {name: 0.2 for name in REGION_CACHES}
     assert set(train.data.components) == set(REGION_CACHES)
@@ -83,7 +87,7 @@ def test_production_is_full_state_resume_with_uniform_cached_data(monkeypatch) -
     assert "WANDB_API_KEY" not in pod.env_vars
     assert "test-key-that-must-not-be-serialized" not in repr(pod)
     resources = step.runtime_args["train_resources"]
-    assert resources.device.variant == TPU_VARIANT == "v5p-16"
+    assert resources.device.variant == TPU_VARIANT == "v5p-8"
     assert resources.regions == [TPU_REGION]
     assert resources.zone == TPU_ZONE == "us-east5-a"
     assert resources.preemptible is True
@@ -93,9 +97,18 @@ def test_smoke_has_separate_identity_and_twenty_updates(monkeypatch) -> None:
     production, _ = _pod(monkeypatch, "production")
     smoke, pod = _pod(monkeypatch, "smoke")
     assert smoke.name != production.name
+    assert smoke.name == "checkpoints/dna-exp535-4b-uniform-five-region-smoke-v5p8"
+    assert pod.train_config.trainer.id == "dna-exp535-4b-uniform-five-region-smoke-v5p8"
     assert pod.train_config.trainer.num_train_steps == SMOKE_TARGET_STEP == PARENT_STEP + 20
     assert pod.train_config.adapter.steps == SMOKE_HF_EXPORT_STEPS == (SMOKE_TARGET_STEP,)
     assert pod.train_config.trainer.checkpointer.keep == []
+
+
+def test_train_only_data_config_survives_remote_serialization(monkeypatch) -> None:
+    _, pod = _pod(monkeypatch, "smoke")
+    restored = cloudpickle.loads(cloudpickle.dumps(pod))
+    assert isinstance(restored.train_config.data, TrainOnlyLmDataConfig)
+    assert restored.train_config.data.tagged_eval_sets(object()) == []
 
 
 def test_tpu_submission_requires_preemptible_capacity() -> None:

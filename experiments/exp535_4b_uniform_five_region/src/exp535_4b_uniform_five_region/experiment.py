@@ -14,6 +14,7 @@ from typing import Literal
 import click
 import jmp
 from fray.types import ResourceConfig
+from haliax import Axis
 from haliax.partitioning import ResourceAxis
 from levanter.adaptor import AdaptorConfig, AdaptorExportConfig, NoAdaptorConfig
 from levanter.checkpoint import CheckpointerConfig
@@ -78,13 +79,13 @@ MAX_GRAD_NORM = 0.9951880136348764
 WEIGHT_DECAY = 0.1
 Z_LOSS_WEIGHT = 4.312883184368223e-06
 
-TPU_VARIANT = "v5p-16"
+TPU_VARIANT = "v5p-8"
 TPU_REGION = "us-east5"
 TPU_ZONE = "us-east5-a"
 WANDB_PROJECT = "marin"
 WANDB_GROUP = "dna-exp535"
-VERSION = "2026.08.27"
-SMOKE_VERSION = "2026.08.27"
+VERSION = "2026.08.30"
+SMOKE_VERSION = "2026.08.30"
 
 
 @dataclass(frozen=True)
@@ -93,6 +94,15 @@ class RegionCache:
     cache_dir: str
     text_key: str
     total_tokens: int
+
+
+@dataclass(frozen=True)
+class TrainOnlyLmDataConfig(LmDataConfig):
+    """Use the pinned training caches without constructing validation datasets."""
+
+    def tagged_eval_sets(self, Pos: Axis) -> list[tuple[object, list[str]]]:
+        del Pos
+        return []
 
 
 REGION_CACHES = {
@@ -212,7 +222,7 @@ def validate_vendored_tokenizer() -> None:
             raise ValueError(f"{path} sha256 changed: {observed} != {expected}")
 
 
-def data_config() -> LmDataConfig:
+def data_config() -> TrainOnlyLmDataConfig:
     components = {
         name: DatasetComponent(
             source=None,
@@ -227,7 +237,7 @@ def data_config() -> LmDataConfig:
         )
         for name, cache in REGION_CACHES.items()
     }
-    return LmDataConfig(
+    return TrainOnlyLmDataConfig(
         tokenizer=TOKENIZER_PATH,
         components=components,
         train_weights={name: 0.2 for name in components},
@@ -325,7 +335,7 @@ def build_training(mode: Literal["smoke", "production"]) -> ArtifactStep[Levante
         added_steps = SMOKE_ADDED_STEPS
         target_step = SMOKE_TARGET_STEP
         export_steps = SMOKE_HF_EXPORT_STEPS
-        run_id = "dna-exp535-4b-uniform-five-region-smoke"
+        run_id = "dna-exp535-4b-uniform-five-region-smoke-v5p8"
         name = f"checkpoints/{run_id}"
         version = SMOKE_VERSION
         keep: list[dict] = []
