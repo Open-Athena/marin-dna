@@ -37,7 +37,7 @@ environments = [
 packages = ["src/marin_dna"]
 
 [tool.mypy]
-files = "src/marin_dna"
+files = ["src/marin_dna", "infra"]
 ignore_missing_imports = true
 strict_optional = false
 

@@ -31,17 +31,17 @@ Run a lightweight, repeatable scan before choosing work:
 4. Search `AGENTS.md`, `.agents/skills/`, `docs/`, and workflow READMEs for stale workflow guidance related to those clusters.
 5. De-duplicate against existing issues/PRs before creating new artifacts.
 
-When possible, prefer improvements that remove recurring operator time (for example,
-turning ad-hoc scrub judgment into explicit repeatable guidance).
+When possible, prefer improvements that remove recurring operator time (for example, turning ad-hoc scrub judgment into explicit repeatable guidance).
 
 ## Decision Heuristics
 
 - Pick the highest-leverage change with the lowest coordination overhead.
 - Treat open scrub-generated issues/PRs as first-class prior art during triage; if one already covers the candidate improvement, avoid opening a second artifact unless the new scope is clearly distinct.
 - De-duplicate against existing issues/PRs before opening new work.
-- When an improvement changes recurring workflow guidance, codify it in durable repo instructions:
-  `AGENTS.md` for cross-cutting agent behavior, or `.agents/skills/` for repeatable task workflows.
-  Follow the skill conventions in `AGENTS.md`; route changes to vendored skills through `maintain-vendored-skills` instead of editing them directly.
+- When an improvement changes recurring workflow guidance, codify it in durable repo instructions: `AGENTS.md` for cross-cutting agent behavior, or `.agents/skills/` for repeatable task workflows.
+  Follow the skill conventions in `AGENTS.md`.
+- Do not edit a vendored skill (one listed under `unchanged` or `adapted` in a vendor manifest).
+  Record the needed correction with `file-issue` for the next vendor refresh instead.
 - If no justified improvement exists now, choose a no-op outcome.
 - Prefer direct implementation over opening new issues when the change is fully in-repo and low-risk.
 
@@ -49,7 +49,8 @@ turning ad-hoc scrub judgment into explicit repeatable guidance).
 
 - Keep rationale explicit: observed gap, change made (or plan), and expected impact.
 - Prefer durable artifacts over transient notes: land guidance updates in `AGENTS.md`, skills, or workflow READMEs when that is the primary improvement.
-- Treat local-only edits as incomplete work. If you modify files, publish the result (commit, push, and open or update a draft pull request following the delivery steps in `AGENTS.md`) before finishing this scrub run.
+- Treat local-only edits as incomplete work.
+  If you modify files, publish the result (commit, push, and open or update a draft pull request following the delivery steps in `AGENTS.md`) before finishing this scrub run.
 - If publish is blocked (auth, permissions, CI infra, etc.), report the blocker and when the next attempt should happen instead of ending silently.
 - If you choose no-op, include explicit inspected signals and why no justified improvement exists now.
 - End the run with a short status: the PR link or plan, or the no-op rationale, plus any blocker and its retry time.

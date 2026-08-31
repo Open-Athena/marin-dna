@@ -32,13 +32,16 @@ Before non-trivial work, check for a matching skill and follow it.
   A skill points at those sources instead of restating them, and names the skills it composes with rather than copying their content.
 - Treat the frontmatter `description` as the routing contract: one line stating what the skill does and when to select it.
   Direct-task skills say when to use them; skills a task must not pull in on its own say `only when explicitly requested`; scheduled scrubs say `only from its scheduler or an explicit request`; skills that other skills invoke say `delegated by another selected workflow`.
-- Give a scheduled skill `schedule_cron` (five-field cron) and `schedule_tz` (IANA zone) together.
+- Declare `schedule_cron` (five-field cron) and `schedule_tz` (IANA zone) together on a skill whose cadence this repository defines.
+  The fields document intent; the scheduler itself runs outside the repository.
 - Keep a skill's entry point compact.
   Put detail it needs only sometimes in `references/` files it loads on demand, and put runnable helpers in `scripts/` gated by the root pytest suite.
-- `uv run --locked python infra/check_skill_metadata.py` validates every skill: YAML frontmatter, `name` equal to the directory and unique, a single-line description, paired schedule fields, and every backticked or linked repository path.
-  Pre-commit runs it on any change under `.agents/skills/` and the Quality workflow runs it on every push and pull request, so a rename fails lint until every referring skill is updated.
+- `uv run --locked python infra/check_skill_metadata.py` validates every skill: YAML frontmatter, `name` equal to the directory and unique, a single-line description, paired schedule fields, a string `allowed-tools`, every repository path in code spans, fenced blocks, or relative links, and drift traps for retired paths and skill names.
+  Pre-commit runs it on every commit and the Quality workflow on every pull request, so a moved path fails lint until every skill linking it is updated.
+  Bare skill-name mentions are not path-checked: when renaming or retiring a skill, add its old name to `DRIFT_TRAPS` in the checker and grep for remaining mentions.
 - Do not edit vendored skills directly; follow `maintain-vendored-skills`.
-- `scrub-reflection-self-improvement` and `scrub-docs-code-parity` hunt for stale guidance on their schedules, and `update-docs` covers skill docs whenever work changes behavior.
+  When a local path an adapted vendored skill links to moves, update that link and record the deviation in the manifest in the same change.
+- `scrub-reflection-self-improvement` and `scrub-docs-code-parity` hunt for stale guidance on their declared schedules, and `update-docs` covers skill docs whenever work changes behavior.
 
 ## Development Setup
 

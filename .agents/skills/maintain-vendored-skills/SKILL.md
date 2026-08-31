@@ -12,6 +12,7 @@ Load the source-specific manifest under `references/` only when comparing or upd
 
 - Treat every skill listed under `unchanged` or `adapted` in a vendor manifest as vendor-owned. Do not edit those skill directories in ordinary feature, documentation, or repository-guidance work.
 - Change vendored content only in a dedicated vendor-maintenance task that explicitly owns the upstream comparison and provenance update.
+  One exception: when a repository path that an adapted skill links to moves, update that link and record the deviation in the manifest in the same change so the skill validator stays green.
 - Put MarinDNA-specific behavior in a local skill that composes with the vendored skill. The local skill may route to the vendor, add repository-specific constraints, or coordinate it with other skills.
 - Register composing skills under `local` in the manifest. If composition cannot express a required change, report the limitation and propose a vendor adaptation instead of modifying the vendor implicitly.
 
