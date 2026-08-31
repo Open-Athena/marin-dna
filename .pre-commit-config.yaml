@@ -42,3 +42,15 @@ repos:
         language: system
         pass_filenames: false
         files: ^src/marin_dna/.*\.py$
+
+      # Validates every .agents/skills/*/SKILL.md (frontmatter, unique names,
+      # schedule fields, path cross-references, drift traps) whenever anything
+      # under .agents/skills/ changes. `pass_filenames: false` because one
+      # skill's links can break when another skill's file moves or a skill is
+      # renamed; the script docstring lists the rules.
+      - id: check-skill-metadata
+        name: check skill metadata
+        entry: uv run --locked python infra/check_skill_metadata.py
+        language: system
+        pass_filenames: false
+        files: ^\.agents/skills/

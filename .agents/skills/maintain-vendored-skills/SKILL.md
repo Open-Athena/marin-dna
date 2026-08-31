@@ -1,6 +1,6 @@
 ---
 name: maintain-vendored-skills
-description: Compare, refresh, and audit externally derived skills in MarinDNA. Use when checking a pinned source commit, showing exact upstream-to-local modifications, performing the monthly upstream review, updating vendored skills, or triaging newly available upstream skills.
+description: Compare, refresh, and audit externally derived skills in MarinDNA only when explicitly requested or from the monthly upstream review. Use for checking a pinned source commit, showing exact upstream-to-local modifications, updating vendored skills, or triaging newly available upstream skills; do not select it during ordinary feature or documentation work.
 ---
 
 # Maintain Vendored Skills
@@ -45,7 +45,7 @@ Load the source-specific manifest under `references/` only when comparing or upd
 3. Replace unchanged vendors content-for-content while preserving regular-file, symlink, and executable modes.
 4. Start each adapted vendor from the new upstream file, then reapply only the deviations in the manifest.
 5. Run the comparison script against the new upstream checkout and inspect every adapted diff.
-6. Validate every changed skill with the standard skill validator.
+6. Validate every changed skill with `uv run --locked python infra/check_skill_metadata.py`.
 7. Update the manifest commit and `vendored_on` date.
 8. Open a draft PR only when content or recorded provenance changed.
 

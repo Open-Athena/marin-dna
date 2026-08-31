@@ -45,6 +45,22 @@
       "deviations": [
         "Route accepted research findings and their provenance through maintain-knowledge-base instead of generic experiment reports."
       ]
+    },
+    {
+      "name": "scrub-reflection-self-improvement",
+      "deviations": [
+        "Target Open-Athena/marin-dna and search AGENTS.md, .agents/skills/, docs/, and workflow READMEs for stale guidance.",
+        "Publish through the delivery steps in AGENTS.md instead of the unavailable commit skill, and route vendored-skill changes through maintain-vendored-skills.",
+        "Use the upstream #8494 routing-contract description, a standard five-field cron expression, and a prose status line instead of the HARNESS_SCRUB_LOOP footer."
+      ]
+    },
+    {
+      "name": "scrub-docs-code-parity",
+      "deviations": [
+        "Target Open-Athena/marin-dna: README.md, docs/, workflow READMEs, AGENTS.md, .agents/skills/, skill scripts, and the skill validator.",
+        "Publish through the delivery steps in AGENTS.md instead of the unavailable commit skill, and route vendored-skill corrections through maintain-vendored-skills.",
+        "Use the upstream #8494 routing-contract description, a standard five-field cron expression, and a prose status line instead of the HARNESS_SCRUB_LOOP footer."
+      ]
     }
   ],
   "local": [

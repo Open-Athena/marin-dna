@@ -23,6 +23,23 @@ MarinDNA develops genomic language models. Prioritize reproducibility and correc
   Keep chronological experiment records in tracking issues and branches, and keep accepted interpretations in `docs/research/`.
 - In Markdown prose, put each sentence on its own source line and do not hard-wrap at a fixed column.
 
+## Skills
+
+Skills are task playbooks in `.agents/skills/<name>/SKILL.md`, also reachable as `.claude/skills/`.
+Before non-trivial work, check for a matching skill and follow it.
+
+- Keep repository-wide rules only in this file, prose rules only in `writing-style`, and commit, pull-request, review, and monitoring steps only in Repository Lifecycle below.
+  A skill points at those sources instead of restating them, and names the skills it composes with rather than copying their content.
+- Treat the frontmatter `description` as the routing contract: one line stating what the skill does and when to select it.
+  Direct-task skills say when to use them; skills a task must not pull in on its own say `only when explicitly requested`; scheduled scrubs say `only from its scheduler or an explicit request`; skills that other skills invoke say `delegated by another selected workflow`.
+- Give a scheduled skill `schedule_cron` (five-field cron) and `schedule_tz` (IANA zone) together.
+- Keep a skill's entry point compact.
+  Put detail it needs only sometimes in `references/` files it loads on demand, and put runnable helpers in `scripts/` gated by the root pytest suite.
+- `uv run --locked python infra/check_skill_metadata.py` validates every skill: YAML frontmatter, `name` equal to the directory and unique, a single-line description, paired schedule fields, and every backticked or linked repository path.
+  Pre-commit runs it on any change under `.agents/skills/` and the Quality workflow runs it on every push and pull request, so a rename fails lint until every referring skill is updated.
+- Do not edit vendored skills directly; follow `maintain-vendored-skills`.
+- `scrub-reflection-self-improvement` and `scrub-docs-code-parity` hunt for stale guidance on their schedules, and `update-docs` covers skill docs whenever work changes behavior.
+
 ## Development Setup
 
 Use `uv` for Python dependencies. Set up and test the lightweight root project with:
