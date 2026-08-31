@@ -66,9 +66,11 @@ URL_SCHEME_PATTERN = re.compile(r"^[a-zA-Z][a-zA-Z0-9+.-]*:")
 DRIFT_TRAPS: tuple[tuple[re.Pattern[str], str], ...] = (
     (
         re.compile(r"src/marin_dna/pipelines/"),
-        "src/marin_dna/pipelines/ no longer exists; pipeline packages live under "
-        "snakemake/<pipeline>/src/ since pipelines became independently locked "
-        "projects",
+        (
+            "src/marin_dna/pipelines/ no longer exists; pipeline packages live under "
+            "snakemake/<pipeline>/src/ since pipelines became independently locked "
+            "projects"
+        ),
     ),
     (
         re.compile(r"\bagent-research\b"),
@@ -76,13 +78,17 @@ DRIFT_TRAPS: tuple[tuple[re.Pattern[str], str], ...] = (
     ),
     (
         re.compile(r"\bgh-upload-asset\b"),
-        "the gh-upload-asset skill was retired (#466); commit artifacts under "
-        ".agents/artifacts/<topic>/ on the permanent branch instead",
+        (
+            "the gh-upload-asset skill was retired (#466); commit artifacts under "
+            ".agents/artifacts/<topic>/ on the permanent branch instead"
+        ),
     ),
     (
         re.compile(r"\bmaintain-research-question\b"),
-        "the maintain-research-question skill was replaced by "
-        "maintain-knowledge-base (#476)",
+        (
+            "the maintain-research-question skill was replaced by "
+            "maintain-knowledge-base (#476)"
+        ),
     ),
 )
 
