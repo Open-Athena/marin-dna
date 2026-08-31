@@ -1,15 +1,19 @@
 from __future__ import annotations
 
 import math
+from types import SimpleNamespace
 
 import cloudpickle
+import draccus
 import pytest
+from levanter.adaptor import AdaptorExportConfig
 from marin.execution.lazy import StepContext
 
 from exp535_4b_uniform_five_region.experiment import (
     ADAM_LEARNING_RATE,
     COOLDOWN_START_STEP,
     DATA_SEED,
+    ExactHfExportConfig,
     GLOBAL_BATCH_SIZE,
     LEARNING_RATE,
     PARENT_CHECKPOINT,
@@ -17,9 +21,11 @@ from exp535_4b_uniform_five_region.experiment import (
     PER_DEVICE_PARALLELISM,
     PRODUCTION_ADDED_STEPS,
     PRODUCTION_HF_EXPORT_STEPS,
+    PRODUCTION_STOP_STEP,
     PRODUCTION_TARGET_STEP,
     REGION_CACHES,
     SMOKE_HF_EXPORT_STEPS,
+    SMOKE_STOP_STEP,
     SMOKE_TARGET_STEP,
     TPU_REGION,
     TPU_VARIANT,
@@ -54,7 +60,9 @@ def test_production_is_full_state_resume_with_uniform_cached_data(monkeypatch) -
     train = pod.train_config
     assert train.trainer.initialize_from == PARENT_CHECKPOINT
     assert train.initialize_from_checkpoint_path is None
-    assert train.trainer.num_train_steps == PRODUCTION_TARGET_STEP == PARENT_STEP + 160_000
+    assert PRODUCTION_TARGET_STEP == PARENT_STEP + 160_000
+    assert train.trainer.num_train_steps == PRODUCTION_STOP_STEP
+    assert PRODUCTION_STOP_STEP == PRODUCTION_TARGET_STEP + 1
     assert train.trainer.train_batch_size == GLOBAL_BATCH_SIZE == 1_536
     assert train.trainer.per_device_parallelism == PER_DEVICE_PARALLELISM == 192
     assert train.data_seed == DATA_SEED == 535
@@ -97,9 +105,12 @@ def test_smoke_has_separate_identity_and_twenty_updates(monkeypatch) -> None:
     production, _ = _pod(monkeypatch, "production")
     smoke, pod = _pod(monkeypatch, "smoke")
     assert smoke.name != production.name
-    assert smoke.name == "checkpoints/dna-exp535-4b-uniform-five-region-smoke-v5p8"
-    assert pod.train_config.trainer.id == "dna-exp535-4b-uniform-five-region-smoke-v5p8"
-    assert pod.train_config.trainer.num_train_steps == SMOKE_TARGET_STEP == PARENT_STEP + 20
+    assert smoke.name == "checkpoints/dna-exp535-4b-uniform-five-region-smoke-v5p8-v2"
+    assert pod.train_config.trainer.id == "dna-exp535-4b-uniform-five-region-smoke-v5p8-v2"
+    assert SMOKE_TARGET_STEP == PARENT_STEP + 20
+    assert pod.train_config.trainer.num_train_steps == SMOKE_STOP_STEP
+    assert SMOKE_STOP_STEP == SMOKE_TARGET_STEP + 1
+    assert SMOKE_STOP_STEP - (PARENT_STEP + 1) == 20
     assert pod.train_config.adapter.steps == SMOKE_HF_EXPORT_STEPS == (SMOKE_TARGET_STEP,)
     assert pod.train_config.trainer.checkpointer.keep == []
 
@@ -109,6 +120,57 @@ def test_train_only_data_config_survives_remote_serialization(monkeypatch) -> No
     restored = cloudpickle.loads(cloudpickle.dumps(pod))
     assert isinstance(restored.train_config.data, TrainOnlyLmDataConfig)
     assert restored.train_config.data.tagged_eval_sets(object()) == []
+    assert type(restored.train_config.adapter).__module__ == "exp535_4b_uniform_five_region.exports"
+    assert draccus.encode(restored.train_config)["adapter"] == {
+        "type": "exact-hf",
+        "steps": [SMOKE_TARGET_STEP],
+    }
+
+
+def test_exact_hf_export_fires_once_at_completed_target(monkeypatch) -> None:
+    from exp535_4b_uniform_five_region import exports
+
+    exported: list[int] = []
+    installed: dict[str, object] = {}
+
+    def fake_callback(*args, **kwargs):
+        del args, kwargs
+
+        def record(info) -> None:
+            exported.append(info.step)
+
+        return record
+
+    class FakeTrainer:
+        config = SimpleNamespace(
+            checkpointer=SimpleNamespace(append_run_id_to_base_path=False)
+        )
+        run_id = "test-run"
+
+        def add_hook(self, hook, *, every: int) -> None:
+            installed["hook"] = hook
+            installed["every"] = every
+
+    monkeypatch.setattr(exports, "save_hf_checkpoint_callback", fake_callback)
+    config = ExactHfExportConfig(steps=(SMOKE_TARGET_STEP,))
+    config.install_export_hooks(
+        trainer=FakeTrainer(),
+        converter=object(),  # type: ignore[arg-type]
+        tokenizer=object(),
+        export=AdaptorExportConfig(hf_save_path="gs://example/hf"),
+    )
+    hook = installed["hook"]
+    assert callable(hook)
+    assert installed["every"] == 1
+    candidate_steps = (
+        SMOKE_TARGET_STEP - 1,
+        SMOKE_TARGET_STEP,
+        SMOKE_TARGET_STEP,
+        SMOKE_TARGET_STEP + 1,
+    )
+    for step in candidate_steps:
+        hook(SimpleNamespace(step=step))
+    assert exported == [SMOKE_TARGET_STEP]
 
 
 def test_tpu_submission_requires_preemptible_capacity() -> None:
@@ -137,7 +199,7 @@ def test_second_wsd_cycle_has_requested_boundaries() -> None:
     assert optimizer.cycle_length == [PARENT_STEP, PRODUCTION_ADDED_STEPS]
     assert optimizer.rewarmup == 16_000
     assert optimizer.decay == 32_000
-    schedule = optimizer.lr_scheduler(PRODUCTION_TARGET_STEP)
+    schedule = optimizer.lr_scheduler(PRODUCTION_STOP_STEP)
     assert math.isclose(float(schedule(PARENT_STEP)), 0.0, abs_tol=1e-12)
     assert math.isclose(float(schedule(PARENT_STEP + 16_000)), LEARNING_RATE, rel_tol=1e-6)
     assert math.isclose(float(schedule(COOLDOWN_START_STEP)), LEARNING_RATE, rel_tol=1e-6)

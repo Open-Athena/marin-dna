@@ -16,9 +16,7 @@ import jmp
 from fray.types import ResourceConfig
 from haliax import Axis
 from haliax.partitioning import ResourceAxis
-from levanter.adaptor import AdaptorConfig, AdaptorExportConfig, NoAdaptorConfig
 from levanter.checkpoint import CheckpointerConfig
-from levanter.compat.hf_checkpoints import HFCheckpointConverter, save_hf_checkpoint_callback
 from levanter.data.text.datasets import DatasetComponent, LmDataConfig
 from levanter.layers.rotary import Llama3RotaryEmbeddingsConfig
 from levanter.main.train_lm import TrainLmConfig
@@ -31,8 +29,8 @@ from marin.execution.lazy import ArtifactStep, StepContext
 from marin.execution.remote import remote
 from marin.experiment.cli import build_options
 from marin.training.training import LevanterCheckpoint, TrainLmOnPodConfig, run_levanter_train_lm
-from rigging.filesystem.storage_path import prefix_join
 
+from exp535_4b_uniform_five_region.exports import ExactHfExportConfig
 from exp535_4b_uniform_five_region.formats import DNALmDatasetFormat
 
 MARIN_COMMIT = "53b5b33041f742c7f4991223b0085e41ece4c458"
@@ -62,6 +60,10 @@ PRODUCTION_ADDED_STEPS = 160_000
 SMOKE_ADDED_STEPS = 20
 PRODUCTION_TARGET_STEP = PARENT_STEP + PRODUCTION_ADDED_STEPS
 SMOKE_TARGET_STEP = PARENT_STEP + SMOKE_ADDED_STEPS
+# TrainerState.step names the next step, while callbacks and checkpoint paths use
+# the zero-based step that just completed.  The stop is therefore exclusive.
+PRODUCTION_STOP_STEP = PRODUCTION_TARGET_STEP + 1
+SMOKE_STOP_STEP = SMOKE_TARGET_STEP + 1
 REWARMUP_STEPS = 16_000
 COOLDOWN_STEPS = 32_000
 COOLDOWN_START_STEP = PARENT_STEP + PRODUCTION_ADDED_STEPS - COOLDOWN_STEPS
@@ -84,8 +86,8 @@ TPU_REGION = "us-east5"
 TPU_ZONE = "us-east5-a"
 WANDB_PROJECT = "marin"
 WANDB_GROUP = "dna-exp535"
-VERSION = "2026.08.30"
-SMOKE_VERSION = "2026.08.30"
+VERSION = "2026.08.31"
+SMOKE_VERSION = "2026.08.31"
 
 
 @dataclass(frozen=True)
@@ -161,48 +163,6 @@ MODEL = LlamaConfig(
     reference_checkpoint="NousResearch/Llama-2-7b-hf",
     tokenizer=TOKENIZER_PATH,
 )
-
-
-@AdaptorConfig.register_subclass("exact-hf")
-@dataclass(frozen=True)
-class ExactHfExportConfig(NoAdaptorConfig):
-    """Export HF checkpoints at exact absolute steps after a nonzero-step resume."""
-
-    steps: tuple[int, ...] = ()
-
-    def install_export_hooks(
-        self,
-        *,
-        trainer,
-        converter: HFCheckpointConverter | None,
-        tokenizer,
-        export: AdaptorExportConfig,
-    ) -> None:
-        del tokenizer
-        if export.hf_save_path is None:
-            raise ValueError("exact HF exports require hf_save_path")
-        if converter is None:
-            raise ValueError("exact HF exports require an HF-compatible model")
-        base_path = export.hf_save_path
-        if trainer.config.checkpointer.append_run_id_to_base_path:
-            base_path = prefix_join(base_path, trainer.run_id)
-        callback = save_hf_checkpoint_callback(
-            base_path,
-            converter,
-            upload_to_hf=False,
-            save_dtype=None,
-            generation_config=export.generation_config,
-        )
-        targets = frozenset(self.steps)
-        saved: set[int] = set()
-
-        def save_exact_step(info) -> None:
-            step = int(info.step)
-            if step in targets and step not in saved:
-                callback(info)
-                saved.add(step)
-
-        trainer.add_hook(save_exact_step, every=1)
 
 
 def required_env(name: str) -> str:
@@ -334,14 +294,16 @@ def build_training(mode: Literal["smoke", "production"]) -> ArtifactStep[Levante
     if mode == "smoke":
         added_steps = SMOKE_ADDED_STEPS
         target_step = SMOKE_TARGET_STEP
+        stop_step = SMOKE_STOP_STEP
         export_steps = SMOKE_HF_EXPORT_STEPS
-        run_id = "dna-exp535-4b-uniform-five-region-smoke-v5p8"
+        run_id = "dna-exp535-4b-uniform-five-region-smoke-v5p8-v2"
         name = f"checkpoints/{run_id}"
         version = SMOKE_VERSION
         keep: list[dict] = []
     else:
         added_steps = PRODUCTION_ADDED_STEPS
         target_step = PRODUCTION_TARGET_STEP
+        stop_step = PRODUCTION_STOP_STEP
         export_steps = PRODUCTION_HF_EXPORT_STEPS
         run_id = "dna-exp535-4b-uniform-five-region"
         name = f"checkpoints/{run_id}"
@@ -358,6 +320,7 @@ def build_training(mode: Literal["smoke", "production"]) -> ArtifactStep[Levante
         f"mode={mode}",
         f"parent_step={PARENT_STEP}",
         f"added_steps={added_steps}",
+        f"final_completed_step={target_step}",
         f"data_seed={DATA_SEED}",
         f"accelerator={TPU_VARIANT}",
         f"marin_commit={MARIN_COMMIT}",
@@ -384,8 +347,8 @@ def build_training(mode: Literal["smoke", "production"]) -> ArtifactStep[Levante
                 train_batch_size=GLOBAL_BATCH_SIZE,
                 per_device_parallelism=PER_DEVICE_PARALLELISM,
                 per_device_eval_parallelism=PER_DEVICE_PARALLELISM,
-                num_train_steps=target_step,
-                steps_per_eval=target_step,
+                num_train_steps=stop_step,
+                steps_per_eval=stop_step,
                 checkpointer=CheckpointerConfig(
                     save_interval=timedelta(minutes=10),
                     keep=keep,
