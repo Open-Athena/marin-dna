@@ -6,7 +6,7 @@ Tracking issue: https://github.com/Open-Athena/marin-dna/issues/535
 
 The user authorized one preemptible `v5p-8` slice in `us-east5-a`, first for a 20-step operational smoke and then for the 160,000-step production continuation if the smoke verifies restore and artifact writing.
 The run stays at batch priority, retains GCS, has no online validation suite, and does not fall back to another accelerator family.
-The replacement smoke is queued for its TPU host after the coordinator successfully acquired the new artifact lock.
+The corrected replacement smoke is queued for its TPU host after the coordinator successfully acquired the v2 artifact lock.
 
 ## Prior-work brief
 
@@ -68,14 +68,24 @@ The vendored character tokenizer is pinned to source revision `a73e9d9ee636f722b
 - 2026-08-30: Passed all seven locked project tests, including cloudpickle round-trip coverage of the train-only data override, and passed the non-launching artifact-graph preflight.
 - 2026-08-30: Dispatched replacement smoke `/gonzalo/exp535-4b-five-region-smoke-v5p8-v1` at 19:42 UTC.
 - 2026-08-30: The coordinator acquired the artifact lock and submitted hard-preemptible child `_run_on_tpu-b2081357`; the child is pending because the scheduler has 56 of the required 104 TPU-host CPU cores available.
+- 2026-08-30: The v1 `v5p-8` worker later allocated and succeeded with zero failures and zero preemptions, restoring the parent state, disabling evaluation, and training with finite loss.
+- 2026-08-30: Artifact verification found 19 completed steps, `215574` through `215592`, native checkpoint `step-215592`, and no `hf/` output because the exact `215593` export hook was never reached.
+- 2026-08-31: Confirmed from Levanter source and logs that `TrainerState.step` names the next step while `StepInfo.step` and checkpoint paths name the completed zero-based step.
+- 2026-08-31: Changed the exclusive trainer stops to `215594` for smoke and `375574` for production while retaining final completed labels `215593` and `375573` and the existing WSD values at every used step.
+- 2026-08-31: Moved the exact HF adapter into an importable module so remote Draccus serialization does not identify it as `__main__.ExactHfExportConfig`.
+- 2026-08-31: Snapshot `8bb00568` passed eight locked tests and the `python -m` graph preflight with fingerprint `87362ae9`.
+- 2026-08-31: Canceled mistaken `/exedev/exp535-4b-five-region-smoke-v5p8-v2` before TPU allocation and canceled `/gonzalo/exp535-4b-five-region-smoke-v5p8-v2` after it failed before graph construction because `MARIN_PREFIX` was not forwarded.
+- 2026-08-31: Submitted corrected coordinator `/gonzalo/exp535-4b-five-region-smoke-v5p8-v2-r1` with explicit non-secret `MARIN_PREFIX`; child `_run_on_tpu-f1a58b18` is pending because zero of four requested v5p chips are available.
 
 ## Launch record
 
-Current smoke dashboard: https://iris.oa.dev/#/job/%2Fgonzalo%2Fexp535-4b-five-region-smoke-v5p8-v1
+Current smoke dashboard: https://iris.oa.dev/#/job/%2Fgonzalo%2Fexp535-4b-five-region-smoke-v5p8-v2-r1
+
+Completed 19-step smoke dashboard: https://iris.oa.dev/#/job/%2Fgonzalo%2Fexp535-4b-five-region-smoke-v5p8-v1
 
 Failed `v5p-16` smoke dashboard: https://iris.oa.dev/#/job/%2Fgonzalo%2Fexp535-4b-five-region-smoke-v4
 
-The exact `v5p-8` smoke request is queued for TPU capacity with zero failures and zero preemptions.
+The corrected `v5p-8` smoke request is queued for TPU capacity with zero failures and zero preemptions.
 Production remains undispatched until the operational smoke verifies restoration, progress, native checkpointing, and the final HF export.
 
 ## Entry log
@@ -98,3 +108,34 @@ The TPU child is pending with zero failures and zero preemptions because 56 of t
 Interpretation: Configuration and credential setup have cleared the coordinator path, while real `v5p-8` capacity is the current constraint.
 
 Next action: Keep the smoke queued and verify native restore, absence of validation construction, compilation, 20 optimizer steps, the final native checkpoint, and the HF export before dispatching production.
+
+### 2026-08-31 13:23 UTC - Exclusive-stop correction and v2 smoke
+
+Hypothesis: Setting `num_train_steps` one past the intended completed-step label will execute all 20 continuation updates and allow both final native and exact HF hooks to observe step 215593.
+
+Evidence: The v1 worker logged `Resuming training from step 215574` from parent checkpoint `step-215573`.
+Levanter defines `TrainerState.step` as the next step and `StepInfo.step` as `TrainerState.step - 1`.
+The v1 configuration stopped at `num_train_steps=215593`, so it completed labels 215574 through 215592 and never invoked the 215593 export target.
+
+Observed v1 result: Iris coordinator and worker succeeded with zero failures and zero preemptions.
+W&B contains 19 unique global steps, finite losses from 1.358 to 1.449, final loss 1.376, approximately 48,711 tokens per second, and median MFU 64.7%.
+GCS contains native checkpoint `step-215592` and no `hf/` directory.
+
+Correction: Keep final completed labels and WSD cycle boundaries unchanged, but set exclusive trainer stops to 215594 for smoke and 375574 for production.
+The learning-rate schedule with stop 375574 matches the prior schedule at the parent boundary, rewarmup end, cooldown start, penultimate step, and final completed step.
+Move `ExactHfExportConfig` from the `python -m` entry module to `exp535_4b_uniform_five_region.exports` so cloudpickle and Draccus use a stable importable class identity on the worker.
+
+Code snapshot: `8bb00568fc3388e735224a3f86b1005062a4a99c`.
+
+Validation: `UV_CACHE_DIR=/tmp/exp535-uv-cache uv run --locked pytest -q` passed eight tests.
+The regression coverage asserts the 20-update arithmetic, exact final hook de-duplication, remote cloudpickle round-trip, Draccus adapter encoding, train-only evaluation behavior, and hard-preemptible v5p-8 placement.
+The non-launching `python -m` graph preflight resolved artifact `checkpoints/dna-exp535-4b-uniform-five-region-smoke-v5p8-v2@2026.08.31` with fingerprint `87362ae9`, `num_train_steps=215594`, and export target 215593.
+
+Launch command: `iris --cluster marin job run --user gonzalo --job-name exp535-4b-five-region-smoke-v5p8-v2-r1 --cpu 1 --memory 3GB --region us-east5 --priority batch --no-preemptible --max-retries 3 --extra tpu -e MARIN_PREFIX gs://marin-us-east5 -- python -m exp535_4b_uniform_five_region.experiment --mode smoke --version 2026.08.31 --run`, with `WANDB_API_KEY` inherited as a secret from the submitting environment.
+
+Launch: `/gonzalo/exp535-4b-five-region-smoke-v5p8-v2-r1` created hard-preemptible child `/gonzalo/exp535-4b-five-region-smoke-v5p8-v2-r1/_run_on_tpu-f1a58b18`.
+
+Observed result: The coordinator holds the fresh artifact lock.
+The child is pending with zero failures and zero preemptions because the scheduler reports zero of four requested v5p chips available.
+
+Next action: Verify 20 W&B step rows through 215593, native checkpoint `step-215593`, an HF export under `hf/step-215593`, and clean configuration serialization before dispatching production.
