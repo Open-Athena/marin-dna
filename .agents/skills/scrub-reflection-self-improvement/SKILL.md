@@ -50,8 +50,8 @@ When possible, prefer improvements that remove recurring operator time (for exam
 - Keep rationale explicit: observed gap, change made (or plan), and expected impact.
 - Prefer durable artifacts over transient notes: land guidance updates in `AGENTS.md`, skills, or workflow READMEs when that is the primary improvement.
 - Treat local-only edits as incomplete work.
-  If you modify files, publish the result (commit, push, and open or update a draft pull request following the delivery steps in `AGENTS.md`) before finishing this scrub run.
-- If publish is blocked (auth, permissions, CI infra, etc.), report the blocker and when the next attempt should happen instead of ending silently.
+  If you modify files, publish the result through the Repository Lifecycle delivery steps in `AGENTS.md` before finishing this scrub run.
+- If publishing is blocked, report the blocker and when the next attempt should happen instead of ending silently.
 - If you choose no-op, include explicit inspected signals and why no justified improvement exists now.
 - End the run with a short status: the PR link or plan, or the no-op rationale, plus any blocker and its retry time.
 

@@ -29,7 +29,7 @@ Use this skill on scheduled scrub turns for docs/code parity in `Open-Athena/mar
 
 - Keep the final scrub response concise and action-focused.
 - Treat local-only edits as incomplete work.
-  If you modify files, publish the result (commit, push, and open or update a draft pull request following the delivery steps in `AGENTS.md`) before finishing this scrub run.
-- If publish is blocked (auth, permissions, CI infra, etc.), report the blocker and when the next attempt should happen instead of ending silently.
+  If you modify files, publish the result through the Repository Lifecycle delivery steps in `AGENTS.md` before finishing this scrub run.
+- If publishing is blocked, report the blocker and when the next attempt should happen instead of ending silently.
 - If no material drift is found, explicitly report inspected scope and why no change was needed.
 - End the run with a short status: the PR link, or the no-op rationale, plus any blocker and its retry time.

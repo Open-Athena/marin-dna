@@ -36,7 +36,7 @@ Before non-trivial work, check for a matching skill and follow it.
   The fields document intent; the scheduler itself runs outside the repository.
 - Keep a skill's entry point compact.
   Put detail it needs only sometimes in `references/` files it loads on demand, and put runnable helpers in `scripts/` gated by the root pytest suite.
-- `uv run --locked python infra/check_skill_metadata.py` validates every skill: YAML frontmatter, `name` equal to the directory and unique, a single-line description, paired schedule fields, a string `allowed-tools`, every repository path in code spans, fenced blocks, or relative links, and drift traps for retired paths and skill names.
+- `uv run --locked python infra/check_skill_metadata.py` validates every skill: YAML frontmatter, `name` equal to the directory and unique, a single-line description, paired schedule fields, a string `allowed-tools`, every repository path or well-known root file (`AGENTS.md`, `README.md`, `pyproject.toml`, …) in code spans, fenced blocks, or relative links, and drift traps for retired paths and skill names.
   Pre-commit runs it on every commit and the Quality workflow on every pull request, so a moved path fails lint until every skill linking it is updated.
   Bare skill-name mentions are not path-checked: when renaming or retiring a skill, add its old name to `DRIFT_TRAPS` in the checker and grep for remaining mentions.
 - Do not edit vendored skills directly; follow `maintain-vendored-skills`.

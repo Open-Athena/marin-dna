@@ -17,8 +17,9 @@ Per skill directory the check enforces:
   expression and an IANA time zone;
 - ``allowed-tools`` is a string;
 - every repository path in inline code, fenced code, or a relative Markdown
-  link resolves from the skill directory or the repository root, with exact
-  case and without escaping the repository;
+  link — and every well-known root file cited by bare name — resolves from the
+  skill directory or the repository root, with exact case and without escaping
+  the repository;
 - known drift traps: paths and skill names that moved or were retired.
 
 Skills a vendor manifest lists as ``unchanged`` are upstream content that
@@ -61,6 +62,21 @@ _PREFIX_ALTERNATION = "|".join(re.escape(prefix) for prefix in REPOSITORY_PATH_P
 # (so ``s3://bucket/docs/x`` and ``a/docs/x`` do not match) and running to the
 # next whitespace or quote.
 PATH_TOKEN_PATTERN = re.compile(rf"(?<![\w./-])((?:{_PREFIX_ALTERNATION})/[^\s`'\"|]*)")
+# Well-known files referenced by bare name; validated like paths so renaming
+# one fails lint in every skill that cites it. SKILL.md resolves to the citing
+# skill's own file, the rest to the repository root.
+ROOT_FILE_NAMES = (
+    "AGENTS.md",
+    "CLAUDE.md",
+    "README.md",
+    "SKILL.md",
+    "LICENSE",
+    "pyproject.toml",
+    "uv.lock",
+    ".pre-commit-config.yaml",
+)
+_ROOT_FILE_ALTERNATION = "|".join(re.escape(name) for name in ROOT_FILE_NAMES)
+ROOT_FILE_PATTERN = re.compile(rf"(?<![\w./-])({_ROOT_FILE_ALTERNATION})(?![\w-])")
 INLINE_CODE_PATTERN = re.compile(r"`([^`\n]+)`")
 FENCED_BLOCK_PATTERN = re.compile(
     r"^```[^\n]*\n(.*?)^```[ \t]*$", re.MULTILINE | re.DOTALL
@@ -73,15 +89,51 @@ URL_SCHEME_PATTERN = re.compile(r"^[a-zA-Z][a-zA-Z0-9+.-]*:")
 
 FRONTMATTER_KEY_PATTERN = re.compile(r"^[A-Za-z][A-Za-z0-9_-]*$")
 CRON_FIELD_COUNT = 5
-_CRON_NUMERIC_TOKEN = r"(?:\*|\d+(?:-\d+)?)(?:/\d+)?"
-_CRON_NAMED_TOKEN = r"(?:\*|[0-9A-Za-z]+(?:-[0-9A-Za-z]+)?)(?:/\d+)?"
-CRON_FIELD_PATTERNS = (
-    re.compile(rf"^{_CRON_NUMERIC_TOKEN}(?:,{_CRON_NUMERIC_TOKEN})*$"),  # minute
-    re.compile(rf"^{_CRON_NUMERIC_TOKEN}(?:,{_CRON_NUMERIC_TOKEN})*$"),  # hour
-    re.compile(rf"^{_CRON_NUMERIC_TOKEN}(?:,{_CRON_NUMERIC_TOKEN})*$"),  # day of month
-    re.compile(rf"^{_CRON_NAMED_TOKEN}(?:,{_CRON_NAMED_TOKEN})*$"),  # month
-    re.compile(rf"^{_CRON_NAMED_TOKEN}(?:,{_CRON_NAMED_TOKEN})*$"),  # day of week
+_CRON_MONTHS = (
+    "jan",
+    "feb",
+    "mar",
+    "apr",
+    "may",
+    "jun",
+    "jul",
+    "aug",
+    "sep",
+    "oct",
+    "nov",
+    "dec",
 )
+_CRON_DAYS = ("sun", "mon", "tue", "wed", "thu", "fri", "sat")
+# (low, high, names) per field: minute, hour, day of month, month, day of week.
+CRON_FIELD_SPECS: tuple[tuple[int, int, tuple[str, ...]], ...] = (
+    (0, 59, ()),
+    (0, 23, ()),
+    (1, 31, ()),
+    (1, 12, _CRON_MONTHS),
+    (0, 7, _CRON_DAYS),
+)
+
+
+def _cron_value_valid(value: str, low: int, high: int, names: tuple[str, ...]) -> bool:
+    if value.lower() in names:
+        return True
+    return value.isdigit() and low <= int(value) <= high
+
+
+def _cron_field_valid(field: str, low: int, high: int, names: tuple[str, ...]) -> bool:
+    for token in field.split(","):
+        value, slash, step = token.partition("/")
+        if slash and not (step.isdigit() and int(step) > 0):
+            return False
+        if value == "*":
+            continue
+        bounds = value.split("-")
+        if len(bounds) > 2:
+            return False
+        if not all(_cron_value_valid(bound, low, high, names) for bound in bounds):
+            return False
+    return True
+
 
 # Drift traps for mistakes this repository has already made once. Each entry
 # is (pattern, message); a match anywhere in the skill text is an error. When
@@ -157,6 +209,7 @@ def iter_path_references(text: str) -> list[str]:
     prose = INLINE_CODE_PATTERN.sub("", prose)
     for code in [*fenced_blocks, *inline_code]:
         references.extend(match.group(1) for match in PATH_TOKEN_PATTERN.finditer(code))
+        references.extend(match.group(1) for match in ROOT_FILE_PATTERN.finditer(code))
     for match in MARKDOWN_LINK_PATTERN.finditer(prose):
         target = match.group(1)
         if target.startswith("#") or URL_SCHEME_PATTERN.match(target):
@@ -240,8 +293,8 @@ def check_schedule(metadata: dict[str, object]) -> list[str]:
         else:
             fields = cron.split()
             valid = len(fields) == CRON_FIELD_COUNT and all(
-                pattern.match(field)
-                for pattern, field in zip(CRON_FIELD_PATTERNS, fields)
+                _cron_field_valid(field, low, high, names)
+                for field, (low, high, names) in zip(fields, CRON_FIELD_SPECS)
             )
             if not valid:
                 errors.append(

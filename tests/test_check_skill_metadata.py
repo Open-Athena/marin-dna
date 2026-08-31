@@ -172,15 +172,25 @@ def test_schedule_fields_are_validated(tmp_path: Path) -> None:
     scheduled("macro", '"@daily"', "America/New_York")
     scheduled("bad-zone", '"0 10 * * *"', "Mars/Olympus_Mons")
     scheduled("typed", "5", "[a]")
+    scheduled("range-dom", '"0 0 32 * *"', "America/New_York")
+    scheduled("range-dow", '"0 0 * * 8"', "America/New_York")
+    scheduled("range-minute", '"99 0 * * *"', "America/New_York")
+    scheduled("range-month", '"0 0 1 13 *"', "America/New_York")
+    scheduled("zero-step", '"*/0 0 * * *"', "America/New_York")
     scheduled("good", '"*/15 0-6,22 1,15 jan-jun mon-fri"', "America/New_York")
 
     assert messages(checker.check_skills(tmp_path)) == [
         "schedule_tz must be an IANA time zone, got 'Mars/Olympus_Mons'",
         "schedule_cron must be a 5-field cron expression, got 'a b c d e'",
         "schedule_cron must be a 5-field cron expression, got '@daily'",
+        "schedule_cron must be a 5-field cron expression, got '0 0 32 * *'",
+        "schedule_cron must be a 5-field cron expression, got '0 0 * * 8'",
+        "schedule_cron must be a 5-field cron expression, got '99 0 * * *'",
+        "schedule_cron must be a 5-field cron expression, got '0 0 1 13 *'",
         "schedule_cron must be a 5-field cron expression, got '0 10 2 * * *'",
         "schedule_cron must be a string, got int",
         "schedule_tz must be a string, got list",
+        "schedule_cron must be a 5-field cron expression, got '*/0 0 * * *'",
     ]
 
 
@@ -233,13 +243,16 @@ def test_missing_references_are_reported_once_each(tmp_path: Path) -> None:
         "Read `docs/missing.md` twice: `docs/missing.md:7`.\n"
         "Link [gone](references/gone.md) and [root](tests/nope.py).\n"
         "Anchored `.agents/skills/demo/SKILL.md#section` resolves.\n"
+        "Root files: follow `AGENTS.md`, then `pyproject.toml`.\n"
         "```bash\npython3 .agents/skills/demo/scripts/absent.py --flag\n```\n"
     )
     write_skill(tmp_path, "demo", body)
+    write_file(tmp_path, "AGENTS.md")
 
     assert messages(checker.check_skills(tmp_path)) == [
         "missing local reference: .agents/skills/demo/scripts/absent.py",
         "missing local reference: docs/missing.md",
+        "missing local reference: pyproject.toml",
         "missing local reference: references/gone.md",
         "missing local reference: tests/nope.py",
     ]
@@ -260,6 +273,15 @@ def test_placeholders_urls_anchors_and_code_span_links_are_skipped(
     write_file(tmp_path, "docs/present.md")
 
     assert checker.check_skills(tmp_path) == []
+
+
+def test_root_file_references_are_validated(tmp_path: Path) -> None:
+    write_skill(tmp_path, "demo", "Follow `AGENTS.md`; see `SKILL.md` and `README.md`.")
+    write_file(tmp_path, "AGENTS.md")
+
+    assert messages(checker.check_skills(tmp_path)) == [
+        "missing local reference: README.md"
+    ]
 
 
 def test_references_must_stay_inside_the_repository(tmp_path: Path) -> None:
