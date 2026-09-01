@@ -74,12 +74,13 @@ ROOT_FILE_NAMES = (
     "pyproject.toml",
     "uv.lock",
     ".pre-commit-config.yaml",
+    ".python-version",
 )
 _ROOT_FILE_ALTERNATION = "|".join(re.escape(name) for name in ROOT_FILE_NAMES)
 ROOT_FILE_PATTERN = re.compile(rf"(?<![\w./-])({_ROOT_FILE_ALTERNATION})(?![\w-])")
 INLINE_CODE_PATTERN = re.compile(r"`([^`\n]+)`")
 FENCED_BLOCK_PATTERN = re.compile(
-    r"^```[^\n]*\n(.*?)^```[ \t]*$", re.MULTILINE | re.DOTALL
+    r"^ {0,3}```[^\n]*\n(.*?)^ {0,3}```[ \t]*$", re.MULTILINE | re.DOTALL
 )
 MARKDOWN_LINK_PATTERN = re.compile(r"\]\(([^)\s]+)(?:\s+\"[^\"]*\")?\)")
 LINE_SUFFIX_PATTERN = re.compile(r":\d+(?:-\d+)?$")

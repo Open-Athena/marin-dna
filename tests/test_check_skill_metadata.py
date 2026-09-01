@@ -276,12 +276,34 @@ def test_placeholders_urls_anchors_and_code_span_links_are_skipped(
 
 
 def test_root_file_references_are_validated(tmp_path: Path) -> None:
-    write_skill(tmp_path, "demo", "Follow `AGENTS.md`; see `SKILL.md` and `README.md`.")
+    write_skill(
+        tmp_path,
+        "demo",
+        "Follow `AGENTS.md`; see `SKILL.md`, `README.md`, and `.python-version`.",
+    )
     write_file(tmp_path, "AGENTS.md")
 
     assert messages(checker.check_skills(tmp_path)) == [
-        "missing local reference: README.md"
+        "missing local reference: README.md",
+        "missing local reference: .python-version",
     ]
+
+
+def test_indented_fences_are_scanned(tmp_path: Path) -> None:
+    body = (
+        "1. Run:\n\n"
+        "   ```bash\n"
+        "   python3 .agents/skills/demo/scripts/tool.py --repo-root .\n"
+        "   ```\n"
+    )
+    write_skill(tmp_path, "demo", body)
+
+    assert messages(checker.check_skills(tmp_path)) == [
+        "missing local reference: .agents/skills/demo/scripts/tool.py"
+    ]
+
+    write_file(tmp_path, ".agents/skills/demo/scripts/tool.py")
+    assert checker.check_skills(tmp_path) == []
 
 
 def test_references_must_stay_inside_the_repository(tmp_path: Path) -> None:
