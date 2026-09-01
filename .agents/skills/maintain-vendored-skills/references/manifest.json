@@ -45,6 +45,29 @@
       "deviations": [
         "Route accepted research findings and their provenance through maintain-knowledge-base instead of generic experiment reports."
       ]
+    },
+    {
+      "name": "scrub-reflection-self-improvement",
+      "deviations": [
+        "Target Open-Athena/marin-dna; search AGENTS.md, .agents/skills/, docs/, and workflow READMEs for stale guidance.",
+        "Name workflow READMEs, pipelines, repository tooling, and skills in the candidate signals and output where upstream names recipes, scripts, infra operations, and recipe docs.",
+        "Publish through the delivery steps in AGENTS.md instead of the unavailable commit skill; follow the AGENTS.md skill conventions and record vendored-skill corrections with file-issue instead of editing vendor directories.",
+        "Use the routing-contract description from upstream #8494 (later than the pinned commit).",
+        "Schedule daily at 10:00 America/New_York as a five-field cron expression; upstream uses a six-field form.",
+        "Report status in prose instead of the HARNESS_SCRUB_LOOP footer and needs_followup_at protocol.",
+        "Keep each sentence on its own source line."
+      ]
+    },
+    {
+      "name": "scrub-docs-code-parity",
+      "deviations": [
+        "Target Open-Athena/marin-dna: README.md, docs/, workflow READMEs under snakemake/, AGENTS.md, .agents/skills/, skill scripts, and the skill validator, with the repository's uv --locked conventions.",
+        "Publish through the delivery steps in AGENTS.md instead of the unavailable commit skill; record vendored-skill corrections with file-issue instead of editing vendor directories.",
+        "Use the routing-contract description from upstream #8494 (later than the pinned commit).",
+        "Schedule daily at 00:00 America/New_York as a five-field cron expression; upstream uses a six-field form.",
+        "Report status in prose instead of the HARNESS_SCRUB_LOOP footer and needs_followup_at protocol.",
+        "Keep each sentence on its own source line."
+      ]
     }
   ],
   "local": [
