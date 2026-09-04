@@ -3,8 +3,8 @@ name: issue-517-phylop-enhancer-order-hf
 # Remote audit/build/publication for the one-per-order strict-phyloP enhancer arm.
 resources:
   infra: aws/us-east-2
-  instance_type: r6i.8xlarge
-  disk_size: 1000
+  instance_type: r6i.2xlarge
+  disk_size: 500
   labels:
     project: dna
 
@@ -87,8 +87,8 @@ run: |
   uv run --locked snakemake "$TARGET" "${SNAKEMAKE_MODE[@]}" \
     --snakefile workflow/phylop_uniform_enhancer_order_publication.Snakefile \
     --profile workflow/profiles/default \
-    --cores 32 \
-    --resources mem_mb=250000 final_large_scan=1 hf_uploads=1 \
+    --cores 8 \
+    --resources mem_mb=60000 final_large_scan=1 hf_uploads=1 \
     --allowed-rules "${ALLOWED_RULES[@]}" \
     --rerun-incomplete \
     --printshellcmds

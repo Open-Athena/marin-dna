@@ -1363,4 +1363,19 @@ Its current anchor path instead creates uniform conservation-selected windows an
   Split, artifact validation, and upload rules fail closed while the count is unpinned.
 - Evaluation boundary: Development VEP only.
   Held-out even-autosome/Y data remain untouched.
+
+### 2026-09-04 14:33 UTC - `FAS-517-061` order-control source audit
+
+- Audit result: The immutable strict-phyloP enhancer table contributes 7,876,044 selected source rows under the whole-dataset one-per-order contract.
+  Human contributes 369,860 rows and is the sole Primates source; the 39 non-human representatives contribute 7,506,184 rows across 18 mammalian and 21 non-mammalian orders.
+- Exposure: Removing the fixed 16,384-row validation holdout and adding reverse complements yields 15,719,320 training rows.
+  The fixed 40,960,000-sequence schedule therefore corresponds to 2.606 effective row epochs, 5.07 times the strict family-deduplicated enhancer baseline's 0.514 epochs.
+- Durable evidence: The audit JSON is stored at `s3://oa-bolinas/snakemake/vertebrate_projection_dataset/results/phylop-uniform-enhancer-vertebrate-order-publication-v1/f00530cb4c045d66e681a92bb7169d23950731f8/1afb3dec505111775b91c2d75d5cbe0458eb050ec889ad25ee33935501149707/full/metadata/enhancer_order_source_audit.json`.
+- Cost audit: The source Parquet is 9.90 GB, and the actual row audit took only seconds after download.
+  The initial 256-GiB `r6i.8xlarge` was an inherited conservative publication envelope rather than an audit requirement, so it was terminated after the result reached S3.
+  The pinned build recipe forces the existing bounded deterministic hash-sort path at 10 million rows and uses a 64-GiB `r6i.2xlarge`, eight cores, and 500-GB disk.
+  This changes deterministic row order relative to the family baseline but preserves membership, sampling distribution, and exposure while reducing the worker's compute price to about one quarter of the initial audit node.
+- Validation: `/tmp/issue517-uv/uv run --locked pytest` passed all 278 project tests in 9.07 seconds with 288,104 KiB peak RSS under the shared-node safety envelope.
+  The S3-aware dry-run with eight cores, 60,000 MB, and one `final_large_scan` slot resolved exactly 73 intended jobs under configuration SHA-256 `a5d7ff16ecc2b4574e4803e4858392ffa00aefba17da1e155c4859355ad7b437`; it includes no scoring or projection rule.
+- Next action: Validate and snapshot the pinned publication recipe, build and anonymously verify the public dataset, then rebase on `origin/main` before adding and launching the training configuration.
 - Next action: Push the audit snapshot, post the corrected cohort decision to issue #517, run the one-rule EC2 source audit, and pin its exact count before publication.

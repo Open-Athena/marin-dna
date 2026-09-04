@@ -214,13 +214,16 @@ It does not schedule scoring or projection rules.
 `config/species_vertebrate_order.tsv` retains 39 non-human targets spanning 18 mammalian and 21 non-mammalian NCBI orders.
 Human is the sole Primates source in the complete training dataset, so every non-human primate projection is excluded before validation sampling.
 The resulting corpus contains exactly one sequence source for each of 40 represented vertebrate orders.
+The remote audit pinned 7,876,044 source rows: 369,860 human rows and 7,506,184 rows from the 39 non-human order representatives.
+After the fixed 16,384-row validation holdout and reverse-complement augmentation, the training split contains 15,719,320 rows.
+The 5,000-step, global-batch-8,192 training recipe therefore presents 40,960,000 sequences, or 2.606 effective row epochs.
 
 Representative selection follows the historical issue #255 policy over the existing family-deduplicated targets.
 Known Zoonomia HAL assembly provenance precedes assembly level, contig N50, and alignment name; Bos taurus and Mus musculus remain the established Artiodactyla and Rodentia representatives.
 Non-mammalian ties use the same deterministic metadata ordering.
 `marin-dna-build-vertebrate-order-manifest` regenerates the committed table using NCBI taxonomy, and the publication workflow consumes only the committed result.
 
-Audit the source row count on the dedicated EC2 worker before setting `source_rows` in `config/phylop_uniform_enhancer_order_publication.yaml`:
+The source row count was audited on a dedicated EC2 worker before being pinned in `config/phylop_uniform_enhancer_order_publication.yaml`:
 
 ```bash
 sky launch -c issue-517-phylop-enhancer-order-hf \
@@ -229,7 +232,9 @@ sky launch -c issue-517-phylop-enhancer-order-hf \
   --env PIPELINE_COMMIT_SHA="$(git rev-parse HEAD)"
 ```
 
-After pinning the audited count in a new commit, `all_phylop_order_hf_files` builds and validates 64 train shards, one validation shard, the dataset card, and the complete checksum manifest.
+The publication recipe forces the bounded deterministic hash-sort path at 10 million rows, so the 15,719,320-row training split can spill its global sort instead of materializing the full shuffle in RAM.
+The worker is an `r6i.2xlarge` with 64 GiB RAM, about one quarter of the initially conservative 256-GiB audit worker's compute price.
+`all_phylop_order_hf_files` builds and validates 64 train shards, one validation shard, the dataset card, and the complete checksum manifest.
 `all_phylop_order_hf` is the explicit external-write target and requires `ALLOW_HF_UPLOAD=1` plus the Hugging Face token through SkyPilot's secret channel.
 The intended public repository is `marin-dna/phylop-uniform-v1-enhancer-arm-a-vertebrate-order`, released under OpenMDW 1.1 while the source assemblies, annotations, and alignments retain their own terms.
 

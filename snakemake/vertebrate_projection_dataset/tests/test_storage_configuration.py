@@ -216,3 +216,37 @@ def test_phylop_uniform_publication_is_source_pinned_and_upload_gated() -> None:
     assert 'if [ -z "${HF_TOKEN:-}" ]' in worker
     assert "workflow/phylop_uniform_publication.Snakefile" in worker
     assert "r6i.8xlarge" in worker
+
+
+def test_phylop_order_publication_is_pinned_hash_shuffled_and_upload_gated() -> None:
+    config = yaml.safe_load(
+        (
+            PROJECT_ROOT
+            / "config/phylop_uniform_enhancer_order_publication.yaml"
+        ).read_text()
+    )
+    rules = (
+        PROJECT_ROOT
+        / "workflow/rules/phylop_uniform_enhancer_order_publication.smk"
+    ).read_text()
+    worker = (
+        PROJECT_ROOT / "sky/phylop_uniform_enhancer_order_hf.yaml"
+    ).read_text()
+
+    assert config["source_rows"] == 7_876_044
+    assert config["order_manifest_targets"] == 39
+    assert config["order_manifest_mammals"] == 18
+    assert config["order_manifest_nonmammals"] == 21
+    assert config["validation_rows"] == 16_384
+    assert config["publication_max_in_memory_rows"] == 10_000_000
+    expected_train_rows = 2 * (
+        config["source_rows"] - config["validation_rows"]
+    )
+    assert expected_train_rows == 15_719_320
+    assert config["publication_max_in_memory_rows"] < expected_train_rows
+    assert "max_in_memory_rows=PUBLICATION_MAX_IN_MEMORY_ROWS" in rules
+    assert rules.count("mem_mb=60000") == 2
+    assert "r6i.2xlarge" in worker
+    assert "--resources mem_mb=60000" in worker
+    assert 'ALLOW_HF_UPLOAD: "0"' in worker
+    assert 'test "$ALLOW_HF_UPLOAD" = "1"' in worker

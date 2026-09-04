@@ -75,6 +75,10 @@ def order_hf_repo(cohort):
 PUBLICATION_TRAIN_SHARD_COUNT = int(config["publication_train_shards"])
 PUBLICATION_VALIDATION_SHARD_COUNT = int(config["publication_validation_shards"])
 PUBLICATION_SHUFFLE_SEED = int(config["publication_shuffle_seed"])
+PUBLICATION_MAX_IN_MEMORY_ROWS = int(config["publication_max_in_memory_rows"])
+assert 0 < PUBLICATION_MAX_IN_MEMORY_ROWS < 2 * (
+    EXPECTED_SOURCE_ROWS - VALIDATION_ROWS
+)
 PUBLICATION_TRAIN_SHARDS = [
     f"shard_{index:04d}" for index in range(PUBLICATION_TRAIN_SHARD_COUNT)
 ]
@@ -139,7 +143,7 @@ rule phylop_order_dataset_splits:
     wildcard_constraints:
         region=COHORT_RE,
     resources:
-        mem_mb=64000,
+        mem_mb=60000,
         final_large_scan=1,
     run:
         assert EXPECTED_SOURCE_ROWS > VALIDATION_ROWS, (
@@ -180,7 +184,7 @@ rule phylop_order_prepare_train_jsonl_shards:
         region=COHORT_RE,
     threads: workflow.cores
     resources:
-        mem_mb=240000,
+        mem_mb=60000,
         final_large_scan=1,
     run:
         from marin_dna_vertebrate_projection.projection.dataset import prepare_shards
@@ -190,6 +194,7 @@ rule phylop_order_prepare_train_jsonl_shards:
             shard_paths=[str(path) for path in output],
             add_rc=False,
             shuffle_seed=PUBLICATION_SHUFFLE_SEED,
+            max_in_memory_rows=PUBLICATION_MAX_IN_MEMORY_ROWS,
         )
 
 
@@ -218,6 +223,7 @@ rule phylop_order_prepare_validation_jsonl_shards:
             shard_paths=[str(path) for path in output],
             add_rc=False,
             shuffle_seed=PUBLICATION_SHUFFLE_SEED,
+            max_in_memory_rows=PUBLICATION_MAX_IN_MEMORY_ROWS,
         )
 
 
