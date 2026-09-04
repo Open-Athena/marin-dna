@@ -11,6 +11,13 @@ The retired `snakemake/zoonomia_projection_dataset` workflow is no longer a code
 Its existing S3 and Hugging Face artifacts remain historical records and are not read, rewritten, or deleted by this workflow.
 This workflow writes `results/<pipeline_version>/<producer_commit>/<config_sha256>/<tier>/`; producer and configuration keys prevent cross-recipe reuse.
 
+The additive issue #517 functional-specialist recipe has its own [annotation, audit, and approval runbook](FUNCTIONAL_ANCHORS.md).
+That recipe uses checksum-pinned UCSC hg38-to-target liftOver chains for its 28 non-mammalian targets.
+The default uniform-anchor workflow retains the existing direct MultiZ MAF path.
+
+The separate issue #517 GPN-Star-P uniform-grid recipe has its own [selection, assignment, and execution contract](GPN_STAR_ANCHORS.md).
+It keeps only windows that pass the 20% GPN conservation filter, assigns those windows exhaustively to six experimental arms, and projects the same catalog through the existing HAL and MultiZ backends.
+
 Run commands from `snakemake/vertebrate_projection_dataset` so this project uses its own pinned environment and lockfile. Install it with:
 
 ```bash
@@ -30,6 +37,9 @@ the values in `config/config.yaml`: 255 bp windows on hg38 primary chromosomes,
 128 bp step, phyloP-447m threshold 2.2162, and at least 20% conserved bases.
 Anchors retain stable IDs and explicit human source coordinates. Region labels
 use the pinned v4 labeling parameters in the same config.
+
+The additive `workflow/gpn_star.Snakefile` entry point instead reads `config/gpn_star_p.yaml` and never changes the historical phyloP workflow.
+Its exact GPN score-source revision and per-chromosome checksums are pinned independently.
 
 `config/species_candidates.tsv` records all 107 non-human Zoonomia targets and
 38 non-mammal MultiZ candidates. `config/species_selected.tsv` contains the 107
@@ -71,11 +81,169 @@ Normal projection rules stage only configured chromosomes from S3 to local NVMe 
 
 Target-genome sequence extraction retains the v1 UCSC human and `gbdb` 2bit sources. Each download must match `config/twobit_manifest.tsv`; before MultiZ extraction, every chromosome size used by an accepted MAF mapping must exactly match `twoBitInfo` for that archive. UCSC downloads are capped at four concurrent transfers and retry refused/transient connections so a full-worker startup cannot overload the shared endpoint.
 
+## Issue #517 liftOver chains
+
+`workflow/functional.Snakefile` replaces only the issue-specific non-mammal projection path with official UCSC hg38-to-target pairwise chains.
+`config/liftover_chain_manifest.tsv` pins one chain for each of the 28 selected non-mammal assemblies by source URL, checksum-index URL, byte size, and UCSC-published MD5.
+The complete compressed chain set is 279,346,460 bytes.
+
+The functional workflow downloads and validates each chain independently, submits all center-1 landmarks in one BED6 file per target, and requires every query to appear in exactly one of the mapped or unmapped outputs.
+The default configuration uses `liftOver -minMatch=0.95` without `-multiple`.
+Mapped BED intervals remain 0-based and half-open, must span exactly one base, and join to the matching target 2bit chromosome sizes before entering the shared acceptance and sequence-extraction contract.
+
+The stable dataset value `alignment_source=ucsc_multiz100way` continues to identify the pinned UCSC non-mammal assembly cohort.
+The issue #517 cards state that the projection operation uses the matching pairwise liftOver chain.
+
+## Issue #523 HAL-derived mammal chain pilot
+
+`workflow/hal_chains.Snakefile` retains the first additive three-species experiment and its reverse-input Cactus recipe as a historical negative control.
+It does not change or overwrite any completed projection path.
+
+`workflow/hal_chains_directional.Snakefile` implements the selected strict candidate.
+It projects human intervals in the same human-to-mammal direction as the production control, then runs `pslSwap | pslPosTarget | axtChain -minScore=-1000000` so the resulting UCSC chain still has human on the target/reference side.
+The deliberately permissive score threshold preserves the negative-scoring PSL alignments required for exact parity in the 100-kb TP53 experiment.
+The pinned tools are Cactus 3.3.0 and Kent 482, including `pslSwap`.
+
+The first target is a cheap correctness gate over twelve discontiguous 100-kb human regions and all 9,374 production-phase uniform-grid centers inside them.
+It independently requires exact direct-HAL versus chain parity for `Papio_anubis`, `Mus_musculus`, and `Loxodonta_africana`.
+Only after all three species pass may the `full_baboon` rule generate one whole-genome `Papio_anubis` candidate.
+The retained smoke chains, timing metrics, exact-parity summaries, empty-or-populated discrepancy tables, and producer manifest are published through the same durable storage profile as the full candidate.
+
+The whole-genome audit reuses the immutable 1,136,854-query strict-phyloP BED and its direct `halLiftover --noDupes` output.
+It compares every mapped or unmapped state, destination sequence, 0-based half-open coordinate, strand, and mapping multiplicity.
+The candidate also receives a liftOver-only timing run over all 22,948,560 uniform-grid centers.
+
+The 1.26-TB HAL is staged once on a dedicated on-demand `r6id.12xlarge` with 384 GiB RAM and 2×1,425-GB instance-store NVMe.
+The smoke jobs and optional whole-genome job share that staged file and generated 2bit assets.
+Generation metrics include GNU-time process usage, node memory and page-cache samples, minimum free disk, compressed chain bytes, SHA-256, chain/header counts, and aligned block bases.
+
+Run tests, dry-run the combined DAG, and then request the single full candidate through `sky/hal_chain_directional_pilot.yaml`.
+The `full_baboon` target reruns the smoke gate and proceeds to the whole-genome candidate in the same job, so the staged HAL is reused without an idle handoff:
+
+```bash
+sky launch -c issue-523-hal-chains \
+  sky/hal_chain_directional_pilot.yaml \
+  --env TARGET=tests --env DRY_RUN=0 \
+  --env DURABLE_OUTPUTS=0 \
+  --env PIPELINE_COMMIT_SHA="$(git rev-parse HEAD)" \
+  -i 30 --down
+
+sky exec issue-523-hal-chains \
+  sky/hal_chain_directional_pilot.yaml \
+  --env TARGET=full_baboon --env DRY_RUN=1 \
+  --env DURABLE_OUTPUTS=1 \
+  --env PIPELINE_COMMIT_SHA="$(git rev-parse HEAD)"
+
+sky exec issue-523-hal-chains \
+  sky/hal_chain_directional_pilot.yaml \
+  --env TARGET=full_baboon --env DRY_RUN=0 \
+  --env DURABLE_OUTPUTS=1 \
+  --env PIPELINE_COMMIT_SHA="$(git rev-parse HEAD)"
+```
+
+The Snakemake storage profile owns the durable chains, parity artifacts, and timing summaries under the commit- and configuration-keyed `hal-chains-directional-pilot-v1` namespace.
+The staged HAL, generated 2bits, full-genome BEDs, and raw full-grid liftOver outputs remain NVMe-local and disappear when the worker is terminated.
+
+After the three-species exact gate passes, `marin-dna-run-hal-chain-ramp` can generate the complete 107-target family-deduplicated cohort from `config/zoonomia_447_family_dedup.tsv` while sharing the staged HAL and persistent per-genome 2bit assets.
+`config/hal_chain_directional_ramp.yaml` starts two workers and doubles the target concurrency after each ten-minute observation interval up to 40 workers.
+It holds concurrency when available RAM falls below 96 GiB, free NVMe falls below 256 GiB, CPU busy time exceeds 85%, CPU iowait exceeds 25%, or one-minute load exceeds 0.8 per vCPU.
+Each worker streams HAL→PSL→chain without an intermediate PSL, validates chain direction and chromosome sizes, records the same GNU-time and node metrics as the pilot, uploads the chain and metrics, verifies their object sizes, and removes the local chain only after both durable objects are present.
+The controller publishes its exact cohort, smoke-gate evidence, producer identity, decisions, active/completed sets, retries, and terminal status under the commit- and configuration-keyed `hal-chains-directional-ramp-v1` namespace.
+
+The first adaptive run exhausted the 384-GiB node after increasing from 16 to 32 workers, before any chain finalized.
+`config/hal_chain_directional_recovery.yaml` preserves that failed namespace and restarts all 107 targets under `hal-chains-directional-ramp-v2` with a fixed eight-worker cap.
+The recovery controller reserves 32 GiB for every newly admitted worker and requires the projected post-admission node memory to retain the 96-GiB safety floor.
+
+## Issue #517 GPN-Star-P uniform grid
+
+The GPN entry point reproduces the historical 255 bp, 128 bp-stride grid and scores it with canonical calibrated entropy from the primate `gpn-star-hg38-p243-200m` model.
+A base passes only when `entropy_calibrated < 0.081001`, and a window passes the 20% filter only when at least 51 of its 255 bases pass.
+The full catalog must contain exactly 1,627,410 eligible windows; the same audit also checks the unfiltered grid count, passing source-position count, and 10% window count.
+
+Every eligible window receives exactly one assignment.
+The first four arms are the established v4 CDS, 3′ UTR, protein-coding TSS/5′ UTR, and ncRNA-exon labels from issue #232.
+The enhancer arm is issue #326 Arm A: a v4 `ccre_non_promoter` window with exactly zero priority-resolved coverage from the other four functional classes.
+Background is every remaining window among the 1,627,410 windows that passed the GPN 20% filter, including v4 background and cCRE-labelled windows rejected by Arm A.
+It is an experimental GPN-constrained remainder, not the clean negative-control background from issue #232.
+The six counts are required to be mutually exclusive and exhaustive.
+
+The catalog-only target performs no cross-species projection:
+
+```bash
+uv run --locked snakemake all \
+  --snakefile workflow/gpn_star.Snakefile \
+  --profile workflow/profiles/default \
+  --config tier=full
+```
+
+`all_projection` projects the catalog into all 107 mammal and 28 non-mammal targets and writes projection QC plus deterministic inspection samples for all six arms.
+The projection entry point deliberately does not include dataset splitting or Hugging Face publication targets.
+Use `sky/gpn_star_project.yaml` for every real or dry-run invocation so scoring and projection stay on the dedicated EC2 worker.
+
+After the complete projection passes QC, `workflow/gpn_star_publication.Snakefile` reads the immutable source projection from its producer-keyed S3 namespace and builds six independent training datasets.
+It never schedules projection rules.
+Each arm receives a deterministic 16,384-row original-orientation validation split before training-only reverse-complement augmentation.
+The publication repositories and exact source producer/configuration are pinned in `config/gpn_star_p_publication.yaml`.
+
+Build and validate the public-format files on the dedicated high-memory EC2 worker before upload:
+
+```bash
+sky launch -c issue-517-gpn-hf \
+  sky/gpn_star_hf.yaml \
+  --env TARGET=all_gpn_hf_files --env DRY_RUN=0 \
+  --env PIPELINE_COMMIT_SHA="$(git rev-parse HEAD)"
+```
+
+The external-write target is `all_gpn_hf` and requires `ALLOW_HF_UPLOAD=1`.
+Pass the credential through SkyPilot's secret channel so it is redacted from task output:
+
+```bash
+sky exec issue-517-gpn-hf \
+  sky/gpn_star_hf.yaml \
+  --env TARGET=all_gpn_hf --env DRY_RUN=0 \
+  --env ALLOW_HF_UPLOAD=1 --secret HF_TOKEN \
+  --env PIPELINE_COMMIT_SHA="<publication-producer-commit>"
+```
+
+After publication, verify every repository without credentials and pin its immutable Hub revision in the training experiment.
+
+## Issue #517 strict-phyloP enhancer order control
+
+The order-control publication derives one enhancer training corpus from the immutable strict-phyloP Arm A projection table.
+It does not schedule scoring or projection rules.
+`config/species_vertebrate_order.tsv` retains 39 non-human targets spanning 18 mammalian and 21 non-mammalian NCBI orders.
+Human is the sole Primates source in the complete training dataset, so every non-human primate projection is excluded before validation sampling.
+The resulting corpus contains exactly one sequence source for each of 40 represented vertebrate orders.
+The remote audit pinned 7,876,044 source rows: 369,860 human rows and 7,506,184 rows from the 39 non-human order representatives.
+After the fixed 16,384-row validation holdout and reverse-complement augmentation, the training split contains 15,719,320 rows.
+The 5,000-step, global-batch-8,192 training recipe therefore presents 40,960,000 sequences, or 2.606 effective row epochs.
+
+Representative selection follows the historical issue #255 policy over the existing family-deduplicated targets.
+Known Zoonomia HAL assembly provenance precedes assembly level, contig N50, and alignment name; Bos taurus and Mus musculus remain the established Artiodactyla and Rodentia representatives.
+Non-mammalian ties use the same deterministic metadata ordering.
+`marin-dna-build-vertebrate-order-manifest` regenerates the committed table using NCBI taxonomy, and the publication workflow consumes only the committed result.
+
+The source row count was audited on a dedicated EC2 worker before being pinned in `config/phylop_uniform_enhancer_order_publication.yaml`:
+
+```bash
+sky launch -c issue-517-phylop-enhancer-order-hf \
+  sky/phylop_uniform_enhancer_order_hf.yaml \
+  --env TARGET=phylop_order_source_audit --env DRY_RUN=0 \
+  --env PIPELINE_COMMIT_SHA="$(git rev-parse HEAD)"
+```
+
+The publication recipe forces the bounded deterministic hash-sort path at 10 million rows, so the 15,719,320-row training split can spill its global sort instead of materializing the full shuffle in RAM.
+The worker is an `r6i.2xlarge` with 64 GiB RAM, about one quarter of the initially conservative 256-GiB audit worker's compute price.
+`all_phylop_order_hf_files` builds and validates 64 train shards, one validation shard, the dataset card, and the complete checksum manifest.
+`all_phylop_order_hf` is the explicit external-write target and requires `ALLOW_HF_UPLOAD=1` plus the Hugging Face token through SkyPilot's secret channel.
+The intended public repository is `marin-dna/phylop-uniform-v1-enhancer-arm-a-vertebrate-order`, released under OpenMDW 1.1 while the source assemblies, annotations, and alignments retain their own terms.
+
 ## Projection contract
 
 The request table retains each original 255 bp human anchor for identity and downstream row-random selection, and stores `[source_start + 127, source_start + 128)` as the only interval submitted to HAL or MAF.
 HAL receives all active anchors in one BED and runs one `halLiftover` job per mammal species.
 MultiZ reads each configured chromosome MAF once and emits candidates for all active non-mammal species.
+The issue #517 functional workflow instead runs one batched UCSC `liftOver` job per selected non-mammal species.
 
 The HAL and MAF adapters emit the same fragment schema.
 The shared contract then:

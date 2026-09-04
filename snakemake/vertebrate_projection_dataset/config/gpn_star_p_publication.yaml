@@ -1,0 +1,44 @@
+pipeline_version: gpn-star-p-uniform-publication-v1
+tier: full
+
+# Immutable source projection produced and audited in issue #517.
+source_pipeline_version: gpn-star-p-uniform-v1
+source_pipeline_commit: 65b7806ea56a270124c9973af0366f5ab412c665
+source_config_sha256: 28cb7786197945ef1798c3581873e4b3d68b7bf91189a59585b0dcabcad7a5e4
+source_tier: full
+source_rows: 167607189
+source_arm_rows:
+  cds: 35517702
+  utr3: 10285758
+  tss_region_and_utr5: 7341817
+  ncrna_exon: 10029795
+  enhancer: 65750304
+  background: 38681813
+
+region_cohorts:
+  [cds, utr3, tss_region_and_utr5, ncrna_exon, enhancer, background]
+
+hf_owner: marin-dna
+hf_repo_names:
+  cds: gpn-star-p-uniform-v1-cds
+  utr3: gpn-star-p-uniform-v1-utr3
+  tss_region_and_utr5: gpn-star-p-uniform-v1-tss-utr5
+  ncrna_exon: gpn-star-p-uniform-v1-ncrna-exon
+  enhancer: gpn-star-p-uniform-v1-enhancer-arm-a
+  background: gpn-star-p-uniform-v1-background
+
+validation_rows: 16384
+validation_seed: 517
+add_rc: true
+publication_train_shards: 64
+publication_validation_shards: 1
+publication_shuffle_seed: 517
+hf_upload_workers: 1
+
+# Repeated in generated cards and checked against the source producer contract.
+gpn_dataset_repo: songlab/gpn-star-scores
+gpn_dataset_revision: 5c799b2ec6aa089f0caa8294ae72adb4510f81ae
+gpn_score_set: gpn-star-hg38-p243-200m
+gpn_entropy_cutoff: 0.081001
+gpn_min_selected_bases: 51
+gpn_assignment_recipe: exp232-v4-plus-exp326-arm-a-remainder-v1

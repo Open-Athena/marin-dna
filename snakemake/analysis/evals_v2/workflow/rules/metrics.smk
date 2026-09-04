@@ -40,6 +40,11 @@ rule compute_metrics:
         n_bootstrap=config["inference"]["n_bootstrap"],
         bootstrap_seed=config["inference"]["bootstrap_seed"],
         score_protocol=lambda wc: get_dataset_config(wc.dataset)["score_protocol"],
+        excluded_group_subsets=lambda wc: tuple(
+            get_dataset_config(wc.dataset).get(
+                "exclude_complete_match_groups_with_subsets", []
+            )
+        ),
     run:
         protocol = params.score_protocol
         transform = SCORE_PROTOCOLS[protocol]
@@ -60,6 +65,21 @@ rule compute_metrics:
             if jsd_col in df.columns:
                 score_cols.append(jsd_col)
         assert score_cols, "no score columns to evaluate — scores parquet schema?"
+        if params.excluded_group_subsets:
+            assert (
+                eval_protocol == "matched_pair"
+            ), "complete-match-group exclusions require a matched_pair dataset"
+            n_rows_before = len(df)
+            n_groups_before = df["match_group"].nunique()
+            df = exclude_complete_match_groups_with_subsets(
+                df, params.excluded_group_subsets
+            )
+            print(
+                f"[evals_v2] {wildcards.dataset}: excluded complete match groups "
+                f"containing {list(params.excluded_group_subsets)}; "
+                f"rows {n_rows_before}->{len(df)}, groups "
+                f"{n_groups_before}->{df['match_group'].nunique()}"
+            )
         if eval_protocol == "qtl_global":
             # Global AUPRC + positives-only effect_size correlation. No
             # subset/match_group; metrics frame carries a `metric` column.

@@ -1,0 +1,60 @@
+name: issue517-historical-diagonal-audit
+
+resources:
+  infra: aws/us-east-2
+  cpus: 8+
+  memory: 16+
+  disk_size: 50
+  labels:
+    project: dna
+  any_of:
+    - use_spot: true
+    - use_spot: false
+
+workdir: .
+
+setup: |
+  set -euxo pipefail
+  if ! command -v uv >/dev/null 2>&1; then
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+  fi
+  export PATH="$HOME/.local/bin:$PATH"
+  if [[ "$(uv --version | awk '{print $2}')" != "0.11.31" ]]; then
+    uv self update 0.11.31
+  fi
+  uv sync --project snakemake/analysis/evals_v2 --locked --group genome-s3
+
+run: |
+  set -euxo pipefail
+  export PATH="$HOME/.local/bin:$PATH"
+  out=.agents/artifacts/issue-517/evaluation
+  prefix=s3://oa-bolinas/snakemake/analysis/evals_v2/results/scores
+  uv run --project snakemake/analysis/evals_v2 --locked --group genome-s3 \
+    python "$out/compare_historical_diagonals.py"
+  uv run --project snakemake/analysis/evals_v2 --locked --group genome-s3 \
+    python .agents/artifacts/issue-517/dataset-audit/paired_home_subset_comparison.py \
+    --n-bootstrap 1000 \
+    --seed 517 \
+    --comparison vs232.cds.missense "$prefix/exp517-phylop-uniform-cds-step-4999/mendelian_traits.parquet" "$prefix/exp232-v4_cds-step-4999/mendelian_traits.parquet" missense_variant \
+    --comparison vs232.cds.splicing "$prefix/exp517-phylop-uniform-cds-step-4999/mendelian_traits.parquet" "$prefix/exp232-v4_cds-step-4999/mendelian_traits.parquet" splicing \
+    --comparison vs232.cds.synonymous "$prefix/exp517-phylop-uniform-cds-step-4999/mendelian_traits.parquet" "$prefix/exp232-v4_cds-step-4999/mendelian_traits.parquet" synonymous_variant \
+    --comparison vs232.utr3.utr3 "$prefix/exp517-phylop-uniform-utr3-step-4999/mendelian_traits.parquet" "$prefix/exp232-v4_utr3-step-4999/mendelian_traits.parquet" 3_prime_UTR_variant \
+    --comparison vs232.ncrna.ncrna "$prefix/exp517-phylop-uniform-ncrna-exon-step-4999/mendelian_traits.parquet" "$prefix/exp232-v4_ncrna_exon-step-4999/mendelian_traits.parquet" non_coding_transcript_exon_variant \
+    --comparison vs232.tss.utr5 "$prefix/exp517-phylop-uniform-tss-utr5-step-4999/mendelian_traits.parquet" "$prefix/exp232-v4_tss_region_and_utr5-step-4999/mendelian_traits.parquet" 5_prime_UTR_variant \
+    --comparison vs232.tss.promoter "$prefix/exp517-phylop-uniform-tss-utr5-step-4999/mendelian_traits.parquet" "$prefix/exp232-v4_tss_region_and_utr5-step-4999/mendelian_traits.parquet" tss_proximal \
+    --comparison vs232.enhancer.distal "$prefix/exp517-phylop-uniform-enhancer-arm-a-step-4999/mendelian_traits.parquet" "$prefix/exp232-v4_ccre_non_promoter-step-4999/mendelian_traits.parquet" distal \
+    --comparison vsOld517.cds.missense "$prefix/exp517-phylop-uniform-cds-step-4999/mendelian_traits.parquet" "$prefix/exp517-cds-step-4999/mendelian_traits.parquet" missense_variant \
+    --comparison vsOld517.cds.splicing "$prefix/exp517-phylop-uniform-cds-step-4999/mendelian_traits.parquet" "$prefix/exp517-cds-step-4999/mendelian_traits.parquet" splicing \
+    --comparison vsOld517.cds.synonymous "$prefix/exp517-phylop-uniform-cds-step-4999/mendelian_traits.parquet" "$prefix/exp517-cds-step-4999/mendelian_traits.parquet" synonymous_variant \
+    --comparison vsOld517.utr3.utr3 "$prefix/exp517-phylop-uniform-utr3-step-4999/mendelian_traits.parquet" "$prefix/exp517-utr3-step-4999/mendelian_traits.parquet" 3_prime_UTR_variant \
+    --comparison vsOld517.ncrna.ncrna "$prefix/exp517-phylop-uniform-ncrna-exon-step-4999/mendelian_traits.parquet" "$prefix/exp517-ncrna-step-4999/mendelian_traits.parquet" non_coding_transcript_exon_variant \
+    --comparison vsOld517.tss.utr5 "$prefix/exp517-phylop-uniform-tss-utr5-step-4999/mendelian_traits.parquet" "$prefix/exp517-tss_region-step-4999/mendelian_traits.parquet" 5_prime_UTR_variant \
+    --comparison vsOld517.tss.promoter "$prefix/exp517-phylop-uniform-tss-utr5-step-4999/mendelian_traits.parquet" "$prefix/exp517-tss_region-step-4999/mendelian_traits.parquet" tss_proximal \
+    --comparison vsOld517.enhancer.distal "$prefix/exp517-phylop-uniform-enhancer-arm-a-step-4999/mendelian_traits.parquet" "$prefix/exp517-enhancer-step-4999/mendelian_traits.parquet" distal \
+    > "$out/issue517_phylop_vs_historical_paired_mendelian.json"
+  python -m json.tool "$out/issue517_phylop_vs_historical_paired_mendelian.json" >/dev/null
+  test -s "$out/issue517_historical_diagonals_data.csv"
+  test -s "$out/issue517_historical_diagonals_home_rows.csv"
+  test -s "$out/issue517_historical_diagonals_summary.csv"
+  test -s "$out/issue517_historical_diagonals_comparison.svg"
+  test -s "$out/issue517_historical_diagonals_comparison.png"

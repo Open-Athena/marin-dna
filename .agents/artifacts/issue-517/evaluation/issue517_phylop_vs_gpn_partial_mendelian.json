@@ -1,0 +1,93 @@
+{
+  "cds.missense": {
+    "baseline": "s3://oa-bolinas/snakemake/analysis/evals_v2/results/scores/exp517-gpn-uniform-cds-step-4999/mendelian_traits.parquet",
+    "ci_high": 0.010954452559061047,
+    "ci_low": -0.0252299531111184,
+    "current": "s3://oa-bolinas/snakemake/analysis/evals_v2/results/scores/exp517-phylop-uniform-cds-step-4999/mendelian_traits.parquet",
+    "delta": -0.007070344256694061,
+    "n_groups": 580,
+    "n_rows": 5800,
+    "p_two_sided": 0.404,
+    "score_protocol": "minus_llr",
+    "se": 0.009295831676453382,
+    "subset": "missense_variant"
+  },
+  "cds.splicing": {
+    "baseline": "s3://oa-bolinas/snakemake/analysis/evals_v2/results/scores/exp517-gpn-uniform-cds-step-4999/mendelian_traits.parquet",
+    "ci_high": 0.004278463378824819,
+    "ci_low": -0.058287725910865465,
+    "current": "s3://oa-bolinas/snakemake/analysis/evals_v2/results/scores/exp517-phylop-uniform-cds-step-4999/mendelian_traits.parquet",
+    "delta": -0.028831428852102825,
+    "n_groups": 319,
+    "n_rows": 3190,
+    "p_two_sided": 0.082,
+    "score_protocol": "minus_llr",
+    "se": 0.015749422296980675,
+    "subset": "splicing"
+  },
+  "cds.synonymous": {
+    "baseline": "s3://oa-bolinas/snakemake/analysis/evals_v2/results/scores/exp517-gpn-uniform-cds-step-4999/mendelian_traits.parquet",
+    "ci_high": 0.0873613055436051,
+    "ci_low": -0.08280357010706704,
+    "current": "s3://oa-bolinas/snakemake/analysis/evals_v2/results/scores/exp517-phylop-uniform-cds-step-4999/mendelian_traits.parquet",
+    "delta": -0.0024607764603886695,
+    "n_groups": 46,
+    "n_rows": 460,
+    "p_two_sided": 0.996,
+    "score_protocol": "minus_llr",
+    "se": 0.043784340997989966,
+    "subset": "synonymous_variant"
+  },
+  "enhancer.distal": {
+    "baseline": "s3://oa-bolinas/snakemake/analysis/evals_v2/results/scores/exp517-gpn-uniform-enhancer-arm-a-step-4999/mendelian_traits.parquet",
+    "ci_high": 0.036547203969132455,
+    "ci_low": 0.0012485776776757643,
+    "current": "s3://oa-bolinas/snakemake/analysis/evals_v2/results/scores/exp517-phylop-uniform-enhancer-arm-a-step-4999/mendelian_traits.parquet",
+    "delta": 0.01606915534373972,
+    "n_groups": 58,
+    "n_rows": 580,
+    "p_two_sided": 0.032,
+    "score_protocol": "minus_llr",
+    "se": 0.00908440025351068,
+    "subset": "distal"
+  },
+  "tss.promoter": {
+    "baseline": "s3://oa-bolinas/snakemake/analysis/evals_v2/results/scores/exp517-gpn-uniform-tss-utr5-step-4999/mendelian_traits.parquet",
+    "ci_high": 0.009747138635853659,
+    "ci_low": -0.047863327452123,
+    "current": "s3://oa-bolinas/snakemake/analysis/evals_v2/results/scores/exp517-phylop-uniform-tss-utr5-step-4999/mendelian_traits.parquet",
+    "delta": -0.01962205769804884,
+    "n_groups": 205,
+    "n_rows": 2050,
+    "p_two_sided": 0.164,
+    "score_protocol": "minus_llr",
+    "se": 0.014075065499981337,
+    "subset": "tss_proximal"
+  },
+  "tss.utr5": {
+    "baseline": "s3://oa-bolinas/snakemake/analysis/evals_v2/results/scores/exp517-gpn-uniform-tss-utr5-step-4999/mendelian_traits.parquet",
+    "ci_high": 0.05012999967724458,
+    "ci_low": -0.004259480678965344,
+    "current": "s3://oa-bolinas/snakemake/analysis/evals_v2/results/scores/exp517-phylop-uniform-tss-utr5-step-4999/mendelian_traits.parquet",
+    "delta": 0.022302559331272093,
+    "n_groups": 210,
+    "n_rows": 2100,
+    "p_two_sided": 0.106,
+    "score_protocol": "minus_llr",
+    "se": 0.013812114916812683,
+    "subset": "5_prime_UTR_variant"
+  },
+  "utr3.utr3": {
+    "baseline": "s3://oa-bolinas/snakemake/analysis/evals_v2/results/scores/exp517-gpn-uniform-utr3-step-4999/mendelian_traits.parquet",
+    "ci_high": 0.04835349620202314,
+    "ci_low": -0.02232660599275465,
+    "current": "s3://oa-bolinas/snakemake/analysis/evals_v2/results/scores/exp517-phylop-uniform-utr3-step-4999/mendelian_traits.parquet",
+    "delta": 0.01760541355264919,
+    "n_groups": 77,
+    "n_rows": 770,
+    "p_two_sided": 0.422,
+    "score_protocol": "minus_llr",
+    "se": 0.017868155677581397,
+    "subset": "3_prime_UTR_variant"
+  }
+}

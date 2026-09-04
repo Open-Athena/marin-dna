@@ -1,0 +1,86 @@
+# Issue 517 development-only terminal specialist evaluation.
+# This config reads only the pinned Mendelian `train` split.
+# Do not change `split` or add held-out datasets on the experiment branch.
+
+input_hf_prefix: bolinas-dna/evals
+genome_path: s3://oa-bolinas/data/genomes/homo_sapiens/GRCh38/ensembl-release-115/Homo_sapiens.GRCh38.dna_sm.primary_assembly.fa.gz
+split: train
+
+datasets:
+  - name: mendelian_traits
+    hf_revision: 4aed58e50c5dea0b878a665007af2ef9e5108e9f
+    score_protocol: minus_llr
+    exclude_complete_match_groups_with_subsets: [mature_miRNA_variant]
+  - name: complex_traits
+    hf_revision: 22f86a89c65cb8f3007ac3cc2739f40efefa4340
+    score_protocol: abs_llr
+  - name: sge
+    hf_revision: 225d3d1ea32a4af547891b13c33b5e92a5aae849
+    score_protocol: minus_llr
+    eval_protocol: sge
+
+models:
+  - name: exp517-cds-step-4999
+    gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-cds-v1/2026.08.24/hf/step-4999
+    window_size: 255
+
+  - name: exp517-utr3-step-4999
+    gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-utr3-v1/2026.08.24/hf/step-4999
+    window_size: 255
+    datasets: [mendelian_traits, complex_traits]
+
+  - name: exp517-tss_region-step-4999
+    gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-tss_region-v1/2026.08.24/hf/step-4999
+    window_size: 255
+    datasets: [mendelian_traits, complex_traits]
+
+  - name: exp517-ncrna-step-4999
+    gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-ncrna-v1/2026.08.24/hf/step-4999
+    window_size: 255
+    datasets: [mendelian_traits, complex_traits]
+
+  - name: exp517-enhancer-step-4999
+    gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-enhancer-v1/2026.08.24/hf/step-4999
+    window_size: 255
+    datasets: [mendelian_traits, complex_traits]
+
+inference:
+  batch_size: 128
+  num_workers: 4
+  data_transform_on_the_fly: true
+  torch_compile: true
+  bf16: true
+  rc: true
+  return_embeddings: true
+  eval_accumulation_steps: null
+  n_bootstrap: 1000
+  bootstrap_seed: 0
+
+home_rank:
+  dataset: mendelian_traits
+  arms: [cds, utr3, tss_region, ncrna, enhancer]
+  checkpoints: [4999]
+  model_name_template: exp517-{arm}-step-{step}
+  score_type: minus_llr_avg
+  n_bootstrap: 1000
+  bootstrap_seed: 517
+  # A single terminal checkpoint cannot establish two-checkpoint persistence.
+  persistence_threshold: 0.95
+  persistence_consecutive: 2
+  home_subsets:
+    cds: [missense_variant, synonymous_variant, splicing]
+    utr3: [3_prime_UTR_variant]
+    tss_region: [5_prime_UTR_variant, tss_proximal]
+    ncrna: [non_coding_transcript_exon_variant]
+    enhancer: [distal]
+
+# The command-line config extends config/config.yaml, so explicitly disable
+# unrelated off-rule-all registries whose model names are not in this matrix.
+probe:
+  models: []
+nuc_dep:
+  models: []
+umap_embeddings:
+  models: []
+ll_gap:
+  models: []

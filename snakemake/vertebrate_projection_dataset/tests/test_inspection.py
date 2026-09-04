@@ -131,6 +131,44 @@ def test_inspection_rejects_invalid_sequence() -> None:
         raise AssertionError("invalid sequence should fail inspection prechecks")
 
 
+def test_inspection_accepts_configured_six_arm_sample() -> None:
+    region_labels = (
+        "cds",
+        "utr3",
+        "tss_region_and_utr5",
+        "ncrna_exon",
+        "enhancer",
+        "background",
+    )
+    schema = {**ACCEPTED_SCHEMA, "sequence": pl.String}
+    rows = pl.DataFrame(
+        [
+            _row(
+                f"window_{index}",
+                "Homo sapiens",
+                "human_reference",
+                "mammals",
+                0,
+                region_label=region_label,
+            )
+            for index, region_label in enumerate(region_labels)
+        ],
+        schema=schema,
+    )
+
+    sample = build_inspection_sample(
+        rows,
+        rows_per_region=1,
+        fragmented_rows=0,
+        required_region_labels=region_labels,
+    )
+
+    assert set(sample["region_label"].to_list()) == set(region_labels)
+    assert set(sample["selection_reason"].to_list()) == {
+        f"stable_{region_label}_sample" for region_label in region_labels
+    }
+
+
 def test_streaming_inspection_materializes_only_sample_candidates(
     tmp_path: Path,
 ) -> None:

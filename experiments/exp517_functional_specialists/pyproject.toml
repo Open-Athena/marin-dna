@@ -1,0 +1,74 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "exp517-functional-specialists"
+version = "0.1.0"
+description = "Annotation-first and GPN uniform-grid specialist training for MarinDNA issue 517"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "marin-core @ git+https://github.com/marin-community/marin.git@53b5b33041f742c7f4991223b0085e41ece4c458#subdirectory=lib/marin",
+    "marin-dupekit @ git+https://github.com/marin-community/marin.git@53b5b33041f742c7f4991223b0085e41ece4c458#subdirectory=lib/dupekit",
+    "marin-iris[controller] @ git+https://github.com/marin-community/marin.git@53b5b33041f742c7f4991223b0085e41ece4c458#subdirectory=lib/iris",
+    "numpy",
+]
+
+[project.optional-dependencies]
+cpu = [
+    "marin-core[cpu] @ git+https://github.com/marin-community/marin.git@53b5b33041f742c7f4991223b0085e41ece4c458#subdirectory=lib/marin",
+    "torch==2.11.0; sys_platform == 'linux'",
+    "torchvision==0.26.0+cpu; sys_platform == 'linux'",
+]
+tpu = [
+    "marin-core[tpu] @ git+https://github.com/marin-community/marin.git@53b5b33041f742c7f4991223b0085e41ece4c458#subdirectory=lib/marin",
+    "torch==2.11.0; sys_platform == 'linux'",
+    "torchvision==0.26.0+cpu; sys_platform == 'linux'",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3.2",
+]
+
+[tool.uv]
+package = true
+fork-strategy = "fewest"
+prerelease = "allow"
+environments = [
+    "sys_platform == 'linux'",
+]
+conflicts = [
+    [
+        { extra = "cpu" },
+        { extra = "tpu" },
+    ],
+]
+
+[[tool.uv.index]]
+name = "marin-resiliparse"
+url = "https://marin-community.github.io/chatnoir-resiliparse/simple"
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[tool.uv.sources]
+torch = [
+    { index = "pytorch-cpu", extra = "cpu" },
+    { index = "pytorch-cpu", extra = "tpu" },
+]
+torchvision = [
+    { index = "pytorch-cpu", extra = "cpu" },
+    { index = "pytorch-cpu", extra = "tpu" },
+]
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/exp517_functional_specialists"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

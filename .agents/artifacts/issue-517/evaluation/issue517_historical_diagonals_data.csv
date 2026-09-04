@@ -1,0 +1,185 @@
+experiment,experiment_title,model,arm,subset,value,se,n_groups,n_rows
+exp232,"#232 uniform grid / phyloP, full-window projection",exp232-v4_cds-step-4999,CDS,Missense,0.309471412647509,0.016867314700097627,580,5800
+exp232,"#232 uniform grid / phyloP, full-window projection",exp232-v4_cds-step-4999,CDS,Synonymous,0.2806377227160637,0.06050042971028789,46,460
+exp232,"#232 uniform grid / phyloP, full-window projection",exp232-v4_cds-step-4999,CDS,Splicing,0.39521747539758484,0.026443207137127334,319,3190
+exp232,"#232 uniform grid / phyloP, full-window projection",exp232-v4_cds-step-4999,CDS,3′ UTR,0.12474925266868922,0.02201387737122693,77,770
+exp232,"#232 uniform grid / phyloP, full-window projection",exp232-v4_cds-step-4999,CDS,ncRNA,0.11142821029871126,0.007674170409763633,115,1150
+exp232,"#232 uniform grid / phyloP, full-window projection",exp232-v4_cds-step-4999,CDS,5′ UTR,0.12463148227947352,0.011215271795244003,210,2100
+exp232,"#232 uniform grid / phyloP, full-window projection",exp232-v4_cds-step-4999,CDS,Promoter,0.09089744491021504,0.006027471020620604,205,2050
+exp232,"#232 uniform grid / phyloP, full-window projection",exp232-v4_cds-step-4999,CDS,Distal,0.11648595346085866,0.018955269234232526,58,580
+exp232,"#232 uniform grid / phyloP, full-window projection",exp232-v4_utr3-step-4999,3′ UTR,Missense,0.10724137271586967,0.006469001610507097,580,5800
+exp232,"#232 uniform grid / phyloP, full-window projection",exp232-v4_utr3-step-4999,3′ UTR,Synonymous,0.16574715941898477,0.037081752552559306,46,460
+exp232,"#232 uniform grid / phyloP, full-window projection",exp232-v4_utr3-step-4999,3′ UTR,Splicing,0.09353225063218328,0.004205308555885339,319,3190
+exp232,"#232 uniform grid / phyloP, full-window projection",exp232-v4_utr3-step-4999,3′ UTR,3′ UTR,0.21693305715369388,0.034839400996803965,77,770
+exp232,"#232 uniform grid / phyloP, full-window projection",exp232-v4_utr3-step-4999,3′ UTR,ncRNA,0.10864631924767432,0.008453690563375658,115,1150
+exp232,"#232 uniform grid / phyloP, full-window projection",exp232-v4_utr3-step-4999,3′ UTR,5′ UTR,0.1230945972686667,0.010426615251625342,210,2100
+exp232,"#232 uniform grid / phyloP, full-window projection",exp232-v4_utr3-step-4999,3′ UTR,Promoter,0.09429344285028057,0.00509453007171082,205,2050
+exp232,"#232 uniform grid / phyloP, full-window projection",exp232-v4_utr3-step-4999,3′ UTR,Distal,0.1219606510795807,0.02648772510788849,58,580
+exp232,"#232 uniform grid / phyloP, full-window projection",exp232-v4_ncrna_exon-step-4999,ncRNA exon,Missense,0.143558609268097,0.009011577436611755,580,5800
+exp232,"#232 uniform grid / phyloP, full-window projection",exp232-v4_ncrna_exon-step-4999,ncRNA exon,Synonymous,0.17636877658126687,0.03998931228052454,46,460
+exp232,"#232 uniform grid / phyloP, full-window projection",exp232-v4_ncrna_exon-step-4999,ncRNA exon,Splicing,0.1557180344984093,0.015327287403827366,319,3190
+exp232,"#232 uniform grid / phyloP, full-window projection",exp232-v4_ncrna_exon-step-4999,ncRNA exon,3′ UTR,0.12665328331840292,0.01957886340070032,77,770
+exp232,"#232 uniform grid / phyloP, full-window projection",exp232-v4_ncrna_exon-step-4999,ncRNA exon,ncRNA,0.36625702192830456,0.03772485935572401,115,1150
+exp232,"#232 uniform grid / phyloP, full-window projection",exp232-v4_ncrna_exon-step-4999,ncRNA exon,5′ UTR,0.20004714465152318,0.024841463174450473,210,2100
+exp232,"#232 uniform grid / phyloP, full-window projection",exp232-v4_ncrna_exon-step-4999,ncRNA exon,Promoter,0.09540359644530036,0.008501118907195123,205,2050
+exp232,"#232 uniform grid / phyloP, full-window projection",exp232-v4_ncrna_exon-step-4999,ncRNA exon,Distal,0.11698850737356542,0.020981548796352518,58,580
+exp232,"#232 uniform grid / phyloP, full-window projection",exp232-v4_tss_region_and_utr5-step-4999,TSS / 5′ UTR,Missense,0.1169979278098835,0.0065581205381606954,580,5800
+exp232,"#232 uniform grid / phyloP, full-window projection",exp232-v4_tss_region_and_utr5-step-4999,TSS / 5′ UTR,Synonymous,0.1483534923691927,0.0297191061651106,46,460
+exp232,"#232 uniform grid / phyloP, full-window projection",exp232-v4_tss_region_and_utr5-step-4999,TSS / 5′ UTR,Splicing,0.14620280542239444,0.014490653517845833,319,3190
+exp232,"#232 uniform grid / phyloP, full-window projection",exp232-v4_tss_region_and_utr5-step-4999,TSS / 5′ UTR,3′ UTR,0.10354707947838748,0.010364056993027037,77,770
+exp232,"#232 uniform grid / phyloP, full-window projection",exp232-v4_tss_region_and_utr5-step-4999,TSS / 5′ UTR,ncRNA,0.18251367859252315,0.02551299574777805,115,1150
+exp232,"#232 uniform grid / phyloP, full-window projection",exp232-v4_tss_region_and_utr5-step-4999,TSS / 5′ UTR,5′ UTR,0.2889543178907063,0.031647731796275995,210,2100
+exp232,"#232 uniform grid / phyloP, full-window projection",exp232-v4_tss_region_and_utr5-step-4999,TSS / 5′ UTR,Promoter,0.2587434707701904,0.02838811727241263,205,2050
+exp232,"#232 uniform grid / phyloP, full-window projection",exp232-v4_tss_region_and_utr5-step-4999,TSS / 5′ UTR,Distal,0.09546191149103903,0.011769626812366289,58,580
+exp232,"#232 uniform grid / phyloP, full-window projection",exp232-v4_ccre_non_promoter-step-4999,Enhancer,Missense,0.1358569315655924,0.009787773178651149,580,5800
+exp232,"#232 uniform grid / phyloP, full-window projection",exp232-v4_ccre_non_promoter-step-4999,Enhancer,Synonymous,0.17865434978635034,0.04237207793742014,46,460
+exp232,"#232 uniform grid / phyloP, full-window projection",exp232-v4_ccre_non_promoter-step-4999,Enhancer,Splicing,0.23800519686273566,0.020685944981628717,319,3190
+exp232,"#232 uniform grid / phyloP, full-window projection",exp232-v4_ccre_non_promoter-step-4999,Enhancer,3′ UTR,0.12151236710107317,0.01852515259917326,77,770
+exp232,"#232 uniform grid / phyloP, full-window projection",exp232-v4_ccre_non_promoter-step-4999,Enhancer,ncRNA,0.11580361478570246,0.00999218275460222,115,1150
+exp232,"#232 uniform grid / phyloP, full-window projection",exp232-v4_ccre_non_promoter-step-4999,Enhancer,5′ UTR,0.11662392074109272,0.01029308170858359,210,2100
+exp232,"#232 uniform grid / phyloP, full-window projection",exp232-v4_ccre_non_promoter-step-4999,Enhancer,Promoter,0.10350143651205054,0.009925849447578322,205,2050
+exp232,"#232 uniform grid / phyloP, full-window projection",exp232-v4_ccre_non_promoter-step-4999,Enhancer,Distal,0.12677764296173202,0.02544359451209384,58,580
+exp232,"#232 uniform grid / phyloP, full-window projection",exp232-v4_bg-step-4999,Background,Missense,0.10159925513342433,0.004531042519159017,580,5800
+exp232,"#232 uniform grid / phyloP, full-window projection",exp232-v4_bg-step-4999,Background,Synonymous,0.1329021442894704,0.03190372836196773,46,460
+exp232,"#232 uniform grid / phyloP, full-window projection",exp232-v4_bg-step-4999,Background,Splicing,0.09947862667615645,0.005759361766922428,319,3190
+exp232,"#232 uniform grid / phyloP, full-window projection",exp232-v4_bg-step-4999,Background,3′ UTR,0.12218612938120502,0.016301326161493455,77,770
+exp232,"#232 uniform grid / phyloP, full-window projection",exp232-v4_bg-step-4999,Background,ncRNA,0.10993967221236661,0.01066754630088288,115,1150
+exp232,"#232 uniform grid / phyloP, full-window projection",exp232-v4_bg-step-4999,Background,5′ UTR,0.11329961941342048,0.010009739040226426,210,2100
+exp232,"#232 uniform grid / phyloP, full-window projection",exp232-v4_bg-step-4999,Background,Promoter,0.0923068331897981,0.005023462970530853,205,2050
+exp232,"#232 uniform grid / phyloP, full-window projection",exp232-v4_bg-step-4999,Background,Distal,0.10235332430167896,0.01703820097187397,58,580
+annotation_first,"Earlier #517 annotation-first / phyloP, center-1 projection",exp517-cds-step-4999,CDS,Missense,0.3094347850990349,0.017720896305452854,580,5800
+annotation_first,"Earlier #517 annotation-first / phyloP, center-1 projection",exp517-cds-step-4999,CDS,Synonymous,0.15356598614700814,0.03846790685784338,46,460
+annotation_first,"Earlier #517 annotation-first / phyloP, center-1 projection",exp517-cds-step-4999,CDS,Splicing,0.25526153060256157,0.020016169351164133,319,3190
+annotation_first,"Earlier #517 annotation-first / phyloP, center-1 projection",exp517-cds-step-4999,CDS,3′ UTR,0.131910545942461,0.023861086243420985,77,770
+annotation_first,"Earlier #517 annotation-first / phyloP, center-1 projection",exp517-cds-step-4999,CDS,ncRNA,0.10609234918248964,0.009217081313969115,115,1150
+annotation_first,"Earlier #517 annotation-first / phyloP, center-1 projection",exp517-cds-step-4999,CDS,5′ UTR,0.11504764086433722,0.011256172907698803,210,2100
+annotation_first,"Earlier #517 annotation-first / phyloP, center-1 projection",exp517-cds-step-4999,CDS,Promoter,0.09305566520247034,0.0058265630579968026,205,2050
+annotation_first,"Earlier #517 annotation-first / phyloP, center-1 projection",exp517-cds-step-4999,CDS,Distal,0.11057226430096234,0.01894618999911339,58,580
+annotation_first,"Earlier #517 annotation-first / phyloP, center-1 projection",exp517-utr3-step-4999,3′ UTR,Missense,0.1051592135584965,0.0056484775142388866,580,5800
+annotation_first,"Earlier #517 annotation-first / phyloP, center-1 projection",exp517-utr3-step-4999,3′ UTR,Synonymous,0.1334450418179517,0.02575099904967314,46,460
+annotation_first,"Earlier #517 annotation-first / phyloP, center-1 projection",exp517-utr3-step-4999,3′ UTR,Splicing,0.09844510327866433,0.005486762017752935,319,3190
+annotation_first,"Earlier #517 annotation-first / phyloP, center-1 projection",exp517-utr3-step-4999,3′ UTR,3′ UTR,0.15698668582646225,0.025668846003042013,77,770
+annotation_first,"Earlier #517 annotation-first / phyloP, center-1 projection",exp517-utr3-step-4999,3′ UTR,ncRNA,0.1027765820980873,0.008004131572239127,115,1150
+annotation_first,"Earlier #517 annotation-first / phyloP, center-1 projection",exp517-utr3-step-4999,3′ UTR,5′ UTR,0.09930592197475785,0.008273698384824271,210,2100
+annotation_first,"Earlier #517 annotation-first / phyloP, center-1 projection",exp517-utr3-step-4999,3′ UTR,Promoter,0.09571929998138905,0.005483516521331417,205,2050
+annotation_first,"Earlier #517 annotation-first / phyloP, center-1 projection",exp517-utr3-step-4999,3′ UTR,Distal,0.11552048974883725,0.023287084707042483,58,580
+annotation_first,"Earlier #517 annotation-first / phyloP, center-1 projection",exp517-ncrna-step-4999,ncRNA exon,Missense,0.10920776817213433,0.005326198742450238,580,5800
+annotation_first,"Earlier #517 annotation-first / phyloP, center-1 projection",exp517-ncrna-step-4999,ncRNA exon,Synonymous,0.12621375273754107,0.02554851407640707,46,460
+annotation_first,"Earlier #517 annotation-first / phyloP, center-1 projection",exp517-ncrna-step-4999,ncRNA exon,Splicing,0.10168960457050213,0.004916044816122638,319,3190
+annotation_first,"Earlier #517 annotation-first / phyloP, center-1 projection",exp517-ncrna-step-4999,ncRNA exon,3′ UTR,0.1270878230225529,0.0188813173754651,77,770
+annotation_first,"Earlier #517 annotation-first / phyloP, center-1 projection",exp517-ncrna-step-4999,ncRNA exon,ncRNA,0.5516023145830482,0.04059972624927833,115,1150
+annotation_first,"Earlier #517 annotation-first / phyloP, center-1 projection",exp517-ncrna-step-4999,ncRNA exon,5′ UTR,0.2683082523858469,0.029322684984104442,210,2100
+annotation_first,"Earlier #517 annotation-first / phyloP, center-1 projection",exp517-ncrna-step-4999,ncRNA exon,Promoter,0.09892184177405206,0.009296192409102942,205,2050
+annotation_first,"Earlier #517 annotation-first / phyloP, center-1 projection",exp517-ncrna-step-4999,ncRNA exon,Distal,0.10304857266734506,0.014783600863800777,58,580
+annotation_first,"Earlier #517 annotation-first / phyloP, center-1 projection",exp517-tss_region-step-4999,TSS / 5′ UTR,Missense,0.10790240075704366,0.005540671895110187,580,5800
+annotation_first,"Earlier #517 annotation-first / phyloP, center-1 projection",exp517-tss_region-step-4999,TSS / 5′ UTR,Synonymous,0.12578071050531067,0.02719859447355848,46,460
+annotation_first,"Earlier #517 annotation-first / phyloP, center-1 projection",exp517-tss_region-step-4999,TSS / 5′ UTR,Splicing,0.11357693614332418,0.00993718108518037,319,3190
+annotation_first,"Earlier #517 annotation-first / phyloP, center-1 projection",exp517-tss_region-step-4999,TSS / 5′ UTR,3′ UTR,0.11268120004558284,0.015977336974664524,77,770
+annotation_first,"Earlier #517 annotation-first / phyloP, center-1 projection",exp517-tss_region-step-4999,TSS / 5′ UTR,ncRNA,0.18491874000864456,0.024587826423889438,115,1150
+annotation_first,"Earlier #517 annotation-first / phyloP, center-1 projection",exp517-tss_region-step-4999,TSS / 5′ UTR,5′ UTR,0.1891211556284378,0.020173686892400965,210,2100
+annotation_first,"Earlier #517 annotation-first / phyloP, center-1 projection",exp517-tss_region-step-4999,TSS / 5′ UTR,Promoter,0.23470575685613895,0.02447538157394839,205,2050
+annotation_first,"Earlier #517 annotation-first / phyloP, center-1 projection",exp517-tss_region-step-4999,TSS / 5′ UTR,Distal,0.09641003551371612,0.016808474325527775,58,580
+annotation_first,"Earlier #517 annotation-first / phyloP, center-1 projection",exp517-enhancer-step-4999,Enhancer,Missense,0.10072952734158853,0.003976543784599775,580,5800
+annotation_first,"Earlier #517 annotation-first / phyloP, center-1 projection",exp517-enhancer-step-4999,Enhancer,Synonymous,0.17611601034429092,0.040871960015854455,46,460
+annotation_first,"Earlier #517 annotation-first / phyloP, center-1 projection",exp517-enhancer-step-4999,Enhancer,Splicing,0.09308406261033662,0.004514028755882987,319,3190
+annotation_first,"Earlier #517 annotation-first / phyloP, center-1 projection",exp517-enhancer-step-4999,Enhancer,3′ UTR,0.10569201605738063,0.009193235196547953,77,770
+annotation_first,"Earlier #517 annotation-first / phyloP, center-1 projection",exp517-enhancer-step-4999,Enhancer,ncRNA,0.11942078141466271,0.011578774556338756,115,1150
+annotation_first,"Earlier #517 annotation-first / phyloP, center-1 projection",exp517-enhancer-step-4999,Enhancer,5′ UTR,0.11368356002233168,0.009294734466888683,210,2100
+annotation_first,"Earlier #517 annotation-first / phyloP, center-1 projection",exp517-enhancer-step-4999,Enhancer,Promoter,0.09123286628341101,0.004546021854407794,205,2050
+annotation_first,"Earlier #517 annotation-first / phyloP, center-1 projection",exp517-enhancer-step-4999,Enhancer,Distal,0.3226898250028363,0.055261174678213155,58,580
+gpn_uniform,"#517 uniform grid / GPN-Star-P, center-1 projection",exp517-gpn-uniform-cds-step-4999,CDS,Missense,0.3389220647299777,0.017341192580630094,580,5800
+gpn_uniform,"#517 uniform grid / GPN-Star-P, center-1 projection",exp517-gpn-uniform-cds-step-4999,CDS,Synonymous,0.29904825076110786,0.06086204860965411,46,460
+gpn_uniform,"#517 uniform grid / GPN-Star-P, center-1 projection",exp517-gpn-uniform-cds-step-4999,CDS,Splicing,0.4003697103489335,0.027567778762089573,319,3190
+gpn_uniform,"#517 uniform grid / GPN-Star-P, center-1 projection",exp517-gpn-uniform-cds-step-4999,CDS,3′ UTR,0.12152403672319247,0.019344406335700656,77,770
+gpn_uniform,"#517 uniform grid / GPN-Star-P, center-1 projection",exp517-gpn-uniform-cds-step-4999,CDS,ncRNA,0.10166658420923891,0.006988043698161386,115,1150
+gpn_uniform,"#517 uniform grid / GPN-Star-P, center-1 projection",exp517-gpn-uniform-cds-step-4999,CDS,5′ UTR,0.111530408553803,0.008448813609787206,210,2100
+gpn_uniform,"#517 uniform grid / GPN-Star-P, center-1 projection",exp517-gpn-uniform-cds-step-4999,CDS,Promoter,0.09453671040389039,0.005244151826237719,205,2050
+gpn_uniform,"#517 uniform grid / GPN-Star-P, center-1 projection",exp517-gpn-uniform-cds-step-4999,CDS,Distal,0.11586678120000762,0.0231508929717456,58,580
+gpn_uniform,"#517 uniform grid / GPN-Star-P, center-1 projection",exp517-gpn-uniform-utr3-step-4999,3′ UTR,Missense,0.10535437816779862,0.00539150716283925,580,5800
+gpn_uniform,"#517 uniform grid / GPN-Star-P, center-1 projection",exp517-gpn-uniform-utr3-step-4999,3′ UTR,Synonymous,0.1456187658541978,0.03262862331197418,46,460
+gpn_uniform,"#517 uniform grid / GPN-Star-P, center-1 projection",exp517-gpn-uniform-utr3-step-4999,3′ UTR,Splicing,0.09254438026738249,0.004238136525447415,319,3190
+gpn_uniform,"#517 uniform grid / GPN-Star-P, center-1 projection",exp517-gpn-uniform-utr3-step-4999,3′ UTR,3′ UTR,0.18517057438088494,0.03540853907785126,77,770
+gpn_uniform,"#517 uniform grid / GPN-Star-P, center-1 projection",exp517-gpn-uniform-utr3-step-4999,3′ UTR,ncRNA,0.1062579962210563,0.008038584979198689,115,1150
+gpn_uniform,"#517 uniform grid / GPN-Star-P, center-1 projection",exp517-gpn-uniform-utr3-step-4999,3′ UTR,5′ UTR,0.12090436134828862,0.010186374191850032,210,2100
+gpn_uniform,"#517 uniform grid / GPN-Star-P, center-1 projection",exp517-gpn-uniform-utr3-step-4999,3′ UTR,Promoter,0.09203800554469391,0.00438429280843792,205,2050
+gpn_uniform,"#517 uniform grid / GPN-Star-P, center-1 projection",exp517-gpn-uniform-utr3-step-4999,3′ UTR,Distal,0.11630996908639193,0.02597839727033629,58,580
+gpn_uniform,"#517 uniform grid / GPN-Star-P, center-1 projection",exp517-gpn-uniform-ncrna-exon-step-4999,ncRNA exon,Missense,0.1438147290833408,0.009390958471394893,580,5800
+gpn_uniform,"#517 uniform grid / GPN-Star-P, center-1 projection",exp517-gpn-uniform-ncrna-exon-step-4999,ncRNA exon,Synonymous,0.19696472991166325,0.044274263135978945,46,460
+gpn_uniform,"#517 uniform grid / GPN-Star-P, center-1 projection",exp517-gpn-uniform-ncrna-exon-step-4999,ncRNA exon,Splicing,0.163653758478137,0.016191387857233095,319,3190
+gpn_uniform,"#517 uniform grid / GPN-Star-P, center-1 projection",exp517-gpn-uniform-ncrna-exon-step-4999,ncRNA exon,3′ UTR,0.11131998731038653,0.012763395083271829,77,770
+gpn_uniform,"#517 uniform grid / GPN-Star-P, center-1 projection",exp517-gpn-uniform-ncrna-exon-step-4999,ncRNA exon,ncRNA,0.38378013175067066,0.03497200974897518,115,1150
+gpn_uniform,"#517 uniform grid / GPN-Star-P, center-1 projection",exp517-gpn-uniform-ncrna-exon-step-4999,ncRNA exon,5′ UTR,0.10707940525113994,0.007010283376530366,210,2100
+gpn_uniform,"#517 uniform grid / GPN-Star-P, center-1 projection",exp517-gpn-uniform-ncrna-exon-step-4999,ncRNA exon,Promoter,0.10070371154205641,0.008763285871813516,205,2050
+gpn_uniform,"#517 uniform grid / GPN-Star-P, center-1 projection",exp517-gpn-uniform-ncrna-exon-step-4999,ncRNA exon,Distal,0.13764361397292085,0.03323594246397052,58,580
+gpn_uniform,"#517 uniform grid / GPN-Star-P, center-1 projection",exp517-gpn-uniform-tss-utr5-step-4999,TSS / 5′ UTR,Missense,0.12700672784853498,0.007799968407037526,580,5800
+gpn_uniform,"#517 uniform grid / GPN-Star-P, center-1 projection",exp517-gpn-uniform-tss-utr5-step-4999,TSS / 5′ UTR,Synonymous,0.16127836958991865,0.03455128351975312,46,460
+gpn_uniform,"#517 uniform grid / GPN-Star-P, center-1 projection",exp517-gpn-uniform-tss-utr5-step-4999,TSS / 5′ UTR,Splicing,0.15652729039739097,0.014502898762595423,319,3190
+gpn_uniform,"#517 uniform grid / GPN-Star-P, center-1 projection",exp517-gpn-uniform-tss-utr5-step-4999,TSS / 5′ UTR,3′ UTR,0.12034561859847975,0.015129967447418229,77,770
+gpn_uniform,"#517 uniform grid / GPN-Star-P, center-1 projection",exp517-gpn-uniform-tss-utr5-step-4999,TSS / 5′ UTR,ncRNA,0.1763831500194129,0.024160783924393733,115,1150
+gpn_uniform,"#517 uniform grid / GPN-Star-P, center-1 projection",exp517-gpn-uniform-tss-utr5-step-4999,TSS / 5′ UTR,5′ UTR,0.24923867252836504,0.023098863568063472,210,2100
+gpn_uniform,"#517 uniform grid / GPN-Star-P, center-1 projection",exp517-gpn-uniform-tss-utr5-step-4999,TSS / 5′ UTR,Promoter,0.2600475124181255,0.02671652055106651,205,2050
+gpn_uniform,"#517 uniform grid / GPN-Star-P, center-1 projection",exp517-gpn-uniform-tss-utr5-step-4999,TSS / 5′ UTR,Distal,0.11771707430025505,0.028114112526563075,58,580
+gpn_uniform,"#517 uniform grid / GPN-Star-P, center-1 projection",exp517-gpn-uniform-enhancer-arm-a-step-4999,Enhancer,Missense,0.1009163861778,0.004021895732452996,580,5800
+gpn_uniform,"#517 uniform grid / GPN-Star-P, center-1 projection",exp517-gpn-uniform-enhancer-arm-a-step-4999,Enhancer,Synonymous,0.13189949352742414,0.023071221803008437,46,460
+gpn_uniform,"#517 uniform grid / GPN-Star-P, center-1 projection",exp517-gpn-uniform-enhancer-arm-a-step-4999,Enhancer,Splicing,0.09264156253916683,0.004933077953653399,319,3190
+gpn_uniform,"#517 uniform grid / GPN-Star-P, center-1 projection",exp517-gpn-uniform-enhancer-arm-a-step-4999,Enhancer,3′ UTR,0.10563879003478731,0.010103222965880522,77,770
+gpn_uniform,"#517 uniform grid / GPN-Star-P, center-1 projection",exp517-gpn-uniform-enhancer-arm-a-step-4999,Enhancer,ncRNA,0.10966648375487986,0.007739293743901934,115,1150
+gpn_uniform,"#517 uniform grid / GPN-Star-P, center-1 projection",exp517-gpn-uniform-enhancer-arm-a-step-4999,Enhancer,5′ UTR,0.11291522497219915,0.009454458037573407,210,2100
+gpn_uniform,"#517 uniform grid / GPN-Star-P, center-1 projection",exp517-gpn-uniform-enhancer-arm-a-step-4999,Enhancer,Promoter,0.10010828306957045,0.007695313520616652,205,2050
+gpn_uniform,"#517 uniform grid / GPN-Star-P, center-1 projection",exp517-gpn-uniform-enhancer-arm-a-step-4999,Enhancer,Distal,0.11891454986765719,0.01813306268890533,58,580
+gpn_uniform,"#517 uniform grid / GPN-Star-P, center-1 projection",exp517-gpn-uniform-background-step-4999,Background,Missense,0.1389930987895761,0.010471938725530197,580,5800
+gpn_uniform,"#517 uniform grid / GPN-Star-P, center-1 projection",exp517-gpn-uniform-background-step-4999,Background,Synonymous,0.13700256172424502,0.029300169855293275,46,460
+gpn_uniform,"#517 uniform grid / GPN-Star-P, center-1 projection",exp517-gpn-uniform-background-step-4999,Background,Splicing,0.24445971419207146,0.02165812536273857,319,3190
+gpn_uniform,"#517 uniform grid / GPN-Star-P, center-1 projection",exp517-gpn-uniform-background-step-4999,Background,3′ UTR,0.10207063141870143,0.011099714478835152,77,770
+gpn_uniform,"#517 uniform grid / GPN-Star-P, center-1 projection",exp517-gpn-uniform-background-step-4999,Background,ncRNA,0.11318086518859088,0.00897866964414727,115,1150
+gpn_uniform,"#517 uniform grid / GPN-Star-P, center-1 projection",exp517-gpn-uniform-background-step-4999,Background,5′ UTR,0.1087534493616247,0.00875478781608877,210,2100
+gpn_uniform,"#517 uniform grid / GPN-Star-P, center-1 projection",exp517-gpn-uniform-background-step-4999,Background,Promoter,0.09857481613983257,0.0067829454738173945,205,2050
+gpn_uniform,"#517 uniform grid / GPN-Star-P, center-1 projection",exp517-gpn-uniform-background-step-4999,Background,Distal,0.12021799189413862,0.02297361830501037,58,580
+phylop_uniform,"#517 uniform grid / phyloP, center-1 projection",exp517-phylop-uniform-cds-step-4999,CDS,Missense,0.33185172047328365,0.017587146430101088,580,5800
+phylop_uniform,"#517 uniform grid / phyloP, center-1 projection",exp517-phylop-uniform-cds-step-4999,CDS,Synonymous,0.2965874743007192,0.0601801176692816,46,460
+phylop_uniform,"#517 uniform grid / phyloP, center-1 projection",exp517-phylop-uniform-cds-step-4999,CDS,Splicing,0.37153828149683066,0.026457316223863582,319,3190
+phylop_uniform,"#517 uniform grid / phyloP, center-1 projection",exp517-phylop-uniform-cds-step-4999,CDS,3′ UTR,0.12747067882576868,0.022777441922899416,77,770
+phylop_uniform,"#517 uniform grid / phyloP, center-1 projection",exp517-phylop-uniform-cds-step-4999,CDS,ncRNA,0.1024686927308536,0.006613670258477217,115,1150
+phylop_uniform,"#517 uniform grid / phyloP, center-1 projection",exp517-phylop-uniform-cds-step-4999,CDS,5′ UTR,0.10946296598982701,0.008237024053689103,210,2100
+phylop_uniform,"#517 uniform grid / phyloP, center-1 projection",exp517-phylop-uniform-cds-step-4999,CDS,Promoter,0.09430480524440484,0.005297218388890673,205,2050
+phylop_uniform,"#517 uniform grid / phyloP, center-1 projection",exp517-phylop-uniform-cds-step-4999,CDS,Distal,0.11478908201750261,0.01759097827912399,58,580
+phylop_uniform,"#517 uniform grid / phyloP, center-1 projection",exp517-phylop-uniform-utr3-step-4999,3′ UTR,Missense,0.11147251525092369,0.006732876088042404,580,5800
+phylop_uniform,"#517 uniform grid / phyloP, center-1 projection",exp517-phylop-uniform-utr3-step-4999,3′ UTR,Synonymous,0.12434725071355485,0.02750203512523031,46,460
+phylop_uniform,"#517 uniform grid / phyloP, center-1 projection",exp517-phylop-uniform-utr3-step-4999,3′ UTR,Splicing,0.09965200477289567,0.005297919923167096,319,3190
+phylop_uniform,"#517 uniform grid / phyloP, center-1 projection",exp517-phylop-uniform-utr3-step-4999,3′ UTR,3′ UTR,0.20277598793353413,0.03374094095527937,77,770
+phylop_uniform,"#517 uniform grid / phyloP, center-1 projection",exp517-phylop-uniform-utr3-step-4999,3′ UTR,ncRNA,0.10512130962629282,0.009992878930495172,115,1150
+phylop_uniform,"#517 uniform grid / phyloP, center-1 projection",exp517-phylop-uniform-utr3-step-4999,3′ UTR,5′ UTR,0.12167020033366414,0.009816686328466395,210,2100
+phylop_uniform,"#517 uniform grid / phyloP, center-1 projection",exp517-phylop-uniform-utr3-step-4999,3′ UTR,Promoter,0.0915240765177257,0.006227776319955342,205,2050
+phylop_uniform,"#517 uniform grid / phyloP, center-1 projection",exp517-phylop-uniform-utr3-step-4999,3′ UTR,Distal,0.12239560111175043,0.023437547397736767,58,580
+phylop_uniform,"#517 uniform grid / phyloP, center-1 projection",exp517-phylop-uniform-ncrna-exon-step-4999,ncRNA exon,Missense,0.15785043773298513,0.011493101952309688,580,5800
+phylop_uniform,"#517 uniform grid / phyloP, center-1 projection",exp517-phylop-uniform-ncrna-exon-step-4999,ncRNA exon,Synonymous,0.15706715096016477,0.03303966882678322,46,460
+phylop_uniform,"#517 uniform grid / phyloP, center-1 projection",exp517-phylop-uniform-ncrna-exon-step-4999,ncRNA exon,Splicing,0.2061473533666246,0.019249662308713247,319,3190
+phylop_uniform,"#517 uniform grid / phyloP, center-1 projection",exp517-phylop-uniform-ncrna-exon-step-4999,ncRNA exon,3′ UTR,0.11496648419725847,0.020945047974061496,77,770
+phylop_uniform,"#517 uniform grid / phyloP, center-1 projection",exp517-phylop-uniform-ncrna-exon-step-4999,ncRNA exon,ncRNA,0.3305311832690447,0.03494327042342853,115,1150
+phylop_uniform,"#517 uniform grid / phyloP, center-1 projection",exp517-phylop-uniform-ncrna-exon-step-4999,ncRNA exon,5′ UTR,0.12243477824609153,0.008776205293990244,210,2100
+phylop_uniform,"#517 uniform grid / phyloP, center-1 projection",exp517-phylop-uniform-ncrna-exon-step-4999,ncRNA exon,Promoter,0.10666996596011691,0.01029038754576844,205,2050
+phylop_uniform,"#517 uniform grid / phyloP, center-1 projection",exp517-phylop-uniform-ncrna-exon-step-4999,ncRNA exon,Distal,0.10814258141502138,0.01628759641292715,58,580
+phylop_uniform,"#517 uniform grid / phyloP, center-1 projection",exp517-phylop-uniform-tss-utr5-step-4999,TSS / 5′ UTR,Missense,0.12003451764560405,0.0073973700000562375,580,5800
+phylop_uniform,"#517 uniform grid / phyloP, center-1 projection",exp517-phylop-uniform-tss-utr5-step-4999,TSS / 5′ UTR,Synonymous,0.16856754431993556,0.034204066479866756,46,460
+phylop_uniform,"#517 uniform grid / phyloP, center-1 projection",exp517-phylop-uniform-tss-utr5-step-4999,TSS / 5′ UTR,Splicing,0.15481817064688927,0.014426868959271191,319,3190
+phylop_uniform,"#517 uniform grid / phyloP, center-1 projection",exp517-phylop-uniform-tss-utr5-step-4999,TSS / 5′ UTR,3′ UTR,0.1341286763518754,0.024093577274370975,77,770
+phylop_uniform,"#517 uniform grid / phyloP, center-1 projection",exp517-phylop-uniform-tss-utr5-step-4999,TSS / 5′ UTR,ncRNA,0.18545375354905388,0.024547509333390494,115,1150
+phylop_uniform,"#517 uniform grid / phyloP, center-1 projection",exp517-phylop-uniform-tss-utr5-step-4999,TSS / 5′ UTR,5′ UTR,0.27154123185963713,0.029945271177774475,210,2100
+phylop_uniform,"#517 uniform grid / phyloP, center-1 projection",exp517-phylop-uniform-tss-utr5-step-4999,TSS / 5′ UTR,Promoter,0.24042545472007668,0.026561269064575004,205,2050
+phylop_uniform,"#517 uniform grid / phyloP, center-1 projection",exp517-phylop-uniform-tss-utr5-step-4999,TSS / 5′ UTR,Distal,0.10325713105436446,0.01944438483724982,58,580
+phylop_uniform,"#517 uniform grid / phyloP, center-1 projection",exp517-phylop-uniform-enhancer-arm-a-step-4999,Enhancer,Missense,0.10253456956590304,0.004165246227094462,580,5800
+phylop_uniform,"#517 uniform grid / phyloP, center-1 projection",exp517-phylop-uniform-enhancer-arm-a-step-4999,Enhancer,Synonymous,0.15906571773593342,0.03469481919009084,46,460
+phylop_uniform,"#517 uniform grid / phyloP, center-1 projection",exp517-phylop-uniform-enhancer-arm-a-step-4999,Enhancer,Splicing,0.0939999756777607,0.005307400251739743,319,3190
+phylop_uniform,"#517 uniform grid / phyloP, center-1 projection",exp517-phylop-uniform-enhancer-arm-a-step-4999,Enhancer,3′ UTR,0.10744842677911062,0.012740268348147808,77,770
+phylop_uniform,"#517 uniform grid / phyloP, center-1 projection",exp517-phylop-uniform-enhancer-arm-a-step-4999,Enhancer,ncRNA,0.1077236779166419,0.007682188023253832,115,1150
+phylop_uniform,"#517 uniform grid / phyloP, center-1 projection",exp517-phylop-uniform-enhancer-arm-a-step-4999,Enhancer,5′ UTR,0.11210157993249711,0.010540498190082933,210,2100
+phylop_uniform,"#517 uniform grid / phyloP, center-1 projection",exp517-phylop-uniform-enhancer-arm-a-step-4999,Enhancer,Promoter,0.09712136303938018,0.006117126378068217,205,2050
+phylop_uniform,"#517 uniform grid / phyloP, center-1 projection",exp517-phylop-uniform-enhancer-arm-a-step-4999,Enhancer,Distal,0.1349837052113969,0.021589578207611215,58,580
+phylop_uniform,"#517 uniform grid / phyloP, center-1 projection",exp517-phylop-uniform-background-step-4999,Background,Missense,0.14212135258403552,0.01088761391768303,580,5800
+phylop_uniform,"#517 uniform grid / phyloP, center-1 projection",exp517-phylop-uniform-background-step-4999,Background,Synonymous,0.17608729484843771,0.04339232166287819,46,460
+phylop_uniform,"#517 uniform grid / phyloP, center-1 projection",exp517-phylop-uniform-background-step-4999,Background,Splicing,0.2302257626306407,0.020765832680652206,319,3190
+phylop_uniform,"#517 uniform grid / phyloP, center-1 projection",exp517-phylop-uniform-background-step-4999,Background,3′ UTR,0.13513921073948912,0.02151146679777135,77,770
+phylop_uniform,"#517 uniform grid / phyloP, center-1 projection",exp517-phylop-uniform-background-step-4999,Background,ncRNA,0.11732792123310559,0.012262429568091456,115,1150
+phylop_uniform,"#517 uniform grid / phyloP, center-1 projection",exp517-phylop-uniform-background-step-4999,Background,5′ UTR,0.1156654522884508,0.0106282395924879,210,2100
+phylop_uniform,"#517 uniform grid / phyloP, center-1 projection",exp517-phylop-uniform-background-step-4999,Background,Promoter,0.09083408302184812,0.005494395051641555,205,2050
+phylop_uniform,"#517 uniform grid / phyloP, center-1 projection",exp517-phylop-uniform-background-step-4999,Background,Distal,0.11387077532703718,0.020520048405237985,58,580

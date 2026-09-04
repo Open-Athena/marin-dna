@@ -1,0 +1,41 @@
+[project]
+name = "exp517-functional-specialists-h100-smoke"
+version = "0.1.0"
+description = "GPU-only launch environment for the issue 517 single-H100 smoke"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "exp517-functional-specialists",
+]
+
+[project.optional-dependencies]
+gpu = [
+    "marin-core[gpu] @ git+https://github.com/marin-community/marin.git@53b5b33041f742c7f4991223b0085e41ece4c458#subdirectory=lib/marin",
+    "torch==2.11.0; sys_platform == 'linux'",
+    "torchvision==0.26.0; sys_platform == 'linux'",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3.2",
+]
+
+[tool.uv]
+package = false
+prerelease = "allow"
+environments = [
+    "sys_platform == 'linux'",
+]
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
+
+[tool.uv.sources]
+exp517-functional-specialists = { path = "..", editable = true }
+torch = [
+    { index = "pytorch-cu128", extra = "gpu", marker = "sys_platform == 'linux'" },
+]
+torchvision = [
+    { index = "pytorch-cu128", extra = "gpu", marker = "sys_platform == 'linux'" },
+]

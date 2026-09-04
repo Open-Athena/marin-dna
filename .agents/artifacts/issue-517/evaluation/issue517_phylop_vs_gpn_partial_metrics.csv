@@ -1,0 +1,29 @@
+model_prefix,arm,arm_slug,dataset,subset,score_type,auprc,se,n_groups,n_rows
+exp517-phylop-uniform,CDS,cds,mendelian_traits,missense_variant,minus_llr_avg,0.33185172047328365,0.017587146430101088,580,5800
+exp517-phylop-uniform,CDS,cds,mendelian_traits,splicing,minus_llr_avg,0.37153828149683066,0.026457316223863582,319,3190
+exp517-phylop-uniform,CDS,cds,mendelian_traits,synonymous_variant,minus_llr_avg,0.2965874743007192,0.0601801176692816,46,460
+exp517-phylop-uniform,CDS,cds,complex_traits,missense_variant,abs_llr_avg,0.16894156063520427,0.014638691924683851,250,2500
+exp517-phylop-uniform,CDS,cds,sge,missense_variant,minus_llr_avg,0.27433107361353837,0.008251012201374601,8,3007
+exp517-phylop-uniform,CDS,cds,sge,splicing,minus_llr_avg,0.48500230664907223,0.022946082453395997,6,494
+exp517-phylop-uniform,3-prime UTR,utr3,mendelian_traits,3_prime_UTR_variant,minus_llr_avg,0.20277598793353413,0.03374094095527937,77,770
+exp517-phylop-uniform,3-prime UTR,utr3,complex_traits,3_prime_UTR_variant,abs_llr_avg,0.167086665809872,0.04365358873663093,49,490
+exp517-phylop-uniform,TSS / 5-prime UTR,tss-utr5,mendelian_traits,5_prime_UTR_variant,minus_llr_avg,0.27154123185963713,0.029945271177774475,210,2100
+exp517-phylop-uniform,TSS / 5-prime UTR,tss-utr5,mendelian_traits,tss_proximal,minus_llr_avg,0.24042545472007668,0.026561269064575004,205,2050
+exp517-phylop-uniform,TSS / 5-prime UTR,tss-utr5,complex_traits,5_prime_UTR_variant,abs_llr_avg,0.24879155443273304,0.058926976660562076,37,370
+exp517-phylop-uniform,TSS / 5-prime UTR,tss-utr5,complex_traits,tss_proximal,abs_llr_avg,0.14152307532901898,0.021372158803475358,138,1380
+exp517-phylop-uniform,Enhancer A,enhancer-arm-a,mendelian_traits,distal,minus_llr_avg,0.1349837052113969,0.021589578207611215,58,580
+exp517-phylop-uniform,Enhancer A,enhancer-arm-a,complex_traits,distal,abs_llr_avg,0.10931998214407616,0.006018036315386542,616,6160
+exp517-gpn-uniform,CDS,cds,mendelian_traits,missense_variant,minus_llr_avg,0.3389220647299777,0.017341192580630094,580,5800
+exp517-gpn-uniform,CDS,cds,mendelian_traits,splicing,minus_llr_avg,0.4003697103489335,0.027567778762089573,319,3190
+exp517-gpn-uniform,CDS,cds,mendelian_traits,synonymous_variant,minus_llr_avg,0.29904825076110786,0.06086204860965411,46,460
+exp517-gpn-uniform,CDS,cds,complex_traits,missense_variant,abs_llr_avg,0.15906413621055931,0.014822355951278381,250,2500
+exp517-gpn-uniform,CDS,cds,sge,missense_variant,minus_llr_avg,0.2641268757879291,0.007689391490118211,8,3007
+exp517-gpn-uniform,CDS,cds,sge,splicing,minus_llr_avg,0.453918400395537,0.021288646051617528,6,494
+exp517-gpn-uniform,3-prime UTR,utr3,mendelian_traits,3_prime_UTR_variant,minus_llr_avg,0.18517057438088494,0.03540853907785126,77,770
+exp517-gpn-uniform,3-prime UTR,utr3,complex_traits,3_prime_UTR_variant,abs_llr_avg,0.19547893289403176,0.058108005524985025,49,490
+exp517-gpn-uniform,TSS / 5-prime UTR,tss-utr5,mendelian_traits,5_prime_UTR_variant,minus_llr_avg,0.24923867252836504,0.023098863568063472,210,2100
+exp517-gpn-uniform,TSS / 5-prime UTR,tss-utr5,mendelian_traits,tss_proximal,minus_llr_avg,0.2600475124181255,0.02671652055106651,205,2050
+exp517-gpn-uniform,TSS / 5-prime UTR,tss-utr5,complex_traits,5_prime_UTR_variant,abs_llr_avg,0.25081198115884357,0.0639128048131909,37,370
+exp517-gpn-uniform,TSS / 5-prime UTR,tss-utr5,complex_traits,tss_proximal,abs_llr_avg,0.14855847950795809,0.022057278498253247,138,1380
+exp517-gpn-uniform,Enhancer A,enhancer-arm-a,mendelian_traits,distal,minus_llr_avg,0.11891454986765719,0.01813306268890533,58,580
+exp517-gpn-uniform,Enhancer A,enhancer-arm-a,complex_traits,distal,abs_llr_avg,0.1035433115305115,0.005406535685335567,616,6160

@@ -119,6 +119,35 @@ def test_validate_artifacts_reconciles_rows_and_rejects_sidecars(
         )
 
 
+def test_validate_artifacts_accepts_explicit_staged_source_paths(
+    tmp_path: Path,
+) -> None:
+    artifact_dir, source_dir, config_path = _fixture(tmp_path)
+    source_names = [
+        "train.parquet",
+        "validation.parquet",
+        "validation_selection.tsv",
+        "validation_composition.tsv",
+        "split_summary.json",
+    ]
+
+    manifest = publication.validate_artifacts(
+        artifact_dir,
+        tmp_path / "absent-logical-source-root",
+        tmp_path / "manifest.json",
+        config_path=config_path,
+        pipeline_commit=PIPELINE_COMMIT,
+        config_sha256=CONFIG_SHA256,
+        source_artifacts={
+            "all": {name: source_dir / "all" / name for name in source_names}
+        },
+        workers=1,
+    )
+
+    assert manifest["cohorts"]["all"]["splits"]["train"]["rows"] == 5
+    assert manifest["cohorts"]["all"]["splits"]["validation"]["rows"] == 2
+
+
 def test_validate_artifacts_rejects_tampered_composition(tmp_path: Path) -> None:
     artifact_dir, source_dir, config_path = _fixture(tmp_path)
     composition_path = source_dir / "all/validation_composition.tsv"

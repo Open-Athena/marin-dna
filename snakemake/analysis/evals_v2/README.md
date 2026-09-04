@@ -36,7 +36,8 @@ Outputs land in S3 at `s3://oa-bolinas/snakemake/analysis/evals_v2/results/`:
 results/
 ├── checkpoints/{model}/                         # cached HF model dir
 ├── scores/{model}/{dataset}.parquet             # variant cols + score atoms + emb_ref/emb_alt
-└── metrics/{model}/{dataset}.parquet            # AUPRC rows enriched with Group SMD columns
+├── metrics/{model}/{dataset}.parquet            # AUPRC rows enriched with Group SMD columns
+└── analysis/home_rank_{trajectory,persistence}.parquet  # optional paired specialist analysis
 ```
 
 The metrics parquet retains `[score_type, subset, value, se, n_groups, n_rows, model, dataset, split]` and appends the `group_smd_*` columns described below.
@@ -74,6 +75,18 @@ One match-group draw matrix is reused across score columns within each direct sc
 No grouped-only score path, metrics path, or bootstrap sidecar is produced.
 Legacy metrics parquets without the appended columns remain valid AUPRC-only artifacts and are not backfilled automatically.
 The leaderboard continues selecting `value`, `se`, `n_groups`, and `n_rows`, so the added columns do not change its output.
+
+### Specialist home-rank analysis
+
+An experiment config may define `home_rank` to compare matched specialist arms on the same Mendelian rows and match-group draw.
+The optional rule writes the complete configured arm-by-subset AUPRC trajectory and the paired joint-bootstrap `P(home ranks first)`.
+It also writes the first checkpoint in the first configured persistent threshold run.
+Exact AUPRC ties count as ranking first.
+This analysis reports only the configured biological subsets and does not emit specialist macro or global scores.
+
+Issue #517's strict phyloP selector control uses `config/issue517_phylop_uniform.yaml`.
+It registers only the six terminal step-4,999 checkpoints on the development `train` splits: Mendelian Traits and Complex Traits for every arm, plus SGE for CDS.
+It does not register a held-out dataset or an intermediate checkpoint.
 
 ### QTL datasets (`caqtl` / `dsqtl`, `eval_protocol: qtl_global`)
 
@@ -151,6 +164,9 @@ A probe that targets a legacy score parquet must explicitly rerun that one `comp
 
 - **Train split only.** Test is held out for the final-eval pass; train is
   the development split.
+- **Optional complete-group exclusions.** A matched-pair dataset may set `exclude_complete_match_groups_with_subsets: [subset_name, ...]`.
+  Before metrics, the workflow removes every row from any `match_group` that contains a named subset and fails if a configured subset is absent.
+  Score parquets remain complete; only the downstream metrics scope changes.
 - **Three context conventions are supported.** Per-model `window_size`
   config field selects the number of DNA bases extracted. The tokenizer
   loaded from each checkpoint handles BOS itself.
@@ -411,6 +427,7 @@ Two unavoidable AWS-side failure modes worth knowing about:
 | `datasets` | List of `{name, hf_revision, score_protocol, [eval_protocol]}`. `hf_revision` is the pinned HF dataset commit SHA — bumping it triggers re-execution. `score_protocol` ∈ `{minus_llr, abs_llr}`. Optional `eval_protocol` ∈ `{matched_pair (default), qtl_global, sge}` — `qtl_global` selects the global AUPRC + positives-only `effect_size` correlation path for the unmatched caqtl/dsqtl datasets; `sge` selects the per-accession × consequence-subset AUPRC-on-`label` path for `evals_sge` (see the SGE section above). |
 | `models` | List of `{name, window_size, ...}`. Each entry has exactly one checkpoint source. Optional execution fields are `batch_size` and `eval_accumulation_steps`; `datasets` restricts evaluation coverage. Semantic inference switches are rejected here. |
 | `inference.*` | Global `return_embeddings`, `torch_compile`, and `bf16` settings are required to be `true`. `batch_size: 128` and `eval_accumulation_steps: null` are execution fallbacks. The section also configures workers, RC scoring, transforms, and metric bootstrap settings. |
+| `home_rank` | Optional paired specialist analysis included in `rule all`. Configures the matched-pair dataset, arm and checkpoint registries, exact model-name template, score type, arm-to-home-subset mapping, joint-bootstrap seed/count, and persistence threshold/run length. |
 | `nuc_dep` | Optional; nucleotide-dependency maps (#237, off `rule all`). `{combines, ord, batch_size, dpi, models: [...], loci: {...}}`. See `rules/interpretation.smk`. |
 | `umap_embeddings` | Optional; embedding UMAP (#246, off `rule all`). `{dataset, layer_index, n_center_bp, random_state, dpi, models: [...]}` — `models` reuse the `models:` registry (each needs `window_size`). Build needs `--group umap` (+ `--group genome-s3`). See `rules/embedding_umap.smk`. |
 | `ll_gap` | Optional; functional/non-functional LL gap (#274, off `rule all`). `{split, datasets: [{name, hf_repo, hf_revision}], models: [...]}` — `datasets` are mixed-case `seq` HF datasets (the v5/v1/v15 validation intervals; NOT the variant `datasets:` above); `models` reuse the `models:` registry. See `rules/ll_gap.smk`. |

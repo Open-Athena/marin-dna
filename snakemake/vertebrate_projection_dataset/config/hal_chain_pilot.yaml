@@ -1,0 +1,47 @@
+pipeline_version: hal-chains-pilot-v1
+tier: full
+
+cactus_version: 3.3.0
+hal_s3_uri: s3://oa-bolinas/staging/447-mammalian-2022v1.hal
+hal_stage_path: /mnt/nvme/vertebrate_projection/staging/447-mammalian-2022v1.hal
+hal_validation_path: /mnt/nvme/vertebrate_projection/staging/hal-chain-pilot-validated.txt
+source_genome: Homo_sapiens
+pilot_species:
+  - Papio_anubis
+  - Mus_musculus
+  - Loxodonta_africana
+chain_recipes:
+  - default
+  - no_dupes
+linear_gap: medium
+
+strict_phylop_baseline_root: results/phylop-uniform-v1/2162b6aa8299a9748eeb8031318b49072bb8c3fc/94d512050de327f96fda1105ce9c6ae5562944e402802516c7cde54795d8cdd1/full
+validation_expected_queries: 1136854
+uniform_grid_expected_queries: 22948560
+window_size: 255
+step_size: 128
+standard_chroms:
+  - chr1
+  - chr2
+  - chr3
+  - chr4
+  - chr5
+  - chr6
+  - chr7
+  - chr8
+  - chr9
+  - chr10
+  - chr11
+  - chr12
+  - chr13
+  - chr14
+  - chr15
+  - chr16
+  - chr17
+  - chr18
+  - chr19
+  - chr20
+  - chr21
+  - chr22
+  - chrX
+  - chrY

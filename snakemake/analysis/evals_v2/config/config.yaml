@@ -19,6 +19,9 @@ datasets:
   - name: mendelian_traits
     hf_revision: 4aed58e50c5dea0b878a665007af2ef9e5108e9f  # PR #194 k=9 rebuild
     score_protocol: minus_llr   # pathogenic positives should score higher than gnomAD-common negatives
+    # Optional experiment-specific safeguard:
+    # exclude_complete_match_groups_with_subsets: [mature_miRNA_variant]
+    # This removes every row in a group containing the named subset before metrics.
   - name: complex_traits
     hf_revision: 22f86a89c65cb8f3007ac3cc2739f40efefa4340  # PR #194 k=9 rebuild
     score_protocol: abs_llr     # fine-mapped positives — magnitude regardless of direction
@@ -1315,6 +1318,28 @@ models:
     gcs_path: gs://marin-dna-us-central1/checkpoints/exp59-animals-r01-f20b76/hf/step-16999
     window_size: 256
     datasets: [mendelian_traits]
+
+  # Issue #517 functional specialists at their terminal checkpoints.
+  - name: exp517-cds-step-4999
+    gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-cds-v1/2026.08.24/hf/step-4999
+    window_size: 255
+    datasets: [mendelian_traits, complex_traits, sge]
+  - name: exp517-utr3-step-4999
+    gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-utr3-v1/2026.08.24/hf/step-4999
+    window_size: 255
+    datasets: [mendelian_traits, complex_traits]
+  - name: exp517-tss_region-step-4999
+    gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-tss_region-v1/2026.08.24/hf/step-4999
+    window_size: 255
+    datasets: [mendelian_traits, complex_traits]
+  - name: exp517-ncrna-step-4999
+    gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-ncrna-v1/2026.08.24/hf/step-4999
+    window_size: 255
+    datasets: [mendelian_traits, complex_traits]
+  - name: exp517-enhancer-step-4999
+    gcs_path: gs://marin-us-east5/MarinDNA/exp517_functional_specialists/checkpoints/dna-exp517-0p25b-enhancer-v1/2026.08.24/hf/step-4999
+    window_size: 255
+    datasets: [mendelian_traits, complex_traits]
 
 inference:
   batch_size: 128       # Was 64 with output_hidden_states=True keeping all

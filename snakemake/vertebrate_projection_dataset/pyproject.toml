@@ -23,8 +23,10 @@ dependencies = [
 
 [project.scripts]
 marin-dna-build-vertebrate-species-manifest = "marin_dna_vertebrate_projection.cli.build_species_manifest:main"
+marin-dna-build-vertebrate-order-manifest = "marin_dna_vertebrate_projection.cli.build_order_manifest:main"
 marin-dna-build-multiz-mirror-manifest = "marin_dna_vertebrate_projection.cli.build_multiz_mirror_manifest:main"
 marin-dna-build-twobit-manifest = "marin_dna_vertebrate_projection.cli.build_twobit_manifest:main"
+marin-dna-run-hal-chain-ramp = "marin_dna_vertebrate_projection.cli.run_hal_chain_ramp:main"
 
 [dependency-groups]
 dev = [
