@@ -1393,3 +1393,17 @@ Its current anchor path instead creates uniform conservation-selected windows an
   The real public upload was rejected before command submission because publishing this specific 2.42-GB payload to `marin-dna/phylop-uniform-v1-enhancer-arm-a-vertebrate-order` requires explicit user authorization.
   The worker is stopped, so compute charges have ended and the validated local shards remain on its persistent disk.
 - Next action: Resume the stopped worker and upload only after explicit authorization for this public Hugging Face destination; then verify anonymously and rebase on `origin/main` before training configuration work.
+
+### 2026-09-04 14:56 UTC - `FAS-517-063` public order-control dataset release
+
+- Authorization: The user explicitly approved public publication of the validated 2.42-GB enhancer dataset to Hugging Face.
+- Upload: SkyPilot job 3 ran only `all_phylop_order_hf` with `ALLOW_HF_UPLOAD=1` on the existing AWS publisher and succeeded at 14:55:25 UTC.
+  The Hub committed all 66 release files at immutable revision `6a592fffcdd155d19e6c8e0986eab606aab19606`.
+- Public artifact: [`marin-dna/phylop-uniform-v1-enhancer-arm-a-vertebrate-order`](https://huggingface.co/datasets/marin-dna/phylop-uniform-v1-enhancer-arm-a-vertebrate-order/tree/6a592fffcdd155d19e6c8e0986eab606aab19606).
+  The repository is public and ungated under OpenMDW 1.1.
+- Anonymous verification: Unauthenticated Hub API and download requests resolved the exact immutable revision.
+  The remote tree contains all 65 expected data shards with 2,419,047,200 compressed bytes, no missing or extra data paths, and no size or LFS SHA-256 mismatches against the producer release manifest.
+  The downloaded 4,188-byte README matches its manifest SHA-256, and the downloaded validation shard matches SHA-256 `d8765eb82cf546c38fa940187d503f55de8ee3dc44e03ec4ea97c12cd241f7b0`.
+  Decompression yielded exactly 16,384 rows; a representative row had the expected schema, `enhancer` label, and 255-base sequence.
+- Cost control: The temporary `issue-517-phylop-enhancer-order-hf` AWS cluster was terminated immediately after verification.
+- Next action: Rebase the research branch onto `origin/main`, validate the rebased workflow, pin this Hugging Face revision in an isolated order-control training configuration, and launch the authorized preemptible 0.25B TPU run.
