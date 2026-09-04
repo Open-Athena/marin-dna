@@ -1427,3 +1427,15 @@ Its current anchor path instead creates uniform conservation-selected windows an
   The 16:31:26 UTC snapshot has SHA-256 `75b333282b3d6e282b3ce5e6dfc7177f8240004be5dd035cdc267fc66822b52b` and was independently downloaded and verified.
 - Next action: Confirm the allocated TPU family and first finite training metrics, then monitor W&B at 30-minute intervals.
   Run development VEP from the terminal checkpoint and compare it with GPN and prior same-size Arm A diagonal experiments; exclude 1B models.
+
+### 2026-09-04 16:37 UTC - `FAS-517-065` first finite training metrics
+
+- Allocation: W&B reported `throughput/device_kind = TPU v5`.
+  The ordered request was `v5p-8,v6e-4`, so the v5 observation identifies the allocated slice as the preferred `v5p-8`.
+- First sample: At step 9 of 5,000 (`run_progress = 0.002`), training loss was finite at 3.135601.
+  Throughput was 628,200 tokens/s or 2,453.9 examples/s, with p50 MFU 53.72% and current MFU 53.77%.
+  These values validate the launch path but are too early to assess convergence.
+- Liveness: Iris still reported one running coordinator task, zero failures, and zero preemptions at 16:37:34 UTC.
+- Persistence authorization: The user approved uploading all current and future monitoring SQLite snapshots up to 100 KB for this run to `gs://marin-us-east5/MarinDNA/exp517_phylop_enhancer_order/sweep_state/`.
+  The independently verified first-step snapshot is 90,112 bytes with SHA-256 `adf28b8b76bfdf88118f579dfccd62e2978b25f5a0a65cd999420a622c2a0363`.
+- Next action: Use W&B as the primary monitor at 30-minute intervals, confirm stable throughput and loss after warmup, and query Iris only for exact liveness or failure classification.
