@@ -45,6 +45,17 @@
       "deviations": [
         "Route accepted research findings and their provenance through maintain-knowledge-base instead of generic experiment reports."
       ]
+    },
+    {
+      "name": "review-pr",
+      "deviations": [
+        "Vendored from marin-community/marin@e9e77ee6d9603aa2fe665a3f0e0a2db7ed950fda, which post-dates this manifest's pinned commit.",
+        "Enumerate MarinDNA's quotable AGENTS.md rules for the compliance agents and route figure and Snakemake checks to the local area skills.",
+        "Check PR prose against writing-style plus communicate-on-github instead of Marin's writing-style alone.",
+        "Validate findings from all four review agents, not only the bug agents.",
+        "Require the robot prefix on every posted comment and use Open-Athena/marin-dna permalinks.",
+        "Drop Marin's stats-logging step (no log_stats.py sink here)."
+      ]
     }
   ],
   "local": [
