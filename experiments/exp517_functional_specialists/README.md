@@ -180,6 +180,43 @@ uv run --python /usr/bin/python3.12 --locked \
   --version 2026.08.27 --run'
 ```
 
+## Strict phyloP enhancer order-exposure control
+
+This one-trial control changes the taxonomic sampling unit of the strict-phyloP Arm A enhancer dataset from one non-human species per family to one sequence source per represented NCBI order across the complete dataset.
+Human is the sole Primates source.
+The 39 non-human targets cover 18 mammalian and 21 non-mammalian orders.
+
+The public dataset is pinned at immutable Hugging Face revision `6a592fffcdd155d19e6c8e0986eab606aab19606` of `marin-dna/phylop-uniform-v1-enhancer-arm-a-vertebrate-order`.
+Its 7,876,044 original rows become 15,719,320 training rows after the fixed validation holdout and reverse-complement augmentation.
+The unchanged 40,960,000-sequence schedule therefore presents about 2.606 effective row epochs, compared with about 0.514 for the family-deduplicated strict-phyloP enhancer control.
+
+The run has a distinct token cache, checkpoint root, W&B identity, and durable sweep-state prefix.
+Launch it on one preemptible ordered-alternative TPU request:
+
+```bash
+uv run --python /usr/bin/python3.12 --locked \
+  iris --cluster=marin job run \
+  --no-wait --user gonzalo --priority interactive \
+  --job-name exp517-phylop-enhancer-order-d001 \
+  --cpu 1 --memory 2G --region us-east5 --extra=tpu \
+  -e WANDB_API_KEY "$WANDB_API_KEY" \
+  -e WANDB_ENTITY gonzalobenegas \
+  -e WANDB_PROJECT marin \
+  -e MARIN_PREFIX gs://marin-us-east5/MarinDNA/exp517_phylop_enhancer_order \
+  -e EXP517_TPU_REGION us-east5 \
+  -e EXP517_TPU_VARIANT v5p-8,v6e-4 \
+  -e EXP517_TPU_RAM 56g \
+  -e EXP517_TPU_PREEMPTIBLE true \
+  -e UV_PROJECT /app \
+  -- bash -lc 'cd /app && uv sync --locked --extra tpu && \
+  exec uv run --locked python -m exp517_functional_specialists.phylop_enhancer_order_experiment \
+  --version 2026.09.04 --run'
+```
+
+Completion requires W&B `run_progress >= 1` and a reachable terminal step-4,999 checkpoint.
+Run development VEP through the offline `evals_v2` workflow after the terminal checkpoint is available.
+Do not register held-out even-autosome or chromosome-Y evaluation data.
+
 ## Single-H100 validation
 
 The CoreWeave validation keeps all TPU production workflows live and uses a distinct CDS smoke identity.
