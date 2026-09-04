@@ -1363,6 +1363,7 @@ Its current anchor path instead creates uniform conservation-selected windows an
   Split, artifact validation, and upload rules fail closed while the count is unpinned.
 - Evaluation boundary: Development VEP only.
   Held-out even-autosome/Y data remain untouched.
+- Next action: Push the audit snapshot, post the corrected cohort decision to issue #517, run the one-rule EC2 source audit, and pin its exact count before publication.
 
 ### 2026-09-04 14:33 UTC - `FAS-517-061` order-control source audit
 
@@ -1378,4 +1379,17 @@ Its current anchor path instead creates uniform conservation-selected windows an
 - Validation: `/tmp/issue517-uv/uv run --locked pytest` passed all 278 project tests in 9.07 seconds with 288,104 KiB peak RSS under the shared-node safety envelope.
   The S3-aware dry-run with eight cores, 60,000 MB, and one `final_large_scan` slot resolved exactly 73 intended jobs under configuration SHA-256 `a5d7ff16ecc2b4574e4803e4858392ffa00aefba17da1e155c4859355ad7b437`; it includes no scoring or projection rule.
 - Next action: Validate and snapshot the pinned publication recipe, build and anonymously verify the public dataset, then rebase on `origin/main` before adding and launching the training configuration.
-- Next action: Push the audit snapshot, post the corrected cohort decision to issue #517, run the one-rule EC2 source audit, and pin its exact count before publication.
+
+### 2026-09-04 14:50 UTC - `FAS-517-062` validated order-control publication build
+
+- Execution: SkyPilot job 1 completed all 73 publication-build jobs on one AWS `r6i.2xlarge` in `us-east-2` under producer commit `90b86f6426c919470f0eb26e1b1aa2cab6a261ed` and configuration SHA-256 `a5d7ff16ecc2b4574e4803e4858392ffa00aefba17da1e155c4859355ad7b437`.
+  Snakemake ran from 14:43:59 to 14:48:01 UTC, or 4 minutes 2 seconds.
+- Hash-shuffle result: The 15,719,320-row bounded shuffle completed in 69 seconds.
+  A live sample during the sort showed 4.5 GiB used and 56 GiB available out of 61 GiB RAM, with 465 GB of 485 GB disk free.
+- Release manifest: The validated artifact contains 64 train shards with 15,719,320 rows and 2,416,541,878 compressed bytes, one validation shard with 16,384 rows and 2,505,322 compressed bytes, plus the 4,188-byte dataset card.
+  Every shard has a recorded SHA-256 digest and reconciles to the source Parquet row counts.
+- Durable evidence: The split summary and release manifest are stored under `s3://oa-bolinas/snakemake/vertebrate_projection_dataset/results/phylop-uniform-enhancer-vertebrate-order-publication-v1/90b86f6426c919470f0eb26e1b1aa2cab6a261ed/a5d7ff16ecc2b4574e4803e4858392ffa00aefba17da1e155c4859355ad7b437/full/`.
+- Upload gate: The remote upload dry-run resolved exactly `phylop_order_hf_upload_dataset` plus its aggregate target.
+  The real public upload was rejected before command submission because publishing this specific 2.42-GB payload to `marin-dna/phylop-uniform-v1-enhancer-arm-a-vertebrate-order` requires explicit user authorization.
+  The worker is stopped, so compute charges have ended and the validated local shards remain on its persistent disk.
+- Next action: Resume the stopped worker and upload only after explicit authorization for this public Hugging Face destination; then verify anonymously and rebase on `origin/main` before training configuration work.
