@@ -1407,3 +1407,23 @@ Its current anchor path instead creates uniform conservation-selected windows an
   Decompression yielded exactly 16,384 rows; a representative row had the expected schema, `enhancer` label, and 255-base sequence.
 - Cost control: The temporary `issue-517-phylop-enhancer-order-hf` AWS cluster was terminated immediately after verification.
 - Next action: Rebase the research branch onto `origin/main`, validate the rebased workflow, pin this Hugging Face revision in an isolated order-control training configuration, and launch the authorized preemptible 0.25B TPU run.
+
+### 2026-09-04 16:31 UTC - `FAS-517-064` order-control training launch
+
+- Hypothesis: Raising strict phyloP Arm A enhancer exposure from about 0.514 to 2.606 effective row epochs may recover part of the distal-enhancer AUPRC gap without changing the selected human windows, projection recipe, model size, batch size, or optimization schedule.
+- Training snapshot: `bd8191b7305bcaa86fe1514a1a130e5e783c7792` adds the isolated order-control training configuration and pins public dataset revision `6a592fffcdd155d19e6c8e0986eab606aab19606`.
+  `origin/main` was already an ancestor when the branch was rebased before this configuration was committed.
+- Validation: `uv run --locked pytest` from `experiments/exp517_functional_specialists` passed all 25 tests with 465,580 KiB peak RSS.
+  The plan resolved the intended Qwen-like 0.25B model, seed 0, global batch 8,192, per-device parallelism 1,024, 5,000 steps, and checkpoints every 500 steps.
+- Launch: Iris accepted `/gonzalo/exp517-phylop-enhancer-order-d002` at 16:19:35 UTC for one `us-east5` preemptible TPU slice with ordered fallback `v5p-8,v6e-4`.
+  The one-CPU coordinator is non-preemptible by design; the trainer child request is preemptible.
+- Tokenization: The workflow found the exact 64 training shards and one validation shard from the immutable Hugging Face revision.
+  It tokenized 15,719,320 training documents into 32 cache shards in 320.9 seconds, including 241.5 seconds of writes and 79.1 seconds of consolidation.
+  Individual shard workers sustained about 0.79 million tokens per second, and all 32 shards completed without a recorded failure.
+- Initial training state: The W&B run [`dna-exp517-phylop-uniform-0p25b-enhancer-order-v1`](https://wandb.ai/gonzalobenegas/marin/runs/dna-exp517-phylop-uniform-0p25b-enhancer-order-v1) entered `running` by 16:31 UTC.
+  No optimizer step or loss had been reported at this observation, so TPU initialization remained in progress.
+  Iris reported zero failures and zero preemptions.
+- Durable monitor state: Immutable SQLite snapshots are stored under `gs://marin-us-east5/MarinDNA/exp517_phylop_enhancer_order/sweep_state/`.
+  The 16:31:26 UTC snapshot has SHA-256 `75b333282b3d6e282b3ce5e6dfc7177f8240004be5dd035cdc267fc66822b52b` and was independently downloaded and verified.
+- Next action: Confirm the allocated TPU family and first finite training metrics, then monitor W&B at 30-minute intervals.
+  Run development VEP from the terminal checkpoint and compare it with GPN and prior same-size Arm A diagonal experiments; exclude 1B models.
