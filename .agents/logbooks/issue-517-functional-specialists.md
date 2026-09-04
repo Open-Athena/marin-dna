@@ -26,6 +26,8 @@ Across the four 0.25B full diagonals, home-specialist epoch/AUPRC correlations a
 The strict uniform-grid enhancer remains far below the targeted #326 and #351 enhancer specialists, while the current unassigned-background arm has much more splicing signal than #232's background and should not be interpreted as the same negative control.
 All six strict-control runs and development-only VEP evaluations are complete.
 Held-out even-autosome/Y evaluation remains unapproved and untouched.
+The current follow-up tests whether a strict-phyloP Arm A enhancer corpus with exactly one sequence source per represented vertebrate order improves distal VEP through greater effective exposure.
+Human occupies the sole Primates slot; the post-hoc source subset therefore retains 39 non-human targets across 18 mammalian and 21 non-mammalian orders.
 
 ## Baseline
 
@@ -37,10 +39,10 @@ Held-out even-autosome/Y evaluation remains unapproved and untouched.
 
 ### Active
 
-- `FAS-517-P1`: At step 4,999, each mapped home arm ranks first on its eight development Mendelian subsets.
-  Next test: run the full chain projection, publish its five immutable public Hugging Face datasets, then run the CDS training canary.
+- `FAS-517-H2`: Repeating the strict-phyloP uniform Arm A enhancer corpus more often by retaining one sequence source per vertebrate order will improve development distal AUPRC over the family-deduplicated strict baseline of 0.135.
+  Next test: audit and publish the 40-source corpus, train the matched 0.25B enhancer arm for 5,000 steps, and compare every 500-step checkpoint with the strict family baseline.
 - `FAS-517-P2`: The mapped home arm reaches the #459 persistence threshold during training.
-  Next test: retain every 500-step checkpoint and run the preregistered development-only trajectory evaluation.
+  Next test: apply the two-consecutive-checkpoint `P(home ranks first) >= 95%` readout to the order-control enhancer trajectory.
 
 ### Blocked
 
@@ -54,6 +56,8 @@ None.
 
 ### Promoted
 
+- `FAS-517-P1`: The terminal strict-phyloP matrix achieved 8/8 mapped home-arm wins on the development Mendelian subsets.
+  Evidence: `FAS-517-055`.
 - `FAS-517-H1`: The additive Ensembl builder reconciles feature extraction, priority ownership, tiling, stable identity, conservation subsets, and review artifacts before projection.
   Evidence: commit `731807af`, 236 locked tests, and the 17-job preprojection DAG check.
 
@@ -70,6 +74,11 @@ None.
   Keep the production uniform-anchor MultiZ workflow unchanged.
 - 2026-08-24: Accept standard single-best liftOver for the full issue #517 experiment after a non-strict 250-cell parity smoke.
   Record it as an intentional experimental backend change, not as output-equivalent to direct MultiZ MAF projection.
+- 2026-09-04: Test enhancer repetition with one sequence source per NCBI order across the entire dataset.
+  Human is the sole Primates source; retain 39 non-human projection targets spanning 18 mammalian and 21 non-mammalian orders.
+- 2026-09-04: Derive the order control post hoc from the immutable strict-phyloP Arm A center-1 projection table.
+  Do not recompute scoring or projection.
+  Preserve the 0.25B model, seed 0, global batch 8,192, 5,000 steps, and 500-step checkpoint cadence.
 
 ## Background Research Brief
 
@@ -1338,3 +1347,20 @@ Its current anchor path instead creates uniform conservation-selected windows an
 - Public record: [Issue #517 decision and investigation](https://github.com/Open-Athena/marin-dna/issues/517#issuecomment-5454658109).
 - Execution boundary: No cloud job was launched and no projection backend was changed.
 - Next action: After launch authorization, implement the three-species EC2 parity and resource pilot under issue #523 as the gate to generating and pinning all 107 whole-genome chains.
+
+### 2026-09-04 14:25 UTC - `FAS-517-060` whole-dataset order-control gate
+
+- Hypothesis: Increasing effective enhancer exposure with one sequence source per represented vertebrate order may recover part of the gap between the strict uniform Arm A distal AUPRC of 0.135 and the targeted enhancer experiments.
+- Human correction: The order constraint applies to the complete training dataset.
+  Human occupies Primates, so every non-human primate projection is excluded.
+  The pinned manifest contains 39 projection targets across 18 mammalian and 21 non-mammalian orders; adding human yields 40 sources and 40 orders.
+- Source isolation: The new workflow reads the immutable strict-phyloP Arm A center-1 projection at source commit `2162b6aa8299a9748eeb8031318b49072bb8c3fc` and source config SHA-256 `94d512050de327f96fda1105ce9c6ae5562944e402802516c7cde54795d8cdd1`.
+  Its DAG contains no scoring, HAL, chain, or MultiZ projection rule.
+- Snapshot: `2cb84accd18a2e5934c88fb3828c2de6ecfd975a` adds the committed order manifest, isolated audit/split/publication path, EC2 runbook, and contract tests.
+- Tests: `flock -n /tmp/exe-codex-local-heavy.lock env UV_CACHE_DIR=/tmp/issue517-uv-cache XDG_CACHE_HOME=/tmp/issue517-xdg-cache TMPDIR=/tmp POLARS_MAX_THREADS=2 RAYON_NUM_THREADS=2 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 nice -n 10 ionice -c 2 -n 7 /usr/bin/time -v /tmp/issue517-uv/uv run --locked pytest` from `snakemake/vertebrate_projection_dataset` passed 277 tests in 9.35 seconds with 301,852 KiB peak RSS.
+- Dry-run: `/tmp/issue517-uv/uv run --locked snakemake -n all_phylop_order_hf_files --snakefile workflow/phylop_uniform_enhancer_order_publication.Snakefile --profile workflow/profiles/default --cores 32 --resources mem_mb=250000 final_large_scan=1 hf_uploads=1` resolved 73 jobs: one source audit, one split, one train-shard preparation, one validation-shard preparation, 65 compressions, one card, one producer manifest, one release-manifest validation, and the aggregate target.
+- Publication gate: `source_rows` remains `-1` until the remote audit reports the exact eligible row count.
+  Split, artifact validation, and upload rules fail closed while the count is unpinned.
+- Evaluation boundary: Development VEP only.
+  Held-out even-autosome/Y data remain untouched.
+- Next action: Push the audit snapshot, post the corrected cohort decision to issue #517, run the one-rule EC2 source audit, and pin its exact count before publication.
