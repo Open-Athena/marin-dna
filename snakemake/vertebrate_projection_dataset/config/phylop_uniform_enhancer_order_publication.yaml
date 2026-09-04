@@ -1,0 +1,36 @@
+pipeline_version: phylop-uniform-enhancer-vertebrate-order-publication-v1
+tier: full
+
+# Immutable strict-phyloP Arm A source produced for issue #517.
+source_pipeline_version: phylop-uniform-v1
+source_pipeline_commit: 2162b6aa8299a9748eeb8031318b49072bb8c3fc
+source_config_sha256: 94d512050de327f96fda1105ce9c6ae5562944e402802516c7cde54795d8cdd1
+source_tier: full
+source_region_rows: 39879096
+
+# Filled from the remote source audit before the build or upload target may run.
+source_rows: -1
+order_manifest_targets: 39
+order_manifest_mammals: 18
+order_manifest_nonmammals: 21
+
+region_cohorts: [enhancer]
+
+hf_owner: marin-dna
+hf_repo_names:
+  enhancer: phylop-uniform-v1-enhancer-arm-a-vertebrate-order
+
+validation_rows: 16384
+validation_seed: 517
+add_rc: true
+publication_train_shards: 64
+publication_validation_shards: 1
+publication_shuffle_seed: 517
+hf_upload_workers: 1
+
+phylop_track: hg38.phyloP447way
+phylop_threshold: 2.2162
+phylop_min_selected_bases: 51
+phylop_window_size: 255
+assignment_recipe: exp232-v4-plus-exp326-arm-a-remainder-v1
+target_deduplication_rank: order_including_human_reference

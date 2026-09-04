@@ -207,6 +207,32 @@ sky exec issue-517-gpn-hf \
 
 After publication, verify every repository without credentials and pin its immutable Hub revision in the training experiment.
 
+## Issue #517 strict-phyloP enhancer order control
+
+The order-control publication derives one enhancer training corpus from the immutable strict-phyloP Arm A projection table.
+It does not schedule scoring or projection rules.
+`config/species_vertebrate_order.tsv` retains 39 non-human targets spanning 18 mammalian and 21 non-mammalian NCBI orders.
+Human is the sole Primates source in the complete training dataset, so every non-human primate projection is excluded before validation sampling.
+The resulting corpus contains exactly one sequence source for each of 40 represented vertebrate orders.
+
+Representative selection follows the historical issue #255 policy over the existing family-deduplicated targets.
+Known Zoonomia HAL assembly provenance precedes assembly level, contig N50, and alignment name; Bos taurus and Mus musculus remain the established Artiodactyla and Rodentia representatives.
+Non-mammalian ties use the same deterministic metadata ordering.
+`marin-dna-build-vertebrate-order-manifest` regenerates the committed table using NCBI taxonomy, and the publication workflow consumes only the committed result.
+
+Audit the source row count on the dedicated EC2 worker before setting `source_rows` in `config/phylop_uniform_enhancer_order_publication.yaml`:
+
+```bash
+sky launch -c issue-517-phylop-enhancer-order-hf \
+  sky/phylop_uniform_enhancer_order_hf.yaml \
+  --env TARGET=phylop_order_source_audit --env DRY_RUN=0 \
+  --env PIPELINE_COMMIT_SHA="$(git rev-parse HEAD)"
+```
+
+After pinning the audited count in a new commit, `all_phylop_order_hf_files` builds and validates 64 train shards, one validation shard, the dataset card, and the complete checksum manifest.
+`all_phylop_order_hf` is the explicit external-write target and requires `ALLOW_HF_UPLOAD=1` plus the Hugging Face token through SkyPilot's secret channel.
+The intended public repository is `marin-dna/phylop-uniform-v1-enhancer-arm-a-vertebrate-order`, released under OpenMDW 1.1 while the source assemblies, annotations, and alignments retain their own terms.
+
 ## Projection contract
 
 The request table retains each original 255 bp human anchor for identity and downstream row-random selection, and stores `[source_start + 127, source_start + 128)` as the only interval submitted to HAL or MAF.
