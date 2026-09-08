@@ -22,6 +22,7 @@ envs:
 setup: |
   set -eu
   timeout 600 python3 -m pip install --user 'uv==0.11.31'
+  timeout 900 "$HOME/miniconda3/bin/conda" install --override-channels -c conda-forge -n base -y 'conda=25.11.1'
 run: |
   set -eu
   export PATH="$HOME/.local/bin:$PATH"

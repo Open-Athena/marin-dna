@@ -16,7 +16,9 @@ from marin_dna_vertebrate_projection.provenance import (
     resolve_pipeline_commit,
 )
 
+
 configfile: "config/chain_projection.example.yaml"
+
 
 ASSETS_PATH = str(config["chain_assets"])
 SPECIES_PATH = str(config["species_selected"])
@@ -55,11 +57,20 @@ rule chain_producer:
         f"{RESULTS}/producer.json",
     run:
         Path(output[0]).parent.mkdir(parents=True, exist_ok=True)
-        Path(output[0]).write_text(json.dumps({
-            "pipeline_commit": COMMIT, "config_sha256": CONFIG_HASH,
-            "config": IDENTITY, "assets": ASSETS,
-            "projection_policy": "center_1", "projector": "UCSC liftOver",
-        }, indent=2) + "\n")
+        Path(output[0]).write_text(
+            json.dumps(
+                {
+                    "pipeline_commit": COMMIT,
+                    "config_sha256": CONFIG_HASH,
+                    "config": IDENTITY,
+                    "assets": ASSETS,
+                    "projection_policy": "center_1",
+                    "projector": "UCSC liftOver",
+                },
+                indent=2,
+            )
+            + "\n"
+        )
 
 
 rule chain_requests:
@@ -77,7 +88,9 @@ rule chain_requests:
             raise ValueError("anchor catalog SHA-256 mismatch")
         if file_sha256(input.sizes) != SOURCE["source_sizes_sha256"]:
             raise ValueError("source chromosome dictionary SHA-256 mismatch")
-        prepare_chain_requests(input.anchors, input.sizes, output.requests, output.bed)
+        prepare_chain_requests(
+            input.anchors, input.sizes, output.requests, output.bed
+        )
 
 
 rule chain_validate:
@@ -93,7 +106,13 @@ rule chain_validate:
     resources:
         mem_mb=1000,
     run:
-        validate_chain_inputs(input.chain, input.source, input.target, ASSETS[wildcards.species], output[0])
+        validate_chain_inputs(
+            input.chain,
+            input.source,
+            input.target,
+            ASSETS[wildcards.species],
+            output[0],
+        )
 
 
 rule chain_liftover:
@@ -134,6 +153,14 @@ rule chain_contract:
         mem_mb=int(config["table_mem_mb"]),
     run:
         write_chain_projections(
-            input.requests, input.mapped, input.unmapped, input.sizes, input.species,
-            wildcards.species, input.validated, output.accepted, output.rejected, output.audit,
+            input.requests,
+            input.mapped,
+            input.unmapped,
+            input.sizes,
+            input.species,
+            wildcards.species,
+            input.validated,
+            output.accepted,
+            output.rejected,
+            output.audit,
         )
