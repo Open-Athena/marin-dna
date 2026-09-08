@@ -1,0 +1,139 @@
+"""Opt-in, coordinate-only projection through existing pinned chain files."""
+
+from pathlib import Path
+import json
+import re
+
+from marin_dna_vertebrate_projection.projection.chains import (
+    file_sha256,
+    prepare_chain_requests,
+    read_chain_assets,
+    validate_chain_inputs,
+    write_chain_projections,
+)
+from marin_dna_vertebrate_projection.provenance import (
+    hash_pipeline_config,
+    resolve_pipeline_commit,
+)
+
+configfile: "config/chain_projection.example.yaml"
+
+ASSETS_PATH = str(config["chain_assets"])
+SPECIES_PATH = str(config["species_selected"])
+ASSETS = read_chain_assets(ASSETS_PATH, SPECIES_PATH)
+SPECIES = sorted(ASSETS)
+SOURCE = ASSETS[SPECIES[0]]
+COMMIT = resolve_pipeline_commit()
+IDENTITY = {
+    **config,
+    "assets_sha256": file_sha256(ASSETS_PATH),
+    "species_sha256": file_sha256(SPECIES_PATH),
+}
+CONFIG_HASH = hash_pipeline_config(IDENTITY)
+RESULTS = f"results/chain-projection-v1/{COMMIT}/{CONFIG_HASH}"
+assert re.fullmatch(r"[0-9a-f]{64}", str(config["anchors_sha256"]))
+
+
+def asset_input(path):
+    # Explicit storage objects do not inherit a different default S3 prefix.
+    return storage.s3(path) if path.startswith("s3://") else local(path)
+
+
+rule all:
+    input:
+        expand(f"{RESULTS}/{{species}}/accepted.parquet", species=SPECIES),
+        expand(f"{RESULTS}/{{species}}/rejected.parquet", species=SPECIES),
+        expand(f"{RESULTS}/{{species}}/audit.json", species=SPECIES),
+        f"{RESULTS}/producer.json",
+
+
+rule chain_producer:
+    input:
+        assets=local(ASSETS_PATH),
+        species=local(SPECIES_PATH),
+    output:
+        f"{RESULTS}/producer.json",
+    run:
+        Path(output[0]).parent.mkdir(parents=True, exist_ok=True)
+        Path(output[0]).write_text(json.dumps({
+            "pipeline_commit": COMMIT, "config_sha256": CONFIG_HASH,
+            "config": IDENTITY, "assets": ASSETS,
+            "projection_policy": "center_1", "projector": "UCSC liftOver",
+        }, indent=2) + "\n")
+
+
+rule chain_requests:
+    input:
+        anchors=asset_input(str(config["anchors"])),
+        sizes=asset_input(SOURCE["source_sizes"]),
+        assets=local(ASSETS_PATH),
+    output:
+        requests=f"{RESULTS}/requests.parquet",
+        bed=f"{RESULTS}/centers.bed",
+    resources:
+        mem_mb=int(config["table_mem_mb"]),
+    run:
+        if file_sha256(input.anchors) != config["anchors_sha256"]:
+            raise ValueError("anchor catalog SHA-256 mismatch")
+        if file_sha256(input.sizes) != SOURCE["source_sizes_sha256"]:
+            raise ValueError("source chromosome dictionary SHA-256 mismatch")
+        prepare_chain_requests(input.anchors, input.sizes, output.requests, output.bed)
+
+
+rule chain_validate:
+    input:
+        chain=lambda w: asset_input(ASSETS[w.species]["chain"]),
+        source=lambda w: asset_input(ASSETS[w.species]["source_sizes"]),
+        target=lambda w: asset_input(ASSETS[w.species]["target_sizes"]),
+        assets=local(ASSETS_PATH),
+    output:
+        f"{RESULTS}/{{species}}/chain_validated.json",
+    wildcard_constraints:
+        species="|".join(re.escape(name) for name in SPECIES),
+    resources:
+        mem_mb=1000,
+    run:
+        validate_chain_inputs(input.chain, input.source, input.target, ASSETS[wildcards.species], output[0])
+
+
+rule chain_liftover:
+    input:
+        bed=f"{RESULTS}/centers.bed",
+        chain=lambda w: asset_input(ASSETS[w.species]["chain"]),
+        validated=f"{RESULTS}/{{species}}/chain_validated.json",
+    output:
+        mapped=f"{RESULTS}/{{species}}/mapped.bed",
+        unmapped=f"{RESULTS}/{{species}}/unmapped.bed",
+    log:
+        f"{RESULTS}/{{species}}/liftover.log",
+    benchmark:
+        f"{RESULTS}/{{species}}/liftover.benchmark.tsv"
+    conda:
+        "envs/chains.yaml"
+    threads: 1
+    resources:
+        mem_mb=int(config["liftover_mem_mb"]),
+    shell:
+        "liftOver -minMatch=0.95 -multiple {input.bed:q} {input.chain:q} "
+        "{output.mapped:q} {output.unmapped:q} 2> {log:q}"
+
+
+rule chain_contract:
+    input:
+        requests=f"{RESULTS}/requests.parquet",
+        mapped=f"{RESULTS}/{{species}}/mapped.bed",
+        unmapped=f"{RESULTS}/{{species}}/unmapped.bed",
+        sizes=lambda w: asset_input(ASSETS[w.species]["target_sizes"]),
+        species=local(SPECIES_PATH),
+        validated=f"{RESULTS}/{{species}}/chain_validated.json",
+    output:
+        accepted=f"{RESULTS}/{{species}}/accepted.parquet",
+        rejected=f"{RESULTS}/{{species}}/rejected.parquet",
+        audit=f"{RESULTS}/{{species}}/audit.json",
+    resources:
+        mem_mb=int(config["table_mem_mb"]),
+    run:
+        write_chain_projections(
+            input.requests, input.mapped, input.unmapped, input.sizes, input.species,
+            wildcards.species, input.validated, output.accepted, output.rejected, output.audit,
+        )

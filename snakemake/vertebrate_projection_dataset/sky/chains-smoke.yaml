@@ -1,0 +1,32 @@
+name: chain-reader-smoke
+workdir: .
+resources:
+  infra: aws
+  cpus: 4+
+  memory: 32+
+  use_spot: true
+  max_hourly_cost: 0.25
+  disk_size: 50
+  autostop:
+    idle_minutes: 10
+    down: true
+    wait_for: jobs
+envs:
+  PIPELINE_COMMIT_SHA: null
+  POLARS_MAX_THREADS: "2"
+  RAYON_NUM_THREADS: "2"
+  OMP_NUM_THREADS: "1"
+  MKL_NUM_THREADS: "1"
+  OPENBLAS_NUM_THREADS: "1"
+  NUMEXPR_NUM_THREADS: "1"
+setup: |
+  set -eu
+  timeout 600 python3 -m pip install --user 'uv==0.11.31'
+run: |
+  set -eu
+  export PATH="$HOME/.local/bin:$PATH"
+  cd snakemake/vertebrate_projection_dataset
+  timeout 900 uv sync --locked --group dev
+  timeout 900 uv run --locked pytest
+  timeout 300 uv run --locked snakemake -n --profile workflow/profiles/default --default-storage-provider none
+  timeout 300 uv run --locked snakemake -n --snakefile workflow/Snakefile.chains --profile workflow/profiles/default --default-storage-provider none

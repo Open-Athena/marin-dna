@@ -193,6 +193,62 @@ HAL staging downloads to a temporary filename and atomically renames it only aft
 
 Every HAL projection/extraction path also depends on the tier-specific local `metadata/hal_stage_validated.txt` record. Because both the HAL and its receipt are `local()`, a clean worker cannot reuse a durable receipt independently of the NVMe file it certifies; a newly staged or changed HAL is revalidated before use.
 
+## Opt-in chain projection
+
+`workflow/Snakefile.chains` queries existing chain files instead of opening HAL or MultiZ.
+It is a coordinate-only adapter: it accepts an existing 255-bp human anchor catalog and emits accepted 255-bp destination windows, rejected queries, and per-species audits.
+It does not select or filter anchors, extract sequences, rebuild chains, assemble datasets, or launch training.
+The default Snakefile and its existing artifacts are unchanged.
+
+For `[s, s + 255)`, the adapter submits `[s + 127, s + 128)` in one BED batch per species.
+UCSC `liftOver -minMatch=0.95 -multiple` reports all candidate mappings; the shared center-1 contract rejects ambiguous projections instead of selecting an arbitrary copy.
+Both strands retain forward genomic coordinates and an orientation flag.
+Accepted windows place the mapped nucleotide at index 127 after orientation.
+Unmapped queries and contract rejections are explicit, and accepted plus rejected counts must equal the input count for each species.
+
+The anchor catalog uses `query_name`, `source_chrom`, `source_start`, `source_end`, and `region_label` columns in TSV or Parquet.
+Query names must be unique, nonempty BED-safe strings.
+Coordinates are 0-based and half-open, and source chromosome names must match the pinned human dictionary exactly.
+There is no implicit `chr`-prefix conversion.
+
+Copy `config/chain_projection.example.yaml` and provide a TSV manifest following `tests/fixtures/chains/assets.tsv`:
+
+- `alignment_name` and `assembly` must match the selected species manifest; the chain manifest explicitly selects the target subset.
+- `source_assembly` is `hg38`; `chain_origin` records the producing alignment and recipe, or `synthetic-test-only` for the example.
+- `chain`, `source_sizes`, and `target_sizes` are local paths or explicit S3 URIs, each paired with a SHA-256 column.
+  Local paths resolve relative to the pipeline working directory.
+- All species must use the same pinned source chromosome dictionary.
+  The chain's `t` side must match this human dictionary and its `q` side the destination dictionary, including exact chromosome lengths.
+
+The example contains fabricated coordinates and is only a software test, not biological validation.
+Inspect its isolated DAG with:
+
+```bash
+uv sync --locked --group dev
+uv run --locked pytest
+uv run --locked snakemake -n --snakefile workflow/Snakefile.chains \
+  --profile workflow/profiles/default --default-storage-provider none
+```
+
+For real inputs, retain the default storage profile and pass `--configfile path/to/chain_projection.yaml`.
+Inspect the dry-run before executing on an approved remote worker.
+Results live under `results/chain-projection-v1/<commit>/<config-and-manifest-hash>/` within the workflow's normal S3 storage prefix.
+The producer record includes the resolved configuration and asset manifest; anchors are also checksum-pinned.
+Only the new chain rules should appear: no HAL staging, genome extraction, chain generation, or MultiZ scan is reachable from this Snakefile.
+
+The reader checks file checksums and streams all chain headers before projection.
+This structural check is not an equivalence test against HAL.
+The `liftover.benchmark.tsv` records wall time and sampled peak RSS for the single batched `liftOver` invocation, including chain loading but excluding staging, hashing, and downstream contract processing.
+Whole-genome chain loading can dominate even a small BED query, so begin with one species and measure before increasing concurrency.
+The example's 32-GB liftOver and 16-GB table reservations are conservative placeholders, not measured requirements.
+The table adapter materializes one species at a time; it is not yet a bounded-memory all-grid implementation.
+
+HAL-derived mammalian chains and UCSC pairwise chains can use the same adapter, but this does not make their source alignments equivalent.
+The legacy `alignment_source` column retains alignment-cohort provenance; each audit additionally identifies the actual chain origin, digest, and query operation.
+Compare sampled mappings to saved direct-HAL results before adopting a mammalian chain release.
+Report sampled agreement, not genome-wide equivalence, and keep the old backend available until that gate passes.
+Sequence extraction is a separate existing step and must use the exact destination assembly and matching chromosome dictionary; coordinate agreement alone does not validate sequence content.
+
 ## Splits and output datasets
 
 Each configured region cohort first gets internal `train.parquet` and `validation.parquet` files.

@@ -1,0 +1,8 @@
+# Local, synthetic coordinate fixture: never use it as biological evidence.
+anchors: tests/fixtures/chains/anchors.tsv
+anchors_sha256: c81181da9c347323a9ccbf3babbd0e57e61899abe09cb10652bddfb3b80a0941
+species_selected: config/species_selected.tsv
+chain_assets: tests/fixtures/chains/assets.tsv
+# Conservative reservations, not measured requirements. Admit one species first.
+liftover_mem_mb: 32000
+table_mem_mb: 16000
