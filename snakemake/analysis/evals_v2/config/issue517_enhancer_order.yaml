@@ -1,0 +1,40 @@
+# Terminal-only development evaluation; canonical entry is also in config.yaml.
+input_hf_prefix: bolinas-dna/evals
+genome_path: s3://oa-bolinas/data/genomes/homo_sapiens/GRCh38/ensembl-release-115/Homo_sapiens.GRCh38.dna_sm.primary_assembly.fa.gz
+split: train
+
+datasets:
+  - name: mendelian_traits
+    hf_revision: 4aed58e50c5dea0b878a665007af2ef9e5108e9f
+    score_protocol: minus_llr
+    exclude_complete_match_groups_with_subsets: [mature_miRNA_variant]
+  - name: complex_traits
+    hf_revision: 22f86a89c65cb8f3007ac3cc2739f40efefa4340
+    score_protocol: abs_llr
+
+models:
+  - name: exp517-phylop-uniform-enhancer-order-step-4999
+    gcs_path: gs://marin-us-east5/MarinDNA/exp517_phylop_enhancer_order/checkpoints/dna-exp517-phylop-uniform-0p25b-enhancer-order-v1/2026.09.04/hf/step-4999
+    window_size: 255
+    datasets: [mendelian_traits, complex_traits]
+
+inference:
+  batch_size: 128
+  num_workers: 4
+  data_transform_on_the_fly: true
+  torch_compile: true
+  bf16: true
+  rc: true
+  return_embeddings: true
+  eval_accumulation_steps: null
+  n_bootstrap: 1000
+  bootstrap_seed: 0
+
+probe:
+  models: []
+nuc_dep:
+  models: []
+umap_embeddings:
+  models: []
+ll_gap:
+  models: []

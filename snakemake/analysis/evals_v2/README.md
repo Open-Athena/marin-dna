@@ -88,6 +88,9 @@ Issue #517's strict phyloP selector control uses `config/issue517_phylop_uniform
 It registers only the six terminal step-4,999 checkpoints on the development `train` splits: Mendelian Traits and Complex Traits for every arm, plus SGE for CDS.
 It does not register a held-out dataset or an intermediate checkpoint.
 
+The one-per-order enhancer follow-up uses `config/issue517_enhancer_order.yaml` and the canonical model `exp517-phylop-uniform-enhancer-order-step-4999`.
+It evaluates only the terminal export on the same pinned Mendelian and Complex Traits development splits.
+
 ### QTL datasets (`caqtl` / `dsqtl`, `eval_protocol: qtl_global`)
 
 The DART-Eval Task-5 chromatin-accessibility QTL benchmarks (PR #214) are

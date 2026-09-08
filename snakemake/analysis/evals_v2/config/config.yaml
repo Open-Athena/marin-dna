@@ -1341,6 +1341,12 @@ models:
     window_size: 255
     datasets: [mendelian_traits, complex_traits]
 
+  # Issue #517: strict phyloP Arm A enhancer, one source per vertebrate order.
+  - name: exp517-phylop-uniform-enhancer-order-step-4999
+    gcs_path: gs://marin-us-east5/MarinDNA/exp517_phylop_enhancer_order/checkpoints/dna-exp517-phylop-uniform-0p25b-enhancer-order-v1/2026.09.04/hf/step-4999
+    window_size: 255
+    datasets: [mendelian_traits, complex_traits]
+
 inference:
   batch_size: 128       # Was 64 with output_hidden_states=True keeping all
                         # 19+2 layers' activations alive (~2.6 GB at L=256,
