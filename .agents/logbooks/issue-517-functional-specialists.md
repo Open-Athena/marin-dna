@@ -1488,3 +1488,36 @@ Its current anchor path instead creates uniform conservation-selected windows an
   The final 90,112-byte snapshot at `gs://marin-us-east5/MarinDNA/exp517_phylop_enhancer_order/sweep_state/exp517_enhancer_order_20260908_trial_completed.sqlite` has SHA-256 `75151ba6f099d36be3a1dc21ddd948af25e28526fd9294615c550c49abfbb121`.
   It was uploaded, independently downloaded, compared byte-for-byte, and passed the helper integrity check.
 - Next action: Inspect the CPU test result and dry-run before starting the two development VEP scoring cells.
+
+### 2026-09-08 15:33 UTC - `FAS-517-068` development-file acquisition boundary
+
+- Validation: With CPU selection for the mock-based tests, the unchanged evaluation project passed 416 tests with five skips in 32.95 seconds, and the independent pinned A10G runtime smoke passed.
+  The reviewed dry-run contained two scoring jobs and two metric jobs, with no checkpoint download or unrelated evaluation.
+  Mainline registration PR #542 passed independent review and was marked ready without merging.
+- Stopped attempt: Service `issue517-order-vep-evaluate` started at approximately 15:27 UTC.
+  The Mendelian scoring rule called the existing `load_dataset(repo, split="train", revision=...)` path, which prepared both the 16,140-row training split and the 9,490-row held-out test split in its dataset cache before returning only the training frame.
+  This violated the held-out acquisition boundary even though no held-out predictions or metrics were computed.
+  No held-out labels or values were inspected for experiment decisions.
+  The attempt was killed before the second dataset began; the same worker remains subject to the 16:45 UTC termination deadline.
+- Mainline follow-up: #545 records the unintended held-out cache materialization and requires synthetic or mocked regression coverage rather than reproducing against real held-out records without authorization.
+- Additive retry: Snapshot `acb5ee95` introduces the task-specific `issue517_enhancer_order.Snakefile` and `compute_scores_exp517_order` rule.
+  It changes only dataset acquisition: download the exact pinned `train.parquet`, build a dataset from that local file, and assert that every chromosome belongs to the odd-autosome/X development partition.
+  Repository/revision/split checks fail before network access outside the two approved cells.
+  The legacy inference rule, score kernel, metric rule, checkpoint, batch size, and benchmark revisions remain unchanged.
+- Recovery: The two stale Snakemake lock files from the stopped task were moved to explicit backup paths after verifying no live scoring process remained.
+  The updated source was transferred to the existing worker and a new validation service started.
+- Next action: Review the new loader tests and the task-specific four-job dry-run, then restart the same terminal-only development evaluation.
+
+### 2026-09-08 15:34 UTC - `FAS-517-069` train-file-only VEP launch
+
+- Validation: The full evaluation project passed 421 tests with five skips in 28.99 seconds using CPU selection for the unit-test suite.
+  The separate A10G runtime smoke passed.
+  The inspected dry-run resolves exactly two `compute_scores_exp517_order` and two `compute_metrics` jobs for the sole terminal checkpoint, under configuration MD5 `339c0afeedb1c126636c37d34f7ed3a8`.
+  No generic scoring rule, checkpoint-download job, or unrelated cell is selected.
+- Launch: `issue517-order-vep-evaluate-trainonly` starts the approved development evaluation on existing spot worker `i-057e9ba6b14fea3ac` at `3.23.127.146`.
+  Source snapshot is `acb5ee95`; the command is `bash .agents/artifacts/issue-517/evaluation/run_enhancer_order_vep.sh evaluate` from `/home/ubuntu/issue517-order-vep`.
+  The actual Snakemake invocation uses `workflow/issue517_enhancer_order.Snakefile`, the default S3 profile, four cores, and `config/issue517_enhancer_order.yaml`.
+- Outputs: Canonical scores and metrics remain under `s3://oa-bolinas/snakemake/analysis/evals_v2/results/{scores,metrics}/exp517-phylop-uniform-enhancer-order-step-4999/{mendelian_traits,complex_traits}.parquet`.
+  Worker stdout is `/home/ubuntu/issue517-order-vep.log` and is uploaded to the matching canonical metadata prefix on exit.
+  The node terminates on evaluation exit or at the 16:45 UTC hard deadline.
+- Next action: Verify real GPU scoring progress and only training-file acquisition, then retrieve the Distal development AUPRC/Group-SMD rows and compare the same-size family, GPN-selected, and historical enhancer runs with effective epochs.
