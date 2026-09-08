@@ -10,7 +10,7 @@ resources:
   autostop:
     idle_minutes: 10
     down: true
-    wait_for: jobs
+    wait_for: jobs_and_ssh
 envs:
   PIPELINE_COMMIT_SHA: null
   POLARS_MAX_THREADS: "2"
