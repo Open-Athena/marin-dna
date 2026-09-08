@@ -403,6 +403,9 @@ Two unavoidable AWS-side failure modes worth knowing about:
 
 ## Configuration (`config/config.yaml`)
 
+The issue #517 enhancer order control is registered as `exp517-phylop-uniform-enhancer-order-step-4999` for Mendelian and Complex Traits development evaluation.
+It uses the terminal step-4,999 export and a 255-base DNA window.
+
 | Key | Purpose |
 | --- | --- |
 | `input_hf_prefix` | HF prefix for `f"{prefix}_{dataset.name}"`. |
