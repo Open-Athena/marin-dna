@@ -17,7 +17,7 @@ finish() {
     printf 'evaluation_exit_status=%s\n' "$exit_status"
     if command -v aws >/dev/null 2>&1; then
         aws s3 cp /home/ubuntu/issue517-order-vep.log \
-            s3://oa-bolinas/snakemake/analysis/evals_v2/results/metadata/exp517-phylop-uniform-enhancer-order-step-4999/20260908-run.log || true
+            "s3://oa-bolinas/snakemake/analysis/evals_v2/results/metadata/exp517-phylop-uniform-enhancer-order-step-4999/$(date -u +%Y%m%dT%H%M%SZ)-${phase}.log" || true
     fi
     # A successful validation leaves the capped instance alive for plan review.
     if [[ "$phase" == evaluate || "$exit_status" != 0 ]]; then
@@ -36,11 +36,26 @@ if [[ "$(uv --version | awk '{print $2}')" != "0.11.31" ]]; then
 fi
 cd snakemake/analysis/evals_v2
 checkpoint=/home/ubuntu/issue517-terminal-checkpoint
+if [[ ! -s "$checkpoint/model.safetensors" ]]; then
+    mkdir -p "$checkpoint"
+    aws s3 sync \
+        s3://oa-bolinas/snakemake/analysis/evals_v2/results/checkpoints/exp517-phylop-uniform-enhancer-order-step-4999/ \
+        "$checkpoint/"
+fi
 test -s "$checkpoint/model.safetensors"
 test -s "$checkpoint/config.json"
 test -s "$checkpoint/tokenizer.json"
 test -s "$checkpoint/tokenizer_config.json"
-# The launcher verifies all four GCS object hashes before starting this script.
+# GCS object MD5 digests independently verified by the launcher on September 8.
+for entry in \
+    '316ca59735487f32fdde8b0de3a2752a config.json' \
+    '3e7d4b78b849e6a740437a213b2ceb93 model.safetensors' \
+    '028b31d552bf7ce41e8a424179c4daec tokenizer.json' \
+    '4b3d9cfba490be336fc5f262c31d7d84 tokenizer_config.json'; do
+    read -r expected filename <<< "$entry"
+    actual=$(md5sum "$checkpoint/$filename" | cut -d ' ' -f 1)
+    [[ "$actual" == "$expected" ]]
+done
 # Publish the verified cache at the workflow's existing checkpoint location.
 touch "$checkpoint/.snakemake_timestamp"
 aws s3 sync "$checkpoint/" \

@@ -1439,3 +1439,32 @@ Its current anchor path instead creates uniform conservation-selected windows an
 - Persistence authorization: The user approved uploading all current and future monitoring SQLite snapshots up to 100 KB for this run to `gs://marin-us-east5/MarinDNA/exp517_phylop_enhancer_order/sweep_state/`.
   The independently verified first-step snapshot is 90,112 bytes with SHA-256 `adf28b8b76bfdf88118f579dfccd62e2978b25f5a0a65cd999420a622c2a0363`.
 - Next action: Use W&B as the primary monitor at 30-minute intervals, confirm stable throughput and loss after warmup, and query Iris only for exact liveness or failure classification.
+
+### 2026-09-08 15:15 UTC - `FAS-517-066` terminal order-control checkpoint and VEP preparation
+
+- Training result: W&B reports `finished`, `global_step = 4999`, and `run_progress = 1` for `dna-exp517-phylop-uniform-0p25b-enhancer-order-v1`.
+  Final training loss is 1.284567 and bundled validation loss is 1.282146.
+  Iris coordinator `/gonzalo/exp517-phylop-enhancer-order-d002` succeeded with exit code zero.
+  The last W&B device-kind summary is `TPU v6 lite`, whereas the first allocation was v5p, so the initial hardware observation should not be extrapolated to the entire run.
+- Checkpoint: The terminal export at `gs://marin-us-east5/MarinDNA/exp517_phylop_enhancer_order/checkpoints/dna-exp517-phylop-uniform-0p25b-enhancer-order-v1/2026.09.04/hf/step-4999` was written on September 5 at 07:13:46–47 UTC.
+  This is one checkpoint containing four files, not four checkpoints.
+  The weights contain 1,019,422,904 bytes and have MD5 `3e7d4b78b849e6a740437a213b2ceb93`.
+  The complete export contains 1,019,426,427 bytes.
+- Monitoring correction: No VEP job had actually been submitted before this status check, and there was no installed automatic completion monitor.
+  The earlier promise to launch immediately on completion was not fulfilled.
+- Evaluation scope: Only terminal step 4,999, with development/train Mendelian and Complex Traits from the same pinned benchmark revisions as the prior strict-phyloP control.
+  Retain the complete mature-miRNA matched-group exclusion.
+  Report the enhancer specialist on Distal, compare the prior same-size runs, and do not access held-out labels or evaluate the 1B models.
+- Registry: Additive mainline PR #542 registers `exp517-phylop-uniform-enhancer-order-step-4999` at commit `0d1fca76b98f9363d6ffeca5a711ec0a8711e30f`.
+  Independent review found no actionable issues; remote tests and a reviewed dry-run remain gates before scoring.
+- Compute: One spot AWS `g5.xlarge` with A10G 24 GB, instance `i-092225dfe9a742567`, was provisioned in `us-east-2c` at 15:02:41 UTC after capacity failures in the first two availability zones.
+  Its instance role supplies existing S3 access.
+  It terminates on guest shutdown and has a confirmed hard shutdown at 16:45:59 UTC.
+- Credential boundary: Automatic approval review rejected exporting the local GCP credential file to EC2.
+  Instead, the launcher streamed only the four checkpoint artifacts from GCS to the worker over SSH; no GCP credential was copied.
+  All four remote sizes and MD5 hashes match the GCS object metadata.
+  The bounded local transfer held the exclusive heavy-work lock, lasted 73.69 seconds, exited zero, and peaked at 95,652 KiB RSS; no model or evaluation workload ran locally.
+- Reproducibility: Research snapshot `9ccd5dbd` contains the scoped overlay and the two-phase remote validation/evaluation script.
+  `bash -n .agents/artifacts/issue-517/evaluation/run_enhancer_order_vep.sh` passed.
+  Validation service `issue517-order-vep-validate` is active and installing the locked project environment.
+- Next action: Review the GPU runtime check, project tests, and exact Snakemake dry-run; then start the two authorized scoring cells and report their actual state.
