@@ -1521,3 +1521,16 @@ Its current anchor path instead creates uniform conservation-selected windows an
   Worker stdout is `/home/ubuntu/issue517-order-vep.log` and is uploaded to the matching canonical metadata prefix on exit.
   The node terminates on evaluation exit or at the 16:45 UTC hard deadline.
 - Next action: Verify real GPU scoring progress and only training-file acquisition, then retrieve the Distal development AUPRC/Group-SMD rows and compare the same-size family, GPN-selected, and historical enhancer runs with effective epochs.
+
+### 2026-09-08 - `FAS-517-070` user clarification: passive held-out caching is allowed
+
+- Policy correction: The user explicitly clarified that downloading and caching the held-out split is allowed; it must not be evaluated or used for research decisions without separate authorization.
+  Preparing both split caches while returning only development rows is therefore not a reason to stop or modify the pipeline.
+  The earlier interpretation in `FAS-517-068` was unnecessarily strict.
+- Guidance: The `evaluate-models` skill now distinguishes routine file handling from evaluating held-out rows or analyzing their labels, effect measurements, predictions, or metrics.
+  The change is being published separately from the experiment code under #545, which was corrected from a loader-bug report to a guidance task.
+- Cleanup: Removed the newly added train-file-only module, rule, Snakefile, and tests from future research-branch executions, and restored the prior launch command and README exactly.
+  The removed files remain recoverable at snapshot `acb5ee95`.
+  The running remote evaluation remains on that tested snapshot to avoid another interruption; its inference and metrics are still development-only.
+- Validation: The restored pipeline paths and launch script have no diff against `acb5ee95^`, which previously passed 416 tests with five skips and its four-job dry-run.
+  The guidance passes the skill validator and whitespace check.

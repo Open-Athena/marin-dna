@@ -89,9 +89,6 @@ It registers only the six terminal step-4,999 checkpoints on the development `tr
 It does not register a held-out dataset or an intermediate checkpoint.
 
 The one-per-order enhancer follow-up uses `config/issue517_enhancer_order.yaml` and the canonical model `exp517-phylop-uniform-enhancer-order-step-4999`.
-Run that follow-up with `--snakefile workflow/issue517_enhancer_order.Snakefile`.
-Its additive scoring rule downloads only each pinned `train.parquet` file and rejects chromosomes outside the development partition before inference.
-The standard Hugging Face repository loader can prepare both split caches even when called with `split="train"`, so this experiment does not use repository-wide split discovery.
 It evaluates only the terminal export on the same pinned Mendelian and Complex Traits development splits.
 
 ### QTL datasets (`caqtl` / `dsqtl`, `eval_protocol: qtl_global`)
