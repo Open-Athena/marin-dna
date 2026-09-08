@@ -1,7 +1,7 @@
 # Which genomic regions to train on, and how to find them?
 
 > [!NOTE]
-> **TL;DR:** Targeted or conservation-selected corpora often improve functional prediction at current scales, and absolute loss or entropy can proxy conservation; hard loss-ranked token selection and anchor-free clustering of short mammalian genome windows both failed as practical selectors, while same-lineage teacher distillation outperformed uniform once and repeat downweighting remains untested.
+> **TL;DR:** Functional enrichment helps at current scales, but anchor recipes should vary by region: uniform CDS/UTR grids and annotation-first ncRNA/enhancers are the current defaults; hard loss-ranked selection and anchor-free short-window clustering failed as practical selectors, while repeat downweighting remains untested.
 
 ## Question
 
@@ -15,6 +15,11 @@ The answer may be task-dependent: sequence evolving approximately neutrally may 
 
 No experiment identifies one universally optimal genomic training footprint.
 Current MarinDNA results and external ablations support task-aware enrichment at modest scale: region specialists beat mismatched specialists, clean enhancer curation fixes a large VEP failure, and the conservation-filtered footprint covers Mendelian positives much better than complex-trait positives.
+
+[The five-region anchor investigation](../experiments/517-region-specialist-anchors.md) supports different construction defaults within functional sequence.
+Uniform phyloP-selected windows performed better on splicing, synonymous, and 5′-UTR variants, while annotation-first ncRNA and element-centered enhancers performed better on their respective subsets.
+The 3′-UTR uniform preference is tentative, and promoter is approximately tied.
+These fixed-compute results do not isolate anchor geometry from dataset size, repetitions, and non-mammal mapping differences.
 
 The design has three separable controls.
 Locus selection decides which sequence is present; sampling decides exposure frequency; per-base loss weights decide which observations shape the fitted distribution.
@@ -92,6 +97,8 @@ It should retain a background arm so gains on functional VEP can be weighed agai
   All four loss-ranked half-token objectives harmed Mendelian missense-plus-splicing AUPRC, while pure final-checkpoint teacher KL beat uniform CE at step 200 within the paired evaluation records; one seed, privileged later-lineage supervision, and unmatched per-step compute limit the inference.
 - [Anchor-free clustering of mammalian genome windows](../experiments/521-linclust-conservation.md) tested Linclust, exhaustive alignment controls, longer windows, hash ensembles, denser seeds, DECIPHER, and a source-aware seed graph against projected homology.
   The tested symmetric short-window recipes missed too many known pairs or admitted too many genomic decoys, and the single-database workflow failed at the exact 20-genome scale without a distributed path to all animals or eukaryotes, so this path was stopped without a phyloP selector or training run.
+- [Region-specific anchors for vertebrate specialists](../experiments/517-region-specialist-anchors.md) recovered the eight-subset diagonal with uniform phyloP selection but found stronger ncRNA and enhancer performance with annotation-first recipes.
+  The results favor region-specific defaults without establishing an epoch-matched or backend-matched anchor effect.
 
 </details>
 
@@ -100,6 +107,7 @@ It should retain a background arm so gains on functional VEP can be weighed agai
 
 - Compare whole-genome, conservation-filtered, annotation-enriched, and functional-plus-background corpora at matched architecture, tokens, and evaluation, reporting unique loci and realized repetitions.
 - Separate locus selection, exposure frequency, and per-base loss weighting, including data-size- and epoch-matched controls.
+- Test the region-specific anchor defaults at fixed species membership and projection backend before attributing their gains to centering or functional-base density, and check whether the preferences persist with scale.
 - Test terminal loss or entropy, target-distribution reducible loss, and same-corpus scale-differential loss as distinct selectors; control for repeats, GC, local predictability, training exposure, and homology density.
 - Measure the footprint tradeoff across Mendelian and complex-trait VEP, region-matched likelihood gaps, frozen probes, and at least one outcome expected to benefit from neutral sequence.
 - Ablate the current 100-fold repeat downweighting across model and token scales while holding footprint and sampling fixed.
