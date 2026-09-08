@@ -57,7 +57,14 @@ REPOSITORY_PATH_PREFIXES = (
     "src",
     "tests",
 )
-_PREFIX_ALTERNATION = "|".join(re.escape(prefix) for prefix in REPOSITORY_PATH_PREFIXES)
+# Directories a skill references relative to its own directory.
+SKILL_RELATIVE_PREFIXES = (
+    "references",
+    "scripts",
+)
+_PREFIX_ALTERNATION = "|".join(
+    re.escape(prefix) for prefix in REPOSITORY_PATH_PREFIXES + SKILL_RELATIVE_PREFIXES
+)
 # A repository path token inside code: not glued to a preceding path or word
 # (so ``s3://bucket/docs/x`` and ``a/docs/x`` do not match) and running to the
 # next whitespace or quote.
@@ -75,6 +82,7 @@ ROOT_FILE_NAMES = (
     "uv.lock",
     ".pre-commit-config.yaml",
     ".python-version",
+    ".gitignore",
 )
 _ROOT_FILE_ALTERNATION = "|".join(re.escape(name) for name in ROOT_FILE_NAMES)
 ROOT_FILE_PATTERN = re.compile(rf"(?<![\w./-])({_ROOT_FILE_ALTERNATION})(?![\w-])")

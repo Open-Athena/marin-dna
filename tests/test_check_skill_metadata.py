@@ -279,14 +279,28 @@ def test_root_file_references_are_validated(tmp_path: Path) -> None:
     write_skill(
         tmp_path,
         "demo",
-        "Follow `AGENTS.md`; see `SKILL.md`, `README.md`, and `.python-version`.",
+        "Follow `AGENTS.md`; see `SKILL.md`, `README.md`, `.python-version`, `.gitignore`.",
     )
     write_file(tmp_path, "AGENTS.md")
 
     assert messages(checker.check_skills(tmp_path)) == [
         "missing local reference: README.md",
         "missing local reference: .python-version",
+        "missing local reference: .gitignore",
     ]
+
+
+def test_skill_relative_paths_in_code_spans_are_validated(tmp_path: Path) -> None:
+    write_skill(tmp_path, "demo", "Load `references/` and run `scripts/tool.py`.")
+
+    assert messages(checker.check_skills(tmp_path)) == [
+        "missing local reference: references/",
+        "missing local reference: scripts/tool.py",
+    ]
+
+    write_file(tmp_path, ".agents/skills/demo/references/a.md")
+    write_file(tmp_path, ".agents/skills/demo/scripts/tool.py")
+    assert checker.check_skills(tmp_path) == []
 
 
 def test_indented_fences_are_scanned(tmp_path: Path) -> None:
