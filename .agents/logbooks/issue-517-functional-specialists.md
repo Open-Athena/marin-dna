@@ -1534,3 +1534,14 @@ Its current anchor path instead creates uniform conservation-selected windows an
   The running remote evaluation remains on that tested snapshot to avoid another interruption; its inference and metrics are still development-only.
 - Validation: The restored pipeline paths and launch script have no diff against `acb5ee95^`, which previously passed 416 tests with five skips and its four-job dry-run.
   The guidance passes the skill validator and whitespace check.
+
+### 2026-09-08 15:43 UTC - `FAS-517-071` development VEP outputs available
+
+- Completed cells: Canonical Complex Traits and Mendelian Traits metric Parquets were written at 15:41:54 and 15:42:06 UTC respectively for `exp517-phylop-uniform-enhancer-order-step-4999`.
+  Their object sizes are 15,849 and 15,864 bytes.
+  The run log is preserved at `s3://oa-bolinas/snakemake/analysis/evals_v2/results/metadata/exp517-phylop-uniform-enhancer-order-step-4999/20260908T154206Z-evaluate.log`.
+- Resource cleanup: AWS confirms the final spot worker `i-057e9ba6b14fea3ac` terminated through guest shutdown.
+  Both earlier failed evaluation workers were also confirmed terminated.
+- Guidance delivery: PR #547 changes only the central `evaluate-models` skill to permit passive held-out file handling while retaining explicit permission for held-out evaluation and analysis.
+  No evaluation or training code is included in that PR.
+- Next action: Extract the Distal AUPRC/Group-SMD rows from the completed metric artifacts and compare the strict family control, GPN-selected control, and same-size historical enhancer runs with effective epochs.
