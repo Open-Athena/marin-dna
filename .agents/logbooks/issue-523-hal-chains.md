@@ -275,3 +275,23 @@ author: gonzalobenegas
   The resulting agreement rate describes this diagnostic sample, not an unbiased genome-wide fraction.
   Start with baboon to measure full-chain load/query resources before admitting mouse and elephant.
 - Next: Complete remote tests and dry-runs, execute the synthetic chain workflow, then run the bounded saved-baseline sample and publish raw-coordinate parity and resource metrics.
+
+### 2026-09-08 19:52 UTC - `HALC-523-011` validate the reader and recover from spot preemption
+
+- Remote verification at `bc65d5b98b6a73100bf3686efa91d8710ace07ee`: all 236 locked project tests passed in 8.06 seconds; legacy dry-run had 79 jobs and the additive fixture DAG had six.
+  A real six-job synthetic workflow using Kent 482 and S3 storage completed with two accepted plus/minus-strand projections and one explicit unmapped query.
+  Its durable result prefix is `s3://oa-bolinas/snakemake/vertebrate_projection_dataset/results/chain-projection-v1/bc65d5b98b6a73100bf3686efa91d8710ace07ee/038b498d9a6bda979d32929240aa1fcb06c9d07342d1be94f97bb7e6fca65eb4/`.
+- Environment correction: Upgrading the first worker's base Conda also changed its Python patch version, invalidating Sky's live Ray driver's version check.
+  No biological workflow ran in the two failed Ray submissions.
+  The maintained template now creates a separate Conda prefix and uses `jobs_and_ssh` for autodown; independent review found no additional issues through `0b68066478f079f1d81ab49a46014d176c9779ed`.
+- Sample preservation: The baboon sample contains exactly 10,000 queries across 288 chromosome × region × direct-mapped strata, with 5,324 direct-mapped queries.
+  Seven input artifacts are durable under `s3://oa-bolinas/issues/523/chain-reader-sampled-validation/aeb016efbda0f46c84a4672d6a3b0803bd2e90d2/Papio_anubis/`.
+  Preparation uses research snapshot `aeb016efbda0f46c84a4672d6a3b0803bd2e90d2`; the audit script at `95424cdcdcd3f40725f13577796835e56d99a192` adds payload re-read and SHA-256 verification.
+- Interruption: EC2 `i-05a2e9027e0823a18` was terminated by AWS spot capacity loss, not by autodown.
+  Spot request `sir-wqxqh3vn` reports `instance-terminated-no-capacity` at 19:35:56 UTC.
+  No biological mapped output finalized; only the three small request/producer artifacts exist in the interrupted real-data result prefix.
+- Bounded retry: Launched `chain-reader-523b`, again optimizer-selected r7i.xlarge spot, 4 vCPUs / 32 GiB and approximately $0.05/hour.
+  The isolated Conda setup completed without disrupting Ray; all 236 tests passed in 11.31 seconds and both dry-runs passed.
+  Restored the seven saved baboon sample files without downloading the full baseline or HAL.
+  The inspected real-data DAG contains six jobs and exactly one `liftOver -minMatch=0.95 -multiple` invocation; Sky job 3 runs it with a 900-second timeout.
+- Next: Audit the baboon result before admitting the mouse and elephant checks, preserve verification metrics, and terminate the retry worker at the end of this bounded pass.

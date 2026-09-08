@@ -13,6 +13,7 @@ from collections import Counter, defaultdict
 import hashlib
 import json
 from pathlib import Path
+from urllib.request import urlopen
 
 import boto3
 import polars as pl
@@ -24,6 +25,50 @@ BUCKET = "oa-bolinas"
 BASE = "snakemake/vertebrate_projection_dataset/results/phylop-uniform-v1/2162b6aa8299a9748eeb8031318b49072bb8c3fc/94d512050de327f96fda1105ce9c6ae5562944e402802516c7cde54795d8cdd1/full"
 CHAINS = "snakemake/vertebrate_projection_dataset/results/hal-chains-directional-ramp-v2/b86897b7050bc9fdf397dd6abfb3af11fc876f86/d035c2561f6be3b11449647adfe9ce865884aef7da8b7e06b817d8a75c7f37f9/full/chains"
 TARGETS = {"Papio_anubis", "Mus_musculus", "Loxodonta_africana"}
+REPORT_URL = "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/000/001/405/GCA_000001405.15_GRCh38/GCA_000001405.15_GRCh38_assembly_report.txt"
+REPORT_SHA256 = "aa733ce92719f6339b3a4540137d4322894434363314c4b7704ba6691e9eab66"
+PAYLOADS = ["anchors.parquet", "sample.input.bed", "sample.direct_hal.bed", "sample.design.parquet", "assets.tsv", "config.yaml", "sample.metadata.json", "source.aliases.sizes", "GRCh38_assembly_report.txt"]
+
+
+def source_aliases(source: Path, output: Path) -> dict:
+    """Validate UCSC sizes against NCBI and add explicit HAL-style aliases.
+
+    No sizes or names are inferred from the candidate chain. Query coordinates
+    and original UCSC primary names are unchanged.
+    """
+    with urlopen(REPORT_URL, timeout=60) as response:
+        payload = response.read(1_000_001)
+    assert len(payload) <= 1_000_000
+    assert hashlib.sha256(payload).hexdigest() == REPORT_SHA256
+    (output / "GRCh38_assembly_report.txt").write_bytes(payload)
+    original = {r.split()[0]: int(r.split()[1]) for r in source.read_text().splitlines()}
+    aliases = dict(original)
+    verified = set()
+    for line in payload.decode().splitlines():
+        if line.startswith("#") or not line.strip():
+            continue
+        row = line.split("\t")
+        assert len(row) == 10
+        ucsc, size = row[9], int(row[8])
+        if ucsc not in original:
+            continue
+        assert original[ucsc] == size, (ucsc, original[ucsc], size)
+        verified.add(ucsc)
+        names = [row[4]]  # versioned GenBank accession for unplaced scaffolds
+        if row[1] == "assembled-molecule":
+            names.append(f"chr{row[0]}")  # includes chrMT, alias of UCSC chrM
+        for name in names:
+            if name == "na":
+                continue
+            assert name not in aliases or aliases[name] == size
+            aliases[name] = size
+    assert verified == set(original), sorted(set(original) - verified)
+    target = output / "source.aliases.sizes"
+    target.write_text("".join(f"{name}\t{size}\n" for name, size in sorted(aliases.items())))
+    return {"report_url": REPORT_URL, "report_sha256": REPORT_SHA256,
+            "original_ucsc_contigs": len(original), "validated_ucsc_contigs": len(verified),
+            "dictionary_entries": len(aliases), "dictionary_sha256": file_sha256(target),
+            "policy": "original UCSC names plus report GenBank accessions and chr-prefixed assembled-molecule names; no chain-derived sizes"}
 
 
 def bed_rows(path: Path):
@@ -55,6 +100,7 @@ def prepare(args) -> None:
     input_bed = fetch(f"{BASE}/hal/input.bed", "input.bed")
     direct = fetch(f"{BASE}/hal/raw/{args.species}.bed", "direct_hal.bed")
     source = fetch(f"{BASE}/reference/hg38.chrom.sizes", "source.sizes")
+    alias_metadata = source_aliases(source, output)
     target = fetch(f"{BASE}/hal/chrom_sizes/{args.species}.tsv", "target.sizes")
     generation = fetch(f"{CHAINS}/{args.species}/chain_generation.json", "generation.json")
     generated = json.loads(generation.read_text())
@@ -99,16 +145,16 @@ def prepare(args) -> None:
     selected.select("query_name", "source_chrom", "source_start", "source_end", "region_label").write_parquet(output / "anchors.parquet")
     species = pl.read_csv(args.species_manifest, separator="\t").filter(pl.col("alignment_name") == args.species)
     assert species.height == 1
+    owner = f"issues/523/chain-reader-sampled-validation/{args.research_commit}/{args.species}"
     asset = {
         "alignment_name": args.species, "assembly": species["assembly"][0],
         "source_assembly": "hg38", "chain_origin": "Zoonomia-447-2022v1:direction_matched_no_dupes_psl_swap:minScore=-1000000",
         "chain": chain_uri, "chain_sha256": generated["chain_sha256"],
-        "source_sizes": objects[source.name]["s3_uri"], "source_sizes_sha256": file_sha256(source),
+        "source_sizes": f"s3://{BUCKET}/{owner}/source.aliases.sizes", "source_sizes_sha256": alias_metadata["dictionary_sha256"],
         "target_sizes": objects[target.name]["s3_uri"], "target_sizes_sha256": file_sha256(target),
     }
     pl.DataFrame([asset]).write_csv(output / "assets.tsv", separator="\t")
     # Samples are issue-owned research inputs, not copies of source datasets.
-    owner = f"issues/523/chain-reader-sampled-validation/{args.research_commit}/{args.species}"
     config = {
         "anchors": f"s3://{BUCKET}/{owner}/anchors.parquet",
         "anchors_sha256": file_sha256(output / "anchors.parquet"),
@@ -121,11 +167,11 @@ def prepare(args) -> None:
         "sample_queries": 10_000, "population_queries": frame.height,
         "sample_design": "equal allocation to chromosome x region x direct-mapped strata, then SHA256-ranked fill; not population-weighted",
         "strata": selected.group_by(strata).len().sort(strata).to_dicts(),
-        "input_objects": objects, "chain": asset,
+        "input_objects": objects, "chain": asset, "source_aliases": alias_metadata,
         "owner": f"s3://{BUCKET}/{owner}",
         "regional_gate": "not repeated: saved regional raw direct-HAL BEDs not recovered"}
     (output / "sample.metadata.json").write_text(json.dumps(metadata, indent=2) + "\n")
-    for name in ["anchors.parquet", "sample.input.bed", "sample.direct_hal.bed", "sample.design.parquet", "assets.tsv", "config.yaml", "sample.metadata.json"]:
+    for name in PAYLOADS:
         s3.upload_file(str(output / name), BUCKET, f"{owner}/{name}")
     print(json.dumps({"species": args.species, "sample_queries": 10_000,
                       "strata": nstrata, "direct_mapped": int(selected["direct_mapped"].sum()),
@@ -180,7 +226,7 @@ def audit(args) -> None:
     # Re-read every small published sample artifact, verifying its bytes, and
     # preserve a checksummed manifest instead of relying on upload exit codes.
     verified = []
-    for name in ["anchors.parquet", "sample.input.bed", "sample.direct_hal.bed", "sample.design.parquet", "assets.tsv", "config.yaml", "sample.metadata.json", "parity.json", "discrepancies.json"]:
+    for name in PAYLOADS + ["parity.json", "discrepancies.json"]:
         payload = s3.get_object(Bucket=BUCKET, Key=f"{key}/{name}")["Body"].read()
         digest = hashlib.sha256(payload).hexdigest()
         assert digest == file_sha256(sample / name)
