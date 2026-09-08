@@ -738,6 +738,14 @@ models:
     eval_accumulation_steps: 8
     datasets: [mendelian_traits, complex_traits, sge]
 
+  # exp535 — uniform five-region continuation from the 4B scaling checkpoint.
+  - name: exp535-4b-uniform-five-region-step-235573
+    gcs_path: gs://marin-us-east5/checkpoints/dna-exp535-4b-uniform-five-region/2026.08.31/hf/step-235573
+    window_size: 255
+    batch_size: 16
+    eval_accumulation_steps: 8
+    datasets: [mendelian_traits]
+
   # exp21 — animal-promoters-yolo (issue #21, wandb animal-promoters-yolo-r01-213a8e).
   # 512 bp context, no BOS. Scoped to mendelian_traits only: complex signal
   # was weak in #21, and the matched-pair mendelian dataset is the one of
