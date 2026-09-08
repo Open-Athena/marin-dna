@@ -68,6 +68,17 @@
         "Report status in prose instead of the HARNESS_SCRUB_LOOP footer and needs_followup_at protocol.",
         "Keep each sentence on its own source line."
       ]
+    },
+    {
+      "name": "review-pr",
+      "deviations": [
+        "Rewrite the description for MarinDNA CI and local invocation.",
+        "Enumerate MarinDNA's quotable AGENTS.md rules for the compliance agents and route figure and Snakemake checks to the local area skills.",
+        "Check PR prose against writing-style plus communicate-on-github instead of Marin's writing-style alone.",
+        "Validate findings from all four review agents, not only the bug agents.",
+        "Require the robot prefix on every posted comment and use Open-Athena/marin-dna permalinks.",
+        "Drop Marin's stats-logging step (no log_stats.py sink here)."
+      ]
     }
   ],
   "local": [
