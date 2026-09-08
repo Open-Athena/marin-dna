@@ -1604,3 +1604,17 @@ Its current anchor path instead creates uniform conservation-selected windows an
   No data shards, VEP labels, predictions, or model inputs were downloaded, and no compute, publication, or training run was launched.
 - Next action: Record this agreement and inventory in the issue comment and living summary.
   Existing specialist inputs can be reused without rerunning projection; a new unified mixture or cross-arm-exclusive catalog would require its own compatibility audit.
+
+### 2026-09-08 19:27 UTC - `FAS-517-074` promote the specialist interpretation
+
+- Human decision: Proceed with a separate knowledge-base interpretation PR and additive chain-reader infrastructure; use cheap sampled validation, not exhaustive genome-wide equivalence.
+- Interpretation snapshot: `fe9ea47645ed3a4932c4f7c03d0244d97f9ca6bf`, PR #548, branches from current main rather than the large research PR.
+  The page records annotation-first 6/8 versus strict-phyloP uniform 8/8 home winners, paired AUPRC uncertainty, effective epochs, and the single-seed enhancer order-control result.
+  It recommends region-specific construction without claiming an isolated centering effect or a separately evaluated hybrid catalog.
+- Verification: Local Markdown-link/figure/XML checks and `git diff --check` passed; all applicable CI checks passed.
+  An independent reviewer checked the published prose and figure against saved CSV/JSON evidence and the issue and found no actionable scientific or provenance errors.
+  PR #548 is ready for human review; no merge or issue closure was performed.
+- Disposition: Interpretation PR open, pending merge.
+  P1's original complete-diagonal hypothesis was not recovered by annotation-first construction; P2's checkpoint-emergence analysis remains deferred under the user's terminal-checkpoint-only decision.
+- Infrastructure: PR #549 is a separate additive coordinate-only chain reader, tracked in #523.
+  No training or dataset rebuilding was launched for this interpretation.

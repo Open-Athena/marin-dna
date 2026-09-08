@@ -250,3 +250,28 @@ author: gonzalobenegas
 - First resources: About 365 GiB available RAM, 1.27 TiB free NVMe, 17.1% aggregate CPU busy, 1.3% iowait, and load/vCPU 0.048.
 - Durable status: https://github.com/Open-Athena/marin-dna/issues/523#issuecomment-5464610246.
 - Next action: Inspect the first finalized chain and metrics object, confirm sustained memory behavior at eight workers, and continue the cohort without increasing concurrency.
+
+### 2026-09-08 19:27 UTC - `HALC-523-010` extract an additive reader and bound the adoption gate
+
+- Recovered completion record: Issue comments 5533414047 and 5533449692 record all 107 chains plus 107 generation records verified, zero terminal failures, 90,636,189,891 compressed bytes, controller completion September 3 19:37 UTC, and worker termination September 3 23:26:27 UTC.
+  The S3 chain namespace is the recovery snapshot above; live reads confirmed the baboon chain-generation SHA-256 and three strict-phyloP raw BED baselines.
+- Human decision: Reuse existing chains and saved direct-HAL projections for a cheap sampled check, with no HAL restaging, new halLiftover computation, chain regeneration, full-grid projection, or training.
+- Infrastructure snapshots: `25312a5a41aa5148792b2c79b939d4b57710ec7e` then `bc65d5b98b6a73100bf3686efa91d8710ace07ee`, draft PR #549.
+  New Snakefile.chains and projection/chains.py accept a pinned anchor catalog and chain/dictionary manifest, preserve center-1 identities, reject ambiguity, apply the shared 255-bp contract, and account for every requested query.
+  Existing HAL/MultiZ rules and shared code are unchanged.
+- Review: Independent review found numeric-looking TSV IDs could be inferred as integers; the additive reader now types identifiers before inference and tests `001` versus `1`.
+  CI passed after formatting and fixture checksum updates.
+- Compute: The shared exe.dev VM had only approximately 2.2 GiB MemAvailable, below the local execution gate; no local data processing or test suite was run.
+  `sky launch --dryrun -y .../sky/chains-smoke.yaml` selected r7i.xlarge spot in ap-northeast-2d at approximately $0.05/hour, under the $0.25/hour resource ceiling.
+  Cluster chain-reader-523 launched for bounded validation with 4 vCPUs and 32 GiB; initial remote headroom exceeded 29 GiB.
+  Autodown was temporarily extended from 10 to 60 idle minutes during setup/debugging because direct SSH commands do not count as Sky jobs; intentional termination is required at the end of this pass.
+- Test environment: Initial remote run had 234 passed and one existing storage-integration failure because the Sky image shipped Conda 23.11.0, below Snakemake's 24.7.1 requirement.
+  Sky job 2 upgraded Conda to 25.11.1; the launch template records this prerequisite.
+  A dry-run-only retry used a mistyped full commit override; no real workflow ran under that identity, and the authoritative rerun uses verified `bc65d5b98b6a73100bf3686efa91d8710ace07ee`.
+- Baseline availability: The old regional prefix contains metrics and chain files but no source-center or direct-HAL BED payloads, and the expected issue-owned prefix is empty.
+  Do not claim to repeat the 9,374-query direct comparison from those metrics alone.
+  The full strict-phyloP baseline contains the 1,136,854-query BED, request Parquet, and direct raw BEDs for baboon, mouse, and elephant.
+- Sample design: Deterministic approximately equal allocation across chromosome × region × direct-mapped strata, then SHA-256-ranked fill to 10,000 per species.
+  The resulting agreement rate describes this diagnostic sample, not an unbiased genome-wide fraction.
+  Start with baboon to measure full-chain load/query resources before admitting mouse and elephant.
+- Next: Complete remote tests and dry-runs, execute the synthetic chain workflow, then run the bounded saved-baseline sample and publish raw-coordinate parity and resource metrics.
