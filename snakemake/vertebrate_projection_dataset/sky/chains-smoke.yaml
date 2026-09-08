@@ -22,10 +22,14 @@ envs:
 setup: |
   set -eu
   timeout 600 python3 -m pip install --user 'uv==0.11.31'
-  timeout 900 "$HOME/miniconda3/bin/conda" install --override-channels -c conda-forge -n base -y 'conda=25.11.1'
+  # Do not upgrade SkyPilot's base Python: its running Ray driver pins that ABI.
+  if [ ! -x "$HOME/chain-reader-conda/bin/conda" ]; then
+    timeout 900 "$HOME/miniconda3/bin/conda" create --override-channels -c conda-forge --prefix "$HOME/chain-reader-conda" -y 'python=3.13' 'conda=25.11.1'
+  fi
 run: |
   set -eu
-  export PATH="$HOME/.local/bin:$PATH"
+  export PATH="$HOME/chain-reader-conda/bin:$HOME/.local/bin:$PATH"
+  export CONDA_EXE="$HOME/chain-reader-conda/bin/conda"
   cd snakemake/vertebrate_projection_dataset
   timeout 900 uv sync --locked --group dev
   timeout 900 uv run --locked pytest
