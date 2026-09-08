@@ -19,8 +19,9 @@ finish() {
         aws s3 cp /home/ubuntu/issue517-order-vep.log \
             "s3://oa-bolinas/snakemake/analysis/evals_v2/results/metadata/exp517-phylop-uniform-enhancer-order-step-4999/$(date -u +%Y%m%dT%H%M%SZ)-${phase}.log" || true
     fi
-    # A successful validation leaves the capped instance alive for plan review.
-    if [[ "$phase" == evaluate || "$exit_status" != 0 ]]; then
+    # Validation leaves the capped instance alive for plan review or diagnosis.
+    # The separately scheduled hard shutdown still applies on validation errors.
+    if [[ "$phase" == evaluate ]]; then
         sudo shutdown -h now
     fi
     exit "$exit_status"
@@ -64,7 +65,8 @@ uv sync --locked --group dev --group genome-s3
 if [[ "$phase" == validate ]]; then
     uv run --locked --group genome-s3 evals-gpu-runtime-check \
         --config config/gpu_runtime_validation.yaml smoke
-    uv run --locked --group genome-s3 pytest
+    # The unit suite has CPU-only mock models; check the real GPU separately.
+    CUDA_VISIBLE_DEVICES='' uv run --locked --group genome-s3 pytest
 fi
 
 targets=(
