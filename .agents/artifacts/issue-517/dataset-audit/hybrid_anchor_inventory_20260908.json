@@ -1,0 +1,117 @@
+{
+  "verified_at_utc": "2026-09-08T18:33:07Z",
+  "scope": "Metadata-only anonymous verification of existing immutable releases; no dataset shards downloaded or recomputed.",
+  "verification_requests": [
+    "GET https://huggingface.co/api/datasets/{dataset}/revision/{revision}?blobs=true",
+    "GET https://huggingface.co/datasets/{dataset}/resolve/{revision}/README.md"
+  ],
+  "shared_contract": {
+    "window_bp": 255,
+    "tiling_stride_bp": 128,
+    "projected_human_bp": 1,
+    "projected_center_index": 127,
+    "human_conserved_fraction_min": 0.2,
+    "phyloP447way_base_threshold": 2.2162,
+    "family_deduplicated_nonhuman_targets": 135,
+    "mammal_targets": 107,
+    "non_mammal_targets": 28,
+    "human_reference_added_once_per_anchor": true,
+    "species_manifest_sha256": "355d979b4460330c956bce5d32b2e9f532e9c848c3bad9eeb9165aca1f5f47e4"
+  },
+  "producer_commits": {
+    "uniform": "2162b6aa8299a9748eeb8031318b49072bb8c3fc",
+    "functional": "e42a4ea1eca760219e0add91004b45cac59b19c9"
+  },
+  "limitations": [
+    "This is an inventory of five existing specialist inputs, not a newly materialized or cross-arm-overlap-audited hybrid catalog.",
+    "Target manifest identity and shared center-1 semantics do not imply identical non-mammal mapping backends.",
+    "Recommended defaults reflect exploratory fixed-compute development comparisons, not an epoch-matched proof of optimality."
+  ],
+  "releases": [
+    {
+      "arm": "CDS",
+      "recipe": "uniform_grid",
+      "dataset": "marin-dna/phylop-uniform-v1-cds",
+      "revision": "452a5a3538f22630c3dea94d441ac30216bb28ea",
+      "train_rows_after_rc": 69483774,
+      "data_bytes": 10736379706,
+      "url": "https://huggingface.co/datasets/marin-dna/phylop-uniform-v1-cds/tree/452a5a3538f22630c3dea94d441ac30216bb28ea",
+      "public": true,
+      "gated": false,
+      "files": 67,
+      "train_shards": 64,
+      "validation_shards": 1,
+      "validation_rows": 16384,
+      "data_file_positive_sizes_and_lfs_sha256_verified": true,
+      "non_mammal_projection": "direct_multiz_maf"
+    },
+    {
+      "arm": "TSS / 5′ UTR",
+      "recipe": "uniform_grid",
+      "dataset": "marin-dna/phylop-uniform-v1-tss-utr5",
+      "revision": "5134205d86cd03e7833843d99e947e43e7aa11ac",
+      "train_rows_after_rc": 11580082,
+      "data_bytes": 1763895640,
+      "url": "https://huggingface.co/datasets/marin-dna/phylop-uniform-v1-tss-utr5/tree/5134205d86cd03e7833843d99e947e43e7aa11ac",
+      "public": true,
+      "gated": false,
+      "files": 67,
+      "train_shards": 64,
+      "validation_shards": 1,
+      "validation_rows": 16384,
+      "data_file_positive_sizes_and_lfs_sha256_verified": true,
+      "non_mammal_projection": "direct_multiz_maf"
+    },
+    {
+      "arm": "3′ UTR",
+      "recipe": "uniform_grid",
+      "dataset": "marin-dna/phylop-uniform-v1-utr3",
+      "revision": "2b73d5d9ebda34a361536db5e3d2697b6a1b1d6c",
+      "train_rows_after_rc": 14496656,
+      "data_bytes": 2227066076,
+      "url": "https://huggingface.co/datasets/marin-dna/phylop-uniform-v1-utr3/tree/2b73d5d9ebda34a361536db5e3d2697b6a1b1d6c",
+      "public": true,
+      "gated": false,
+      "files": 67,
+      "train_shards": 64,
+      "validation_shards": 1,
+      "validation_rows": 16384,
+      "data_file_positive_sizes_and_lfs_sha256_verified": true,
+      "non_mammal_projection": "direct_multiz_maf"
+    },
+    {
+      "arm": "ncRNA",
+      "recipe": "annotation_first_exons",
+      "dataset": "marin-dna/functional-ncrna",
+      "revision": "ecb7e9480be5e2c18db59b3544a0c61e23fc2a2f",
+      "train_rows_after_rc": 6209692,
+      "data_bytes": 983245119,
+      "url": "https://huggingface.co/datasets/marin-dna/functional-ncrna/tree/ecb7e9480be5e2c18db59b3544a0c61e23fc2a2f",
+      "public": true,
+      "gated": false,
+      "files": 67,
+      "train_shards": 64,
+      "validation_shards": 1,
+      "validation_rows": 16384,
+      "data_file_positive_sizes_and_lfs_sha256_verified": true,
+      "non_mammal_projection": "ucsc_pairwise_chain"
+    },
+    {
+      "arm": "Enhancer",
+      "recipe": "dELS_pELS_centered_no_exon",
+      "dataset": "marin-dna/functional-enhancer",
+      "revision": "07fac22abf6d158b8a155150d8aa49e813e6125e",
+      "train_rows_after_rc": 25364652,
+      "data_bytes": 4034281646,
+      "url": "https://huggingface.co/datasets/marin-dna/functional-enhancer/tree/07fac22abf6d158b8a155150d8aa49e813e6125e",
+      "public": true,
+      "gated": false,
+      "files": 67,
+      "train_shards": 64,
+      "validation_shards": 1,
+      "validation_rows": 16384,
+      "data_file_positive_sizes_and_lfs_sha256_verified": true,
+      "non_mammal_projection": "ucsc_pairwise_chain"
+    }
+  ]
+}

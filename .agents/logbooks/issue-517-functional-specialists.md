@@ -29,6 +29,8 @@ Held-out even-autosome/Y evaluation remains unapproved and untouched.
 The completed order-control follow-up raised Mendelian Distal AUPRC from 0.135 to 0.235 at fixed training compute, while Complex Traits changed from 0.109 to 0.104.
 This is an exploratory partial enhancer recovery: the Mendelian point estimate remains below the earlier annotation-first result of 0.323, and changing the species cohort alongside effective epochs prevents attribution to repetition alone.
 Human occupies the sole Primates slot; the post-hoc source subset therefore retains 39 non-human targets across 18 mammalian and 21 non-mammalian orders.
+The agreed five-arm recommendation is now a hybrid: uniform CDS, TSS/5-prime UTR, and 3-prime UTR; annotation-first ncRNA; and element-centered enhancers.
+All five family-deduplicated center-1 specialist inputs already exist at immutable public Hub revisions; see `FAS-517-073` for the live inventory and cross-release backend caveat.
 
 ## Baseline
 
@@ -1572,3 +1574,33 @@ Its current anchor path instead creates uniform conservation-selected windows an
   Reading the already-computed metric tables locally held the exclusive lock and thread limits, peaked at 87,204 KiB RSS, and took 8.35 seconds initially plus 2.07 seconds for the remaining historical cells.
   No model, reference sequence, variant-score table, or bootstrap computation was run locally.
 - Next action: Discuss whether a follow-up should isolate exposure at fixed species composition or revisit human enhancer-anchor construction; neither new experiment has been launched.
+
+### 2026-09-08 18:33 UTC - `FAS-517-073` agreed hybrid anchor defaults and existing release inventory
+
+- Decision: Gonzalo approved five region-specific anchor defaults: uniform 255/128 grid plus established assignment for CDS, protein-coding TSS/5-prime UTR, and 3-prime UTR; annotation-first ncRNA exons; and centered dELS/pELS enhancers with zero annotated-exon overlap.
+  The ncRNA recipe retains curated biotypes and source-arm ownership, filters owned intervals to 20–10,000 bp, adds 20 bp flanks, expands short intervals to 255 bp, merges, and tiles long intervals at 128 bp stride.
+  Enhancer candidates start at original element centers and pass the existing source-arm ownership gate after construction.
+- Evidence: The existing same-size terminal Mendelian development comparison supports uniform splicing, synonymous, and 5-prime UTR performance; annotation-first improves ncRNA and distal.
+  Missense and 3-prime UTR uniform point gains remain inconclusive in the strict paired comparison, and promoter is approximately tied.
+  These are recommended defaults under the tested 0.25B fixed-compute regime, not an isolated anchor-effect or general optimality claim.
+- Availability: All five exact inputs already exist as public, ungated Hugging Face releases.
+  - CDS: `marin-dna/phylop-uniform-v1-cds@452a5a3538f22630c3dea94d441ac30216bb28ea`, 69,483,774 post-RC training rows.
+  - TSS / 5′ UTR: `marin-dna/phylop-uniform-v1-tss-utr5@5134205d86cd03e7833843d99e947e43e7aa11ac`, 11,580,082 post-RC training rows.
+  - 3′ UTR: `marin-dna/phylop-uniform-v1-utr3@2b73d5d9ebda34a361536db5e3d2697b6a1b1d6c`, 14,496,656 post-RC training rows.
+  - ncRNA: `marin-dna/functional-ncrna@ecb7e9480be5e2c18db59b3544a0c61e23fc2a2f`, 6,209,692 post-RC training rows.
+  - Enhancer: `marin-dna/functional-enhancer@07fac22abf6d158b8a155150d8aa49e813e6125e`, 25,364,652 post-RC training rows.
+- Live verification: Anonymous `GET /api/datasets/{dataset}/revision/{revision}?blobs=true` resolved each exact revision; `GET /datasets/{dataset}/resolve/{revision}/README.md` confirmed recipe, conservation, center-1, cohort, and row-count provenance.
+  Every release has 67 files, including 64 train shards and one validation shard; all 65 data files have positive sizes and 64-character LFS SHA-256 metadata.
+  Validation has 16,384 unaugmented rows per arm.
+  The first inventory predicate searched for hyphenated shard names and returned zero; correcting it to the documented `data/train/` and `data/validation/` prefixes reconciled all releases.
+- Projection contract: All five inputs use one central human nucleotide to locate a 255 bp target window, with at least 51 of 255 human positions satisfying phyloP447way >= 2.2162.
+  The two source commits have byte-identical selected-species manifests: SHA-256 `355d979b4460330c956bce5d32b2e9f532e9c848c3bad9eeb9165aca1f5f47e4`.
+  The manifest contains 107 mammal and 28 non-mammal family-deduplicated targets; human is added separately once per anchor.
+  Verification command: `git show <source-commit>:snakemake/vertebrate_projection_dataset/config/species_selected.tsv | sha256sum`, for functional source `e42a4ea1eca760219e0add91004b45cac59b19c9` and uniform source `2162b6aa8299a9748eeb8031318b49072bb8c3fc`.
+- Provenance caveat: Mammals use center-1 HAL in both releases; non-mammals use direct MultiZ in the uniform release and pinned pairwise UCSC chains in the functional release.
+  These share center-1 semantics but are not an identical-backend control.
+  The proposed five-input selection is not a newly built unified catalog, and cross-release anchor overlap/exclusive ownership has not been audited as a hybrid.
+- Artifact: `.agents/artifacts/issue-517/dataset-audit/hybrid_anchor_inventory_20260908.json` records the immutable inputs and metadata audit.
+  No data shards, VEP labels, predictions, or model inputs were downloaded, and no compute, publication, or training run was launched.
+- Next action: Record this agreement and inventory in the issue comment and living summary.
+  Existing specialist inputs can be reused without rerunning projection; a new unified mixture or cross-arm-exclusive catalog would require its own compatibility audit.
