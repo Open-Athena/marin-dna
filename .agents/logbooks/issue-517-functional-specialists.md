@@ -26,7 +26,8 @@ Across the four 0.25B full diagonals, home-specialist epoch/AUPRC correlations a
 The strict uniform-grid enhancer remains far below the targeted #326 and #351 enhancer specialists, while the current unassigned-background arm has much more splicing signal than #232's background and should not be interpreted as the same negative control.
 All six strict-control runs and development-only VEP evaluations are complete.
 Held-out even-autosome/Y evaluation remains unapproved and untouched.
-The current follow-up tests whether a strict-phyloP Arm A enhancer corpus with exactly one sequence source per represented vertebrate order improves distal VEP through greater effective exposure.
+The completed order-control follow-up raised Mendelian Distal AUPRC from 0.135 to 0.235 at fixed training compute, while Complex Traits changed from 0.109 to 0.104.
+This is an exploratory partial enhancer recovery: the Mendelian point estimate remains below the earlier annotation-first result of 0.323, and changing the species cohort alongside effective epochs prevents attribution to repetition alone.
 Human occupies the sole Primates slot; the post-hoc source subset therefore retains 39 non-human targets across 18 mammalian and 21 non-mammalian orders.
 
 ## Baseline
@@ -39,10 +40,10 @@ Human occupies the sole Primates slot; the post-hoc source subset therefore reta
 
 ### Active
 
-- `FAS-517-H2`: Repeating the strict-phyloP uniform Arm A enhancer corpus more often by retaining one sequence source per vertebrate order will improve development distal AUPRC over the family-deduplicated strict baseline of 0.135.
-  Next test: audit and publish the 40-source corpus, train the matched 0.25B enhancer arm for 5,000 steps, and compare every 500-step checkpoint with the strict family baseline.
-- `FAS-517-P2`: The mapped home arm reaches the #459 persistence threshold during training.
-  Next test: apply the two-consecutive-checkpoint `P(home ranks first) >= 95%` readout to the order-control enhancer trajectory.
+- `FAS-517-H2`: The terminal order-control run supports improved Mendelian Distal performance in point estimate (0.235 versus 0.135), with no Complex Traits gain.
+  Evidence: `FAS-517-072`; one seed, 58 Mendelian positive match groups, and no new paired difference test.
+  A pure exposure-only interpretation remains unresolved because cohort composition also changed.
+- `FAS-517-P2`: Checkpoint-trajectory persistence remains deferred under the user's terminal-checkpoint-only evaluation decision.
 
 ### Blocked
 
@@ -1545,3 +1546,29 @@ Its current anchor path instead creates uniform conservation-selected windows an
 - Guidance delivery: PR #547 changes only the central `evaluate-models` skill to permit passive held-out file handling while retaining explicit permission for held-out evaluation and analysis.
   No evaluation or training code is included in that PR.
 - Next action: Extract the Distal AUPRC/Group-SMD rows from the completed metric artifacts and compare the strict family control, GPN-selected control, and same-size historical enhancer runs with effective epochs.
+
+### 2026-09-08 18:05 UTC - `FAS-517-072` order-control enhancer performance
+
+- Primary result: Terminal 0.25B order-control Mendelian Distal AUPRC is 0.235461 ± 0.049575 SE, versus 0.134984 ± 0.021590 for the strict phyloP family control.
+  The absolute point-estimate increase is 0.100478, or 74.4% relative.
+  Complex Traits Distal AUPRC is 0.104171 ± 0.005168 versus 0.109320 ± 0.006018, a decrease of 0.005149 in point estimate.
+- Exposure: The fixed 5,000 × 8,192 schedule represents 2.605711 effective row epochs for 15,719,320 order-control rows versus 0.513763 epochs for 79,725,424 family-control rows, a 5.0718-fold exposure increase.
+- Same-size historical checks: GPN-selected family-control Distal AUPRC is 0.118915 ± 0.018133 on Mendelian and 0.103543 ± 0.005407 on Complex Traits at 0.311559 epochs.
+  The #232 uniform-grid enhancer has Mendelian AUPRC 0.126778 ± 0.025444 at 0.465295 epochs; its canonical Complex Traits metric key returns S3 404, so that cell is omitted.
+  The earlier #517 annotation-first enhancer reaches 0.322690 ± 0.055261 and 0.127846 ± 0.008923 respectively at 1.614846 epochs, using different human anchors.
+  Every compared model is 0.25B and uses the final step-4,999 checkpoint; no 1B model is included.
+- Secondary metric: Mendelian Group SMD rises from 0.195764 to 0.387282; the order-control percentile 95% CI is [0.152144, 0.582439].
+  Complex Traits Group SMD changes from 0.051795 to 0.031276, with order-control 95% CI [-0.061042, 0.087314].
+- Evaluation contract: Existing development/train metric artifacts only, Distal scope, Mendelian `minus_llr_avg`, Complex Traits `abs_llr_avg`, and the same pinned revisions as the terminal evaluation.
+  Mendelian has 58 positive match groups and 580 rows; Complex Traits has 616 groups and 6,160 rows.
+  Reported AUPRC uncertainty is the existing 1,000-match-group bootstrap SE, not a paired difference confidence interval.
+  Current Mendelian metrics excluded complete mature-miRNA groups before calculation; no held-out evaluation was run.
+- Interpretation: Exploratory partial rescue on Mendelian, no evidence of a Complex Traits improvement from these point estimates.
+  The result does not isolate epoch count as the cause: source-species membership and representation also changed, and only one seed was trained.
+  It does not yet recover the earlier annotation-first enhancer's point performance.
+- Artifact audit: Read nine small canonical metric Parquets, checked unique model/dataset cells, one selected Distal score row per cell, AUPRC range, nonnegative SE, and positive-group support.
+  The readout script and extracted metrics are recorded under `.agents/artifacts/issue-517/evaluation/`.
+  S3 Select was unsupported and the old SSH alias failed host-key verification, so neither path was used; no host verification was bypassed or new compute launched.
+  Reading the already-computed metric tables locally held the exclusive lock and thread limits, peaked at 87,204 KiB RSS, and took 8.35 seconds initially plus 2.07 seconds for the remaining historical cells.
+  No model, reference sequence, variant-score table, or bootstrap computation was run locally.
+- Next action: Discuss whether a follow-up should isolate exposure at fixed species composition or revisit human enhancer-anchor construction; neither new experiment has been launched.
