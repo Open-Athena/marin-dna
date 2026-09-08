@@ -1468,3 +1468,23 @@ Its current anchor path instead creates uniform conservation-selected windows an
   `bash -n .agents/artifacts/issue-517/evaluation/run_enhancer_order_vep.sh` passed.
   Validation service `issue517-order-vep-validate` is active and installing the locked project environment.
 - Next action: Review the GPU runtime check, project tests, and exact Snakemake dry-run; then start the two authorized scoring cells and report their actual state.
+
+### 2026-09-08 15:24 UTC - `FAS-517-067` remote validation failures and bounded retry
+
+- Source-bundle failure: The first validation attempt passed the pinned A10G runtime smoke but failed test collection because the selected source archive omitted the shared `dashboard/models.yaml` registry.
+  No scoring ran, and the failure handler terminated instance `i-092225dfe9a742567`.
+  The second archive included the registry.
+- GPU-visible unit-suite failure: The second worker `i-0e505239213ca54d5` again passed the GPU smoke, then reported 411 passed, five failed, and five skipped tests in 46.50 seconds.
+  Every failure involved CPU-only test doubles paired with CUDA inputs selected by the HF Trainer.
+  This is tracked separately in #544 with exact failing test IDs and a durable log.
+  The worker terminated before any scoring.
+- Retry: Research snapshot `ea009076` selects CPU for the mock-based unit suite, preserves the independent real-GPU smoke, and retains the pinned inference configuration.
+  Validation errors now leave the worker available for diagnosis until its unchanged hard deadline, while an evaluation exit triggers immediate termination.
+  Third worker `i-057e9ba6b14fea3ac` is the same spot `g5.xlarge`/A10G runtime in `us-east-2c`.
+  Its confirmed guest-shutdown deadline is September 8 at 16:45 UTC; the instance terminates on shutdown.
+- Checkpoint reuse: Each retry reads the exact canonical S3 cache and verifies all four files against the GCS MD5 digests before use.
+  There is no second GCS transfer or credential export.
+- Training-state reconciliation: The SQLite helper recorded terminal W&B/Iris observation, ended the dispatch, and completed the sole trial after checkpoint verification.
+  The final 90,112-byte snapshot at `gs://marin-us-east5/MarinDNA/exp517_phylop_enhancer_order/sweep_state/exp517_enhancer_order_20260908_trial_completed.sqlite` has SHA-256 `75151ba6f099d36be3a1dc21ddd948af25e28526fd9294615c550c49abfbb121`.
+  It was uploaded, independently downloaded, compared byte-for-byte, and passed the helper integrity check.
+- Next action: Inspect the CPU test result and dry-run before starting the two development VEP scoring cells.
