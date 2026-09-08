@@ -75,7 +75,7 @@ def prepare(args) -> None:
     strata = ["source_chrom", "region_label", "direct_mapped"]
     nstrata = frame.select(strata).unique().height
     assert 0 < nstrata < 10_000
-    selected = frame.group_by(strata, maintain_order=True).head(10_000 // nstrata)
+    selected = frame.group_by(strata, maintain_order=True).head(10_000 // nstrata).select(frame.columns)
     fill = frame.filter(~pl.col("query_name").is_in(selected["query_name"].implode())).head(10_000 - selected.height)
     selected = pl.concat([selected, fill]).sort("source_chrom", "source_start", "query_name")
     assert selected.height == selected["query_name"].n_unique() == 10_000
