@@ -134,7 +134,15 @@ def prepare(args) -> None:
 
 def audit(args) -> None:
     sample = Path(args.sample)
-    result = Path(args.result)
+    s3 = boto3.client("s3")
+    if args.result.startswith(f"s3://{BUCKET}/"):
+        result = sample / "result"
+        result.mkdir(exist_ok=True)
+        prefix = args.result.removeprefix(f"s3://{BUCKET}/").rstrip("/")
+        for name in ["mapped.bed", "unmapped.bed", "audit.json", "liftover.benchmark.tsv", "accepted.parquet", "rejected.parquet"]:
+            s3.download_file(BUCKET, f"{prefix}/{name}", str(result / name))
+    else:
+        result = Path(args.result)
     names = {r[3] for r in bed_rows(sample / "sample.input.bed")}
     direct, chain = defaultdict(Counter), defaultdict(Counter)
     for path, target in [(sample / "sample.direct_hal.bed", direct), (result / "mapped.bed", chain)]:
@@ -158,14 +166,27 @@ def audit(args) -> None:
                "exact_queries": counts["exact_mapped"] + counts["exact_unmapped"],
                "exact_fraction": (counts["exact_mapped"] + counts["exact_unmapped"]) / len(names),
                "sample_metadata_sha256": file_sha256(sample / "sample.metadata.json"),
+               "audit_script_sha256": file_sha256(__file__),
+               "workflow_result": args.result,
+               "workflow_audit": json.loads((result / "audit.json").read_text()),
+               "liftOver_benchmark": pl.read_csv(result / "liftover.benchmark.tsv", separator="\t").to_dicts(),
                "scope": "stratified sample, not genome-wide equivalence or an unbiased genome-wide agreement estimate"}
     (sample / "parity.json").write_text(json.dumps(summary, indent=2) + "\n")
     (sample / "discrepancies.json").write_text(json.dumps(mismatches, indent=2) + "\n")
     metadata = json.loads((sample / "sample.metadata.json").read_text())
     key = metadata["owner"].removeprefix(f"s3://{BUCKET}/")
-    s3 = boto3.client("s3")
     for name in ["parity.json", "discrepancies.json"]:
         s3.upload_file(str(sample / name), BUCKET, f"{key}/{name}")
+    # Re-read every small published sample artifact, verifying its bytes, and
+    # preserve a checksummed manifest instead of relying on upload exit codes.
+    verified = []
+    for name in ["anchors.parquet", "sample.input.bed", "sample.direct_hal.bed", "sample.design.parquet", "assets.tsv", "config.yaml", "sample.metadata.json", "parity.json", "discrepancies.json"]:
+        payload = s3.get_object(Bucket=BUCKET, Key=f"{key}/{name}")["Body"].read()
+        digest = hashlib.sha256(payload).hexdigest()
+        assert digest == file_sha256(sample / name)
+        verified.append({"name": name, "bytes": len(payload), "sha256": digest})
+    (sample / "verified_manifest.json").write_text(json.dumps(verified, indent=2) + "\n")
+    s3.upload_file(str(sample / "verified_manifest.json"), BUCKET, f"{key}/verified_manifest.json")
     print(json.dumps(summary), flush=True)
 
 
