@@ -219,6 +219,9 @@ Copy `config/chain_projection.example.yaml` and provide a TSV manifest following
   Local paths resolve relative to the pipeline working directory.
 - All species must use the same pinned source chromosome dictionary.
   The chain's `t` side must match this human dictionary and its `q` side the destination dictionary, including exact chromosome lengths.
+  Include every contig named in the chain, even when the anchor sample uses only primary chromosomes.
+  HAL-derived hg38 chains can use GenBank scaffold accessions and `chrMT` where a UCSC dictionary uses names such as `chr11_KI270721v1_random` and `chrM`.
+  Supply an explicit alias-aware dictionary verified against the matching assembly report; the reader does not rename contigs or infer chromosome sizes from the candidate chain.
 
 The example contains fabricated coordinates and is only a software test, not biological validation.
 Inspect its isolated DAG with:
