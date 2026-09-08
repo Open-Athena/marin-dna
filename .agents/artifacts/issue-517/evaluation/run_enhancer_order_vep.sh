@@ -73,7 +73,8 @@ targets=(
     results/metrics/exp517-phylop-uniform-enhancer-order-step-4999/mendelian_traits.parquet
     results/metrics/exp517-phylop-uniform-enhancer-order-step-4999/complex_traits.parquet
 )
-common=(--profile workflow/profiles/default --cores 4 --rerun-incomplete
+common=(--snakefile workflow/issue517_enhancer_order.Snakefile
+    --profile workflow/profiles/default --cores 4 --rerun-incomplete
     --printshellcmds --configfile config/issue517_enhancer_order.yaml)
 uv run --locked --group genome-s3 snakemake "${common[@]}" --dry-run -- "${targets[@]}"
 if [[ "$phase" == evaluate ]]; then
