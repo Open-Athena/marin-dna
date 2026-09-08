@@ -9,8 +9,11 @@ name: Claude Code Review
 # The author gate is load-bearing: this repo is public and the review spends
 # CLAUDE_CODE_OAUTH_TOKEN quota, so only PRs opened by repo writers run. That
 # also excludes dependabot (CONTRIBUTOR) and fork PRs, which never receive the
-# secret. `pull_request` (not `pull_request_target`) checks out the merge ref
-# — what would actually land — without exposing credentials to PR code.
+# secret. Fork heads are excluded outright: even a member's fork PR passes the
+# association gate, but fork heads receive no secrets, so the review would run
+# token-less and fail confusingly. `pull_request` (not `pull_request_target`)
+# checks out the merge ref — what would actually land — without exposing
+# credentials to PR code.
 #
 # claude-code-action additionally refuses to run unless this file is identical
 # to the copy on the default branch (anti-tampering check on its app-token
@@ -29,6 +32,7 @@ concurrency:
 jobs:
   review:
     if: >-
+      github.event.pull_request.head.repo.full_name == github.repository &&
       github.event.pull_request.draft == false &&
       (
         github.event.pull_request.author_association == 'OWNER' ||

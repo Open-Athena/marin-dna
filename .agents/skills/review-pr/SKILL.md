@@ -11,7 +11,8 @@ The review pipeline and the high-signal policy are unchanged; the repo-specific 
 When `AGENTS.md` or those skills change, re-sync this file (see `maintain-vendored-skills` for the vendor comparison workflow).
 
 **Agent assumptions (applies to all agents and subagents):**
-- All tools are functional. Do not test tools or make exploratory calls.
+- All tools are functional.
+  Do not test tools or make exploratory calls.
 - Only call a tool if it is required to complete the task.
 
 Follow these steps precisely:
@@ -20,7 +21,8 @@ Follow these steps precisely:
    - The PR is closed
    - The PR is a draft
    - The PR does not need code review (e.g. a dependabot bump, a trivial obviously-correct change)
-   - Claude has already commented on this PR (check `gh pr view <PR> --comments`) AND a re-review was not explicitly requested. When a maintainer explicitly requests a re-review, always proceed even if a prior review exists.
+   - Claude has already commented on this PR (check `gh pr view <PR> --comments`) AND a re-review was not explicitly requested.
+     When a maintainer explicitly requests a re-review, always proceed even if a prior review exists.
 
    If any condition is true, stop.
    Note: still review agent-authored PRs (`codex/*` and `claude/*` branches, the `agent-generated` label).
@@ -117,9 +119,11 @@ Follow these steps precisely:
    - Provide a brief description of the issue
    - For small, self-contained fixes, include a committable suggestion block
    - For larger fixes (6+ lines, structural changes, or changes spanning multiple locations), describe the issue and suggested fix without a suggestion block
-   - Never post a committable suggestion UNLESS committing the suggestion fixes the issue entirely. If follow-up steps are required, do not leave a committable suggestion.
+   - Never post a committable suggestion UNLESS committing the suggestion fixes the issue entirely.
+     If follow-up steps are required, do not leave a committable suggestion.
 
-   **IMPORTANT: Only post ONE comment per unique issue. Do not post duplicate comments.**
+   **IMPORTANT: Only post ONE comment per unique issue.
+   Do not post duplicate comments.**
 
 Use this list when evaluating issues in steps 4 and 5 (these are false positives, do NOT flag):
 
@@ -142,12 +146,14 @@ Notes:
 
 ## 🤖 Code review
 
-No issues found. Checked for bugs and AGENTS.md compliance.
+No issues found.
+Checked for bugs and AGENTS.md compliance.
 
 ---
 
 - When linking to code in inline comments, follow this format precisely, otherwise the Markdown preview won't render: https://github.com/Open-Athena/marin-dna/blob/<full-40-char-sha>/AGENTS.md#L10-L15
-  - Requires the full git sha. Commands like `https://github.com/owner/repo/blob/$(git rev-parse HEAD)/foo/bar` will not work, since your comment is rendered directly as Markdown.
+  - Requires the full git sha.
+    Commands like `https://github.com/owner/repo/blob/$(git rev-parse HEAD)/foo/bar` will not work, since your comment is rendered directly as Markdown.
   - Repo name must be `Open-Athena/marin-dna`.
   - `#` after the file name; line range format is `L[start]-L[end]`.
   - Provide at least 1 line of context before and after, centred on the line you are commenting about (commenting on lines 5-6 → link `L4-L7`).

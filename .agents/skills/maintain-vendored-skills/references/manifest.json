@@ -49,7 +49,7 @@
     {
       "name": "review-pr",
       "deviations": [
-        "Vendored from marin-community/marin@e9e77ee6d9603aa2fe665a3f0e0a2db7ed950fda, which post-dates this manifest's pinned commit.",
+        "Rewrite the description for MarinDNA CI and local invocation.",
         "Enumerate MarinDNA's quotable AGENTS.md rules for the compliance agents and route figure and Snakemake checks to the local area skills.",
         "Check PR prose against writing-style plus communicate-on-github instead of Marin's writing-style alone.",
         "Validate findings from all four review agents, not only the bug agents.",
