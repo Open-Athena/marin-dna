@@ -295,3 +295,37 @@ author: gonzalobenegas
   Restored the seven saved baboon sample files without downloading the full baseline or HAL.
   The inspected real-data DAG contains six jobs and exactly one `liftOver -minMatch=0.95 -multiple` invocation; Sky job 3 runs it with a 900-second timeout.
 - Next: Audit the baboon result before admitting the mouse and elephant checks, preserve verification metrics, and terminate the retry worker at the end of this bounded pass.
+
+### 2026-09-08 20:17 UTC - `HALC-523-012` pass the three-species sampled adoption gate
+
+- Source dictionary correction: The real baboon workflow rejected `KI270721.1` before projection because its source dictionary used UCSC scaffold names.
+  The chain has 95 source contigs: 24 primary chromosomes already matched, while 70 GenBank scaffold accessions and `chrMT` needed explicit aliases.
+  Research snapshot `f3c1de027c3660a17d9cb8bec9297154fd6d2328` checks all 455 original UCSC contigs against the original NCBI GRCh38 assembly report, then adds documented GenBank and assembled-molecule aliases to a 911-entry dictionary.
+  Report SHA-256: `aa733ce92719f6339b3a4540137d4322894434363314c4b7704ba6691e9eab66`; dictionary SHA-256: `56706a5eeaaa368bfcab17bba94437b5a09885fe41494735a42bbb9118bac214`.
+  No sizes are inferred from the candidate chain, and baboon's selected anchor Parquet plus input/direct BEDs are byte-identical before and after this correction.
+- Tested reader: `0b68066478f079f1d81ab49a46014d176c9779ed`.
+  Final PR #549 head `086f74ed31b4c471f538b2f9a466c866ee4e964c` adds only the full-contig alias requirement to the README.
+  Independent reviews of both the published mainline diff and research alias correction found no remaining actionable issue; CI is green.
+- Biological results: Exactly 10,000/10,000 raw query outcomes matched saved direct HAL for each of baboon, mouse, and elephant.
+  Exact mapped/unmapped counts were 5,324/4,676; 5,170/4,830; and 5,190/4,810 respectively.
+  There were no direct-only, chain-only, coordinate, or multiplicity discrepancies.
+  All three deterministic samples span 288 chromosome × region × direct-mapped strata; the equal-allocation design does not estimate an unbiased genome-wide agreement rate.
+- Contract accounting: Accepted 255-bp target windows numbered 5,323 / 5,170 / 5,190.
+  One baboon mapped center was correctly rejected because expansion would leave its target contig; every other rejection was unmapped.
+- Query timing: One Kent-482 `liftOver -minMatch=0.95 -multiple` invocation per species took 23.89 / 38.42 / 35.44 seconds, including whole-chain loading but excluding other pipeline stages.
+  Sampled liftOver RSS was 1,783.75 / 6,252.93 / 6,047.54 MiB.
+  Whole Snakemake command time was 104.91 / 202.02 / 167.66 seconds, and GNU-time peak RSS was 1,823,616 / 13,105,920 / 9,451,776 KiB.
+  The larger whole-workflow peaks should inform memory reservations; these runs do not isolate cold-cache performance or predict all-grid throughput.
+- Durable research prefix: `s3://oa-bolinas/issues/523/chain-reader-sampled-validation/f3c1de027c3660a17d9cb8bec9297154fd6d2328/<species>/`.
+  All 11 payloads in each final manifest were re-read and SHA-256 verified from S3; resource-summary uploads were re-read separately.
+  Manifest SHA-256 values in species order are `68ac25763504c515078f5df83ef1a3b02ed605b44750a79cb1399f52ac6f7061`, `88f72a2c301a4524a835408d4b2b0fbed2c248674d6c2e49986181eafcd104e1`, and `86107facc2de1a556cd08cb1f8639fd05468d355389f45ebf18cdcf4470765a3`.
+  Each parity JSON identifies its workflow-native prefix, pinned chain, source/target dictionaries, species manifest, and audit code.
+- Lifecycle: Retry EC2 `i-0c42f772833fbe270` (`sir-y81qjgyn`) launched at 19:47:13 UTC; Sky jobs 5, 9, and 11 completed the biological workflows and jobs 6, 10, and 12 completed their audits.
+  `sky down chain-reader-523b -y` completed after artifact verification.
+  EC2 subsequently confirmed state `terminated`, with user-initiated transition at 20:15:43 UTC.
+  Only ephemeral worker copies were discarded; the original chains, saved baselines, and finalized validation artifacts remain in S3.
+- Decision: The sampled gate supports opt-in center-1 projection with these pinned assets and the unchanged acceptance rules.
+  It does not establish equivalence for all species or genomic coordinates, validate sequence extraction, authorize full-grid execution, or assess another chain-scoring threshold.
+  No HAL staging, new halLiftover, chain regeneration, dataset replacement, or training occurred.
+- Publication: https://github.com/Open-Athena/marin-dna/issues/523#issuecomment-5591278401 records the result and qualified go decision.
+  PR #549 is ready for human review, not merged; the #517 interpretation remains separately reviewable in PR #548.

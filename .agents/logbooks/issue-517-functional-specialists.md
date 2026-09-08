@@ -1618,3 +1618,14 @@ Its current anchor path instead creates uniform conservation-selected windows an
   P1's original complete-diagonal hypothesis was not recovered by annotation-first construction; P2's checkpoint-emergence analysis remains deferred under the user's terminal-checkpoint-only decision.
 - Infrastructure: PR #549 is a separate additive coordinate-only chain reader, tracked in #523.
   No training or dataset rebuilding was launched for this interpretation.
+
+### 2026-09-08 20:18 UTC - `FAS-517-075` hand off both reviewed PRs
+
+- Deliverables: PR #548 contains the accepted, qualified specialist interpretation; PR #549 contains the separate opt-in center-1 chain reader.
+  Both are ready for review, have green CI, and received independent review over their published diffs.
+- Infrastructure evidence: The #523 sampled gate matched all 10,000 saved direct-HAL query outcomes for each of baboon, mouse, and elephant.
+  Details and resource measurements are recorded in `HALC-523-012` and https://github.com/Open-Athena/marin-dna/issues/523#issuecomment-5591278401.
+  The smoke worker was terminated after all final S3 payloads were verified.
+- Scope: No exhaustive genome-wide comparison, dataset replacement, new HAL work, or training was performed.
+  These coordinate checks do not remove the non-mammal alignment-backend caveat from the historical experiment comparisons.
+- Handoff: Await human review of #548 and #549; neither PR is merged, and the research issue remains open pending its interpretation merge gate.
