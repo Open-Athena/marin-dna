@@ -364,3 +364,25 @@ author: gonzalobenegas
 - Post-ready check: The separate Claude review action failed at https://github.com/Open-Athena/marin-dna/actions/runs/34361134007 because the organization has disabled Claude subscription access for Claude Code.
   That service did not complete a code review; the independent review above was a separate published-diff review.
   Project test/build checks remain passed; no credential or CI-policy change was attempted.
+
+### 2026-09-09 14:30 UTC - `HALC-523-014` resolve final review comments and merge PR #549
+
+- Authority: Gonzalo explicitly requested merging PR #549; no merge of #548 or issue closure was requested.
+- Pre-merge review: Two Codex comments arrived after the earlier independent review.
+  The additive-only concern was resolved with the recorded explicit approval for one active chain workflow.
+  The memory-default concern prompted `9ea7eef8b58a0cff7e8b2017a2b4fb0a91d3c474`: both scheduler pools now use 32,000 MB and the Sky template requires at least 40 GiB, with a regression test and README update.
+  Installed Snakemake 9.25.1 caps integer rule resources to the global pool, so the old settings reduced the reservation rather than preventing all scheduling as the comment claimed.
+- Validation: 253 bounded local unit tests passed in 2.43 seconds at 284,996 KiB peak RSS; the 33-job dry-run passed in 2.18 seconds at 230,156 KiB peak RSS and reported the intended 32,000-MB liftOver reservation.
+  Commands used the exclusive heavy-work lock, memory/load gates, thread limits, nice, and ionice.
+  Final CI passed 255 project tests with the Kent-dependent test skipped there; the dedicated real-Kent end-to-end job passed separately.
+  Test/build/formatting checks were all successful or intentionally skipped at the exact merge head.
+  Test CI: https://github.com/Open-Athena/marin-dna/actions/runs/34363656434.
+  End-to-end CI: https://github.com/Open-Athena/marin-dna/actions/runs/34363656393.
+- Independent review: The focused published-diff review of bc75de55..9ea7eef8 found no actionable issue.
+  Both new inline review threads were answered and resolved before merging.
+- Merge: `gh pr merge 549 --repo Open-Athena/marin-dna --squash --match-head-commit 9ea7eef8b58a0cff7e8b2017a2b4fb0a91d3c474` completed successfully.
+  GitHub verified state MERGED at 2026-09-09T14:30:33Z, with mainline commit `0a74d77dbb85f6b9eff1220d280baa18dd0fa4a8`.
+  The source branch was retained for reproducibility.
+- Scope: No paid worker, biological dataset build, training, or Hugging Face upload was launched.
+  Full biological inputs still need registered verified manifests; no genome-wide equivalence claim was added.
+  PR #548 and research issues #517/#523 remain open.

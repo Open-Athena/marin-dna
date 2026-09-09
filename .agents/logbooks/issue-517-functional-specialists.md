@@ -1640,3 +1640,12 @@ Its current anchor path instead creates uniform conservation-selected windows an
   The PR is ready for review; details and limitations are recorded in `HALC-523-013`.
 - Scope: Historical experiments, stored datasets, and the accepted five-anchor interpretation are unchanged.
   No new biological dataset, model training, evaluation, paid worker, merge, or issue closure occurred.
+
+### 2026-09-09 14:30 UTC - `FAS-517-077` merge the chain infrastructure
+
+- Gonzalo authorized merging PR #549 only.
+  The final memory-template review fix was tested and independently reviewed before merging tested head `9ea7eef8b58a0cff7e8b2017a2b4fb0a91d3c474`.
+  Mainline squash commit: `0a74d77dbb85f6b9eff1220d280baa18dd0fa4a8`, merged at 14:30:33 UTC.
+  Final evidence is in `HALC-523-014`.
+- PR #548 remains open and ready for review; the #517 interpretation-merge gate is therefore still pending.
+  No datasets, evaluations, training runs, or accepted scientific interpretations changed.
