@@ -53,6 +53,8 @@ def test_results_are_producer_keyed_and_verification_receipts_are_local() -> Non
     assert "liftOver -minMatch=0.95 -multiple" in projection
     assert "validate_genome_source" in projection
     assert "validate_genome_dictionary" in projection
+    for recipe in (PROJECT_ROOT / "sky").glob("*.yaml"):
+        assert "Snakefile.chains" not in recipe.read_text()
     for obsolete in ("halLiftover", "hal2fasta", "HAL_PATH", "multiz_candidates"):
         assert obsolete not in projection
     assert 'temp(local(f"{RESULTS}/upload.done/{{region}}"))' in dataset

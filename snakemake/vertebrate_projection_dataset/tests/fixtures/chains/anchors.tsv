@@ -1,4 +1,4 @@
 query_name	source_chrom	source_start	source_end	region_label
 plus	chr1	100	355	cds
-minus	chr1	300	555	enhancer
-unmapped	chr1	600	855	ncrna
+minus	chr1	300	555	ccre_non_promoter
+unmapped	chr1	600	855	ncrna_exon
