@@ -1709,3 +1709,16 @@ Its current anchor path instead creates uniform conservation-selected windows an
   #537 therefore does not block the chain workflow, and no code change or issue closure was requested for it.
 - Outcome: Close the completed #517 research scope with the final interpretation, snapshot, and deferred/out-of-scope decisions recorded in the issue.
   No paid worker, biological dataset rebuild, training run, VEP run, or new held-out analysis was launched during close-out.
+
+### 2026-09-09 16:21 UTC - `FAS-517-081` close the historical experiment review surface
+
+- Authority: Gonzalo approved closing #518 without merging and #537 as not planned, while leaving #538, #544, #529, #536, and #542 open.
+- PR #518: Updated the description with its completed research-record purpose, retained the original implementation summary in a historical details block, and posted the final disposition comment.
+  `gh pr close 518 --repo Open-Athena/marin-dna` closed the PR at 2026-09-09T16:21:10Z without a merge or branch-deletion option.
+  GitHub verified `state=CLOSED`, `mergedAt=null`, and the remote branch `codex/issue-517-functional-anchors` still pointed to `ee0723736cb6d71ce920fd6f3b3e435fd02937af` immediately after closure.
+  Final record: https://github.com/Open-Athena/marin-dna/pull/518#issuecomment-5605131432.
+- Legacy staging: #537 closed as not planned at 16:21:05 UTC because the active chain workflow does not call the old HAL downloader.
+  This records an obsolete active-workflow concern, not a bug fix; no code, branch, dataset, or artifact was deleted.
+  Final record: https://github.com/Open-Athena/marin-dna/issues/537#issuecomment-5605130992.
+- Verification: Re-fetched both descriptions, final comments, closure states, and the remote branch reference.
+  Only the authorized two closure targets changed state; other follow-up issues and registration PRs remain open.

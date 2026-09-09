@@ -418,3 +418,14 @@ author: gonzalobenegas
 - Conclusion: The reusable assets and sampled adoption gate are complete; further experiments should submit only their needed anchors.
   No all-grid run is pending, and no new paid resource was launched for close-out.
   Existing datasets and their historical projection provenance are unchanged.
+
+### 2026-09-09 16:21 UTC - `HALC-523-016` retire the inactive HAL-staging bug report
+
+- Authority: Gonzalo approved marking #537 not planned because the active chain workflow no longer downloads HAL.
+- Action: Updated the issue body and posted a final comment distinguishing an unused legacy path from a fixed bug.
+  `gh issue close 537 --repo Open-Athena/marin-dna --reason "not planned"` succeeded.
+- Verification: GitHub reports `state=closed`, `state_reason=not_planned`, and closure at 2026-09-09T16:21:05Z.
+  The legacy helper and its reported cleanup bug remain unchanged; reopen if HAL staging is reintroduced.
+  Final record: https://github.com/Open-Athena/marin-dna/issues/537#issuecomment-5605130992.
+- Scope: #538 remains open for a later threshold investigation; #544 and the evaluation-registration PRs remain outside this session.
+  The separate historical #518 review surface closed without merging, with its permanent research branch retained.
