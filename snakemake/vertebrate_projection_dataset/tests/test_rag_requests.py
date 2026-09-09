@@ -1,7 +1,6 @@
 from dataclasses import replace
 
 import pytest
-
 from marin_dna_vertebrate_projection.rag.documents import Locus
 from marin_dna_vertebrate_projection.rag.requests import (
     ProjectionIdentity,

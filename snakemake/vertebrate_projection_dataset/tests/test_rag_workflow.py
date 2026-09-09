@@ -13,7 +13,6 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
 import yaml
-
 from marin_dna_vertebrate_projection.rag.documents import REGIONS
 from marin_dna_vertebrate_projection.rag.tables import read_rows, sha256_file
 

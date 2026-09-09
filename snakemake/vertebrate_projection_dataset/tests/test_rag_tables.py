@@ -3,7 +3,6 @@ import json
 import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
-
 from marin_dna_vertebrate_projection.rag.documents import Locus
 from marin_dna_vertebrate_projection.rag.tables import (
     WindowStore,
