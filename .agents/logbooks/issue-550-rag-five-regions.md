@@ -157,3 +157,15 @@ Independent review also found eager RAG benchmark lookup would break reference-o
 The follow-up clears fixture-only consumer lists and resolves RAG benchmark revisions only when a RAG job is constructed, with a new legacy subset dry-run test.
 Those changes are published in PR #554 for CI and independent follow-up review.
 No runtime GPU/bf16/compilation measurement has been performed for the new backend.
+
+### 2026-09-09 23:58 UTC — RAG-550-006: Both framework PRs ready; execution approval pending
+
+Combined-inference PR #554 passed its final CI suite at `221f799432bd5f010599338a228457a3d4506da4`: 418 passed, 5 skipped, 51.18 seconds for `uv run --locked pytest -m "not slow"`.
+The combined-target and reference-only subset dry-runs both pass, and independent follow-up review reports no remaining findings.
+PRs #552 and #554 are ready for human review; neither was merged.
+The next execution steps are to resume the immutable 6b1593c data producer from S3, assemble and publish the five sequence-only datasets, submit the synthetic TPU pilot from the pinned training project, validate native resume/export/cadence and throughput, then launch production with verified HF revisions.
+The prepared pilot submission script expects snapshot 4c000351 and must run from a worktree at that revision (the research branch has advanced with evaluation code and records).
+The replacement worker must first dry-run the original producer and confirm cached artifacts are consumed; fresh checkout mtimes must not cause unnecessary recomputation of immutable pinned outputs.
+Before biological VEP, register the exact checkpoint and harness hash in a small evals_v2 PR and perform GPU precision/compilation and throughput pilot checks.
+The free-TPU/W&B approval and the $30 paid CPU/GPU budget approval remain pending in the task.
+No blocked compute action was retried after the direct approval requests, and no training or biological evaluation has run.
