@@ -1,0 +1,28 @@
+{
+  "producer_commit": "6b1593c274a886d20f5c0ddf3712916d446f5fed",
+  "source": "s3://oa-bolinas/snakemake/vertebrate_projection_dataset/results/rag-five-regions-v1/6b1593c274a886d20f5c0ddf3712916d446f5fed/10ba63bc375ba912909b82cda68143df4677431124fc8e15f6ac42850ce0fca6/full/rag/sequences/hg38.parquet",
+  "audit": "human sequence properties only; no predictions or label aggregates",
+  "benchmarks": {
+    "mendelian_traits": {
+      "unique_loci": 15990,
+      "seen": 15990,
+      "human_with_n": 0,
+      "downstream_fwd_n": 0,
+      "downstream_rc_n": 0
+    },
+    "complex_traits": {
+      "unique_loci": 11629,
+      "seen": 11629,
+      "human_with_n": 0,
+      "downstream_fwd_n": 0,
+      "downstream_rc_n": 0
+    },
+    "sge": {
+      "unique_loci": 9276,
+      "seen": 9276,
+      "human_with_n": 0,
+      "downstream_fwd_n": 0,
+      "downstream_rc_n": 0
+    }
+  }
+}

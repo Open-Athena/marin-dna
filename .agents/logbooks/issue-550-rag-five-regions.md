@@ -146,3 +146,14 @@ Ruff 0.16.2, Snakefmt 2.0.3, and Python syntax checks pass.
 The new runtime tests did not run on the interrupted worker; repository CI is the next validation step.
 No exact model–dataset cell has been registered, no biological model evaluation has run, and no HF dataset or model has been uploaded.
 The final-checkpoint-first evaluation policy remains in force.
+
+### 2026-09-09 23:54 UTC — RAG-550-005: CI validation of the combined scorer
+
+Timestamp correction: the preceding entry was committed at 23:49:38 UTC; its 23:55 heading was entered incorrectly.
+Repository CI ran the evals_v2 locked suite for PR #554: 416 passed, 5 skipped, and one workflow-fixture test failed.
+All four new numerical, padding, pooling, and joint-versus-separate routing tests passed through the real HF prediction loop on a tiny model.
+The workflow fixture failed because it replaced the model registry without clearing existing optional consumers.
+Independent review also found eager RAG benchmark lookup would break reference-only subset configurations.
+The follow-up clears fixture-only consumer lists and resolves RAG benchmark revisions only when a RAG job is constructed, with a new legacy subset dry-run test.
+Those changes are published in PR #554 for CI and independent follow-up review.
+No runtime GPU/bf16/compilation measurement has been performed for the new backend.

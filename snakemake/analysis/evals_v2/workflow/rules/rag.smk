@@ -23,7 +23,7 @@ rule compute_rag_scores:
     threads: config["inference"]["num_workers"]
     params:
         harness=lambda wc: get_model_config(wc.model)["rag_harness"],
-        revisions={
+        revisions=lambda wc: {
             name: get_dataset_config(name)["hf_revision"]
             for name in ("mendelian_traits", "complex_traits", "sge")
         },
