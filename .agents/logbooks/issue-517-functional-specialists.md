@@ -18,6 +18,7 @@ author: gonzalobenegas
 
 ## Current TL;DR
 
+The authorized experiment is complete; the anchors-only interpretation merged in #548 and the user approved close-out on September 9 (`FAS-517-080`).
 The annotation-first five-arm experiment produced a 6/8 Mendelian diagonal, with large ncRNA and enhancer gains but lost synonymous and 5-prime-UTR ownership.
 The current center-1 uniform-grid experiments produced 7/8 row wins under GPN-Star-P selection and 8/8 under the strict historical phyloP selector.
 The strict phyloP matrix recovers #232's canonical 8/8 pattern with nearly the same mean home AUPRC and mean home-versus-best-nonhome margin; no paired strict-phyloP versus #232 home endpoint survives an eight-endpoint Bonferroni threshold.
@@ -42,9 +43,10 @@ All five family-deduplicated center-1 specialist inputs already exist at immutab
 
 ### Active
 
-- `FAS-517-H2`: The terminal order-control run supports improved Mendelian Distal performance in point estimate (0.235 versus 0.135), with no Complex Traits gain.
-  Evidence: `FAS-517-072`; one seed, 58 Mendelian positive match groups, and no new paired difference test.
-  A pure exposure-only interpretation remains unresolved because cohort composition also changed.
+- None; all authorized terminal evaluations and comparisons are complete.
+
+### Deferred
+
 - `FAS-517-P2`: Checkpoint-trajectory persistence remains deferred under the user's terminal-checkpoint-only evaluation decision.
 
 ### Blocked
@@ -59,6 +61,10 @@ None.
 
 ### Promoted
 
+- `FAS-517-H2`: The terminal order-control run supports improved Mendelian Distal performance in point estimate (0.235 versus 0.135), with no Complex Traits gain.
+  Evidence: `FAS-517-072`; one seed, 58 Mendelian positive match groups, and no new paired difference test.
+  A pure exposure-only interpretation remains unresolved because cohort composition also changed.
+  The qualified finding is included in the anchors-only interpretation merged through #548.
 - `FAS-517-P1`: The terminal strict-phyloP matrix achieved 8/8 mapped home-arm wins on the development Mendelian subsets.
   Evidence: `FAS-517-055`.
 - `FAS-517-H1`: The additive Ensembl builder reconciles feature extraction, priority ownership, tiling, stable identity, conservation subsets, and review artifacts before projection.
@@ -1681,3 +1687,25 @@ Its current anchor path instead creates uniform conservation-selected windows an
   P1's annotation-first complete-diagonal hypothesis was not recovered; P2's checkpoint-emergence analysis remains deferred under the terminal-checkpoint-only decision.
   The existing empirical results and inferential limitations are unchanged.
   Issue #517 remains open; no issue closure, new scientific execution, or paid worker was requested or performed.
+
+### 2026-09-09 16:07 UTC - `FAS-517-080` merge caching guidance and seal the anchor experiment
+
+- Authority: Gonzalo approved the #517 and #523 close-outs and requested merging only #547 among the remaining PRs.
+  Biological chain-workflow integration, full-grid projection, the #538 threshold experiment, and #544 are outside this session.
+  The all-grid benchmark is dropped because reusable chains allow on-demand projection of the anchors needed by each experiment.
+- PR #547: GitHub updated reviewed head `97a6a02912665bf071bf5b8dc626d41cc7da885f` with main to `76f008ae27c2f30855ff568fdff3fa5a3f4bbf1a`.
+  The one-file guidance diff was unchanged; earlier Codex independent review completed without findings.
+  Final build, formatting, and test checks passed; no administrator bypass or credential change was used.
+  `gh pr merge 547 --repo Open-Athena/marin-dna --squash --match-head-commit 76f008ae27c2f30855ff568fdff3fa5a3f4bbf1a` succeeded.
+  GitHub verified MERGED at September 9 16:04:51 UTC, mainline commit `922e41149c8f9bdb3130f780f66163a0241ff045`; linked issue #545 closed automatically.
+- Scientific close-out: Annotation-first anchors yielded 6/8 terminal Mendelian home-subset point wins; GPN-Star-P uniform yielded 7/8 and strict-phyloP uniform yielded 8/8.
+  The region-specific recommendation and exposure/backend limitations are accepted in PR #548, commit `a901deb02ec0b6a8de3a554235b7c52ca98a03c8`.
+  Disposition is `interpretation page merged`, connected only to genomic anchors.
+  P2 remains explicitly deferred; no earlier-checkpoint evaluation, additional training, or new combined dataset is required for closure.
+- Remaining PRs: #529, #536, and #542 register completed evaluations; they remain open and are not merge-authorized in this turn.
+  #518 is the permanent experiment review surface, not a mainline merge proposal, and remains open with its branch retained.
+  Its recipes, configurations, analyses, artifacts, and logbooks preserve the reproducibility record.
+- Legacy staging: At #549's final merged content, `stage_hal_object` has only its definition and test references; the active workflow has no caller.
+  #537 therefore does not block the chain workflow, and no code change or issue closure was requested for it.
+- Outcome: Close the completed #517 research scope with the final interpretation, snapshot, and deferred/out-of-scope decisions recorded in the issue.
+  No paid worker, biological dataset rebuild, training run, VEP run, or new held-out analysis was launched during close-out.

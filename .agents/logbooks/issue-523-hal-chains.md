@@ -17,12 +17,16 @@ author: gonzalobenegas
 
 ## Current TL;DR
 
-- Status: Paused at the user's request after the exact TP53 regional result.
-  Sky job 7 was cancelled and the `issue-523-hal-chains` EC2 cluster was terminated, so compute billing has stopped.
-  The direction-matched strict TP53 chain reproduces all 781 direct `halLiftover --noDupes` outcomes exactly, but this regional result still needs whole-genome validation.
+- Status: Complete under the September 9 close-out decision (`HALC-523-015`).
+  All 107 whole-genome chains and generation records are durable; the compressed chains total 84.41 GiB.
+  The build and later sampled-validation workers were terminated.
+  The sampled whole-genome-chain check matched all 30,000 saved HAL query outcomes across baboon, mouse, and elephant.
 - Selected artifact: Whole-genome human-to-species chains, because later tilings, window lengths, anchor positions, and arbitrary annotations must not require another HAL traversal.
-- Pilot: Build supported-default and `--noDupes` candidates for `Papio_anubis`, `Mus_musculus`, and `Loxodonta_africana` from one NVMe-staged HAL, with at most two pair pipelines running concurrently.
-- Gate: Compare all 1,136,854 strict-phyloP center mappings with their immutable direct-HAL outputs before accepting either chain recipe.
+- Implementation: PR #549 merged the single active chain workflow for mammals and non-mammalian vertebrates, with pinned genome archives and no active HAL staging.
+- Timing: The successful recovery controller ran for 119.55 hours; median observed worker time was 8.68 hours.
+  Estimated recovery-phase compute was $433.96, plus $13.87 idle before termination, excluding earlier attempts, staging, storage, and requests.
+- Scope: Gonzalo dropped the all-grid benchmark because future experiments can project only their required anchors.
+  Biological input registration/rebuilds, the #538 threshold study, and unrelated infrastructure fixes are outside this session.
 
 ## Baseline
 
@@ -36,14 +40,12 @@ author: gonzalobenegas
 
 ### Active
 
-- `HALC-523-H1`: A whole-genome chain generated from `halLiftover --outPSL --noDupes` reproduces the current direct center-1 mappings closely enough to become the reusable scientific backend.
-  Regional evidence: The reverse-direction `--noDupes` TP53 chain reproduced 712 of 781 queries exactly.
-  The direction-matched strict recipe with `axtChain -minScore=-1000000` reproduced 781 of 781 exactly.
-  Next test: Generate a whole-genome baboon candidate with the direction-matched strict recipe and measure parity, chain size, and runtime.
-- `HALC-523-H2`: Two concurrent chain pipelines can safely share one NVMe HAL copy and OS page cache on an `r6id.12xlarge` with 384 GiB RAM.
-  Next test: Measure GNU-time RSS and five-second node memory, cache, dirty-page, and free-disk samples during the first concurrent pair.
-- `HALC-523-H3`: Once generated, a chain can project all 22,948,560 uniform-grid centers fast enough that future selector experiments should filter after projection.
-  Next test: Time UCSC `liftOver` over the complete center BED for each strict chain candidate.
+- None; the authorized chain-production and sampled-adoption work is complete.
+
+### Not pursued
+
+- `HALC-523-H3`: Full-grid throughput remains unmeasured.
+  Gonzalo removed the benchmark from scope on September 9 because reusable chains allow projecting the anchors needed by each experiment; this hypothesis was not tested or falsified.
 
 ### Blocked
 
@@ -57,7 +59,11 @@ author: gonzalobenegas
 
 ### Promoted
 
-- None.
+- `HALC-523-H1`: Direction-matched chains passed the regional gate and 10,000 saved-HAL outcomes per representative species in the whole-genome-chain check.
+  This supports sampled adoption, without asserting exhaustive genome-wide equivalence or biological sequence validation for a new genome input.
+  The reusable contract and limitation are recorded in the README and tests merged through PR #549.
+- `HALC-523-H2`: The complete cohort succeeded at eight workers sharing the staged HAL after the 32-worker ramp exhausted memory.
+  This is an observed configuration, not a guarantee for arbitrary species mixes or more workers.
 
 ## Decision Log
 
@@ -70,6 +76,8 @@ author: gonzalobenegas
 - 2026-08-29: Promote the direction-matched strict recipe with a negative `axtChain` minimum score to the next whole-genome candidate after it achieved 781/781 exact TP53 parity.
 - 2026-08-29: Cancel Sky job 7 and terminate the EC2 cluster to stop spend while the work is unsupervised.
   Preserve the 129,112-byte TP53 smoke archive in the current workspace pending authorization for a durable genomic-data destination; restage the source HAL from S3 when work resumes.
+- 2026-09-09: Close the completed chain-production/adoption work; use chains to project chosen anchors on demand and drop the all-grid benchmark.
+  Keep biological integration work, #538, and #544 outside this session; #537 does not block the active chain workflow.
 
 ## Entry Log
 
@@ -386,3 +394,27 @@ author: gonzalobenegas
 - Scope: No paid worker, biological dataset build, training, or Hugging Face upload was launched.
   Full biological inputs still need registered verified manifests; no genome-wide equivalence claim was added.
   PR #548 and research issues #517/#523 remain open.
+
+### 2026-09-09 16:07 UTC - `HALC-523-015` seal reusable chains and remove the full-grid benchmark
+
+- Authority: Gonzalo approved chain-build close-out and said the full-grid benchmark is unnecessary now that chains can project the windows each experiment needs.
+  Biological input registration and dataset rebuilds are outside this session, as are the #538 threshold experiment and #544 test-infrastructure issue.
+- Final metadata audit: Read only the 303,787-byte durable `metadata/controller-state.json` object from the completed recovery prefix.
+  SHA-256: `139cafa2703138bc64c9d9f6bccf04cd05e5d647936a33ec530e77d501a513d4`.
+  The controller reports succeeded, 107 starts and 107 completions, all attempt 1, no failed or remaining species, and concurrency eight.
+  This excludes the earlier failed adaptive ramp.
+- Reproduction: `aws s3 cp s3://oa-bolinas/snakemake/vertebrate_projection_dataset/results/hal-chains-directional-ramp-v2/b86897b7050bc9fdf397dd6abfb3af11fc876f86/d035c2561f6be3b11449647adfe9ce865884aef7da8b7e06b817d8a75c7f37f9/full/metadata/controller-state.json - --region us-east-2 --only-show-errors | node .agents/artifacts/issue-523-hal-chains/summarize_controller.mjs`.
+  The script asserts cohort and event counts; its complete 107-species summary is preserved in `.agents/artifacts/issue-523-hal-chains/controller_closeout_summary.json`.
+- Timing: The first controller event is August 29 20:04:22.773628 UTC and the final event is September 3 19:37:13.455711 UTC, for 119.5474 hours.
+  These event timestamps supersede the earlier launch-command timestamp for duration calculations.
+  Worker mean/median/p90/p95 are 8.6541/8.6780/11.0989/11.7110 hours, with a 1.9781–15.6632-hour range.
+  Durations include worker pipeline and controller-observation overhead; these are not isolated HAL CPU timings.
+- Cost: At the historically recorded $3.63/hour node rate, the successful recovery phase is estimated at $433.96.
+  The recorded September 3 23:26:27 UTC termination adds 3.8204 idle hours/$13.87, for $447.83 from recovery-controller start through termination.
+  Earlier pilots, staging, failed ramp, earlier idle time, storage, and requests are excluded; no total-session or AWS-invoice claim is made.
+- Disposition: `reusable lesson merged elsewhere` through PR #549, mainline commit `0a74d77dbb85f6b9eff1220d280baa18dd0fa4a8`.
+  The workflow README records the chain-first input contract, sampled-adoption evidence link, and explicit limits; regression and real-Kent fixture tests preserve the engineering contract.
+  No new biological or all-grid performance claim is promoted.
+- Conclusion: The reusable assets and sampled adoption gate are complete; further experiments should submit only their needed anchors.
+  No all-grid run is pending, and no new paid resource was launched for close-out.
+  Existing datasets and their historical projection provenance are unchanged.

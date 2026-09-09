@@ -1,0 +1,672 @@
+{
+  "source_uri": "s3://oa-bolinas/snakemake/vertebrate_projection_dataset/results/hal-chains-directional-ramp-v2/b86897b7050bc9fdf397dd6abfb3af11fc876f86/d035c2561f6be3b11449647adfe9ce865884aef7da8b7e06b817d8a75c7f37f9/full/metadata/controller-state.json",
+  "source_sha256": "139cafa2703138bc64c9d9f6bccf04cd05e5d647936a33ec530e77d501a513d4",
+  "pipeline_commit": "b86897b7050bc9fdf397dd6abfb3af11fc876f86",
+  "config_sha256": "d035c2561f6be3b11449647adfe9ce865884aef7da8b7e06b817d8a75c7f37f9",
+  "controller_started_utc": "2026-08-29T20:04:22.773628+00:00",
+  "controller_finished_utc": "2026-09-03T19:37:13.455711+00:00",
+  "instance_terminated_utc": "2026-09-03T23:26:27Z",
+  "termination_evidence": "https://github.com/Open-Athena/marin-dna/issues/523#issuecomment-5533449692",
+  "completed_species": 107,
+  "worker_attempts": 107,
+  "wall_hours": 119.54741166666666,
+  "worker_hours": {
+    "mean": 8.654130282969886,
+    "median": 8.678048888888888,
+    "p90": 11.098872166666666,
+    "p95": 11.71103011111111,
+    "min": 1.978118611111111,
+    "max": 15.663155277777777,
+    "quantile_method": "linear interpolation at p * (n - 1)"
+  },
+  "recorded_node_hourly_rate_usd": 3.63,
+  "successful_recovery_compute_estimate_usd": 433.95710434999995,
+  "idle_hours": 3.8204291666666665,
+  "idle_compute_estimate_usd": 13.868157875,
+  "recovery_through_termination_compute_estimate_usd": 447.82526222499996,
+  "exclusions": "Earlier pilots, staging, failed ramp, earlier idle time, storage, and requests; this is not the total session cost or an AWS billing reconciliation.",
+  "species": [
+    {
+      "species": "Symphalangus_syndactylus",
+      "started_utc": "2026-08-31T20:48:56.824546+00:00",
+      "completed_utc": "2026-08-31T22:47:38.051290+00:00",
+      "hours": 1.978118611111111
+    },
+    {
+      "species": "Pithecia_pithecia",
+      "started_utc": "2026-09-02T10:26:50.045311+00:00",
+      "completed_utc": "2026-09-02T14:14:03.992510+00:00",
+      "hours": 3.7872075
+    },
+    {
+      "species": "Papio_anubis",
+      "started_utc": "2026-08-29T20:04:23.774429+00:00",
+      "completed_utc": "2026-08-29T23:54:55.250576+00:00",
+      "hours": 3.842076666666667
+    },
+    {
+      "species": "Aotus_nancymaae",
+      "started_utc": "2026-08-29T20:04:23.775717+00:00",
+      "completed_utc": "2026-08-30T00:17:59.036216+00:00",
+      "hours": 4.226461388888889
+    },
+    {
+      "species": "Ateles_geoffroyi_a",
+      "started_utc": "2026-08-29T20:04:23.776219+00:00",
+      "completed_utc": "2026-08-30T00:27:22.545429+00:00",
+      "hours": 4.382991388888889
+    },
+    {
+      "species": "Carlito_syrichta",
+      "started_utc": "2026-09-02T22:52:59.383175+00:00",
+      "completed_utc": "2026-09-03T03:17:15.535410+00:00",
+      "hours": 4.404486666666667
+    },
+    {
+      "species": "Galeopterus_variegatus",
+      "started_utc": "2026-08-30T22:28:47.197307+00:00",
+      "completed_utc": "2026-08-31T03:14:51.129816+00:00",
+      "hours": 4.767758888888889
+    },
+    {
+      "species": "Callithrix_jacchus",
+      "started_utc": "2026-08-30T09:36:06.997134+00:00",
+      "completed_utc": "2026-08-30T14:33:03.026409+00:00",
+      "hours": 4.948896944444445
+    },
+    {
+      "species": "Tupaia_tana",
+      "started_utc": "2026-09-03T07:39:14.965141+00:00",
+      "completed_utc": "2026-09-03T12:55:31.138566+00:00",
+      "hours": 5.271159166666667
+    },
+    {
+      "species": "Daubentonia_madagascariensis",
+      "started_utc": "2026-08-31T01:31:38.574057+00:00",
+      "completed_utc": "2026-08-31T06:58:17.324068+00:00",
+      "hours": 5.444097222222222
+    },
+    {
+      "species": "Indri_indri",
+      "started_utc": "2026-08-31T22:47:38.051745+00:00",
+      "completed_utc": "2026-09-01T04:16:20.451238+00:00",
+      "hours": 5.4784444444444444
+    },
+    {
+      "species": "Ochotona_princeps",
+      "started_utc": "2026-09-01T21:45:46.853276+00:00",
+      "completed_utc": "2026-09-02T03:19:30.715829+00:00",
+      "hours": 5.562183888888889
+    },
+    {
+      "species": "Otolemur_garnettii",
+      "started_utc": "2026-08-31T10:45:17.197294+00:00",
+      "completed_utc": "2026-08-31T16:34:03.317917+00:00",
+      "hours": 5.812811111111111
+    },
+    {
+      "species": "Lemur_catta",
+      "started_utc": "2026-09-01T00:32:07.464388+00:00",
+      "completed_utc": "2026-09-01T06:30:46.353562+00:00",
+      "hours": 5.977469166666666
+    },
+    {
+      "species": "Lepilemur_ruficaudatus",
+      "started_utc": "2026-09-01T01:39:51.156795+00:00",
+      "completed_utc": "2026-09-01T07:41:15.690538+00:00",
+      "hours": 6.023481666666667
+    },
+    {
+      "species": "Ctenodactylus_gundi",
+      "started_utc": "2026-08-30T19:25:26.645737+00:00",
+      "completed_utc": "2026-08-31T01:31:38.573602+00:00",
+      "hours": 6.103313333333333
+    },
+    {
+      "species": "Solenodon_paradoxus",
+      "started_utc": "2026-09-02T15:44:52.537068+00:00",
+      "completed_utc": "2026-09-02T22:19:14.633306+00:00",
+      "hours": 6.5728044444444444
+    },
+    {
+      "species": "Hystrix_cristata",
+      "started_utc": "2026-08-31T22:12:07.763494+00:00",
+      "completed_utc": "2026-09-01T04:47:47.482317+00:00",
+      "hours": 6.594366388888889
+    },
+    {
+      "species": "Nycticebus_coucang",
+      "started_utc": "2026-09-01T04:16:20.451730+00:00",
+      "completed_utc": "2026-09-01T10:56:01.647925+00:00",
+      "hours": 6.661443333333334
+    },
+    {
+      "species": "Crocidura_indochinensis",
+      "started_utc": "2026-09-02T17:29:52.180993+00:00",
+      "completed_utc": "2026-09-03T00:10:35.598860+00:00",
+      "hours": 6.678727222222222
+    },
+    {
+      "species": "Erinaceus_europaeus",
+      "started_utc": "2026-08-31T04:22:19.278394+00:00",
+      "completed_utc": "2026-08-31T11:04:03.763017+00:00",
+      "hours": 6.695690277777778
+    },
+    {
+      "species": "Microcebus_murinus",
+      "started_utc": "2026-08-30T13:25:21.028342+00:00",
+      "completed_utc": "2026-08-30T20:21:44.092496+00:00",
+      "hours": 6.93974
+    },
+    {
+      "species": "Thryonomys_swinderianus",
+      "started_utc": "2026-09-03T01:45:42.240984+00:00",
+      "completed_utc": "2026-09-03T08:43:09.916450+00:00",
+      "hours": 6.957687777777778
+    },
+    {
+      "species": "Muscardinus_avellanarius",
+      "started_utc": "2026-08-31T11:25:22.100622+00:00",
+      "completed_utc": "2026-08-31T18:23:07.328803+00:00",
+      "hours": 6.962563333333334
+    },
+    {
+      "species": "Cuniculus_paca",
+      "started_utc": "2026-08-30T20:33:54.426753+00:00",
+      "completed_utc": "2026-08-31T03:42:45.407567+00:00",
+      "hours": 7.1474947222222225
+    },
+    {
+      "species": "Petromus_typicus",
+      "started_utc": "2026-09-02T03:11:53.704223+00:00",
+      "completed_utc": "2026-09-02T10:26:50.044810+00:00",
+      "hours": 7.248983333333333
+    },
+    {
+      "species": "Dasyprocta_punctata",
+      "started_utc": "2026-08-31T00:35:51.051484+00:00",
+      "completed_utc": "2026-08-31T08:05:45.374704+00:00",
+      "hours": 7.4984230555555555
+    },
+    {
+      "species": "Myocastor_coypus",
+      "started_utc": "2026-09-01T18:06:39.760141+00:00",
+      "completed_utc": "2026-09-02T01:36:48.438627+00:00",
+      "hours": 7.502410555555556
+    },
+    {
+      "species": "Dinomys_branickii",
+      "started_utc": "2026-08-31T03:14:51.130270+00:00",
+      "completed_utc": "2026-08-31T10:45:17.196828+00:00",
+      "hours": 7.507240555555556
+    },
+    {
+      "species": "Ctenomys_sociabilis",
+      "started_utc": "2026-08-30T20:21:44.092955+00:00",
+      "completed_utc": "2026-08-31T03:57:12.644929+00:00",
+      "hours": 7.591264444444445
+    },
+    {
+      "species": "Heterocephalus_glaber",
+      "started_utc": "2026-08-30T00:27:22.545905+00:00",
+      "completed_utc": "2026-08-30T08:08:07.099206+00:00",
+      "hours": 7.679042777777778
+    },
+    {
+      "species": "Aplodontia_rufa",
+      "started_utc": "2026-08-29T20:04:23.775963+00:00",
+      "completed_utc": "2026-08-30T03:45:39.286395+00:00",
+      "hours": 7.687641944444445
+    },
+    {
+      "species": "Allactaga_bullata",
+      "started_utc": "2026-08-31T03:42:45.408040+00:00",
+      "completed_utc": "2026-08-31T11:25:22.100184+00:00",
+      "hours": 7.710192222222222
+    },
+    {
+      "species": "Castor_canadensis",
+      "started_utc": "2026-08-30T06:31:59.904536+00:00",
+      "completed_utc": "2026-08-30T14:17:20.047236+00:00",
+      "hours": 7.755595277777778
+    },
+    {
+      "species": "Macroglossus_sobrinus",
+      "started_utc": "2026-09-02T13:00:46.421246+00:00",
+      "completed_utc": "2026-09-02T20:46:40.733145+00:00",
+      "hours": 7.765086666666667
+    },
+    {
+      "species": "Capromys_pilorides",
+      "started_utc": "2026-08-30T06:29:12.308965+00:00",
+      "completed_utc": "2026-08-30T14:15:33.334620+00:00",
+      "hours": 7.772507222222222
+    },
+    {
+      "species": "Octodon_degus",
+      "started_utc": "2026-09-02T00:05:14.733705+00:00",
+      "completed_utc": "2026-09-02T07:52:23.594120+00:00",
+      "hours": 7.785794722222223
+    },
+    {
+      "species": "Noctilio_leporinus",
+      "started_utc": "2026-09-01T19:19:57.144844+00:00",
+      "completed_utc": "2026-09-02T03:11:53.703775+00:00",
+      "hours": 7.865710833333333
+    },
+    {
+      "species": "Dipodomys_ordii",
+      "started_utc": "2026-08-31T15:01:43.212592+00:00",
+      "completed_utc": "2026-08-31T22:57:31.813891+00:00",
+      "hours": 7.930166944444444
+    },
+    {
+      "species": "Cricetomys_gambianus",
+      "started_utc": "2026-09-01T19:19:27.142986+00:00",
+      "completed_utc": "2026-09-02T03:17:13.966322+00:00",
+      "hours": 7.963006666666667
+    },
+    {
+      "species": "Xerus_inauris",
+      "started_utc": "2026-09-02T14:46:47.022107+00:00",
+      "completed_utc": "2026-09-02T22:50:26.728739+00:00",
+      "hours": 8.061029444444445
+    },
+    {
+      "species": "Craseonycteris_thonglongyai",
+      "started_utc": "2026-08-30T15:24:01.823007+00:00",
+      "completed_utc": "2026-08-30T23:28:08.283712+00:00",
+      "hours": 8.06846111111111
+    },
+    {
+      "species": "Mormoops_blainvillei",
+      "started_utc": "2026-09-01T13:37:04.268315+00:00",
+      "completed_utc": "2026-09-01T21:45:46.852813+00:00",
+      "hours": 8.145162222222222
+    },
+    {
+      "species": "Megaderma_lyra",
+      "started_utc": "2026-09-01T06:30:46.354007+00:00",
+      "completed_utc": "2026-09-01T14:39:42.950843+00:00",
+      "hours": 8.149054444444445
+    },
+    {
+      "species": "Oryctolagus_cuniculus",
+      "started_utc": "2026-09-01T02:12:33.935190+00:00",
+      "completed_utc": "2026-09-01T10:23:19.028696+00:00",
+      "hours": 8.1791925
+    },
+    {
+      "species": "Chinchilla_lanigera",
+      "started_utc": "2026-08-30T14:15:33.335095+00:00",
+      "completed_utc": "2026-08-30T22:28:47.196823+00:00",
+      "hours": 8.220516944444444
+    },
+    {
+      "species": "Rhinolophus_sinicus",
+      "started_utc": "2026-09-02T14:37:55.007964+00:00",
+      "completed_utc": "2026-09-02T22:52:59.382714+00:00",
+      "hours": 8.251215277777778
+    },
+    {
+      "species": "Vicugna_pacos",
+      "started_utc": "2026-08-30T05:05:46.936488+00:00",
+      "completed_utc": "2026-08-30T13:25:21.027896+00:00",
+      "hours": 8.326136388888889
+    },
+    {
+      "species": "Tragulus_javanicus",
+      "started_utc": "2026-09-03T03:17:15.535915+00:00",
+      "completed_utc": "2026-09-03T11:36:54.631979+00:00",
+      "hours": 8.327526666666667
+    },
+    {
+      "species": "Tadarida_brasiliensis",
+      "started_utc": "2026-09-01T10:56:01.648410+00:00",
+      "completed_utc": "2026-09-01T19:19:27.142525+00:00",
+      "hours": 8.390415
+    },
+    {
+      "species": "Sus_scrofa",
+      "started_utc": "2026-09-02T22:19:14.633784+00:00",
+      "completed_utc": "2026-09-03T06:43:57.885445+00:00",
+      "hours": 8.412014444444445
+    },
+    {
+      "species": "Catagonus_wagneri",
+      "started_utc": "2026-09-03T00:10:35.599349+00:00",
+      "completed_utc": "2026-09-03T08:38:21.424300+00:00",
+      "hours": 8.462729166666668
+    },
+    {
+      "species": "Miniopterus_schreibersii",
+      "started_utc": "2026-09-01T10:23:19.029128+00:00",
+      "completed_utc": "2026-09-01T18:55:36.399366+00:00",
+      "hours": 8.538158333333334
+    },
+    {
+      "species": "Hipposideros_armiger",
+      "started_utc": "2026-08-31T17:31:52.958424+00:00",
+      "completed_utc": "2026-09-01T02:12:33.934723+00:00",
+      "hours": 8.678048888888888
+    },
+    {
+      "species": "Manis_javanica",
+      "started_utc": "2026-09-01T04:47:47.482782+00:00",
+      "completed_utc": "2026-09-01T13:37:04.267865+00:00",
+      "hours": 8.821329166666667
+    },
+    {
+      "species": "Cavia_porcellus",
+      "started_utc": "2026-08-30T08:08:07.099671+00:00",
+      "completed_utc": "2026-08-30T17:06:43.713421+00:00",
+      "hours": 8.976837222222223
+    },
+    {
+      "species": "Microtus_ochrogaster",
+      "started_utc": "2026-08-30T17:06:43.713870+00:00",
+      "completed_utc": "2026-08-31T02:06:08.114822+00:00",
+      "hours": 8.99011138888889
+    },
+    {
+      "species": "Antilocapra_americana",
+      "started_utc": "2026-08-29T20:04:23.775483+00:00",
+      "completed_utc": "2026-08-30T05:05:46.936011+00:00",
+      "hours": 9.023100277777777
+    },
+    {
+      "species": "Hippopotamus_amphibius",
+      "started_utc": "2026-08-31T16:34:03.318380+00:00",
+      "completed_utc": "2026-09-01T01:39:51.156352+00:00",
+      "hours": 9.096621666666667
+    },
+    {
+      "species": "Scalopus_aquaticus",
+      "started_utc": "2026-09-02T22:29:54.190084+00:00",
+      "completed_utc": "2026-09-03T07:39:14.964677+00:00",
+      "hours": 9.155770555555556
+    },
+    {
+      "species": "Paradoxurus_hermaphroditus",
+      "started_utc": "2026-09-03T08:39:52.311891+00:00",
+      "completed_utc": "2026-09-03T17:49:57.143358+00:00",
+      "hours": 9.168008888888888
+    },
+    {
+      "species": "Anoura_caudifer",
+      "started_utc": "2026-09-02T05:36:12.508339+00:00",
+      "completed_utc": "2026-09-02T14:46:47.021661+00:00",
+      "hours": 9.176253611111111
+    },
+    {
+      "species": "Hyaena_hyaena",
+      "started_utc": "2026-08-31T17:48:52.730076+00:00",
+      "completed_utc": "2026-09-01T03:03:33.371135+00:00",
+      "hours": 9.2446225
+    },
+    {
+      "species": "Cryptoprocta_ferox",
+      "started_utc": "2026-08-31T08:05:45.376640+00:00",
+      "completed_utc": "2026-08-31T17:31:52.956528+00:00",
+      "hours": 9.43543888888889
+    },
+    {
+      "species": "Mus_musculus",
+      "started_utc": "2026-08-29T20:04:23.774746+00:00",
+      "completed_utc": "2026-08-30T05:31:08.300560+00:00",
+      "hours": 9.445701666666666
+    },
+    {
+      "species": "Myotis_lucifugus",
+      "started_utc": "2026-09-03T08:38:21.424743+00:00",
+      "completed_utc": "2026-09-03T18:06:41.796741+00:00",
+      "hours": 9.472325555555555
+    },
+    {
+      "species": "Odocoileus_virginianus",
+      "started_utc": "2026-08-30T11:00:48.202444+00:00",
+      "completed_utc": "2026-08-30T20:33:54.426302+00:00",
+      "hours": 9.551728888888888
+    },
+    {
+      "species": "Moschus_moschiferus",
+      "started_utc": "2026-09-01T14:28:18.410914+00:00",
+      "completed_utc": "2026-09-02T00:05:14.733257+00:00",
+      "hours": 9.615645277777778
+    },
+    {
+      "species": "Kogia_breviceps",
+      "started_utc": "2026-09-02T07:52:23.594619+00:00",
+      "completed_utc": "2026-09-02T17:29:52.180528+00:00",
+      "hours": 9.624607222222222
+    },
+    {
+      "species": "Ursus_maritimus",
+      "started_utc": "2026-09-03T07:49:39.572043+00:00",
+      "completed_utc": "2026-09-03T17:28:08.897914+00:00",
+      "hours": 9.641479166666667
+    },
+    {
+      "species": "Eubalaena_japonica",
+      "started_utc": "2026-08-29T23:54:55.251278+00:00",
+      "completed_utc": "2026-08-30T09:36:06.996693+00:00",
+      "hours": 9.686595833333334
+    },
+    {
+      "species": "Elephantulus_edwardii",
+      "started_utc": "2026-09-01T04:43:44.015680+00:00",
+      "completed_utc": "2026-09-01T14:28:18.410459+00:00",
+      "hours": 9.7428875
+    },
+    {
+      "species": "Tapirus_indicus",
+      "started_utc": "2026-09-02T22:50:26.729216+00:00",
+      "completed_utc": "2026-09-03T08:39:52.311435+00:00",
+      "hours": 9.823772777777778
+    },
+    {
+      "species": "Lycaon_pictus",
+      "started_utc": "2026-08-30T05:31:08.301006+00:00",
+      "completed_utc": "2026-08-30T15:24:01.822568+00:00",
+      "hours": 9.881533611111111
+    },
+    {
+      "species": "Orycteropus_afer",
+      "started_utc": "2026-09-02T01:36:48.439092+00:00",
+      "completed_utc": "2026-09-02T11:30:29.385687+00:00",
+      "hours": 9.894707222222221
+    },
+    {
+      "species": "Microgale_talazaci",
+      "started_utc": "2026-09-03T01:16:47.002587+00:00",
+      "completed_utc": "2026-09-03T11:17:38.097035+00:00",
+      "hours": 10.014193055555555
+    },
+    {
+      "species": "Chrysochloris_asiatica",
+      "started_utc": "2026-08-30T14:33:03.026852+00:00",
+      "completed_utc": "2026-08-31T00:35:51.050994+00:00",
+      "hours": 10.046673333333333
+    },
+    {
+      "species": "Spilogale_gracilis",
+      "started_utc": "2026-09-01T09:13:04.231894+00:00",
+      "completed_utc": "2026-09-01T19:19:57.143943+00:00",
+      "hours": 10.114697777777778
+    },
+    {
+      "species": "Dasypus_novemcinctus",
+      "started_utc": "2026-08-30T23:28:08.284142+00:00",
+      "completed_utc": "2026-08-31T09:39:51.533445+00:00",
+      "hours": 10.195346944444445
+    },
+    {
+      "species": "Inia_geoffrensis",
+      "started_utc": "2026-08-31T22:57:31.814378+00:00",
+      "completed_utc": "2026-09-01T09:13:04.231411+00:00",
+      "hours": 10.259004722222222
+    },
+    {
+      "species": "Lipotes_vexillifer",
+      "started_utc": "2026-09-01T03:03:33.371855+00:00",
+      "completed_utc": "2026-09-01T13:22:22.057927+00:00",
+      "hours": 10.31352388888889
+    },
+    {
+      "species": "Hydrochoerus_hydrochaeris",
+      "started_utc": "2026-08-31T18:23:07.329351+00:00",
+      "completed_utc": "2026-09-01T04:43:44.015195+00:00",
+      "hours": 10.343523888888889
+    },
+    {
+      "species": "Mungos_mungo",
+      "started_utc": "2026-08-31T14:09:28.413825+00:00",
+      "completed_utc": "2026-09-01T00:32:07.463889+00:00",
+      "hours": 10.377513888888888
+    },
+    {
+      "species": "Heterohyrax_brucei",
+      "started_utc": "2026-09-02T12:05:28.687293+00:00",
+      "completed_utc": "2026-09-02T22:29:54.189635+00:00",
+      "hours": 10.40708388888889
+    },
+    {
+      "species": "Ailurus_fulgens",
+      "started_utc": "2026-08-29T20:04:23.775242+00:00",
+      "completed_utc": "2026-08-30T06:29:12.308332+00:00",
+      "hours": 10.413481388888888
+    },
+    {
+      "species": "Choloepus_hoffmanni",
+      "started_utc": "2026-09-01T07:41:15.690980+00:00",
+      "completed_utc": "2026-09-01T18:06:39.759658+00:00",
+      "hours": 10.4233525
+    },
+    {
+      "species": "Loxodonta_africana",
+      "started_utc": "2026-08-29T20:04:23.774995+00:00",
+      "completed_utc": "2026-08-30T06:31:59.904022+00:00",
+      "hours": 10.460036111111112
+    },
+    {
+      "species": "Zalophus_californianus",
+      "started_utc": "2026-09-02T02:22:27.431061+00:00",
+      "completed_utc": "2026-09-02T13:00:46.420781+00:00",
+      "hours": 10.638608055555556
+    },
+    {
+      "species": "Myrmecophaga_tridactyla",
+      "started_utc": "2026-09-01T18:55:36.399805+00:00",
+      "completed_utc": "2026-09-02T05:36:12.507857+00:00",
+      "hours": 10.676696666666667
+    },
+    {
+      "species": "Balaenoptera_acutorostrata",
+      "started_utc": "2026-08-30T00:17:59.036660+00:00",
+      "completed_utc": "2026-08-30T11:00:48.201961+00:00",
+      "hours": 10.713656944444445
+    },
+    {
+      "species": "Eschrichtius_robustus",
+      "started_utc": "2026-08-31T06:58:17.324555+00:00",
+      "completed_utc": "2026-08-31T17:48:52.729616+00:00",
+      "hours": 10.843168055555555
+    },
+    {
+      "species": "Mesoplodon_bidens",
+      "started_utc": "2026-09-03T08:43:09.916900+00:00",
+      "completed_utc": "2026-09-03T19:36:58.455012+00:00",
+      "hours": 10.896816388888888
+    },
+    {
+      "species": "Trichechus_manatus",
+      "started_utc": "2026-09-03T06:43:57.885932+00:00",
+      "completed_utc": "2026-09-03T17:42:51.081215+00:00",
+      "hours": 10.981443333333333
+    },
+    {
+      "species": "Odobenus_rosmarus",
+      "started_utc": "2026-09-02T01:04:50.635731+00:00",
+      "completed_utc": "2026-09-02T12:05:28.686811+00:00",
+      "hours": 11.010569722222222
+    },
+    {
+      "species": "Nannospalax_galili",
+      "started_utc": "2026-09-02T20:46:40.733621+00:00",
+      "completed_utc": "2026-09-03T07:49:39.571571+00:00",
+      "hours": 11.049677222222222
+    },
+    {
+      "species": "Equus_caballus",
+      "started_utc": "2026-08-31T03:57:12.645425+00:00",
+      "completed_utc": "2026-08-31T15:01:43.212082+00:00",
+      "hours": 11.0751575
+    },
+    {
+      "species": "Giraffa_tippelskirchi",
+      "started_utc": "2026-08-31T11:04:03.763508+00:00",
+      "completed_utc": "2026-08-31T22:12:07.762941+00:00",
+      "hours": 11.134444166666666
+    },
+    {
+      "species": "Panthera_onca",
+      "started_utc": "2026-08-31T09:39:51.533907+00:00",
+      "completed_utc": "2026-08-31T20:48:56.823815+00:00",
+      "hours": 11.151469444444444
+    },
+    {
+      "species": "Phocoena_phocoena",
+      "started_utc": "2026-09-02T03:19:30.716305+00:00",
+      "completed_utc": "2026-09-02T14:37:55.007513+00:00",
+      "hours": 11.3067475
+    },
+    {
+      "species": "Ceratotherium_simum",
+      "started_utc": "2026-09-02T14:14:03.992957+00:00",
+      "completed_utc": "2026-09-03T01:45:42.240536+00:00",
+      "hours": 11.527291111111111
+    },
+    {
+      "species": "Monodon_monoceros",
+      "started_utc": "2026-09-01T13:22:22.058600+00:00",
+      "completed_utc": "2026-09-02T01:04:50.635261+00:00",
+      "hours": 11.707938055555555
+    },
+    {
+      "species": "Enhydra_lutris",
+      "started_utc": "2026-09-01T14:39:42.951314+00:00",
+      "completed_utc": "2026-09-02T02:22:27.430625+00:00",
+      "hours": 11.712355277777778
+    },
+    {
+      "species": "Orcinus_orca",
+      "started_utc": "2026-08-31T02:06:08.115286+00:00",
+      "completed_utc": "2026-08-31T14:09:28.413388+00:00",
+      "hours": 12.055638333333333
+    },
+    {
+      "species": "Mirounga_angustirostris",
+      "started_utc": "2026-09-02T03:17:13.966768+00:00",
+      "completed_utc": "2026-09-02T15:44:52.536603+00:00",
+      "hours": 12.46071388888889
+    },
+    {
+      "species": "Platanista_gangetica",
+      "started_utc": "2026-09-02T11:30:29.386145+00:00",
+      "completed_utc": "2026-09-03T01:16:47.002036+00:00",
+      "hours": 13.77156
+    },
+    {
+      "species": "Tolypeutes_matacus",
+      "started_utc": "2026-08-30T14:17:20.047709+00:00",
+      "completed_utc": "2026-08-31T04:22:19.277926+00:00",
+      "hours": 14.083119444444444
+    },
+    {
+      "species": "Bos_taurus",
+      "started_utc": "2026-08-30T03:45:39.286840+00:00",
+      "completed_utc": "2026-08-30T19:25:26.645112+00:00",
+      "hours": 15.663155277777777
+    }
+  ]
+}
