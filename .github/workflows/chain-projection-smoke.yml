@@ -1,0 +1,46 @@
+name: Chain projection smoke
+
+on:
+  pull_request:
+    paths:
+      - "snakemake/vertebrate_projection_dataset/**"
+      - "src/marin_dna/**"
+      - ".github/workflows/chain-projection-smoke.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: chain-smoke-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9
+        with:
+          version-file: snakemake/vertebrate_projection_dataset/pyproject.toml
+      - uses: mamba-org/setup-micromamba@add3a49764cedee8ee24e82dfde87f5bc2914462
+        with:
+          environment-file: snakemake/vertebrate_projection_dataset/workflow/envs/bioinformatics.yaml
+          environment-name: chain-smoke
+          create-args: ucsc-liftover=482
+          cache-environment: true
+          init-shell: bash
+      - name: Install locked Python environment
+        working-directory: snakemake/vertebrate_projection_dataset
+        run: uv sync --locked --group dev
+      - name: Exercise both target cohorts with real Kent tools
+        shell: bash -el {0}
+        working-directory: snakemake/vertebrate_projection_dataset
+        env:
+          CHAIN_SMOKE_REQUIRED: "1"
+          POLARS_MAX_THREADS: "2"
+          RAYON_NUM_THREADS: "2"
+          OMP_NUM_THREADS: "1"
+          OPENBLAS_NUM_THREADS: "1"
+        run: uv run --locked pytest tests/test_chain_workflow.py -v

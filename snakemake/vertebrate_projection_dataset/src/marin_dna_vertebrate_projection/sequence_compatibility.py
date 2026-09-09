@@ -13,7 +13,7 @@ def validate_projected_twobit_sizes(
     chrom_sizes_path: str | Path,
     output_path: str | Path,
 ) -> None:
-    """Require every MAF target chromosome size to equal its 2bit size."""
+    """Require every projected target chromosome size to equal its 2bit size."""
     projected = (
         pl.scan_parquet(accepted_path)
         .select("t_chrom", "t_src_size")
@@ -38,7 +38,7 @@ def validate_projected_twobit_sizes(
     )
     mismatched = compared.filter(pl.col("t_src_size") != pl.col("twobit_src_size"))
     assert mismatched.is_empty(), (
-        "2bit chromosome sizes disagree with MAF source sizes: "
+        "2bit chromosome sizes disagree with alignment source sizes: "
         f"{mismatched.to_dicts()[:10]}"
     )
     output = Path(output_path)
