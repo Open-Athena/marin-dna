@@ -196,3 +196,11 @@ Genuine Ns are retained and unavailable species are omitted.
 Evaluation fixes human last and preserves the same non-human order across REF/ALT and both orientations.
 The training project adds one BOS and right-pads to 10,240 positions with zero loss weight on padding targets.
 The internal tables are provenance-rich; public dataset publication must expose only a `sequence` column in `train` and `validation`.
+
+`rag_all_publication_files` writes sequence-only Parquet shards, dataset cards, public-row mappings, and a release manifest with file sizes and SHA-256 checksums.
+`rag_publish` uploads the validated release atomically and checks anonymous access, file inventory, checksums, and a representative downloaded split.
+Set `rag_publication_source` to an existing producer identity (`root`, `pipeline_commit`, `config_sha256`, `pipeline_version`, `tier`) to publish previously built documents without rerunning projection.
+
+Publication manifests and cards distinguish source-producer provenance from the publisher namespace containing the exact public-row mappings and release hashes.
+Artifact URIs use the active Snakemake storage prefix, or absolute local paths when storage is disabled.
+Training consumers calculate epoch exposure from their own duration, batch size, and mixture weights.

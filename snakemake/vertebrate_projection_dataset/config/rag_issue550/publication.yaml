@@ -1,0 +1,7 @@
+pipeline_version: rag-five-regions-publication-v1
+rag_publication_source:
+  root: s3://oa-bolinas/snakemake/vertebrate_projection_dataset/results/rag-five-regions-v1/6b1593c274a886d20f5c0ddf3712916d446f5fed/10ba63bc375ba912909b82cda68143df4677431124fc8e15f6ac42850ce0fca6/full/rag
+  pipeline_commit: 6b1593c274a886d20f5c0ddf3712916d446f5fed
+  config_sha256: 10ba63bc375ba912909b82cda68143df4677431124fc8e15f6ac42850ce0fca6
+  pipeline_version: rag-five-regions-v1
+  tier: full

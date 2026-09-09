@@ -91,3 +91,29 @@ Import testing exposed a missing transitive `dupekit` package; its Python wrappe
 The token-normalized AdamH heuristic uses projection LR 0.004695897205758308, Adam LR 0.00020258341260453682, epsilon 5.990618799422977e-8, beta2 0.9992190160617281, beta1 0.9, max gradient norm 0.1, and 10% warmup / 20% linear decay.
 Reference batch size is 64 x 4096 positions; using allocated-token units across context lengths is an explicit experimental extension of the fixed-context heuristic.
 Training and evaluation have not started.
+
+### 2026-09-09 23:27 UTC — RAG-550-003: Producer progress, publication review, and training preflight
+
+The biological workflow runs from immutable snapshot `6b1593c274a886d20f5c0ddf3712916d446f5fed` in a separate worker worktree.
+Its request audit contains 593,468 exact unique projection requests and 617,582 source memberships, including the 51,623 canonical development benchmark rows.
+At 23:12 UTC it had completed 283 of 365 steps; the remaining elephant liftOver process was actively using one CPU at the 23:20 check.
+The worker's termination deadline was extended at 22:44 UTC to 2026-09-10 01:44:46 UTC, retaining a total compute/disk allowance below $1 and the overall $30 cap.
+No source credentials were printed or committed.
+
+Reusable dataset code was extracted into issue #551 and draft PR #552.
+An independent published-diff review identified the inherited legacy anchor checksum and an experiment-specific epoch estimate in generic provenance.
+The additive RAG requests rule now validates its own source contracts and shared dictionaries without applying a legacy catalog checksum; exposure estimates belong to this experiment consumer.
+Publication provenance now records source producer and publisher separately, including the actual active storage prefix for row mappings and release hashes.
+The integration test publishes from an older producing snapshot under a newer publisher snapshot and verifies every reconstructed public row.
+The complete suite passed 282 tests and failed one existing storage test because the retest shell omitted Conda from PATH; both storage tests passed after restoring the known Conda PATH.
+Thus all 283 tests passed across that run and the targeted environment-only retry, including both Kent integration workflows.
+Ruff and Snakefmt passed.
+
+The self-contained training project resolves the coherent current Marin release `0.2.106.dev34338714012` from upstream source `efe79892065589b154d969effd49eee3bd286284`, with Python 3.12 and uv 0.11.31.
+The missing published dependency `marin-dupekit` is pinned to the same source commit.
+All 13 training tests pass, including real-logit/loss/gradient invariance to padding, native-JAX versus exported-Hugging-Face logits, the fixed recipe, and completed-update milestone selection.
+The standard Marin tokenization path successfully generated all five synthetic train/validation caches using a local Zephyr child on the paid data worker, without dispatching CPU jobs.
+The launch graph constructs correctly for a synthetic 20-update pilot on one free preemptible v6e-8 slice in us-east1.
+Microbatch 5 accumulates to exactly 200 documents; fallback 1 preserves the same batch.
+The resolved scaling heuristic and its allocated-token context-transfer assumption are recorded in the experiment README and source.
+No TPU has been submitted at this snapshot; actual native save/resume, milestone files, W&B progress, and throughput remain pilot checks.

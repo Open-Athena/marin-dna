@@ -1,0 +1,11 @@
+{
+  "tokenizer_class": "PreTrainedTokenizerFast",
+  "model_max_length": 10240,
+  "padding_side": "right",
+  "bos_token": "[BOS]",
+  "pad_token": "[PAD]",
+  "unk_token": "[UNK]",
+  "eos_token": null,
+  "additional_special_tokens": ["[SEQ]"],
+  "clean_up_tokenization_spaces": false
+}

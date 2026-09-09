@@ -1,0 +1,70 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "marin-dna-exp550"
+version = "0.1.0"
+description = "Five-region order-deduplicated RAG training for issue 550"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "marin-core==0.2.106.dev34338714012",
+    "marin-iris[controller]==0.2.106.dev34338714012",
+    "marin-fray==0.2.106.dev34338714012",
+    "marin-levanter==0.2.106.dev34338714012",
+    "marin-haliax==0.2.106.dev34338714012",
+    "marin-zephyr==0.2.106.dev34338714012",
+    "marin-rigging==0.2.106.dev34338714012",
+    "marin-dupekit @ git+https://github.com/marin-community/marin.git@efe79892065589b154d969effd49eee3bd286284#subdirectory=lib/dupekit",
+    "numpy",
+]
+
+[project.optional-dependencies]
+cpu = [
+    "marin-core[cpu]==0.2.106.dev34338714012",
+    "torch==2.11.0",
+    "torchvision==0.26.0+cpu",
+]
+tpu = [
+    "marin-core[tpu]==0.2.106.dev34338714012",
+    "torch==2.11.0",
+    "torchvision==0.26.0+cpu",
+]
+
+[dependency-groups]
+dev = ["pytest>=8.3.2"]
+
+[tool.uv]
+required-version = "==0.11.31"
+fork-strategy = "fewest"
+prerelease = "allow"
+environments = ["sys_platform == 'linux'"]
+conflicts = [[{ extra = "cpu" }, { extra = "tpu" }]]
+
+[[tool.uv.index]]
+name = "marin-resiliparse"
+url = "https://marin-community.github.io/chatnoir-resiliparse/simple"
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[tool.uv.sources]
+torch = [
+    { index = "pytorch-cpu", extra = "cpu" },
+    { index = "pytorch-cpu", extra = "tpu" },
+]
+torchvision = [
+    { index = "pytorch-cpu", extra = "cpu" },
+    { index = "pytorch-cpu", extra = "tpu" },
+]
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/marin_dna_exp550"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

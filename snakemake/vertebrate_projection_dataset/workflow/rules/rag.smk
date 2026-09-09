@@ -13,8 +13,12 @@ if config.get("rag"):
     RAG_BENCHMARKS = sorted(RAG["benchmarks"])
     RAG_UNION = f"{RAG_RESULTS}/anchors/catalog.parquet"
     RAG_REQUESTS = f"{RAG_RESULTS}/anchors/requests.parquet"
-    RAG_CATALOGS = {name: asset_input(spec["uri"]) for name, spec in RAG["catalogs"].items()}
-    RAG_BENCHMARK_FILES = {name: f"{RAG_RESULTS}/sources/{name}.parquet" for name in RAG_BENCHMARKS}
+    RAG_CATALOGS = {
+        name: asset_input(spec["uri"]) for name, spec in RAG["catalogs"].items()
+    }
+    RAG_BENCHMARK_FILES = {
+        name: f"{RAG_RESULTS}/sources/{name}.parquet" for name in RAG_BENCHMARKS
+    }
 
     rule rag_benchmark_source:
         output:
@@ -40,11 +44,16 @@ if config.get("rag"):
             compile_requests(
                 dict(zip(RAG_CATALOGS, input.catalogs, strict=True)),
                 dict(zip(RAG_BENCHMARK_FILES, input.benchmarks, strict=True)),
-                RAG, ASSETS, GENOMES, input.sizes,
-                output.catalog, output.memberships, output.audit,
+                RAG,
+                ASSETS,
+                GENOMES,
+                input.sizes,
+                output.catalog,
+                output.memberships,
+                output.audit,
             )
 
-    use rule chain_requests as rag_chain_requests with:
+    rule rag_chain_requests:
         input:
             anchors=RAG_UNION,
             sizes=asset_input(SOURCE["source_sizes"]),
@@ -53,6 +62,21 @@ if config.get("rag"):
         output:
             requests=RAG_REQUESTS,
             bed=f"{RAG_RESULTS}/anchors/centers.bed",
+        resources:
+            mem_mb=int(config["table_mem_mb"]),
+        run:
+            # The union rule validates the separately pinned RAG source catalogs.
+            if file_sha256(input.sizes) != SOURCE["source_sizes_sha256"]:
+                raise ValueError("source chromosome dictionary SHA-256 mismatch")
+            if (
+                file_sha256(input.human_sizes)
+                != GENOMES["hg38"]["chrom_sizes_sha256"]
+            ):
+                raise ValueError("human genome dictionary SHA-256 mismatch")
+            validate_human_dictionary(input.sizes, input.human_sizes)
+            prepare_chain_requests(
+                input.anchors, input.sizes, output.requests, output.bed
+            )
 
     use rule chain_liftover as rag_chain_liftover with:
         input:
@@ -113,12 +137,25 @@ if config.get("rag"):
             benchmarks=RAG_BENCHMARK_FILES.values(),
             union=RAG_UNION,
             human=f"{RAG_RESULTS}/sequences/hg38.parquet",
-            sequences=expand(f"{RAG_RESULTS}/sequences/{{species}}.parquet", species=ACTIVE_SPECIES),
-            rejections=expand(f"{RAG_RESULTS}/chains/{{species}}/rejected.parquet", species=ACTIVE_SPECIES),
-            sequence_rejections=expand(f"{RAG_RESULTS}/chains/{{species}}/sequence_rejected.parquet", species=ACTIVE_SPECIES),
+            sequences=expand(
+                f"{RAG_RESULTS}/sequences/{{species}}.parquet", species=ACTIVE_SPECIES
+            ),
+            rejections=expand(
+                f"{RAG_RESULTS}/chains/{{species}}/rejected.parquet",
+                species=ACTIVE_SPECIES,
+            ),
+            sequence_rejections=expand(
+                f"{RAG_RESULTS}/chains/{{species}}/sequence_rejected.parquet",
+                species=ACTIVE_SPECIES,
+            ),
         output:
-            train=expand(f"{RAG_RESULTS}/datasets/{{region}}/train.parquet", region=RAG_REGIONS),
-            validation=expand(f"{RAG_RESULTS}/datasets/{{region}}/validation.parquet", region=RAG_REGIONS),
+            train=expand(
+                f"{RAG_RESULTS}/datasets/{{region}}/train.parquet", region=RAG_REGIONS
+            ),
+            validation=expand(
+                f"{RAG_RESULTS}/datasets/{{region}}/validation.parquet",
+                region=RAG_REGIONS,
+            ),
             summary=f"{RAG_RESULTS}/datasets/split_summary.json",
             harness=f"{RAG_RESULTS}/evaluation/combined_development.parquet",
             harness_counts=f"{RAG_RESULTS}/evaluation/combined_development.counts.json",
@@ -127,12 +164,15 @@ if config.get("rag"):
         run:
             assemble_outputs(
                 dict(zip(RAG_CATALOGS, input.catalogs, strict=True)),
-                dict(zip(RAG_BENCHMARK_FILES, input.benchmarks, strict=True)), RAG,
-                input.union, input.human,
+                dict(zip(RAG_BENCHMARK_FILES, input.benchmarks, strict=True)),
+                RAG,
+                input.union,
+                input.human,
                 dict(zip(ACTIVE_SPECIES, input.sequences, strict=True)),
                 dict(zip(ACTIVE_SPECIES, input.rejections, strict=True)),
                 dict(zip(ACTIVE_SPECIES, input.sequence_rejections, strict=True)),
-                str(Path(output.summary).parent), output.harness,
+                str(Path(output.summary).parent),
+                output.harness,
             )
 
     rule rag_all_documents:
