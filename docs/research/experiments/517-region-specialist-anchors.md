@@ -74,7 +74,7 @@ The order-control uncertainties are marginal bootstrap standard errors; no paire
   The small backend comparison found differences in mapping recovery and target-window placement, so these are not identical-backend controls.
 - The complete diagonal is based on point estimates from one training seed and development data.
   AUPRC uncertainty reflects benchmark resampling, not training-seed variation; no held-out evaluation establishes generalization of the selected recipes.
-- The initial question about when the diagonal emerges was deferred under the terminal-checkpoint-only evaluation decision.
+- Terminal-checkpoint evaluation cannot establish when the diagonal emerges during training.
 - The newer background arm includes conserved windows rejected from the enhancer assignment and is not the same negative control as #232's background.
 
 ## Related questions
