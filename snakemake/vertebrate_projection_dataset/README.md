@@ -112,6 +112,7 @@ The default profile uses `s3://oa-bolinas/snakemake/vertebrate_projection_datase
 Durable outputs live under `results/chains-v1/<producer-commit>/<config-and-manifest-hash>/<tier>/`.
 The identity hashes the resolved configuration, species manifest, chain manifest, genome manifest, and input anchor digest.
 `metadata/producer.json` records that identity; `metadata/assets.json` records the configuration and exact asset pins.
+`metadata/config.yaml` preserves the resolved configuration, including overlays, for publication validation.
 Genome working copies and their source-verification receipts are `local()` intermediates.
 They are recreated from the pinned inputs on a clean worker and are not uploaded as duplicate genome archives in each result namespace.
 The new namespace cannot silently reuse a v2 HAL/MultiZ result.
@@ -142,6 +143,8 @@ Its finalized splits need not be subsets of the combined CDS splits.
 Do not compare validation losses across differently sampled cohorts as a common benchmark.
 
 `all_hf_files` prepares shuffled JSONL.zst shards and cards locally, validates schemas, row counts, split invariants, and digests, and does not write to Hugging Face.
+Validation uses the resolved cohort, shard, split, and ownership settings rather than the committed defaults.
+Cards report the supplied asset origins and distinguish generated phyloP-filtered anchors from external or smoke catalogs; synthetic inputs are explicitly labeled.
 The isolated upload tree contains only `README.md`, `data/train/shard_NNNN.jsonl.zst`, and `data/validation/shard_0000.jsonl.zst`.
 Inputs of at most 100 million augmented rows use the existing deterministic shuffle; larger inputs use a spill-capable hash sort and partitioned NDJSON sink.
 QC and audit files stay outside the upload tree.

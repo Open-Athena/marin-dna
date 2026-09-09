@@ -121,6 +121,7 @@ def test_hf_only_dag_closes_from_clean_storage_backed_workdir(tmp_path: Path) ->
     )
     (storage / base / "metadata/species_active.tsv").write_text("fixture\n")
     (storage / base / "metadata/assets.json").write_text("{}\n")
+    (storage / base / "metadata/config.yaml").write_text(yaml.safe_dump(identity))
     for cohort in config["smoke_cohorts"]:
         for split in ["train", "validation"]:
             source = storage / base / f"datasets/{cohort}/{split}.parquet"

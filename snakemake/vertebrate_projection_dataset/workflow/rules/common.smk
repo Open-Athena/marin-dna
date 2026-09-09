@@ -5,6 +5,7 @@ import json
 import re
 
 import polars as pl
+import yaml
 
 from marin_dna_vertebrate_projection.manifest import (
     read_species_manifest,
@@ -48,6 +49,7 @@ RESULTS = (
 )
 PRODUCER_MANIFEST = f"{RESULTS}/metadata/producer.json"
 ASSET_PROVENANCE = f"{RESULTS}/metadata/assets.json"
+RESOLVED_CONFIG_PATH = f"{RESULTS}/metadata/config.yaml"
 
 WINDOW_SIZE = int(config["window_size"])
 assert WINDOW_SIZE == 255
@@ -151,7 +153,8 @@ rule asset_provenance:
         genomes=local(GENOME_ASSETS_PATH),
         species=SPECIES_SELECTED_INPUT,
     output:
-        ASSET_PROVENANCE,
+        assets=ASSET_PROVENANCE,
+        config=RESOLVED_CONFIG_PATH,
     run:
         Path(output[0]).parent.mkdir(parents=True, exist_ok=True)
         Path(output[0]).write_text(
@@ -169,6 +172,7 @@ rule asset_provenance:
             )
             + "\n"
         )
+        Path(output.config).write_text(yaml.safe_dump(RESOLVED_CONFIG))
 
 
 rule active_species_manifest:

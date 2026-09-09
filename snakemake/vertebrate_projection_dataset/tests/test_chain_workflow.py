@@ -11,9 +11,10 @@ from pathlib import Path
 
 import polars as pl
 import pytest
+import yaml
 
 PROJECT = Path(__file__).parents[1]
-TOOLS = ("liftOver", "faToTwoBit", "twoBitInfo", "twoBitToFa")
+TOOLS = ("liftOver", "faToTwoBit", "twoBitInfo", "twoBitToFa", "zstd")
 
 
 def test_chain_workflow_both_cohorts_through_sequences_and_splits(
@@ -108,3 +109,39 @@ def test_chain_workflow_both_cohorts_through_sequences_and_splits(
         json.loads((base / "metadata/assets.json").read_text())["projector"]
         == "UCSC liftOver"
     )
+    run("all_hf_files")
+    publication = json.loads(
+        (base / "hf_validation/hf_publication_manifest.json").read_text()
+    )
+    assert set(publication["cohorts"]) == {"all"}
+    assert publication["cohorts"]["all"]["splits"]["train"]["rows"] == 12
+    card = (base / "hf/all/README.md").read_text()
+    assert "fabricated synthetic test assets" in card
+    assert "pinned smoke catalog" in card
+
+    # Non-default settings must reach artifact validation through the resolved
+    # config, not be silently replaced by the committed config/config.yaml.
+    overlay = workdir / "publication-overlay.yaml"
+    overlay.write_text(
+        yaml.safe_dump(
+            {
+                "hf_owner": "fixture-owner",
+                "smoke_cohorts": ["cds"],
+                "publication_smoke_train_shards": 2,
+                "validation_seed": 17,
+                "publication_shuffle_seed": 23,
+            }
+        )
+    )
+    run("all_hf_files", "--configfile", str(overlay))
+    manifests = list(
+        (workdir / "results").rglob("hf_validation/hf_publication_manifest.json")
+    )
+    assert len(manifests) == 2
+    alternate = next(path for path in manifests if path.parent.parent != base)
+    publication = json.loads(alternate.read_text())
+    assert set(publication["cohorts"]) == {"cds"}
+    assert publication["cohorts"]["cds"]["splits"]["train"]["rows"] == 4
+    alternate_card = (alternate.parent.parent / "hf/cds/README.md").read_text()
+    assert "# `fixture-owner/vertebrate-chains-v1-cds`" in alternate_card
+    assert "seed 17" in alternate_card

@@ -6,6 +6,7 @@ from types import SimpleNamespace
 
 import polars as pl
 import pytest
+import yaml
 import zstandard as zstd
 from marin_dna_vertebrate_projection import publication
 from marin_dna_vertebrate_projection.pipeline_io import write_dataset_split_files
@@ -117,6 +118,29 @@ def test_validate_artifacts_reconciles_rows_and_rejects_sidecars(
             config_sha256=CONFIG_SHA256,
             workers=1,
         )
+
+
+def test_smoke_publication_uses_configured_cohorts_and_shards(tmp_path: Path) -> None:
+    artifact_dir, source_dir, config_path = _fixture(tmp_path)
+    config = yaml.safe_load(config_path.read_text())
+    config.update(
+        smoke_cohorts=["all"],
+        publication_smoke_train_shards=2,
+        smoke_validation_rows=2,
+    )
+    config_path.write_text(yaml.safe_dump(config))
+    manifest = publication.validate_artifacts(
+        artifact_dir,
+        source_dir,
+        tmp_path / "manifest.json",
+        config_path=config_path,
+        pipeline_commit=PIPELINE_COMMIT,
+        config_sha256=CONFIG_SHA256,
+        tier="smoke",
+        workers=1,
+    )
+    assert set(manifest["cohorts"]) == {"all"}
+    assert manifest["cohorts"]["all"]["splits"]["train"]["rows"] == 5
 
 
 def test_validate_artifacts_rejects_tampered_composition(tmp_path: Path) -> None:

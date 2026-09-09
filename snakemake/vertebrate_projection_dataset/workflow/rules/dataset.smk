@@ -222,6 +222,7 @@ rule dataset_card:
             region_label=params.region,
             species_scope=params.scope,
             validation_seed=int(config["validation_seed"]),
+            provenance_path=input.provenance,
         )
 
 
@@ -229,6 +230,7 @@ rule hf_artifact_manifest:
     """Reject missing, stale, malformed, or split-inconsistent publication files."""
     input:
         producer=PRODUCER_MANIFEST,
+        config=RESOLVED_CONFIG_PATH,
         train_source=expand(
             f"{RESULTS}/datasets/{{region}}/train.parquet", region=COHORTS
         ),
@@ -277,7 +279,7 @@ rule hf_artifact_manifest:
             HF_RESULTS,
             f"{RESULTS}/datasets",
             output[0],
-            config_path="config/config.yaml",
+            config_path=input.config,
             pipeline_commit=PIPELINE_COMMIT,
             config_sha256=PIPELINE_CONFIG_SHA256,
             tier=TIER,
