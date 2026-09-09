@@ -161,3 +161,38 @@ Set `require_zrs: true` only for a biological smoke catalog containing the expec
 The synthetic fixture has no biological positive-control interpretation.
 Manual review should inspect both strands, mapped center placement, sequence case, and assembly/dictionary agreement, and compare sampled mappings to saved source-alignment projections.
 Report sampled agreement with its sampling design; do not claim genome-wide equivalence from a smoke test.
+
+## RAG documents from five source regions
+
+The additive `rag_all_documents` target builds one order-selected RAG corpus and a combined development evaluation harness.
+The configuration in `config/rag_issue550/config.yaml` pins the five source catalogs, 39 target assemblies, chain/genome checksums, and three official development benchmark revisions.
+Its species manifest retains the 18 non-human mammalian and 21 other vertebrate order representatives selected at commit `ee0723736cb6d71ce920fd6f3b3e435fd02937af`.
+Human is the only primate and is included once per document.
+The existing default targets retain their previous behavior.
+
+From this project on an authorized remote worker, inspect the plan before execution:
+
+```bash
+uv run --locked pytest
+uv run --locked snakemake rag_all_documents --configfile config/rag_issue550/config.yaml --cores 4 --resources mem_mb=56000 -n
+```
+
+The request catalog deduplicates exact 255-bp hg38 intervals across regions and development cohorts.
+An independent membership table retains every source row, including unused chr18 anchors.
+All chr18 anchors are excluded from training; each region samples up to 400 validation documents from chr18 with seed 42.
+Outside chr18, original region memberships remain intact.
+The current input audit found no sequence cache with the same validated `liftOver -multiple` contract, so this configuration reuses chain and genome inputs and projects the exact request union once per species.
+Historical HAL, MultiZ, or single-best chain sequence outputs are not interchangeable caches.
+
+Outputs live under the normal producer/config namespace in `rag/`.
+`anchors/source_memberships.parquet` maps source rows to exact requests and split membership; per-species accepted/rejected tables retain alignment and extraction provenance.
+`datasets/<region>/<split>.parquet` retains row coordinates, species order, orientation, unpadded/padding counts, and the document sequence.
+`evaluation/combined_development.parquet` preserves canonical row identities and metadata for Mendelian traits, complex traits, and SGE, restricted to odd autosomes and chrX.
+An explicit outcome for every requested species distinguishes biological missingness from an incomplete producer.
+
+Each training locus contributes forward and reverse-complement rows.
+Species are permuted once per row, and `[SEQ]` separates available 255-bp segments; reverse complementation acts within segments.
+Genuine Ns are retained and unavailable species are omitted.
+Evaluation fixes human last and preserves the same non-human order across REF/ALT and both orientations.
+The training project adds one BOS and right-pads to 10,240 positions with zero loss weight on padding targets.
+The internal tables are provenance-rich; public dataset publication must expose only a `sequence` column in `train` and `validation`.

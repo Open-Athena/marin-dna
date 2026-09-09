@@ -1,0 +1,164 @@
+[
+  {
+    "alignment_name": "Bos_taurus",
+    "uri": "s3://oa-bolinas/snakemake/vertebrate_projection_dataset/results/hal-chains-directional-ramp-v2/b86897b7050bc9fdf397dd6abfb3af11fc876f86/d035c2561f6be3b11449647adfe9ce865884aef7da8b7e06b817d8a75c7f37f9/full/chains/Bos_taurus/human_to_species.chain.gz",
+    "sha256": "c7e5b420cdbf68313c500377fa6205d51e1b2611bbd6b41bdf68015a6d6d8732",
+    "bytes": 955151127,
+    "generation_record": "s3://oa-bolinas/snakemake/vertebrate_projection_dataset/results/hal-chains-directional-ramp-v2/b86897b7050bc9fdf397dd6abfb3af11fc876f86/d035c2561f6be3b11449647adfe9ce865884aef7da8b7e06b817d8a75c7f37f9/full/chains/Bos_taurus/chain_generation.json",
+    "generation_recipe": "direction_matched_no_dupes_psl_swap",
+    "min_score": -1000000
+  },
+  {
+    "alignment_name": "Choloepus_hoffmanni",
+    "uri": "s3://oa-bolinas/snakemake/vertebrate_projection_dataset/results/hal-chains-directional-ramp-v2/b86897b7050bc9fdf397dd6abfb3af11fc876f86/d035c2561f6be3b11449647adfe9ce865884aef7da8b7e06b817d8a75c7f37f9/full/chains/Choloepus_hoffmanni/human_to_species.chain.gz",
+    "sha256": "45d8dc950001a57e880b246d6baaf1f1ba4ffd55b85b53dc421541a442ac2f78",
+    "bytes": 886759763,
+    "generation_record": "s3://oa-bolinas/snakemake/vertebrate_projection_dataset/results/hal-chains-directional-ramp-v2/b86897b7050bc9fdf397dd6abfb3af11fc876f86/d035c2561f6be3b11449647adfe9ce865884aef7da8b7e06b817d8a75c7f37f9/full/chains/Choloepus_hoffmanni/chain_generation.json",
+    "generation_recipe": "direction_matched_no_dupes_psl_swap",
+    "min_score": -1000000
+  },
+  {
+    "alignment_name": "Elephantulus_edwardii",
+    "uri": "s3://oa-bolinas/snakemake/vertebrate_projection_dataset/results/hal-chains-directional-ramp-v2/b86897b7050bc9fdf397dd6abfb3af11fc876f86/d035c2561f6be3b11449647adfe9ce865884aef7da8b7e06b817d8a75c7f37f9/full/chains/Elephantulus_edwardii/human_to_species.chain.gz",
+    "sha256": "f8cbaab6f0d725369bd6d266c6e9d0b8fb62371ba321cc505ad32d0698de2d71",
+    "bytes": 780553723,
+    "generation_record": "s3://oa-bolinas/snakemake/vertebrate_projection_dataset/results/hal-chains-directional-ramp-v2/b86897b7050bc9fdf397dd6abfb3af11fc876f86/d035c2561f6be3b11449647adfe9ce865884aef7da8b7e06b817d8a75c7f37f9/full/chains/Elephantulus_edwardii/chain_generation.json",
+    "generation_recipe": "direction_matched_no_dupes_psl_swap",
+    "min_score": -1000000
+  },
+  {
+    "alignment_name": "Equus_caballus",
+    "uri": "s3://oa-bolinas/snakemake/vertebrate_projection_dataset/results/hal-chains-directional-ramp-v2/b86897b7050bc9fdf397dd6abfb3af11fc876f86/d035c2561f6be3b11449647adfe9ce865884aef7da8b7e06b817d8a75c7f37f9/full/chains/Equus_caballus/human_to_species.chain.gz",
+    "sha256": "e4249505a39606e6ff07e606db0583dce2ea4f427b5cfe2cf6d4964943d61b91",
+    "bytes": 890280692,
+    "generation_record": "s3://oa-bolinas/snakemake/vertebrate_projection_dataset/results/hal-chains-directional-ramp-v2/b86897b7050bc9fdf397dd6abfb3af11fc876f86/d035c2561f6be3b11449647adfe9ce865884aef7da8b7e06b817d8a75c7f37f9/full/chains/Equus_caballus/chain_generation.json",
+    "generation_recipe": "direction_matched_no_dupes_psl_swap",
+    "min_score": -1000000
+  },
+  {
+    "alignment_name": "Galeopterus_variegatus",
+    "uri": "s3://oa-bolinas/snakemake/vertebrate_projection_dataset/results/hal-chains-directional-ramp-v2/b86897b7050bc9fdf397dd6abfb3af11fc876f86/d035c2561f6be3b11449647adfe9ce865884aef7da8b7e06b817d8a75c7f37f9/full/chains/Galeopterus_variegatus/human_to_species.chain.gz",
+    "sha256": "9a37f0603ae69f22c984cf58e9ef0d2c0c77cb93259c68f3ab18f14d74e96682",
+    "bytes": 363985142,
+    "generation_record": "s3://oa-bolinas/snakemake/vertebrate_projection_dataset/results/hal-chains-directional-ramp-v2/b86897b7050bc9fdf397dd6abfb3af11fc876f86/d035c2561f6be3b11449647adfe9ce865884aef7da8b7e06b817d8a75c7f37f9/full/chains/Galeopterus_variegatus/chain_generation.json",
+    "generation_recipe": "direction_matched_no_dupes_psl_swap",
+    "min_score": -1000000
+  },
+  {
+    "alignment_name": "Heterohyrax_brucei",
+    "uri": "s3://oa-bolinas/snakemake/vertebrate_projection_dataset/results/hal-chains-directional-ramp-v2/b86897b7050bc9fdf397dd6abfb3af11fc876f86/d035c2561f6be3b11449647adfe9ce865884aef7da8b7e06b817d8a75c7f37f9/full/chains/Heterohyrax_brucei/human_to_species.chain.gz",
+    "sha256": "09598e1c0f0346494c2dd5c43c63baa31a19085757db2062b92c165f7a746ff3",
+    "bytes": 949684613,
+    "generation_record": "s3://oa-bolinas/snakemake/vertebrate_projection_dataset/results/hal-chains-directional-ramp-v2/b86897b7050bc9fdf397dd6abfb3af11fc876f86/d035c2561f6be3b11449647adfe9ce865884aef7da8b7e06b817d8a75c7f37f9/full/chains/Heterohyrax_brucei/chain_generation.json",
+    "generation_recipe": "direction_matched_no_dupes_psl_swap",
+    "min_score": -1000000
+  },
+  {
+    "alignment_name": "Loxodonta_africana",
+    "uri": "s3://oa-bolinas/snakemake/vertebrate_projection_dataset/results/hal-chains-directional-ramp-v2/b86897b7050bc9fdf397dd6abfb3af11fc876f86/d035c2561f6be3b11449647adfe9ce865884aef7da8b7e06b817d8a75c7f37f9/full/chains/Loxodonta_africana/human_to_species.chain.gz",
+    "sha256": "340267abc83be2b966399f4e338487d173ccbb102bddbdfdf1b26a949a6a86c8",
+    "bytes": 727787995,
+    "generation_record": "s3://oa-bolinas/snakemake/vertebrate_projection_dataset/results/hal-chains-directional-ramp-v2/b86897b7050bc9fdf397dd6abfb3af11fc876f86/d035c2561f6be3b11449647adfe9ce865884aef7da8b7e06b817d8a75c7f37f9/full/chains/Loxodonta_africana/chain_generation.json",
+    "generation_recipe": "direction_matched_no_dupes_psl_swap",
+    "min_score": -1000000
+  },
+  {
+    "alignment_name": "Lycaon_pictus",
+    "uri": "s3://oa-bolinas/snakemake/vertebrate_projection_dataset/results/hal-chains-directional-ramp-v2/b86897b7050bc9fdf397dd6abfb3af11fc876f86/d035c2561f6be3b11449647adfe9ce865884aef7da8b7e06b817d8a75c7f37f9/full/chains/Lycaon_pictus/human_to_species.chain.gz",
+    "sha256": "dfd93247ff05d28411770c48929ae72c57860ce49dc06860da205aa1aa7e345b",
+    "bytes": 1021594759,
+    "generation_record": "s3://oa-bolinas/snakemake/vertebrate_projection_dataset/results/hal-chains-directional-ramp-v2/b86897b7050bc9fdf397dd6abfb3af11fc876f86/d035c2561f6be3b11449647adfe9ce865884aef7da8b7e06b817d8a75c7f37f9/full/chains/Lycaon_pictus/chain_generation.json",
+    "generation_recipe": "direction_matched_no_dupes_psl_swap",
+    "min_score": -1000000
+  },
+  {
+    "alignment_name": "Macroglossus_sobrinus",
+    "uri": "s3://oa-bolinas/snakemake/vertebrate_projection_dataset/results/hal-chains-directional-ramp-v2/b86897b7050bc9fdf397dd6abfb3af11fc876f86/d035c2561f6be3b11449647adfe9ce865884aef7da8b7e06b817d8a75c7f37f9/full/chains/Macroglossus_sobrinus/human_to_species.chain.gz",
+    "sha256": "2a700a27c66e969c730a30f8cc51be3d903889d95ad664495a497dc7803ec9f7",
+    "bytes": 882831656,
+    "generation_record": "s3://oa-bolinas/snakemake/vertebrate_projection_dataset/results/hal-chains-directional-ramp-v2/b86897b7050bc9fdf397dd6abfb3af11fc876f86/d035c2561f6be3b11449647adfe9ce865884aef7da8b7e06b817d8a75c7f37f9/full/chains/Macroglossus_sobrinus/chain_generation.json",
+    "generation_recipe": "direction_matched_no_dupes_psl_swap",
+    "min_score": -1000000
+  },
+  {
+    "alignment_name": "Manis_javanica",
+    "uri": "s3://oa-bolinas/snakemake/vertebrate_projection_dataset/results/hal-chains-directional-ramp-v2/b86897b7050bc9fdf397dd6abfb3af11fc876f86/d035c2561f6be3b11449647adfe9ce865884aef7da8b7e06b817d8a75c7f37f9/full/chains/Manis_javanica/human_to_species.chain.gz",
+    "sha256": "fd51491c7450c5e2001feb99e8d09de36bbdef76a6c73e82dd7a9a212ed99f70",
+    "bytes": 979140214,
+    "generation_record": "s3://oa-bolinas/snakemake/vertebrate_projection_dataset/results/hal-chains-directional-ramp-v2/b86897b7050bc9fdf397dd6abfb3af11fc876f86/d035c2561f6be3b11449647adfe9ce865884aef7da8b7e06b817d8a75c7f37f9/full/chains/Manis_javanica/chain_generation.json",
+    "generation_recipe": "direction_matched_no_dupes_psl_swap",
+    "min_score": -1000000
+  },
+  {
+    "alignment_name": "Microgale_talazaci",
+    "uri": "s3://oa-bolinas/snakemake/vertebrate_projection_dataset/results/hal-chains-directional-ramp-v2/b86897b7050bc9fdf397dd6abfb3af11fc876f86/d035c2561f6be3b11449647adfe9ce865884aef7da8b7e06b817d8a75c7f37f9/full/chains/Microgale_talazaci/human_to_species.chain.gz",
+    "sha256": "15a994abfdd87f40a3dfe6271e8625e2c7bd9a3d297b953817aca66e7f1cd359",
+    "bytes": 1005714465,
+    "generation_record": "s3://oa-bolinas/snakemake/vertebrate_projection_dataset/results/hal-chains-directional-ramp-v2/b86897b7050bc9fdf397dd6abfb3af11fc876f86/d035c2561f6be3b11449647adfe9ce865884aef7da8b7e06b817d8a75c7f37f9/full/chains/Microgale_talazaci/chain_generation.json",
+    "generation_recipe": "direction_matched_no_dupes_psl_swap",
+    "min_score": -1000000
+  },
+  {
+    "alignment_name": "Mus_musculus",
+    "uri": "s3://oa-bolinas/snakemake/vertebrate_projection_dataset/results/hal-chains-directional-ramp-v2/b86897b7050bc9fdf397dd6abfb3af11fc876f86/d035c2561f6be3b11449647adfe9ce865884aef7da8b7e06b817d8a75c7f37f9/full/chains/Mus_musculus/human_to_species.chain.gz",
+    "sha256": "601a4869da040f1543df0e1d835eb091a36dfdbaeb60c59863a1d1f1c2fb34cd",
+    "bytes": 1042053980,
+    "generation_record": "s3://oa-bolinas/snakemake/vertebrate_projection_dataset/results/hal-chains-directional-ramp-v2/b86897b7050bc9fdf397dd6abfb3af11fc876f86/d035c2561f6be3b11449647adfe9ce865884aef7da8b7e06b817d8a75c7f37f9/full/chains/Mus_musculus/chain_generation.json",
+    "generation_recipe": "direction_matched_no_dupes_psl_swap",
+    "min_score": -1000000
+  },
+  {
+    "alignment_name": "Orycteropus_afer",
+    "uri": "s3://oa-bolinas/snakemake/vertebrate_projection_dataset/results/hal-chains-directional-ramp-v2/b86897b7050bc9fdf397dd6abfb3af11fc876f86/d035c2561f6be3b11449647adfe9ce865884aef7da8b7e06b817d8a75c7f37f9/full/chains/Orycteropus_afer/human_to_species.chain.gz",
+    "sha256": "e55628f06002a52e9dcd9d85d83c6eff4ddb6319f61d183ade3902dbb0ffd51d",
+    "bytes": 852052151,
+    "generation_record": "s3://oa-bolinas/snakemake/vertebrate_projection_dataset/results/hal-chains-directional-ramp-v2/b86897b7050bc9fdf397dd6abfb3af11fc876f86/d035c2561f6be3b11449647adfe9ce865884aef7da8b7e06b817d8a75c7f37f9/full/chains/Orycteropus_afer/chain_generation.json",
+    "generation_recipe": "direction_matched_no_dupes_psl_swap",
+    "min_score": -1000000
+  },
+  {
+    "alignment_name": "Oryctolagus_cuniculus",
+    "uri": "s3://oa-bolinas/snakemake/vertebrate_projection_dataset/results/hal-chains-directional-ramp-v2/b86897b7050bc9fdf397dd6abfb3af11fc876f86/d035c2561f6be3b11449647adfe9ce865884aef7da8b7e06b817d8a75c7f37f9/full/chains/Oryctolagus_cuniculus/human_to_species.chain.gz",
+    "sha256": "56ff49755feb014139cca79612a6a04b14a9d5fd94a9b27bb0a4d76160e8888a",
+    "bytes": 644172112,
+    "generation_record": "s3://oa-bolinas/snakemake/vertebrate_projection_dataset/results/hal-chains-directional-ramp-v2/b86897b7050bc9fdf397dd6abfb3af11fc876f86/d035c2561f6be3b11449647adfe9ce865884aef7da8b7e06b817d8a75c7f37f9/full/chains/Oryctolagus_cuniculus/chain_generation.json",
+    "generation_recipe": "direction_matched_no_dupes_psl_swap",
+    "min_score": -1000000
+  },
+  {
+    "alignment_name": "Solenodon_paradoxus",
+    "uri": "s3://oa-bolinas/snakemake/vertebrate_projection_dataset/results/hal-chains-directional-ramp-v2/b86897b7050bc9fdf397dd6abfb3af11fc876f86/d035c2561f6be3b11449647adfe9ce865884aef7da8b7e06b817d8a75c7f37f9/full/chains/Solenodon_paradoxus/human_to_species.chain.gz",
+    "sha256": "4cdd56aaa5c20f221ce2ce1397edae4cc269539da22f0e4841d7c9cff19bd957",
+    "bytes": 758971168,
+    "generation_record": "s3://oa-bolinas/snakemake/vertebrate_projection_dataset/results/hal-chains-directional-ramp-v2/b86897b7050bc9fdf397dd6abfb3af11fc876f86/d035c2561f6be3b11449647adfe9ce865884aef7da8b7e06b817d8a75c7f37f9/full/chains/Solenodon_paradoxus/chain_generation.json",
+    "generation_recipe": "direction_matched_no_dupes_psl_swap",
+    "min_score": -1000000
+  },
+  {
+    "alignment_name": "Tolypeutes_matacus",
+    "uri": "s3://oa-bolinas/snakemake/vertebrate_projection_dataset/results/hal-chains-directional-ramp-v2/b86897b7050bc9fdf397dd6abfb3af11fc876f86/d035c2561f6be3b11449647adfe9ce865884aef7da8b7e06b817d8a75c7f37f9/full/chains/Tolypeutes_matacus/human_to_species.chain.gz",
+    "sha256": "908f8121832ea08917474d725e28363501dcc94bfe5baaa7d0f6bffc841cbb4d",
+    "bytes": 959246473,
+    "generation_record": "s3://oa-bolinas/snakemake/vertebrate_projection_dataset/results/hal-chains-directional-ramp-v2/b86897b7050bc9fdf397dd6abfb3af11fc876f86/d035c2561f6be3b11449647adfe9ce865884aef7da8b7e06b817d8a75c7f37f9/full/chains/Tolypeutes_matacus/chain_generation.json",
+    "generation_recipe": "direction_matched_no_dupes_psl_swap",
+    "min_score": -1000000
+  },
+  {
+    "alignment_name": "Trichechus_manatus",
+    "uri": "s3://oa-bolinas/snakemake/vertebrate_projection_dataset/results/hal-chains-directional-ramp-v2/b86897b7050bc9fdf397dd6abfb3af11fc876f86/d035c2561f6be3b11449647adfe9ce865884aef7da8b7e06b817d8a75c7f37f9/full/chains/Trichechus_manatus/human_to_species.chain.gz",
+    "sha256": "d76d696f19e134663c71a6473d6a4e488f7cc2a65b183ec1ef7a3ddf1c90a52d",
+    "bytes": 746837576,
+    "generation_record": "s3://oa-bolinas/snakemake/vertebrate_projection_dataset/results/hal-chains-directional-ramp-v2/b86897b7050bc9fdf397dd6abfb3af11fc876f86/d035c2561f6be3b11449647adfe9ce865884aef7da8b7e06b817d8a75c7f37f9/full/chains/Trichechus_manatus/chain_generation.json",
+    "generation_recipe": "direction_matched_no_dupes_psl_swap",
+    "min_score": -1000000
+  },
+  {
+    "alignment_name": "Tupaia_tana",
+    "uri": "s3://oa-bolinas/snakemake/vertebrate_projection_dataset/results/hal-chains-directional-ramp-v2/b86897b7050bc9fdf397dd6abfb3af11fc876f86/d035c2561f6be3b11449647adfe9ce865884aef7da8b7e06b817d8a75c7f37f9/full/chains/Tupaia_tana/human_to_species.chain.gz",
+    "sha256": "fd7f883e6f2ffd0b80902edd52e150df03d15177e373c3090fffa77dd21a3a5f",
+    "bytes": 603706655,
+    "generation_record": "s3://oa-bolinas/snakemake/vertebrate_projection_dataset/results/hal-chains-directional-ramp-v2/b86897b7050bc9fdf397dd6abfb3af11fc876f86/d035c2561f6be3b11449647adfe9ce865884aef7da8b7e06b817d8a75c7f37f9/full/chains/Tupaia_tana/chain_generation.json",
+    "generation_recipe": "direction_matched_no_dupes_psl_swap",
+    "min_score": -1000000
+  }
+]

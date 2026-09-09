@@ -1,0 +1,46 @@
+{
+  "uniform": {
+    "cds": {
+      "total": 295561,
+      "chr18": 4933,
+      "validation": 400,
+      "train_after_rc": 581256,
+      "validation_allocated_tokens": 4096000,
+      "expected_epochs": 6.881649393726688
+    },
+    "utr3": {
+      "total": 67155,
+      "chr18": 1380,
+      "validation": 400,
+      "train_after_rc": 131550,
+      "validation_allocated_tokens": 4096000,
+      "expected_epochs": 30.40668947168377
+    },
+    "tss_region_and_utr5": {
+      "total": 57418,
+      "chr18": 1048,
+      "validation": 400,
+      "train_after_rc": 112740,
+      "validation_allocated_tokens": 4096000,
+      "expected_epochs": 35.47986517651233
+    }
+  },
+  "functional": {
+    "ncrna": {
+      "total": 28815,
+      "chr18": 617,
+      "validation": 400,
+      "train_after_rc": 56396,
+      "validation_allocated_tokens": 4096000,
+      "expected_epochs": 70.92701610043265
+    },
+    "enhancer": {
+      "total": 117010,
+      "chr18": 2978,
+      "validation": 400,
+      "train_after_rc": 228064,
+      "validation_allocated_tokens": 4096000,
+      "expected_epochs": 17.538936438894346
+    }
+  }
+}

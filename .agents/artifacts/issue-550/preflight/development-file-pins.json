@@ -1,0 +1,32 @@
+{
+  "mendelian_traits": {
+    "name": "mendelian_traits",
+    "revision": "4aed58e50c5dea0b878a665007af2ef9e5108e9f",
+    "expected_rows": 16140,
+    "split": "train",
+    "url": "https://huggingface.co/datasets/bolinas-dna/evals_mendelian_traits/resolve/4aed58e50c5dea0b878a665007af2ef9e5108e9f/train.parquet",
+    "sha256": "919abf532debd9f5e339b94cd4eef9868cbfa92dbe4fc57a0b1398da481f469f",
+    "chrom_names": "ensembl",
+    "path": "/opt/issue550/assets/development/mendelian_traits.parquet"
+  },
+  "complex_traits": {
+    "name": "complex_traits",
+    "revision": "22f86a89c65cb8f3007ac3cc2739f40efefa4340",
+    "expected_rows": 11630,
+    "split": "train",
+    "url": "https://huggingface.co/datasets/bolinas-dna/evals_complex_traits/resolve/22f86a89c65cb8f3007ac3cc2739f40efefa4340/train.parquet",
+    "sha256": "d65fcee2740317451c41e5df6d4dd52cddf33847578b7565075e38d74d9865e3",
+    "chrom_names": "ensembl",
+    "path": "/opt/issue550/assets/development/complex_traits.parquet"
+  },
+  "sge": {
+    "name": "sge",
+    "revision": "225d3d1ea32a4af547891b13c33b5e92a5aae849",
+    "expected_rows": 23853,
+    "split": "train",
+    "url": "https://huggingface.co/datasets/bolinas-dna/evals_sge/resolve/225d3d1ea32a4af547891b13c33b5e92a5aae849/train.parquet",
+    "sha256": "781a22c4d8a1eddc93ff95d1d45f8b5aa56adf38e9e96ff4cc944968de5d0450",
+    "chrom_names": "ensembl",
+    "path": "/opt/issue550/assets/development/sge.parquet"
+  }
+}

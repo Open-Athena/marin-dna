@@ -1,0 +1,1313 @@
+{
+  "order_manifest_revision": "ee0723736cb6d71ce920fd6f3b3e435fd02937af",
+  "order_manifest_sha256": "0bf1120f9b1c403797cb56894f4b2ac43ae1bae9962607bbf557a71f5cc37b20",
+  "targets": [
+    {
+      "alignment_name": "Microgale_talazaci",
+      "scientific_name": "Nesogale talazaci",
+      "assembly": "GCA_004026705.1",
+      "taxonomy_id": "2583312",
+      "family": "Tenrecidae",
+      "order": "Afrosoricida",
+      "clade": "mammals",
+      "phylogenetic_rank": "1",
+      "backend": "zoonomia_cactus",
+      "selection_priority": "10",
+      "assembly_level": "Scaffold",
+      "contig_n50": "56946",
+      "quality_source": "zoonomia_supp_st2"
+    },
+    {
+      "alignment_name": "Bos_taurus",
+      "scientific_name": "Bos taurus",
+      "assembly": "GCF_000003205.7",
+      "taxonomy_id": "9913",
+      "family": "Bovidae",
+      "order": "Artiodactyla",
+      "clade": "mammals",
+      "phylogenetic_rank": "1",
+      "backend": "zoonomia_cactus",
+      "selection_priority": "10",
+      "assembly_level": "Chromosome",
+      "contig_n50": "276285",
+      "quality_source": "zoonomia_supp_st2"
+    },
+    {
+      "alignment_name": "Lycaon_pictus",
+      "scientific_name": "Lycaon pictus",
+      "assembly": "GCA_001887905.1",
+      "taxonomy_id": "9622",
+      "family": "Canidae",
+      "order": "Carnivora",
+      "clade": "mammals",
+      "phylogenetic_rank": "1",
+      "backend": "zoonomia_cactus",
+      "selection_priority": "10",
+      "assembly_level": "Chromosome",
+      "contig_n50": "5555",
+      "quality_source": "zoonomia_supp_st2"
+    },
+    {
+      "alignment_name": "Macroglossus_sobrinus",
+      "scientific_name": "Macroglossus sobrinus",
+      "assembly": "GCA_004027375.1",
+      "taxonomy_id": "326083",
+      "family": "Pteropodidae",
+      "order": "Chiroptera",
+      "clade": "mammals",
+      "phylogenetic_rank": "1",
+      "backend": "zoonomia_cactus",
+      "selection_priority": "10",
+      "assembly_level": "Scaffold",
+      "contig_n50": "338389",
+      "quality_source": "zoonomia_supp_st2"
+    },
+    {
+      "alignment_name": "Tolypeutes_matacus",
+      "scientific_name": "Tolypeutes matacus",
+      "assembly": "GCA_004025125.1",
+      "taxonomy_id": "183749",
+      "family": "Chlamyphoridae",
+      "order": "Cingulata",
+      "clade": "mammals",
+      "phylogenetic_rank": "1",
+      "backend": "zoonomia_cactus",
+      "selection_priority": "10",
+      "assembly_level": "Scaffold",
+      "contig_n50": "9441",
+      "quality_source": "zoonomia_supp_st2"
+    },
+    {
+      "alignment_name": "Galeopterus_variegatus",
+      "scientific_name": "Galeopterus variegatus",
+      "assembly": "GCA_004027255.1",
+      "taxonomy_id": "482537",
+      "family": "Cynocephalidae",
+      "order": "Dermoptera",
+      "clade": "mammals",
+      "phylogenetic_rank": "1",
+      "backend": "zoonomia_cactus",
+      "selection_priority": "10",
+      "assembly_level": "Scaffold",
+      "contig_n50": "20753",
+      "quality_source": "ncbi_taxon_proxy"
+    },
+    {
+      "alignment_name": "Solenodon_paradoxus",
+      "scientific_name": "Solenodon paradoxus",
+      "assembly": "GCA_004363575.1",
+      "taxonomy_id": "79805",
+      "family": "Solenodontidae",
+      "order": "Eulipotyphla",
+      "clade": "mammals",
+      "phylogenetic_rank": "1",
+      "backend": "zoonomia_cactus",
+      "selection_priority": "10",
+      "assembly_level": "Scaffold",
+      "contig_n50": "236847",
+      "quality_source": "zoonomia_supp_st2"
+    },
+    {
+      "alignment_name": "Heterohyrax_brucei",
+      "scientific_name": "Heterohyrax brucei",
+      "assembly": "GCA_004026845.1",
+      "taxonomy_id": "77598",
+      "family": "Procaviidae",
+      "order": "Hyracoidea",
+      "clade": "mammals",
+      "phylogenetic_rank": "1",
+      "backend": "zoonomia_cactus",
+      "selection_priority": "10",
+      "assembly_level": "Scaffold",
+      "contig_n50": "62841",
+      "quality_source": "zoonomia_supp_st2"
+    },
+    {
+      "alignment_name": "Oryctolagus_cuniculus",
+      "scientific_name": "Oryctolagus cuniculus",
+      "assembly": "GCF_000003625.3",
+      "taxonomy_id": "9986",
+      "family": "Leporidae",
+      "order": "Lagomorpha",
+      "clade": "mammals",
+      "phylogenetic_rank": "1",
+      "backend": "zoonomia_cactus",
+      "selection_priority": "10",
+      "assembly_level": "Chromosome",
+      "contig_n50": "64648",
+      "quality_source": "zoonomia_supp_st2"
+    },
+    {
+      "alignment_name": "Elephantulus_edwardii",
+      "scientific_name": "Elephantulus edwardii",
+      "assembly": "GCA_004027355.1",
+      "taxonomy_id": "28737",
+      "family": "Macroscelididae",
+      "order": "Macroscelidea",
+      "clade": "mammals",
+      "phylogenetic_rank": "1",
+      "backend": "zoonomia_cactus",
+      "selection_priority": "10",
+      "assembly_level": "Scaffold",
+      "contig_n50": "16488",
+      "quality_source": "zoonomia_supp_st2"
+    },
+    {
+      "alignment_name": "Equus_caballus",
+      "scientific_name": "Equus caballus",
+      "assembly": "GCF_000002305.2",
+      "taxonomy_id": "9796",
+      "family": "Equidae",
+      "order": "Perissodactyla",
+      "clade": "mammals",
+      "phylogenetic_rank": "1",
+      "backend": "zoonomia_cactus",
+      "selection_priority": "10",
+      "assembly_level": "Chromosome",
+      "contig_n50": "112381",
+      "quality_source": "zoonomia_supp_st2"
+    },
+    {
+      "alignment_name": "Manis_javanica",
+      "scientific_name": "Manis javanica",
+      "assembly": "GCF_001685135.1",
+      "taxonomy_id": "9974",
+      "family": "Manidae",
+      "order": "Pholidota",
+      "clade": "mammals",
+      "phylogenetic_rank": "1",
+      "backend": "zoonomia_cactus",
+      "selection_priority": "10",
+      "assembly_level": "Scaffold",
+      "contig_n50": "38922",
+      "quality_source": "zoonomia_supp_st2"
+    },
+    {
+      "alignment_name": "Choloepus_hoffmanni",
+      "scientific_name": "Choloepus hoffmanni",
+      "assembly": "GCA_000164785.2",
+      "taxonomy_id": "9358",
+      "family": "Megalonychidae",
+      "order": "Pilosa",
+      "clade": "mammals",
+      "phylogenetic_rank": "1",
+      "backend": "zoonomia_cactus",
+      "selection_priority": "10",
+      "assembly_level": "Scaffold",
+      "contig_n50": "64490",
+      "quality_source": "zoonomia_supp_st2"
+    },
+    {
+      "alignment_name": "Loxodonta_africana",
+      "scientific_name": "Loxodonta africana",
+      "assembly": "GCF_030014295.1",
+      "taxonomy_id": "9785",
+      "family": "Elephantidae",
+      "order": "Proboscidea",
+      "clade": "mammals",
+      "phylogenetic_rank": "1",
+      "backend": "zoonomia_cactus",
+      "selection_priority": "10",
+      "assembly_level": "Chromosome",
+      "contig_n50": "82653632",
+      "quality_source": "ncbi_taxon_proxy"
+    },
+    {
+      "alignment_name": "Mus_musculus",
+      "scientific_name": "Mus musculus",
+      "assembly": "GCF_000001635.26",
+      "taxonomy_id": "10090",
+      "family": "Muridae",
+      "order": "Rodentia",
+      "clade": "mammals",
+      "phylogenetic_rank": "1",
+      "backend": "zoonomia_cactus",
+      "selection_priority": "10",
+      "assembly_level": "Chromosome",
+      "contig_n50": "59462871",
+      "quality_source": "ncbi_taxon_proxy"
+    },
+    {
+      "alignment_name": "Tupaia_tana",
+      "scientific_name": "Tupaia tana",
+      "assembly": "GCA_004365275.1",
+      "taxonomy_id": "70687",
+      "family": "Tupaiidae",
+      "order": "Scandentia",
+      "clade": "mammals",
+      "phylogenetic_rank": "1",
+      "backend": "zoonomia_cactus",
+      "selection_priority": "10",
+      "assembly_level": "Scaffold",
+      "contig_n50": "2971",
+      "quality_source": "zoonomia_supp_st2"
+    },
+    {
+      "alignment_name": "Trichechus_manatus",
+      "scientific_name": "Trichechus manatus",
+      "assembly": "GCF_000243295.1",
+      "taxonomy_id": "9778",
+      "family": "Trichechidae",
+      "order": "Sirenia",
+      "clade": "mammals",
+      "phylogenetic_rank": "1",
+      "backend": "zoonomia_cactus",
+      "selection_priority": "10",
+      "assembly_level": "Scaffold",
+      "contig_n50": "37750",
+      "quality_source": "zoonomia_supp_st2"
+    },
+    {
+      "alignment_name": "Orycteropus_afer",
+      "scientific_name": "Orycteropus afer",
+      "assembly": "GCA_004365145.1",
+      "taxonomy_id": "9818",
+      "family": "Orycteropodidae",
+      "order": "Tubulidentata",
+      "clade": "mammals",
+      "phylogenetic_rank": "1",
+      "backend": "zoonomia_cactus",
+      "selection_priority": "10",
+      "assembly_level": "Scaffold",
+      "contig_n50": "20354",
+      "quality_source": "zoonomia_supp_st2"
+    },
+    {
+      "alignment_name": "anaPla1",
+      "scientific_name": "Anas platyrhynchos",
+      "assembly": "BGI_duck_1.0/anaPla1",
+      "taxonomy_id": "8839",
+      "family": "Anatidae",
+      "order": "Anseriformes",
+      "clade": "birds",
+      "phylogenetic_rank": "2",
+      "backend": "ucsc_multiz100way",
+      "selection_priority": "10",
+      "assembly_level": "unknown",
+      "contig_n50": "0",
+      "quality_source": "unknown"
+    },
+    {
+      "alignment_name": "colLiv1",
+      "scientific_name": "Columba livia",
+      "assembly": "Cliv_1.0/colLiv1",
+      "taxonomy_id": "8932",
+      "family": "Columbidae",
+      "order": "Columbiformes",
+      "clade": "birds",
+      "phylogenetic_rank": "2",
+      "backend": "ucsc_multiz100way",
+      "selection_priority": "10",
+      "assembly_level": "unknown",
+      "contig_n50": "0",
+      "quality_source": "unknown"
+    },
+    {
+      "alignment_name": "falChe1",
+      "scientific_name": "Falco cherrug",
+      "assembly": "F_cherrug_v1.0/falChe1",
+      "taxonomy_id": "345164",
+      "family": "Falconidae",
+      "order": "Falconiformes",
+      "clade": "birds",
+      "phylogenetic_rank": "2",
+      "backend": "ucsc_multiz100way",
+      "selection_priority": "10",
+      "assembly_level": "unknown",
+      "contig_n50": "0",
+      "quality_source": "unknown"
+    },
+    {
+      "alignment_name": "galGal4",
+      "scientific_name": "Gallus gallus",
+      "assembly": "Gallus_gallus-4.0/galGal4",
+      "taxonomy_id": "9031",
+      "family": "Phasianidae",
+      "order": "Galliformes",
+      "clade": "birds",
+      "phylogenetic_rank": "2",
+      "backend": "ucsc_multiz100way",
+      "selection_priority": "10",
+      "assembly_level": "unknown",
+      "contig_n50": "0",
+      "quality_source": "unknown"
+    },
+    {
+      "alignment_name": "ficAlb2",
+      "scientific_name": "Ficedula albicollis",
+      "assembly": "FicAlb1.5/ficAlb2",
+      "taxonomy_id": "59894",
+      "family": "Muscicapidae",
+      "order": "Passeriformes",
+      "clade": "birds",
+      "phylogenetic_rank": "2",
+      "backend": "ucsc_multiz100way",
+      "selection_priority": "10",
+      "assembly_level": "unknown",
+      "contig_n50": "0",
+      "quality_source": "unknown"
+    },
+    {
+      "alignment_name": "araMac1",
+      "scientific_name": "Ara macao",
+      "assembly": "SMACv1.1/araMac1",
+      "taxonomy_id": "176014",
+      "family": "Psittacidae",
+      "order": "Psittaciformes",
+      "clade": "birds",
+      "phylogenetic_rank": "2",
+      "backend": "ucsc_multiz100way",
+      "selection_priority": "10",
+      "assembly_level": "unknown",
+      "contig_n50": "0",
+      "quality_source": "unknown"
+    },
+    {
+      "alignment_name": "allMis1",
+      "scientific_name": "Alligator mississippiensis",
+      "assembly": "allMis0.2/allMis1",
+      "taxonomy_id": "8496",
+      "family": "Alligatoridae",
+      "order": "Crocodylia",
+      "clade": "reptiles",
+      "phylogenetic_rank": "3",
+      "backend": "ucsc_multiz100way",
+      "selection_priority": "10",
+      "assembly_level": "unknown",
+      "contig_n50": "0",
+      "quality_source": "unknown"
+    },
+    {
+      "alignment_name": "anoCar2",
+      "scientific_name": "Anolis carolinensis",
+      "assembly": "AnoCar2.0/anoCar2",
+      "taxonomy_id": "28377",
+      "family": "Dactyloidae",
+      "order": "Squamata",
+      "clade": "reptiles",
+      "phylogenetic_rank": "3",
+      "backend": "ucsc_multiz100way",
+      "selection_priority": "10",
+      "assembly_level": "unknown",
+      "contig_n50": "0",
+      "quality_source": "unknown"
+    },
+    {
+      "alignment_name": "cheMyd1",
+      "scientific_name": "Chelonia mydas",
+      "assembly": "CheMyd_1.0/cheMyd1",
+      "taxonomy_id": "8469",
+      "family": "Cheloniidae",
+      "order": "Testudines",
+      "clade": "reptiles",
+      "phylogenetic_rank": "3",
+      "backend": "ucsc_multiz100way",
+      "selection_priority": "10",
+      "assembly_level": "unknown",
+      "contig_n50": "0",
+      "quality_source": "unknown"
+    },
+    {
+      "alignment_name": "xenTro7",
+      "scientific_name": "Xenopus tropicalis",
+      "assembly": "JGI_7.0/xenTro7",
+      "taxonomy_id": "8364",
+      "family": "Pipidae",
+      "order": "Anura",
+      "clade": "amphibians",
+      "phylogenetic_rank": "4",
+      "backend": "ucsc_multiz100way",
+      "selection_priority": "10",
+      "assembly_level": "unknown",
+      "contig_n50": "0",
+      "quality_source": "unknown"
+    },
+    {
+      "alignment_name": "latCha1",
+      "scientific_name": "Latimeria chalumnae",
+      "assembly": "Broad/latCha1",
+      "taxonomy_id": "7897",
+      "family": "Coelacanthidae",
+      "order": "Coelacanthiformes",
+      "clade": "lobe-finned_fish",
+      "phylogenetic_rank": "5",
+      "backend": "ucsc_multiz100way",
+      "selection_priority": "10",
+      "assembly_level": "unknown",
+      "contig_n50": "0",
+      "quality_source": "unknown"
+    },
+    {
+      "alignment_name": "oryLat2",
+      "scientific_name": "Oryzias latipes",
+      "assembly": "MEDAKA1/oryLat2",
+      "taxonomy_id": "8090",
+      "family": "Adrianichthyidae",
+      "order": "Beloniformes",
+      "clade": "ray-finned_fish",
+      "phylogenetic_rank": "6",
+      "backend": "ucsc_multiz100way",
+      "selection_priority": "10",
+      "assembly_level": "unknown",
+      "contig_n50": "0",
+      "quality_source": "unknown"
+    },
+    {
+      "alignment_name": "astMex1",
+      "scientific_name": "Astyanax mexicanus",
+      "assembly": "Astyanax_mexicanus-1.0.2/astMex1",
+      "taxonomy_id": "7994",
+      "family": "Acestrorhamphidae",
+      "order": "Characiformes",
+      "clade": "ray-finned_fish",
+      "phylogenetic_rank": "6",
+      "backend": "ucsc_multiz100way",
+      "selection_priority": "10",
+      "assembly_level": "unknown",
+      "contig_n50": "0",
+      "quality_source": "unknown"
+    },
+    {
+      "alignment_name": "oreNil2",
+      "scientific_name": "Oreochromis niloticus",
+      "assembly": "oreNil1.1/oreNil2",
+      "taxonomy_id": "8128",
+      "family": "Cichlidae",
+      "order": "Cichliformes",
+      "clade": "ray-finned_fish",
+      "phylogenetic_rank": "6",
+      "backend": "ucsc_multiz100way",
+      "selection_priority": "10",
+      "assembly_level": "unknown",
+      "contig_n50": "0",
+      "quality_source": "unknown"
+    },
+    {
+      "alignment_name": "danRer10",
+      "scientific_name": "Danio rerio",
+      "assembly": "Zv10/danRer10",
+      "taxonomy_id": "7955",
+      "family": "Danionidae",
+      "order": "Cypriniformes",
+      "clade": "ray-finned_fish",
+      "phylogenetic_rank": "6",
+      "backend": "ucsc_multiz100way",
+      "selection_priority": "10",
+      "assembly_level": "unknown",
+      "contig_n50": "0",
+      "quality_source": "unknown"
+    },
+    {
+      "alignment_name": "xipMac1",
+      "scientific_name": "Xiphophorus maculatus",
+      "assembly": "X_maculatus-4.4.2/xipMac1",
+      "taxonomy_id": "8083",
+      "family": "Poeciliidae",
+      "order": "Cyprinodontiformes",
+      "clade": "ray-finned_fish",
+      "phylogenetic_rank": "6",
+      "backend": "ucsc_multiz100way",
+      "selection_priority": "10",
+      "assembly_level": "unknown",
+      "contig_n50": "0",
+      "quality_source": "unknown"
+    },
+    {
+      "alignment_name": "gadMor1",
+      "scientific_name": "Gadus morhua",
+      "assembly": "GadMor_May2010/gadMor1",
+      "taxonomy_id": "8049",
+      "family": "Gadidae",
+      "order": "Gadiformes",
+      "clade": "ray-finned_fish",
+      "phylogenetic_rank": "6",
+      "backend": "ucsc_multiz100way",
+      "selection_priority": "10",
+      "assembly_level": "unknown",
+      "contig_n50": "0",
+      "quality_source": "unknown"
+    },
+    {
+      "alignment_name": "gasAcu1",
+      "scientific_name": "Gasterosteus aculeatus",
+      "assembly": "Broad/gasAcu1",
+      "taxonomy_id": "69293",
+      "family": "Gasterosteidae",
+      "order": "Perciformes",
+      "clade": "ray-finned_fish",
+      "phylogenetic_rank": "6",
+      "backend": "ucsc_multiz100way",
+      "selection_priority": "10",
+      "assembly_level": "unknown",
+      "contig_n50": "0",
+      "quality_source": "unknown"
+    },
+    {
+      "alignment_name": "lepOcu1",
+      "scientific_name": "Lepisosteus oculatus",
+      "assembly": "LepOcu1/lepOcu1",
+      "taxonomy_id": "7918",
+      "family": "Lepisosteidae",
+      "order": "Semionotiformes",
+      "clade": "ray-finned_fish",
+      "phylogenetic_rank": "6",
+      "backend": "ucsc_multiz100way",
+      "selection_priority": "10",
+      "assembly_level": "unknown",
+      "contig_n50": "0",
+      "quality_source": "unknown"
+    },
+    {
+      "alignment_name": "fr3",
+      "scientific_name": "Takifugu rubripes",
+      "assembly": "FUGU5/fr3",
+      "taxonomy_id": "31033",
+      "family": "Tetraodontidae",
+      "order": "Tetraodontiformes",
+      "clade": "ray-finned_fish",
+      "phylogenetic_rank": "6",
+      "backend": "ucsc_multiz100way",
+      "selection_priority": "10",
+      "assembly_level": "unknown",
+      "contig_n50": "0",
+      "quality_source": "unknown"
+    },
+    {
+      "alignment_name": "petMar2",
+      "scientific_name": "Petromyzon marinus",
+      "assembly": "WUGSC_7.0/petMar2",
+      "taxonomy_id": "7757",
+      "family": "Petromyzontidae",
+      "order": "Petromyzontiformes",
+      "clade": "jawless_vertebrates",
+      "phylogenetic_rank": "7",
+      "backend": "ucsc_multiz100way",
+      "selection_priority": "10",
+      "assembly_level": "unknown",
+      "contig_n50": "0",
+      "quality_source": "unknown"
+    }
+  ],
+  "inventories": {
+    "mammal_chains": {
+      "total_bytes": 15050524264,
+      "objects": [
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/hal-chains-directional-ramp-v2/b86897b7050bc9fdf397dd6abfb3af11fc876f86/d035c2561f6be3b11449647adfe9ce865884aef7da8b7e06b817d8a75c7f37f9/full/chains/Bos_taurus/human_to_species.chain.gz",
+          "Size": 955151127,
+          "ETag": "\"1f31638160f340a24f2e189b343041f0-114\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/hal-chains-directional-ramp-v2/b86897b7050bc9fdf397dd6abfb3af11fc876f86/d035c2561f6be3b11449647adfe9ce865884aef7da8b7e06b817d8a75c7f37f9/full/chains/Choloepus_hoffmanni/human_to_species.chain.gz",
+          "Size": 886759763,
+          "ETag": "\"a2ad085ed7b4339f605ebf9e62f6b9d7-106\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/hal-chains-directional-ramp-v2/b86897b7050bc9fdf397dd6abfb3af11fc876f86/d035c2561f6be3b11449647adfe9ce865884aef7da8b7e06b817d8a75c7f37f9/full/chains/Elephantulus_edwardii/human_to_species.chain.gz",
+          "Size": 780553723,
+          "ETag": "\"a228258d38858800831b2feabc87c6e7-94\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/hal-chains-directional-ramp-v2/b86897b7050bc9fdf397dd6abfb3af11fc876f86/d035c2561f6be3b11449647adfe9ce865884aef7da8b7e06b817d8a75c7f37f9/full/chains/Equus_caballus/human_to_species.chain.gz",
+          "Size": 890280692,
+          "ETag": "\"d47b6e7e01e844190a4240b7b9f7deb2-107\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/hal-chains-directional-ramp-v2/b86897b7050bc9fdf397dd6abfb3af11fc876f86/d035c2561f6be3b11449647adfe9ce865884aef7da8b7e06b817d8a75c7f37f9/full/chains/Galeopterus_variegatus/human_to_species.chain.gz",
+          "Size": 363985142,
+          "ETag": "\"b7f8c07f7d1a203b1263e22f710f0bc8-44\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/hal-chains-directional-ramp-v2/b86897b7050bc9fdf397dd6abfb3af11fc876f86/d035c2561f6be3b11449647adfe9ce865884aef7da8b7e06b817d8a75c7f37f9/full/chains/Heterohyrax_brucei/human_to_species.chain.gz",
+          "Size": 949684613,
+          "ETag": "\"ce5931988b2ae7574f2fde2085862d6c-114\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/hal-chains-directional-ramp-v2/b86897b7050bc9fdf397dd6abfb3af11fc876f86/d035c2561f6be3b11449647adfe9ce865884aef7da8b7e06b817d8a75c7f37f9/full/chains/Loxodonta_africana/human_to_species.chain.gz",
+          "Size": 727787995,
+          "ETag": "\"659c0cd1867ef085815d429cc0885ff9-87\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/hal-chains-directional-ramp-v2/b86897b7050bc9fdf397dd6abfb3af11fc876f86/d035c2561f6be3b11449647adfe9ce865884aef7da8b7e06b817d8a75c7f37f9/full/chains/Lycaon_pictus/human_to_species.chain.gz",
+          "Size": 1021594759,
+          "ETag": "\"953168a6eeba6168eddf8b4e8da3b337-122\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/hal-chains-directional-ramp-v2/b86897b7050bc9fdf397dd6abfb3af11fc876f86/d035c2561f6be3b11449647adfe9ce865884aef7da8b7e06b817d8a75c7f37f9/full/chains/Macroglossus_sobrinus/human_to_species.chain.gz",
+          "Size": 882831656,
+          "ETag": "\"2fd10d6cbb55023183ba26155fcaa6cc-106\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/hal-chains-directional-ramp-v2/b86897b7050bc9fdf397dd6abfb3af11fc876f86/d035c2561f6be3b11449647adfe9ce865884aef7da8b7e06b817d8a75c7f37f9/full/chains/Manis_javanica/human_to_species.chain.gz",
+          "Size": 979140214,
+          "ETag": "\"05d1aa88ec1d7532e6f366a91bae0d02-117\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/hal-chains-directional-ramp-v2/b86897b7050bc9fdf397dd6abfb3af11fc876f86/d035c2561f6be3b11449647adfe9ce865884aef7da8b7e06b817d8a75c7f37f9/full/chains/Microgale_talazaci/human_to_species.chain.gz",
+          "Size": 1005714465,
+          "ETag": "\"1fec194fb5eb611f6e492b7b357beed1-120\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/hal-chains-directional-ramp-v2/b86897b7050bc9fdf397dd6abfb3af11fc876f86/d035c2561f6be3b11449647adfe9ce865884aef7da8b7e06b817d8a75c7f37f9/full/chains/Mus_musculus/human_to_species.chain.gz",
+          "Size": 1042053980,
+          "ETag": "\"13dd139092deb0f2eccacb096531dd53-125\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/hal-chains-directional-ramp-v2/b86897b7050bc9fdf397dd6abfb3af11fc876f86/d035c2561f6be3b11449647adfe9ce865884aef7da8b7e06b817d8a75c7f37f9/full/chains/Orycteropus_afer/human_to_species.chain.gz",
+          "Size": 852052151,
+          "ETag": "\"f2db72232ccfa74d96462348fd1851c2-102\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/hal-chains-directional-ramp-v2/b86897b7050bc9fdf397dd6abfb3af11fc876f86/d035c2561f6be3b11449647adfe9ce865884aef7da8b7e06b817d8a75c7f37f9/full/chains/Oryctolagus_cuniculus/human_to_species.chain.gz",
+          "Size": 644172112,
+          "ETag": "\"029c8bdc1fe6ef6233f5782c9f9e1199-77\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/hal-chains-directional-ramp-v2/b86897b7050bc9fdf397dd6abfb3af11fc876f86/d035c2561f6be3b11449647adfe9ce865884aef7da8b7e06b817d8a75c7f37f9/full/chains/Solenodon_paradoxus/human_to_species.chain.gz",
+          "Size": 758971168,
+          "ETag": "\"6fe0da3ba4976c32c807e317f7bd302c-91\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/hal-chains-directional-ramp-v2/b86897b7050bc9fdf397dd6abfb3af11fc876f86/d035c2561f6be3b11449647adfe9ce865884aef7da8b7e06b817d8a75c7f37f9/full/chains/Tolypeutes_matacus/human_to_species.chain.gz",
+          "Size": 959246473,
+          "ETag": "\"966dcf01996cbf367dd61f1f1ac9c737-115\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/hal-chains-directional-ramp-v2/b86897b7050bc9fdf397dd6abfb3af11fc876f86/d035c2561f6be3b11449647adfe9ce865884aef7da8b7e06b817d8a75c7f37f9/full/chains/Trichechus_manatus/human_to_species.chain.gz",
+          "Size": 746837576,
+          "ETag": "\"f69f003603cde11e03a31c95d5d701d4-90\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/hal-chains-directional-ramp-v2/b86897b7050bc9fdf397dd6abfb3af11fc876f86/d035c2561f6be3b11449647adfe9ce865884aef7da8b7e06b817d8a75c7f37f9/full/chains/Tupaia_tana/human_to_species.chain.gz",
+          "Size": 603706655,
+          "ETag": "\"1c6a8f40ec5c21c05f2c61c864724b86-72\""
+        }
+      ]
+    },
+    "mammal_genomes": {
+      "total_bytes": 15742168527,
+      "objects": [
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/hal/genomes/Bos_taurus.2bit",
+          "Size": 756424438,
+          "ETag": "\"612e3b2d807ed16189957c73ef018e5e-91\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/hal/genomes/Choloepus_hoffmanni.2bit",
+          "Size": 913684084,
+          "ETag": "\"776505be8c282357ffb4fefff6be6cab-109\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/hal/genomes/Elephantulus_edwardii.2bit",
+          "Size": 1099207957,
+          "ETag": "\"4a33117446ceeb9007a7084cb995dcb6-132\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/hal/genomes/Equus_caballus.2bit",
+          "Size": 693377845,
+          "ETag": "\"fa8f7003b34479985dda0ea42c0d3312-83\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/hal/genomes/Galeopterus_variegatus.2bit",
+          "Size": 920329361,
+          "ETag": "\"26ba5cf2848954558b7d99c3eb831537-110\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/hal/genomes/Heterohyrax_brucei.2bit",
+          "Size": 994441361,
+          "ETag": "\"fb6d5a7c4e52d4fd0b426d127991f453-119\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/hal/genomes/Loxodonta_africana.2bit",
+          "Size": 873163722,
+          "ETag": "\"2c5487fd95a015c40530519b4f3ac690-105\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/hal/genomes/Lycaon_pictus.2bit",
+          "Size": 676934755,
+          "ETag": "\"b64ac494ea02f54e33fd8af90a307d3f-81\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/hal/genomes/Macroglossus_sobrinus.2bit",
+          "Size": 499678634,
+          "ETag": "\"4f534f015cc0a780c9e8db6a8dcef7e8-60\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/hal/genomes/Manis_javanica.2bit",
+          "Size": 724929732,
+          "ETag": "\"1e4537af9793e1d09b6362e20bbbb052-87\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/hal/genomes/Microgale_talazaci.2bit",
+          "Size": 886407506,
+          "ETag": "\"20bdc14032fb9bef775f094de67a9797-106\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/hal/genomes/Mus_musculus.2bit",
+          "Size": 772419769,
+          "ETag": "\"6f309ae37bbcbc11916d0519e79de73a-93\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/hal/genomes/Orycteropus_afer.2bit",
+          "Size": 1370020594,
+          "ETag": "\"1a2529cf29bd6ec117920b7025b4e4a7-164\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/hal/genomes/Oryctolagus_cuniculus.2bit",
+          "Size": 761339830,
+          "ETag": "\"90164fe6b374445fb329b01dcd0de7b4-91\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/hal/genomes/Solenodon_paradoxus.2bit",
+          "Size": 556392817,
+          "ETag": "\"63cba8e7ffb1b67e8bc6c9de95b6c024-67\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/hal/genomes/Tolypeutes_matacus.2bit",
+          "Size": 1212926247,
+          "ETag": "\"c73033b04f32213eda221f0398be1993-145\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/hal/genomes/Trichechus_manatus.2bit",
+          "Size": 862142283,
+          "ETag": "\"c206ae98041548d562173b2f33953e5a-103\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/hal/genomes/Tupaia_tana.2bit",
+          "Size": 1168347592,
+          "ETag": "\"5da74c4218212987ca49b6c264aba76d-140\""
+        }
+      ]
+    },
+    "mammal_sizes": {
+      "total_bytes": 420550148,
+      "objects": [
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/hal/chrom_sizes/Bos_taurus.tsv",
+          "Size": 62825,
+          "ETag": "\"4347ede6e52e0d8ca446438352cc38dc\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/hal/chrom_sizes/Choloepus_hoffmanni.tsv",
+          "Size": 5127820,
+          "ETag": "\"8d92667e8e454dcacbe05fa09420ee1f\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/hal/chrom_sizes/Elephantulus_edwardii.tsv",
+          "Size": 160886,
+          "ETag": "\"27f28bbf3646bcad41ce15ca1c649f4b\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/hal/chrom_sizes/Equus_caballus.tsv",
+          "Size": 187722,
+          "ETag": "\"cc76e5e6b79cf20b57df01f2cdb5baf2\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/hal/chrom_sizes/Galeopterus_variegatus.tsv",
+          "Size": 45936214,
+          "ETag": "\"07c7c31fb8051f92169f6f579ce27831-6\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/hal/chrom_sizes/Heterohyrax_brucei.tsv",
+          "Size": 29701889,
+          "ETag": "\"f75e06c9b3e833d55b4f0e76890d4bb4-4\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/hal/chrom_sizes/Loxodonta_africana.tsv",
+          "Size": 46078,
+          "ETag": "\"f87bf21792624156e63a51dcd284c756\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/hal/chrom_sizes/Lycaon_pictus.tsv",
+          "Size": 16272,
+          "ETag": "\"585022c8f140b3143714e8189a52effd\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/hal/chrom_sizes/Macroglossus_sobrinus.tsv",
+          "Size": 4630183,
+          "ETag": "\"40b6379a5dd7fef9518905d957946d37\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/hal/chrom_sizes/Manis_javanica.tsv",
+          "Size": 1642425,
+          "ETag": "\"dedde8e4d6f41b908d1c5662e6c13092\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/hal/chrom_sizes/Microgale_talazaci.tsv",
+          "Size": 21774415,
+          "ETag": "\"bec7f27f2630fcb616c4d7d52e239d35-3\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/hal/chrom_sizes/Mus_musculus.tsv",
+          "Size": 4525,
+          "ETag": "\"827105c2130daafea9d23e2a7bac65ff\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/hal/chrom_sizes/Orycteropus_afer.tsv",
+          "Size": 90994388,
+          "ETag": "\"1d865b230bbcfc0c9e649d3f7d09af58-11\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/hal/chrom_sizes/Oryctolagus_cuniculus.tsv",
+          "Size": 62237,
+          "ETag": "\"2c8c828de11ca3c28785155d2a35e13d\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/hal/chrom_sizes/Solenodon_paradoxus.tsv",
+          "Size": 5832402,
+          "ETag": "\"99027b4c9813cecb5a43d2a209049416\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/hal/chrom_sizes/Tolypeutes_matacus.tsv",
+          "Size": 81930453,
+          "ETag": "\"49c1258699379c8fd3a0f21562f20c12-10\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/hal/chrom_sizes/Trichechus_manatus.tsv",
+          "Size": 115838,
+          "ETag": "\"5cd0f6a231cb0d69fdea530b22307420\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/hal/chrom_sizes/Tupaia_tana.tsv",
+          "Size": 132323576,
+          "ETag": "\"932f98e80e7ac4ddda22a5ef895db0bb-16\""
+        }
+      ]
+    },
+    "nonmammal_genomes": {
+      "total_bytes": 7460329845,
+      "objects": [
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/liftover/genomes/allMis1.2bit",
+          "Size": 569794406,
+          "ETag": "\"90f43e805796eb501bea62a9aac1bdad-68\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/liftover/genomes/allMis1.chrom.sizes",
+          "Size": 241705,
+          "ETag": "\"a0d5e82136c3bbda72aae8e1f7eb4c78\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/liftover/genomes/anaPla1.2bit",
+          "Size": 333736579,
+          "ETag": "\"449c6f054ae99bc3b2f974ba91f212c1-40\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/liftover/genomes/anaPla1.chrom.sizes",
+          "Size": 1031659,
+          "ETag": "\"77f39b664d9dbecbc2ce762d4f4986c5\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/liftover/genomes/anoCar2.2bit",
+          "Size": 515946569,
+          "ETag": "\"5b27b98dc8b4856e3ed9f700a072cb74-62\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/liftover/genomes/anoCar2.chrom.sizes",
+          "Size": 151526,
+          "ETag": "\"77dd9d511b0101f01de9c204ad676c0e\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/liftover/genomes/araMac1.2bit",
+          "Size": 356946955,
+          "ETag": "\"f6def7a1a5987c69d5e110e5ce67f092-43\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/liftover/genomes/araMac1.chrom.sizes",
+          "Size": 3048088,
+          "ETag": "\"1e288cb834765a6a5b109912698a23e5\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/liftover/genomes/astMex1.2bit",
+          "Size": 356723035,
+          "ETag": "\"cb1406476533abc0d4ad3eaada3041aa-43\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/liftover/genomes/astMex1.chrom.sizes",
+          "Size": 154475,
+          "ETag": "\"e87e22adecbca70bc172fcf21b38e616\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/liftover/genomes/cheMyd1.2bit",
+          "Size": 651180700,
+          "ETag": "\"03635c69d2b792d2c0954e28da902e2f-78\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/liftover/genomes/cheMyd1.chrom.sizes",
+          "Size": 1842995,
+          "ETag": "\"9dfca92104bd07fc7cdd27ddced266a6\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/liftover/genomes/colLiv1.2bit",
+          "Size": 329397132,
+          "ETag": "\"c30dd4c861bc9f9928fc17f3e08bacde-40\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/liftover/genomes/colLiv1.chrom.sizes",
+          "Size": 199922,
+          "ETag": "\"1d2dc458fee83ed995ed6dbdfa5a72a4\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/liftover/genomes/danRer10.2bit",
+          "Size": 360902173,
+          "ETag": "\"04d6fd06bf8bc38d936556200ec07ed3-44\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/liftover/genomes/danRer10.chrom.sizes",
+          "Size": 24025,
+          "ETag": "\"9f418778988ba5e7d8f43feb23428c88\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/liftover/genomes/falChe1.2bit",
+          "Size": 351429334,
+          "ETag": "\"e76063f56dd5099c99361d20e64e4845-42\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/liftover/genomes/falChe1.chrom.sizes",
+          "Size": 79352,
+          "ETag": "\"994a630fe34f68d6a9059ccd7918e565\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/liftover/genomes/ficAlb2.2bit",
+          "Size": 333738782,
+          "ETag": "\"202daed2201eeff816414aef2d04e9bc-40\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/liftover/genomes/ficAlb2.chrom.sizes",
+          "Size": 493472,
+          "ETag": "\"7dad5bf84f825ee782b7fa4433a65c70\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/liftover/genomes/fr3.2bit",
+          "Size": 112344966,
+          "ETag": "\"98bc7635ff932823bc40038be7bde4e3-14\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/liftover/genomes/fr3.chrom.sizes",
+          "Size": 97533,
+          "ETag": "\"1de891fcbacaa6fc362486f1aa6bd74e\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/liftover/genomes/gadMor1.2bit",
+          "Size": 249321844,
+          "ETag": "\"433caa2eede18b50f57ab65cea50d469-30\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/liftover/genomes/gadMor1.chrom.sizes",
+          "Size": 7296214,
+          "ETag": "\"41220ceedcd146f4a954b002c18834ca\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/liftover/genomes/galGal4.2bit",
+          "Size": 310446718,
+          "ETag": "\"16d80fb85ed9d104c2935b1ee42248e4-38\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/liftover/genomes/galGal4.chrom.sizes",
+          "Size": 388228,
+          "ETag": "\"fcfbf80fdeca08cf07fcaac4b73d0c57\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/liftover/genomes/gasAcu1.2bit",
+          "Size": 117641540,
+          "ETag": "\"27090e6c6bbe179c5b7ec451801f42ee-15\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/liftover/genomes/gasAcu1.chrom.sizes",
+          "Size": 354,
+          "ETag": "\"0dcaec6ad2e31bcb67d6ae62b91fbc76\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/liftover/genomes/latCha1.2bit",
+          "Size": 835073694,
+          "ETag": "\"fa1051ad4019a41fb7248961113dbaec-100\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/liftover/genomes/latCha1.chrom.sizes",
+          "Size": 379969,
+          "ETag": "\"77b9797f8ab4a1913aa1d92a46469c8d\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/liftover/genomes/lepOcu1.2bit",
+          "Size": 283618149,
+          "ETag": "\"951c5b6fde9157af5307fd0b63068d6e-34\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/liftover/genomes/lepOcu1.chrom.sizes",
+          "Size": 43406,
+          "ETag": "\"d323568fe1ddaa57869895efc49e3ae3\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/liftover/genomes/oreNil2.2bit",
+          "Size": 274172955,
+          "ETag": "\"88d40bc0dafc95b11ac3d359c2716fb9-33\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/liftover/genomes/oreNil2.chrom.sizes",
+          "Size": 108679,
+          "ETag": "\"7adcd9da9c3ff665384ae97331b774b1\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/liftover/genomes/oryLat2.2bit",
+          "Size": 256908053,
+          "ETag": "\"2238e78a9788bf6f9f9d39fbc12c9a86-31\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/liftover/genomes/oryLat2.chrom.sizes",
+          "Size": 131648,
+          "ETag": "\"f508b15d7560a2c643100e346db3a756\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/liftover/genomes/petMar2.2bit",
+          "Size": 249965757,
+          "ETag": "\"e55fd88de015586ad6346398c431ce07-30\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/liftover/genomes/petMar2.chrom.sizes",
+          "Size": 361648,
+          "ETag": "\"322cb15c9e4c5ec4c07d32d429b04934\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/liftover/genomes/xenTro7.2bit",
+          "Size": 372914620,
+          "ETag": "\"cbc2709c98792f97708d7e10475a79e9-45\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/liftover/genomes/xenTro7.chrom.sizes",
+          "Size": 110240,
+          "ETag": "\"32177850e05a9096281cc27f246de114\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/liftover/genomes/xipMac1.2bit",
+          "Size": 221594313,
+          "ETag": "\"42c787ca0f120257ca285e36f66f40a3-27\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/liftover/genomes/xipMac1.chrom.sizes",
+          "Size": 346433,
+          "ETag": "\"cab94482c4875436b9024709439a5d00\""
+        }
+      ]
+    },
+    "nonmammal_chains": {
+      "total_bytes": 186389877,
+      "objects": [
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/liftover/chains/allMis1.over.chain.gz",
+          "Size": 19985179,
+          "ETag": "\"ed2fd0c3922dcbe83d7bfc3121dbf50e-3\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/liftover/chains/anaPla1.over.chain.gz",
+          "Size": 10297017,
+          "ETag": "\"9ae7cee5d2174dbd6fd7d4a1083a7129-2\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/liftover/chains/anoCar2.over.chain.gz",
+          "Size": 8788108,
+          "ETag": "\"cecf40dd94b0f122df7a6d5202debb87-2\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/liftover/chains/araMac1.over.chain.gz",
+          "Size": 10857393,
+          "ETag": "\"becff6d29a8ddc5367f00e28dc862593-2\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/liftover/chains/astMex1.over.chain.gz",
+          "Size": 6134367,
+          "ETag": "\"b8a9a5a577638c7c66114e4ef7f1c8e2\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/liftover/chains/cheMyd1.over.chain.gz",
+          "Size": 15819809,
+          "ETag": "\"528c55411397299fe002ddc53737b023-2\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/liftover/chains/colLiv1.over.chain.gz",
+          "Size": 11554576,
+          "ETag": "\"22d583c1763878f53086769b4762c630-2\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/liftover/chains/danRer10.over.chain.gz",
+          "Size": 9613205,
+          "ETag": "\"56477856dba98ad6f9022f6afd61402e-2\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/liftover/chains/falChe1.over.chain.gz",
+          "Size": 11747014,
+          "ETag": "\"fc9312f511b0497edb8ba15fc294dc8a-2\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/liftover/chains/ficAlb2.over.chain.gz",
+          "Size": 11847206,
+          "ETag": "\"a750285f2989609cb52f2690c784a3d6-2\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/liftover/chains/fr3.over.chain.gz",
+          "Size": 4577088,
+          "ETag": "\"ac26818c475930f0da96068e6fc2847d\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/liftover/chains/gadMor1.over.chain.gz",
+          "Size": 5033692,
+          "ETag": "\"860bd237f0b60995cc90d32840159742\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/liftover/chains/galGal4.over.chain.gz",
+          "Size": 11349148,
+          "ETag": "\"9caaa66662345f68030292860cc0bbe1-2\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/liftover/chains/gasAcu1.over.chain.gz",
+          "Size": 5494430,
+          "ETag": "\"9e9cc92109452d63c232a67a570b5960\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/liftover/chains/latCha1.over.chain.gz",
+          "Size": 7497878,
+          "ETag": "\"f5fb0cb479c167ff01affd1542a2b190\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/liftover/chains/lepOcu1.over.chain.gz",
+          "Size": 6348623,
+          "ETag": "\"33b0a335e8382a1bd9ec3e5c36612dc8\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/liftover/chains/oreNil2.over.chain.gz",
+          "Size": 4791714,
+          "ETag": "\"3a8b07f5a0ce511d93fb0b464267b9f4\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/liftover/chains/oryLat2.over.chain.gz",
+          "Size": 5244493,
+          "ETag": "\"cc35e0f023b82f726e42d691f50dedb0\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/liftover/chains/petMar2.over.chain.gz",
+          "Size": 3726286,
+          "ETag": "\"b3e6175cf6e36f863ff25b694478a9df\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/liftover/chains/xenTro7.over.chain.gz",
+          "Size": 10570349,
+          "ETag": "\"ba5c4493f5ced535ea55a659bbfeccf6-2\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/liftover/chains/xipMac1.over.chain.gz",
+          "Size": 5112302,
+          "ETag": "\"fa764b38c0892c17cf7ad28291109177\""
+        }
+      ]
+    },
+    "cached_nonmammal_sequences": {
+      "total_bytes": 445581554,
+      "objects": [
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/sequences/liftover/allMis1.parquet",
+          "Size": 33787223,
+          "ETag": "\"a92229a957f43644fc17506d3a35bd59-5\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/sequences/liftover/anaPla1.parquet",
+          "Size": 26497483,
+          "ETag": "\"035fe58dc4f5d85f344545b1a21b408e-4\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/sequences/liftover/anoCar2.parquet",
+          "Size": 24512186,
+          "ETag": "\"68de7c3686e7f9875ffef1cf03f23f55-3\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/sequences/liftover/araMac1.parquet",
+          "Size": 25012131,
+          "ETag": "\"6831c24cf95bcc997678a05ced1451ee-3\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/sequences/liftover/astMex1.parquet",
+          "Size": 15929626,
+          "ETag": "\"3f3fbfbcd92ddf0af2f746e867a8bd78-2\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/sequences/liftover/cheMyd1.parquet",
+          "Size": 33032786,
+          "ETag": "\"8b9408720786412107a8b5b162ee6512-4\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/sequences/liftover/colLiv1.parquet",
+          "Size": 27551022,
+          "ETag": "\"09a931356e871d24b364987236a302ee-4\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/sequences/liftover/danRer10.parquet",
+          "Size": 15975040,
+          "ETag": "\"cb48491889632150d461700aa350b25c-2\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/sequences/liftover/falChe1.parquet",
+          "Size": 28134492,
+          "ETag": "\"3b4473a87171a28845f09a7da22a91e8-4\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/sequences/liftover/ficAlb2.parquet",
+          "Size": 27423805,
+          "ETag": "\"d5893c095c32b3cf52d0fb469d50ee8d-4\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/sequences/liftover/fr3.parquet",
+          "Size": 15046901,
+          "ETag": "\"c3cb23e6a651943699d82311487e6c1e-2\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/sequences/liftover/gadMor1.parquet",
+          "Size": 13724708,
+          "ETag": "\"8413ed2aee8df02341830abe72a85c00-2\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/sequences/liftover/galGal4.parquet",
+          "Size": 28280292,
+          "ETag": "\"dbb366be3205f4eb016b279cf333f931-4\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/sequences/liftover/gasAcu1.parquet",
+          "Size": 15427259,
+          "ETag": "\"f16e3f37f09af20e18454458b54c93f1-2\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/sequences/liftover/latCha1.parquet",
+          "Size": 21021064,
+          "ETag": "\"a63d265df92f06dd08fc4da1b60d494a-3\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/sequences/liftover/lepOcu1.parquet",
+          "Size": 19027813,
+          "ETag": "\"83119a0a3a85de4db2682a0964f8a81b-3\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/sequences/liftover/oreNil2.parquet",
+          "Size": 15801428,
+          "ETag": "\"784eeb606d997e343ca3b5b28bbaba15-2\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/sequences/liftover/oryLat2.parquet",
+          "Size": 15146168,
+          "ETag": "\"2c896397783868b3a504ac9cb404ebad-2\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/sequences/liftover/petMar2.parquet",
+          "Size": 8896258,
+          "ETag": "\"82ca885efc862c83e5e0322f47aeefea-2\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/sequences/liftover/xenTro7.parquet",
+          "Size": 19800829,
+          "ETag": "\"dd873b819eb87947e334cc943c87c77d-3\""
+        },
+        {
+          "Key": "snakemake/vertebrate_projection_dataset/results/functional-v1/e42a4ea1eca760219e0add91004b45cac59b19c9/a104a2756f538a1993405165fb5b50b6d4aeaf0a32810d8bb72907916eef1beb/full/sequences/liftover/xipMac1.parquet",
+          "Size": 15553040,
+          "ETag": "\"148452c222f909f67d6a4ecd3302f175-2\""
+        }
+      ]
+    }
+  }
+}
