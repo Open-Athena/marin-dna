@@ -5,6 +5,8 @@ include: "rules/common.smk"
 include: "rules/anchors.smk"
 include: "rules/projection.smk"
 include: "rules/dataset.smk"
+include: "rules/rag.smk"
+include: "rules/rag_publication.smk"
 
 
 rule all:
