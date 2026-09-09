@@ -1649,3 +1649,16 @@ Its current anchor path instead creates uniform conservation-selected windows an
   Final evidence is in `HALC-523-014`.
 - PR #548 remains open and ready for review; the #517 interpretation-merge gate is therefore still pending.
   No datasets, evaluations, training runs, or accepted scientific interpretations changed.
+
+### 2026-09-09 14:37 UTC - `FAS-517-078` restrict interpretation links to the anchors question
+
+- Human decision: Gonzalo directed that experiment #517 inform only the genomic-anchor question for now, not evolutionary timescale or training-region selection.
+- PR #548 revision: `985b941aaa09cafddd69cb2dff13db07f4b1ef13` restores evolutionary-timescale.md and training-regions.md to their mainline content and removes their experiment-page backlinks.
+  Only the genomic-anchor question remains under Related questions; the anchor synthesis, experimental evidence, limitations, figure, and root index are unchanged.
+  The PR description and issue disposition summary reflect the restricted scope.
+- Validation: `git diff --exit-code origin/main -- docs/research/questions/evolutionary-timescale.md docs/research/questions/training-regions.md` passed.
+  A separate comparison to ca759761 confirmed that the genomic-anchor page, figure, and README were unchanged; `git diff --check` passed.
+  The published PR now contains four documentation files.
+  Test, quality, and build CI passed, and independent review found no remaining cross-link or scope issue.
+- Record: https://github.com/Open-Athena/marin-dna/pull/548#issuecomment-5603673703.
+  PR #548 remains open and unmerged; no scientific measurements, assets, jobs, or active-question membership changed.
