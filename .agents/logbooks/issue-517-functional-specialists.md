@@ -1662,3 +1662,22 @@ Its current anchor path instead creates uniform conservation-selected windows an
   Test, quality, and build CI passed, and independent review found no remaining cross-link or scope issue.
 - Record: https://github.com/Open-Athena/marin-dna/pull/548#issuecomment-5603673703.
   PR #548 remains open and unmerged; no scientific measurements, assets, jobs, or active-question membership changed.
+
+### 2026-09-09 14:45 UTC - `FAS-517-079` merge the anchors-only interpretation
+
+- Authority: Gonzalo explicitly authorized merging PR #548 after approving its anchors-only question scope.
+- Pre-merge checks: The reviewed 985b941a head had green CI and no unresolved review threads, but GitHub required the branch to include current main.
+  The first normal merge attempt was refused as behind; no administrator bypass was used.
+  GitHub's update-branch API merged main `0a74d77dbb85f6b9eff1220d280baa18dd0fa4a8` into the PR with an expected-head guard, producing `6ebf7f176ab56b7d302d49c52998633a88d48ffb`.
+- Verification: The final four-file documentation diff was unchanged from independently reviewed 985b941a.
+  README and docs/research comparisons were byte-identical, and the evolutionary-timescale and training-regions pages still matched main.
+  The focused independent integration review was clear; final test, formatting, and documentation-build checks passed.
+  Final test workflow: https://github.com/Open-Athena/marin-dna/actions/runs/34365584391.
+  Final build workflow: https://github.com/Open-Athena/marin-dna/actions/runs/34365584858.
+- Merge: `gh pr merge 548 --repo Open-Athena/marin-dna --squash --match-head-commit 6ebf7f176ab56b7d302d49c52998633a88d48ffb` succeeded.
+  GitHub verified MERGED at 2026-09-09T14:45:54Z, mainline commit `a901deb02ec0b6a8de3a554235b7c52ca98a03c8`.
+  The source branch was retained, and the experiment and genomic-anchor pages were verified at the merged commit.
+- Disposition: Interpretation page merged, connected only to genomic anchors.
+  P1's annotation-first complete-diagonal hypothesis was not recovered; P2's checkpoint-emergence analysis remains deferred under the terminal-checkpoint-only decision.
+  The existing empirical results and inferential limitations are unchanged.
+  Issue #517 remains open; no issue closure, new scientific execution, or paid worker was requested or performed.
