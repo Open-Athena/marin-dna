@@ -41,4 +41,16 @@ repos:
         entry: uv run --locked mypy
         language: system
         pass_filenames: false
-        files: ^src/marin_dna/.*\.py$
+        files: ^(src/marin_dna/|infra/).*\.py$
+
+      # Validates every .agents/skills/*/SKILL.md (frontmatter, unique names,
+      # schedule fields, path cross-references, drift traps) on every commit.
+      # `always_run` because the links a skill holds break when a target
+      # anywhere in the repository moves or is deleted, and deletions never
+      # appear in the staged-file list; the script docstring lists the rules.
+      - id: check-skill-metadata
+        name: check skill metadata
+        entry: uv run --locked python infra/check_skill_metadata.py
+        language: system
+        pass_filenames: false
+        always_run: true
