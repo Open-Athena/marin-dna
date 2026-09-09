@@ -97,9 +97,8 @@ def build_inspection_sample(
             selected_keys.add(key)
             selection_reasons[key] = "required_zrs_backend_clade"
 
-    for region_label in ["cds", "ccre_non_promoter"]:
+    for region_label in sorted({str(row["region_label"]) for row in records}):
         region_rows = [row for row in records if row["region_label"] == region_label]
-        assert region_rows, f"inspection requires recovered {region_label} rows"
         for row in sorted(region_rows, key=lambda candidate: _digest(seed, candidate))[
             :rows_per_region
         ]:

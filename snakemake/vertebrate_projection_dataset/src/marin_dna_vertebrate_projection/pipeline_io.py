@@ -545,7 +545,8 @@ def write_inspection_files(
     # materialize every species for only those anchors. The existing pure
     # sampler makes the final row choices and computes complete clade counts.
     candidate_multiplier = 4
-    for region_label in ["cds", "ccre_non_promoter"]:
+    regions = sequences.select("region_label").unique().collect(engine="streaming")
+    for region_label in sorted(regions["region_label"].to_list()):
         candidates = (
             sequences.filter(pl.col("region_label") == region_label)
             .select("query_name", identity_hash.alias("_sample_hash"))
@@ -554,9 +555,6 @@ def write_inspection_files(
                 by="_sample_hash",
             )
             .collect(engine="streaming")
-        )
-        assert candidates.height > 0, (
-            f"inspection requires recovered {region_label} rows"
         )
         candidate_query_names.update(candidates["query_name"].to_list())
 

@@ -151,6 +151,7 @@ Never publish the synthetic fixture datasets as a biological release.
 ## QC and review
 
 The workflow writes per-anchor recovery, backend/clade summaries, rejection counts, aggregates, and deterministic accepted/rejected inspection samples.
+Inspection samples each region present in the input, including single-region catalogs.
 Set `require_zrs: true` only for a biological smoke catalog containing the expected ZRS controls and a target set spanning enough non-mammalian clades.
 The synthetic fixture has no biological positive-control interpretation.
 Manual review should inspect both strands, mapped center placement, sequence case, and assembly/dictionary agreement, and compare sampled mappings to saved source-alignment projections.
