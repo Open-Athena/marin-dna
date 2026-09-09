@@ -99,7 +99,17 @@ def read_anchor_catalog(path: str | Path) -> pl.DataFrame:
     frame = (
         pl.read_parquet(anchor_path)
         if anchor_path.suffix == ".parquet"
-        else pl.read_csv(anchor_path, separator="\t")
+        else pl.read_csv(
+            anchor_path,
+            separator="\t",
+            schema_overrides={
+                "query_name": pl.String,
+                "source_chrom": pl.String,
+                "source_start": pl.Int64,
+                "source_end": pl.Int64,
+                "region_label": pl.String,
+            },
+        )
     )
     required = {
         "query_name",
@@ -674,11 +684,11 @@ def write_dataset_card(
         f"{pipeline_commit}/snakemake/vertebrate_projection_dataset/README.md"
     )
     source_description = (
-        "the Zoonomia 447-mammal Cactus alignment"
+        "chains derived from the Zoonomia 447-mammal Cactus alignment"
         if species_scope == "mammals_only"
         else (
-            "the Zoonomia 447-mammal Cactus alignment and UCSC hg38 "
-            "MultiZ 100-way alignment"
+            "Zoonomia-derived mammalian chains and UCSC pairwise chains "
+            "for the family-deduplicated non-mammal cohort"
         )
     )
     text = f"""---
@@ -701,6 +711,9 @@ Human-anchored 255 bp vertebrate sequences from {source_description}.
 This draft covers the `{region_label}` region cohort with `{species_scope}` species scope and preserves source FASTA/2bit letter case.
 
 Non-human rows project only the central human nucleotide and extract the 255 bp target window centered on its unique mapped locus.
+All targets use UCSC liftOver and checksum-pinned, assembly-matched sequence archives.
+The historical `alignment_source` values identify cohort provenance; `ucsc_multiz100way` does not mean that a MAF was queried.
+The producing workflow's `metadata/assets.json` records the exact chain origins, genome sources, and input digests.
 
 Anchor eligibility uses the pipeline's pinned phyloP conservation filter.
 Sequence case is independent of that filter: lowercase bases preserve source repeat masking, uppercase bases preserve source non-repeat-masked sequence, and conservation scores never rewrite emitted characters or case.

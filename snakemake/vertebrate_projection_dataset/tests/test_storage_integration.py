@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 
 import yaml
+from marin_dna_vertebrate_projection.projection.chains import file_sha256
 from marin_dna_vertebrate_projection.provenance import (
     hash_pipeline_config,
     write_producer_manifest,
@@ -89,14 +90,25 @@ def test_hf_only_dag_closes_from_clean_storage_backed_workdir(tmp_path: Path) ->
         ignore=shutil.ignore_patterns(".venv", ".snakemake", "results", "__pycache__"),
     )
     config = yaml.safe_load((workdir / "config/config.yaml").read_text())
-    config["tier"] = "full"
-    config_sha256 = hash_pipeline_config(config)
+    identity = {
+        **config,
+        **{
+            key + "_sha256": file_sha256(workdir / config[key])
+            for key in (
+                "chain_assets",
+                "genome_assets",
+                "species_selected",
+                "smoke_anchors",
+            )
+        },
+    }
+    config_sha256 = hash_pipeline_config(identity)
     base = (
         Path("results")
         / str(config["pipeline_version"])
         / PIPELINE_COMMIT
         / config_sha256
-        / "full"
+        / "smoke"
     )
     storage = tmp_path / "storage"
     producer = storage / base / "metadata/producer.json"
@@ -105,10 +117,11 @@ def test_hf_only_dag_closes_from_clean_storage_backed_workdir(tmp_path: Path) ->
         pipeline_commit=PIPELINE_COMMIT,
         config_sha256=config_sha256,
         pipeline_version=str(config["pipeline_version"]),
-        tier="full",
+        tier="smoke",
     )
     (storage / base / "metadata/species_active.tsv").write_text("fixture\n")
-    for cohort in config["region_cohorts"]:
+    (storage / base / "metadata/assets.json").write_text("{}\n")
+    for cohort in config["smoke_cohorts"]:
         for split in ["train", "validation"]:
             source = storage / base / f"datasets/{cohort}/{split}.parquet"
             source.parent.mkdir(parents=True, exist_ok=True)
@@ -136,7 +149,7 @@ def test_hf_only_dag_closes_from_clean_storage_backed_workdir(tmp_path: Path) ->
         "--cores",
         "1",
         "--config",
-        "tier=full",
+        "tier=smoke",
         "--allowed-rules",
         "prepare_train_jsonl_shards",
         "prepare_validation_jsonl_shards",

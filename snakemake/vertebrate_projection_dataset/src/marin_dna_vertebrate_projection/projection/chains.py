@@ -1,4 +1,4 @@
-"""Additive UCSC chain adapter for the center-1 projection contract.
+"""UCSC chain adapter for the center-1 projection contract.
 
 Coordinates are 0-based, half-open throughout. Chain ``t`` is the human
 source; chain ``q`` is the destination assembly. This reader never opens HAL.
@@ -358,7 +358,7 @@ def write_chain_projections(
     )
     result = apply_projection_contract(fragments)
     # The historical contract contains only queries with mapping fragments.
-    # This additive adapter also emits explicit unmapped query rejections.
+    # The chain adapter also emits explicit unmapped query rejections.
     rejected_schema = result.rejected.schema
     missing_rows = (
         requests.filter(pl.col("query_name").is_in(unmapped_names))

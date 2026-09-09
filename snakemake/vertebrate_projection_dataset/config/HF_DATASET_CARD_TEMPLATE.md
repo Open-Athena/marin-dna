@@ -16,7 +16,7 @@ configs:
 
 Review status: **draft; do not upload until generated values are checked**.
 
-Human-anchored 255 bp vertebrate sequences from the Zoonomia 447-mammal Cactus alignment and UCSC hg38 MultiZ 100-way alignment for the `<region>` cohort.
+Human-anchored 255 bp vertebrate sequences projected through Zoonomia-derived mammalian chains and UCSC pairwise non-mammalian chains for the `<region>` cohort.
 Source FASTA/2bit letter case is preserved.
 
 Non-human rows project only the central human nucleotide and extract the 255 bp target window centered on its unique mapped locus.
@@ -31,7 +31,8 @@ Replace `<COMMIT_SHA>` with the exact producing revision; never use a branch URL
 
 - Human reference: hg38, one row per retained human anchor.
 - Mammals: `<ZOONOMIA_SPECIES_COUNT>` family-deduplicated targets from the Zoonomia 447-mammal Cactus HAL.
-- Non-mammals: `<MULTIZ_SPECIES_COUNT>` family-deduplicated targets from the UCSC hg38 MultiZ 100-way MAFs.
+- Non-mammals: `<MULTIZ_SPECIES_COUNT>` family-deduplicated targets from the historical MultiZ cohort, queried through UCSC pairwise chains.
+- Projector: UCSC liftOver for all non-human targets; chain and genome digests are recorded in `metadata/assets.json`.
 - Species manifest revision: `<COMMIT_SHA>`.
 - Dataset revision: `<HF_REVISION_AFTER_UPLOAD>`.
 
@@ -62,4 +63,4 @@ It includes stable row/anchor identity, 0-based half-open human and target coord
 - [ ] Coordinate/split/case assertions and focused tests passed.
 - [ ] QC breadth and rejection distributions were reviewed.
 - [ ] ZRS recovered multiple non-mammal clades.
-- [ ] Manual UCSC/raw-MAF and HAL spot checks were recorded.
+- [ ] Sampled chain mappings and assembly-matched sequence windows were reviewed.

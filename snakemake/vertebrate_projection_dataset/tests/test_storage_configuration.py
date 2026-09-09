@@ -36,24 +36,24 @@ def test_ci_dry_run_explicitly_disables_remote_storage() -> None:
 
 def test_results_are_producer_keyed_and_verification_receipts_are_local() -> None:
     common = (PROJECT_ROOT / "workflow/rules/common.smk").read_text()
-    staging = (PROJECT_ROOT / "workflow/rules/staging.smk").read_text()
     projection = (PROJECT_ROOT / "workflow/rules/projection.smk").read_text()
     dataset = (PROJECT_ROOT / "workflow/rules/dataset.smk").read_text()
 
     assert "PIPELINE_COMMIT = resolve_pipeline_commit()" in common
-    assert "PIPELINE_CONFIG_SHA256 = hash_pipeline_config(config)" in common
+    assert "PIPELINE_CONFIG_SHA256 = hash_pipeline_config(RESOLVED_CONFIG)" in common
+    assert "chain_assets_sha256" in common and "genome_assets_sha256" in common
     assert (
         'f"results/{PIPELINE_VERSION}/{PIPELINE_COMMIT}/'
         '{PIPELINE_CONFIG_SHA256}/{TIER}"' in common
     )
-    assert "multiz_mirror.done" not in staging
-    assert "local(HAL_VALIDATION)" in staging
-    assert projection.count("validation=local(HAL_VALIDATION)") == 3
+    assert not (PROJECT_ROOT / "workflow/Snakefile.chains").exists()
+    assert not (PROJECT_ROOT / "workflow/rules/staging.smk").exists()
     assert "PROJECTION_REQUESTS" in common
-    assert "build_projection_requests" in projection
-    assert "write_hal_request_bed6" in projection
-    assert "write_maf_request_candidates" in projection
-    assert "write_hal_bed6" not in projection
-    assert "write_maf_candidates" not in projection
+    assert "prepare_chain_requests" in projection
+    assert "liftOver -minMatch=0.95 -multiple" in projection
+    assert "validate_genome_source" in projection
+    assert "validate_genome_dictionary" in projection
+    for obsolete in ("halLiftover", "hal2fasta", "HAL_PATH", "multiz_candidates"):
+        assert obsolete not in projection
     assert 'temp(local(f"{RESULTS}/upload.done/{{region}}"))' in dataset
     assert 'local(expand(f"{RESULTS}/upload.done/{{region}}"' in dataset

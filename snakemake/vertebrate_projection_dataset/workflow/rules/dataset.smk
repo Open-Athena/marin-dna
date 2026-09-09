@@ -14,16 +14,12 @@ from marin_dna_vertebrate_projection.publication import (
     validate_artifacts,
 )
 
-HAL_REJECTIONS = expand(
-    f"{RESULTS}/hal/rejected/{{species}}.parquet", species=MAMMALS
-) + expand(f"{RESULTS}/hal/sequence_rejected/{{species}}.parquet", species=MAMMALS)
-MULTIZ_REJECTIONS = expand(
-    f"{RESULTS}/multiz/rejected/{{species}}.parquet", species=NON_MAMMALS
+ALL_REJECTIONS = expand(
+    f"{RESULTS}/chains/{{species}}/rejected.parquet", species=ACTIVE_SPECIES
 ) + expand(
-    f"{RESULTS}/multiz/sequence_rejected/{{species}}.parquet",
-    species=NON_MAMMALS,
+    f"{RESULTS}/chains/{{species}}/sequence_rejected.parquet",
+    species=ACTIVE_SPECIES,
 )
-ALL_REJECTIONS = HAL_REJECTIONS + MULTIZ_REJECTIONS
 
 
 def dataset_region_label(cohort):
@@ -85,7 +81,7 @@ rule projection_inspection_report:
             rejected_rows_per_reason=int(
                 config["inspection_rejected_rows_per_reason"]
             ),
-            require_zrs=TIER == "smoke",
+            require_zrs=bool(config["require_zrs"]),
         )
 
 
@@ -204,6 +200,7 @@ rule dataset_card:
         train=f"{RESULTS}/datasets/{{region}}/train.parquet",
         validation=f"{RESULTS}/datasets/{{region}}/validation.parquet",
         manifest=ACTIVE_MANIFEST,
+        provenance=ASSET_PROVENANCE,
     output:
         f"{HF_RESULTS}/{{region}}/README.md",
     wildcard_constraints:
@@ -332,6 +329,12 @@ rule hf_upload_dataset:
         repo=lambda wc: (f"{config['hf_owner']}/{HF_REPO_PREFIX}-{wc.region}"),
         workers=int(config["hf_upload_workers"]),
     run:
+        assert all(
+            row["chain_origin"] != "synthetic-test-only" for row in ASSETS.values()
+        ), "synthetic fixtures cannot be uploaded"
+        assert all(
+            row["origin"] != "synthetic-test-only" for row in GENOMES.values()
+        ), "synthetic genomes cannot be uploaded"
         upload_validated_dataset(
             HF_RESULTS,
             input.manifest,
