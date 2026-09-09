@@ -80,8 +80,6 @@ The order-control uncertainties are marginal bootstrap standard errors; no paire
 ## Related questions
 
 - [How should genomic anchors be selected and projected across species?](../questions/genomic-anchors.md)
-- [Which genomic regions to train on, and how to find them?](../questions/training-regions.md)
-- [How should evolutionary timescale shape training?](../questions/evolutionary-timescale.md)
 
 ## Research record
 
