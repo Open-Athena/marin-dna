@@ -117,3 +117,32 @@ The launch graph constructs correctly for a synthetic 20-update pilot on one fre
 Microbatch 5 accumulates to exactly 200 documents; fallback 1 preserves the same batch.
 The resolved scaling heuristic and its allocated-token context-transfer assumption are recorded in the experiment README and source.
 No TPU has been submitted at this snapshot; actual native save/resume, milestone files, W&B progress, and throughput remain pilot checks.
+
+### 2026-09-09 23:55 UTC — RAG-550-004: Published framework, compute gates, and Spot interruption
+
+Dataset-framework PR #552 passed all CI checks and independent follow-up review and is ready for human review at `0a5e31300fd94f179e6478e376604c7b18b08194`.
+No PR was merged.
+The experiment and synthetic pilot were committed and pushed at `4c00035108d0fcd64790a51aea3fee88a0108323`.
+Automatic approval review rejected the pilot submission because it does not accept the linked issue's compute agreement as trusted authorization for TPU resource use and the W&B credential side effect.
+A direct approval request for the free TPU pilot/full run and W&B logging is pending; no TPU was submitted.
+
+AWS Spot request `sir-ww3fkg5m` reports `instance-terminated-no-capacity` at 23:32:27 UTC; instance `i-058752e5529fb337b` terminated at 23:34:30 UTC.
+The actual lifetime was approximately 99.6 minutes, before the extended shutdown deadline.
+The producing RAG namespace contains 212 durable S3 objects totaling 3,038,871,673 bytes.
+Final document assembly had not started; the last observed long-running process was the elephant liftOver query.
+An on-demand r6i.2xlarge replacement was prepared with automatic termination after four hours and delete-on-termination disk, estimated at approximately $2.20 in compute/disk costs.
+Automatic approval review also rejected that replacement because it requires the $30 paid-resource cap to be explicitly approved in the task rather than only recorded in the linked issue.
+That approval request is pending; no replacement was launched.
+Do not retry either blocked action without a user reply.
+
+Before interruption, the human-window audit matched all 15,990 unique Mendelian loci, 11,629 complex-trait loci, and 9,276 SGE loci against the producer's human sequences.
+All human benchmark windows contain only ACGT, with no Ns on either flank.
+This preserves the maintained four-nucleotide LLR/JSD contract without removing canonical variants; genuine Ns in retrieval context remain permitted.
+The audit covered sequence/reference properties only and computed no predictions or label aggregates.
+
+The combined evals_v2 backend and tests are drafted on this research branch and extracted through issue #553.
+It validates canonical source rows before loading a checkpoint, uses fixed-shape variable-human-position scoring through the existing Trainer prediction loop, pools only 255 human tokens, and routes outputs to the three canonical score files.
+Ruff 0.16.2, Snakefmt 2.0.3, and Python syntax checks pass.
+The new runtime tests did not run on the interrupted worker; repository CI is the next validation step.
+No exact model–dataset cell has been registered, no biological model evaluation has run, and no HF dataset or model has been uploaded.
+The final-checkpoint-first evaluation policy remains in force.

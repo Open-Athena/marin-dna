@@ -1,7 +1,6 @@
 """Biological and split contracts for the new RAG recipe."""
 
 import pytest
-
 from marin_dna_vertebrate_projection.rag.documents import (
     HUMAN,
     SEPARATOR,

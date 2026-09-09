@@ -1,8 +1,38 @@
 """Validation and execution-setting resolution for the evals v2 workflow."""
 
+import re
 from collections.abc import Mapping, Sequence
 
 GLOBAL_INFERENCE_SWITCHES = frozenset({"return_embeddings", "torch_compile", "bf16"})
+
+
+def validate_rag_models(models: Sequence[Mapping[str, object]], *, split: str) -> None:
+    """Keep the joint backend additive, explicitly registered, and development-only."""
+    for model in models:
+        backend = model.get("inference_backend", "reference")
+        if backend not in {"reference", "rag_combined"}:
+            raise ValueError("unknown model inference backend")
+        if backend == "reference":
+            continue
+        if split != "train":
+            raise ValueError("joint RAG evaluation is authorized only for development")
+        if set(model.get("datasets", [])) != {
+            "mendelian_traits",
+            "complex_traits",
+            "sge",
+        }:
+            raise ValueError("joint RAG model must register exactly three benchmarks")
+        if model.get("window_size") != 255 or model.get("document_tokens") != 10240:
+            raise ValueError(
+                "joint RAG model requires 255 human bases and 10240 document tokens"
+            )
+        harness = model.get("rag_harness")
+        if (
+            not isinstance(harness, Mapping)
+            or not isinstance(harness.get("uri"), str)
+            or not re.fullmatch(r"[0-9a-f]{64}", str(harness.get("sha256", "")))
+        ):
+            raise ValueError("joint RAG model must pin its harness URI and SHA-256")
 
 
 def _positive_int(value: object, *, field: str) -> int:

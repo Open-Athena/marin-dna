@@ -11,7 +11,7 @@ rule compute_scores:
     output:
         "results/scores/{model}/{dataset}.parquet",
     wildcard_constraints:
-        model="|".join(MODELS),
+        model="|".join(REFERENCE_MODELS) or r"(?!)",
         dataset="|".join(DATASETS),
     threads: config["inference"]["num_workers"]
     params:

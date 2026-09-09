@@ -25,6 +25,7 @@ from marin_dna_evals.workflow_config import (
     resolve_model_batch_size,
     resolve_model_eval_accumulation_steps,
     validate_inference_config,
+    validate_rag_models,
 )
 
 # Per-dataset eval protocol. `matched_pair` (default) → per-subset AUPRC +
@@ -77,6 +78,7 @@ for _m in config["models"]:
     ), f"model {_m['name']!r} must have exactly one of `gcs_path` or `hf_repo`"
 
 validate_inference_config(config["inference"], config["models"])
+validate_rag_models(config["models"], split=config["split"])
 
 # Same fail-fast for per-dataset score_protocol — a typo would surface
 # late as a KeyError inside the metrics rule's `SCORE_PROTOCOLS[protocol]`.
@@ -94,6 +96,10 @@ for _d in config["datasets"]:
 # Wildcard alternations used across rules.
 DATASETS = [d["name"] for d in config["datasets"]]
 MODELS = [m["name"] for m in config["models"]]
+RAG_MODELS = [
+    m["name"] for m in config["models"] if m.get("inference_backend") == "rag_combined"
+]
+REFERENCE_MODELS = [name for name in MODELS if name not in RAG_MODELS]
 
 
 def get_model_datasets(model_name):
