@@ -24,6 +24,14 @@ if config.get("rag"):
     def rag_publication_input(path):
         return storage.s3(path) if path.startswith("s3://") else path
 
+    def rag_artifact_uri(path):
+        if "://" in path:
+            return path
+        settings = workflow.storage_settings
+        if settings.default_storage_provider:
+            return f"{settings.default_storage_prefix.rstrip('/')}/{path}"
+        return str(Path(path).resolve())
+
     rule rag_prepare_release:
         input:
             train=rag_publication_input(
@@ -65,7 +73,17 @@ if config.get("rag"):
                 output.manifest,
                 region=wildcards.region,
                 repo_id=f"{config['hf_owner']}/{config.get('rag_repo_prefix', 'rag-five-regions-v1')}-{wildcards.region}",
-                producer=RAG_PUBLICATION_SOURCE,
+                producer={
+                    **RAG_PUBLICATION_SOURCE,
+                    "root": rag_artifact_uri(RAG_SOURCE_ROOT),
+                },
+                publisher={
+                    "root": rag_artifact_uri(RAG_RESULTS),
+                    "pipeline_commit": PIPELINE_COMMIT,
+                    "config_sha256": PIPELINE_CONFIG_SHA256,
+                    "pipeline_version": PIPELINE_VERSION,
+                    "tier": TIER,
+                },
                 train_shards=RAG_PUBLISH_SHARDS,
             )
 

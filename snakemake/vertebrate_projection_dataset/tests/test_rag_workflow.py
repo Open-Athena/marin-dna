@@ -83,12 +83,16 @@ def test_rag_combined_workflow(tmp_path: Path) -> None:
     overlay.write_text(
         yaml.safe_dump(
             {
+                "anchors": "tests/fixtures/chains/anchors.tsv",
+                "anchors_sha256": sha256_file(
+                    workdir / "tests/fixtures/chains/anchors.tsv"
+                ),
                 "rag": {
                     "catalogs": {name: spec for name in REGIONS},
                     "benchmarks": benchmarks,
                     "validation_rows": 400,
                     "seed": 42,
-                }
+                },
             }
         )
     )
@@ -147,22 +151,45 @@ def test_rag_combined_workflow(tmp_path: Path) -> None:
     assert all(row["species_order"][-1] == "hg38" for row in harness)
     assert len({row["source_row_id"] for row in harness}) == 9
     assert len({row["group_id"] for row in harness}) == 3
+    # Publish an existing producer under a different code/config namespace.
+    publication_config = yaml.safe_load(overlay.read_text())
+    publication_config["rag_publication_source"] = {
+        **json.loads((root.parent / "metadata/producer.json").read_text()),
+        "root": str(root),
+    }
+    overlay.write_text(yaml.safe_dump(publication_config))
+    env["PIPELINE_COMMIT_SHA"] = "c" * 40
     publication_plan = run("--dry-run", target="rag_all_publication_files")
     assert "rag_prepare_release" in publication_plan
     assert "rag_chain_liftover" not in publication_plan
     run(target="rag_all_publication_files")
+    publication_root = next(
+        (workdir / "results").rglob("rag/publication_provenance")
+    ).parent
     for region in REGIONS:
         release = json.loads(
-            (root / f"publication_provenance/{region}/release.json").read_text()
+            (
+                publication_root / f"publication_provenance/{region}/release.json"
+            ).read_text()
         )
         assert release["splits"]["train"]["rows"] == 6
+        assert release["producer"]["pipeline_commit"] == "a" * 40
+        assert release["producer"]["root"] == str(root)
+        assert release["publisher"]["pipeline_commit"] == "c" * 40
+        assert release["publisher"]["root"] == str(publication_root)
+        card = (publication_root / f"publication/{region}/README.md").read_text()
+        assert str(root) in card and str(publication_root) in card
         mapping = list(
-            read_rows(root / f"publication_provenance/{region}/rows.parquet")
+            read_rows(
+                publication_root / f"publication_provenance/{region}/rows.parquet"
+            )
         )
         assert len(mapping) == 6
         for row in mapping:
             shard = list(
-                read_rows(root / f"publication/{region}" / row["public_shard"])
+                read_rows(
+                    publication_root / f"publication/{region}" / row["public_shard"]
+                )
             )
             published = shard[row["public_row_index"]]
             assert set(published) == {"sequence"}

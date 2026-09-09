@@ -206,3 +206,7 @@ Both targets require a dry-run before execution.
 Set `rag_publication_source` to an existing producer identity (`root`, `pipeline_commit`, `config_sha256`, `pipeline_version`, `tier`) to publish previously built documents without rerunning projection.
 The source producer receipt must match that identity.
 The workflow owns publication files and mappings under the new publishing producer namespace.
+
+Publication manifests and cards distinguish source-producer provenance from the publisher namespace containing the exact public-row mappings and release hashes.
+Artifact URIs use the active Snakemake storage prefix, or absolute local paths when storage is disabled.
+Training consumers calculate epoch exposure from their own duration, batch size, and mixture weights.

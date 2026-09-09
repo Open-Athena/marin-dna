@@ -37,6 +37,7 @@ def prepare_release(
     region: str,
     repo_id: str,
     producer: Mapping[str, str],
+    publisher: Mapping[str, str],
     train_shards: int = 16,
 ) -> dict[str, Any]:
     if set(inputs) != {"train", "validation"} or train_shards < 1:
@@ -48,6 +49,7 @@ def prepare_release(
         "repo_id": repo_id,
         "region": region,
         "producer": dict(producer),
+        "publisher": dict(publisher),
         "source_files": {},
         "splits": {},
         "files": {},
@@ -152,21 +154,21 @@ configs:
 
 # {repo_id}
 
-Human-anchored RAG documents for the `{region}` region in [MarinDNA experiment 550](https://github.com/Open-Athena/marin-dna/issues/550).
-The [producing workflow](https://github.com/Open-Athena/marin-dna/tree/{producer["pipeline_commit"]}/snakemake/vertebrate_projection_dataset) owns source identities, projected coordinates, sequence provenance, public shard row mappings, and release checksums.
-Its immutable artifact root is `{producer["root"]}`.
+Human-anchored RAG documents for the `{region}` region.
+The [producing workflow](https://github.com/Open-Athena/marin-dna/tree/{producer["pipeline_commit"]}/snakemake/vertebrate_projection_dataset) owns source identities, projected coordinates, and sequence provenance at `{producer["root"]}`.
+The [publishing workflow](https://github.com/Open-Athena/marin-dna/tree/{publisher["pipeline_commit"]}/snakemake/vertebrate_projection_dataset) owns public shard row mappings and release checksums at `{publisher["root"]}/publication_provenance/{region}`.
 
 Both splits contain only a string `sequence` column.
 Training has {manifest["splits"]["train"]["rows"]:,} rows; validation has {manifest["splits"]["validation"]["rows"]:,} rows sampled from the complete chr18 training holdout.
 Every retained training locus contributes forward and reverse-complement rows.
 Each document joins available 255-bp species windows with atomic `[SEQ]` separators in a fixed per-row permutation.
-Human is included once; up to 18 non-human mammalian and 21 other vertebrate order representatives supply context.
+Human is included once; selected non-human representatives supply context, with at most 40 species in a document.
 Missing projections are omitted, genuine Ns and source letter case are retained, and reverse complementation acts within each segment.
 Coordinates in producer artifacts use hg38 and 0-based, half-open intervals.
 
 The training consumer adds one BOS token and right padding to 10,240 positions, with padding targets excluded from loss.
 The strings here contain neither BOS nor padding.
-Public shard assignment is deterministic; `public_row_index` in the producer's row mapping identifies each exact published document.
+Public shard assignment is deterministic; `public_row_index` in the publisher's row mapping identifies each exact published document.
 
 MarinDNA releases the processed dataset under OpenMDW 1.1.
 The underlying public genome assemblies and alignments retain their original source terms and attribution, recorded in the pinned source manifests.

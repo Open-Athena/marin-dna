@@ -302,9 +302,6 @@ def write_training_datasets(
                 raise ValueError("document count differs from split plan")
             region_summary[f"{split}_rows"] = count
             region_summary[f"{split}_allocated_tokens"] = count * 10240
-        region_summary["expected_training_epochs"] = (
-            4_000_000 / region_summary["train_rows"]
-        )
         summary["regions"][region] = region_summary
     (directory / "split_summary.json").write_text(json.dumps(summary, indent=2) + "\n")
     return summary

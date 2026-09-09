@@ -53,7 +53,7 @@ if config.get("rag"):
                 output.audit,
             )
 
-    use rule chain_requests as rag_chain_requests with:
+    rule rag_chain_requests:
         input:
             anchors=RAG_UNION,
             sizes=asset_input(SOURCE["source_sizes"]),
@@ -62,6 +62,21 @@ if config.get("rag"):
         output:
             requests=RAG_REQUESTS,
             bed=f"{RAG_RESULTS}/anchors/centers.bed",
+        resources:
+            mem_mb=int(config["table_mem_mb"]),
+        run:
+            # The union rule validates the separately pinned RAG source catalogs.
+            if file_sha256(input.sizes) != SOURCE["source_sizes_sha256"]:
+                raise ValueError("source chromosome dictionary SHA-256 mismatch")
+            if (
+                file_sha256(input.human_sizes)
+                != GENOMES["hg38"]["chrom_sizes_sha256"]
+            ):
+                raise ValueError("human genome dictionary SHA-256 mismatch")
+            validate_human_dictionary(input.sizes, input.human_sizes)
+            prepare_chain_requests(
+                input.anchors, input.sizes, output.requests, output.bed
+            )
 
     use rule chain_liftover as rag_chain_liftover with:
         input:
