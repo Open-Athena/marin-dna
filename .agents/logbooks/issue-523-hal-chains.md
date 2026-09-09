@@ -361,3 +361,6 @@ author: gonzalobenegas
 - Limits: This pass launched no paid worker, downloaded no biological data-scale input, rebuilt no biological dataset, and uploaded nothing to Hugging Face.
   The synthetic integration test does not broaden the earlier three-species sampled biological equivalence claim.
   Full biological execution requires the chosen manifests and verified digests before its own approved run.
+- Post-ready check: The separate Claude review action failed at https://github.com/Open-Athena/marin-dna/actions/runs/34361134007 because the organization has disabled Claude subscription access for Claude Code.
+  That service did not complete a code review; the independent review above was a separate published-diff review.
+  Project test/build checks remain passed; no credential or CI-policy change was attempted.
