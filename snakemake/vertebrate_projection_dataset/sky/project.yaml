@@ -5,7 +5,7 @@ name: vertebrate-chain-projection
 resources:
   infra: aws/us-east-2
   cpus: 4+
-  memory: 32+
+  memory: 40+
   use_spot: true
   disk_size: 500
   labels:
@@ -19,7 +19,7 @@ envs:
   TARGET: all
   DRY_RUN: "1"
   CORES: "4"
-  MEM_MB: "30000"
+  MEM_MB: "32000"
 
 setup: |
   set -euo pipefail

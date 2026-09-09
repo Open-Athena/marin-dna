@@ -126,6 +126,8 @@ The table adapter materializes one species at a time and is not a bounded-memory
 Keep `final_large_scan=1` for the large downstream QC and dataset consumers.
 
 `sky/project.yaml` provides a spot-worker template with a dry-run default and no HAL/NVMe RAID setup.
+Its minimum worker memory is 40 GiB, with a 32,000-MB Snakemake pool matching the largest default projection reservation and leaving runtime headroom.
+The default workflow profile uses the same pool; increase both the worker memory and scheduler pool when raising per-rule reservations.
 Choose resources and disk capacity from the reviewed DAG and asset sizes before launch.
 No full projection, chain construction, dataset upload, or training run is implied by this PR.
 

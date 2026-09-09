@@ -15,6 +15,21 @@ def test_default_profile_uses_canonical_s3_storage() -> None:
     assert profile["default-storage-prefix"] == STORAGE_PREFIX
 
 
+def test_projection_memory_pools_cover_default_jobs_with_worker_headroom() -> None:
+    config = yaml.safe_load((PROJECT_ROOT / "config/config.yaml").read_text())
+    profile = yaml.safe_load(
+        (PROJECT_ROOT / "workflow/profiles/default/config.yaml").read_text()
+    )
+    worker = yaml.safe_load((PROJECT_ROOT / "sky/project.yaml").read_text())
+    largest_job_mb = max(config["liftover_mem_mb"], config["table_mem_mb"], 30000)
+    worker_pool_mb = int(worker["envs"]["MEM_MB"])
+    assert int(profile["resources"]["mem_mb"]) >= largest_job_mb
+    assert worker_pool_mb >= largest_job_mb
+    # Conservatively allow four GiB beyond the scheduler pool for the runtime.
+    minimum_worker_mib = float(str(worker["resources"]["memory"]).rstrip("+")) * 1024
+    assert minimum_worker_mib >= worker_pool_mb + 4096
+
+
 def test_hf_worker_uses_snakemake_storage_instead_of_snapshot_copy() -> None:
     worker = (PROJECT_ROOT / "sky/hf.yaml").read_text()
     for obsolete in [
