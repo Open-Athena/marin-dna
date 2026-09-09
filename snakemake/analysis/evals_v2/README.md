@@ -439,3 +439,23 @@ These are tested at `tests/evals/test_grouped_vep_metrics.py`,
 `tests/evals/test_metrics.py`,
 `tests/evals/test_inference.py`,
 `tests/evals/test_ll_gap.py`, and `tests/model/test_scoring.py`.
+## Combined RAG development scoring
+
+Models with `inference_backend: rag_combined` consume a pinned combined context harness from `vertebrate_projection_dataset`.
+Register each model's exact checkpoint, `window_size: 255`, `document_tokens: 10240`, the three datasets (`mendelian_traits`, `complex_traits`, `sge`), and `rag_harness: {uri: ..., sha256: ...}` before evaluation.
+Submit the exact model–dataset registration as a small PR.
+The backend accepts only the canonical development split and checks every source row, revision-derived identity, coordinate, allele, label, and namespaced group against the registered canonical dataset revisions before loading the model.
+
+Requesting any one of the model's three score files schedules one combined job that writes all three canonical outputs in `results/scores/{model}/{dataset}.parquet`.
+The existing metric and grouped-probe rules consume those files unchanged.
+Source benchmark row order and metadata are restored separately for each benchmark after joint inference.
+This backend uses the standard Hugging Face prediction loop, global bf16 and compilation settings, and the model's batch-size and CPU-offload settings.
+
+Each fixed-shape input has up to 40 available species windows, a single BOS, atomic `[SEQ]` separators, and right padding to 10,240 positions.
+Human remains last in REF, ALT, forward, and RC inputs; RC acts within each species segment without reordering segments.
+Only the human center allele changes between REF and ALT.
+The variable per-row human position is gathered within a common compiled shape without length bucketing.
+Causal attention makes later padding invisible to real tokens, and all score and pooling reductions exclude padding and retrieval tokens.
+LLR and downstream JSD use the existing four-nucleotide scoring convention over the variant and remaining human bases.
+The human window must therefore be ACGT; ambiguous human windows fail before inference, while genuine Ns in retrieved windows remain intact.
+Final hidden states are mean-pooled over all 255 human bases, accumulated in fp32, averaged across strands, and stored as the standard `emb_ref` and `emb_alt` float16 vectors.
