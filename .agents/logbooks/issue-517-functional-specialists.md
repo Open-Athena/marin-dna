@@ -1629,3 +1629,14 @@ Its current anchor path instead creates uniform conservation-selected windows an
 - Scope: No exhaustive genome-wide comparison, dataset replacement, new HAL work, or training was performed.
   These coordinate checks do not remove the non-mammal alignment-backend caveat from the historical experiment comparisons.
 - Handoff: Await human review of #548 and #549; neither PR is merged, and the research issue remains open pending its interpretation merge gate.
+
+### 2026-09-09 14:04 UTC - `FAS-517-076` address interpretation feedback and unify projection infrastructure
+
+- PR #548: Replaced the checkpoint-deferral chronology in the knowledge-base prose with the inferential limit: terminal-checkpoint evaluation cannot establish when the diagonal emerges during training.
+  The chronology remains in this tracking issue.
+  Published head `ca759761523675fc56a80feabdad2c1f976a6144` passed applicable CI and independent review; the user's review thread was answered and resolved.
+- PR #549: Gonzalo approved one active chain-based path for both mammals and non-mammalian vertebrates, including sequence extraction from pinned existing genome archives, with no new hal2fasta work.
+  Published head `bc75de55de50e2ab49036517ba92f007b44ec6b0` passed 254 project tests, the separate real-Kent end-to-end fixture, dry-run, quality checks, and independent review after findings were addressed.
+  The PR is ready for review; details and limitations are recorded in `HALC-523-013`.
+- Scope: Historical experiments, stored datasets, and the accepted five-anchor interpretation are unchanged.
+  No new biological dataset, model training, evaluation, paid worker, merge, or issue closure occurred.

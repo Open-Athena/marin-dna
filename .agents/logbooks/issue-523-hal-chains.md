@@ -329,3 +329,35 @@ author: gonzalobenegas
   No HAL staging, new halLiftover, chain regeneration, dataset replacement, or training occurred.
 - Publication: https://github.com/Open-Athena/marin-dna/issues/523#issuecomment-5591278401 records the result and qualified go decision.
   PR #549 is ready for human review, not merged; the #517 interpretation remains separately reviewable in PR #548.
+
+### 2026-09-09 14:04 UTC - `HALC-523-013` unify the active chain-to-dataset workflow
+
+- Human decision: Replace the separate additive reader with one active chain-based path for mammals and non-mammalian vertebrates, retaining the old HAL/MultiZ recipe only in pinned history.
+  Reuse existing assembly-matched genome archives rather than staging HAL to run hal2fasta.
+  The historical recipe is pinned at `086f74ed31b4c471f538b2f9a466c866ee4e964c`; existing S3/Hugging Face datasets are unchanged.
+- Implementation: PR #549, final published head `bc75de55de50e2ab49036517ba92f007b44ec6b0`, now uses one Snakefile through center-1 projection, sequence extraction, QC, dataset splits, and publication preparation.
+  `all_projections` remains a stopping target in that same Snakefile.
+  The separate chain entrypoint and obsolete HAL/mirror/smoke launchers were removed.
+- Contracts: Pinned chain and genome manifests enforce exact assembly identities, input SHA-256 digests, and complete source/target sequence dictionaries.
+  Existing 2bits are reused, FASTA conversion rejects non-preservable IUPAC symbols, and accepted windows retain the shared center, strand, bounds, and case contracts.
+  Working genome copies and their verification receipts remain local intermediates; durable outputs use the separate chains-v1 commit/config namespace.
+  Resolved config and input origins are preserved in metadata and used by publication validation and cards.
+- Asset check: A read-only S3 HEAD confirmed the existing Mus_musculus.2bit is present at 772,419,769 bytes in the strict-phyloP source namespace.
+  This did not hash its payload or inventory every genome; no complete biological chain-plus-genome manifest is bundled with the migration.
+- Validation: The final locked project CI passed 254 tests with one Kent-dependent test skipped in that job; the dedicated real-Kent job ran that test successfully in 111.96 seconds.
+  It exercises a fabricated mammal and bird, exact positive/negative-strand sequences, center index 127, case, unmapped accounting, splits, and all_hf_files with both default and overridden cohorts/owner/shards/seeds.
+  The project dry-run, quality checks, and dashboard build passed.
+  Test CI: https://github.com/Open-Athena/marin-dna/actions/runs/34360666396.
+  End-to-end CI: https://github.com/Open-Athena/marin-dna/actions/runs/34360666427.
+- Local resource discipline: Bounded tests held the exclusive heavy-work lock with thread limits and memory/load gates.
+  The final 19-test focused run passed in 0.64 seconds with peak RSS 211,080 KiB; storage integration passed two tests in 5.57 seconds with peak child RSS 230,496 KiB; the 33-job dry-run passed in 2.05 seconds with peak RSS 230,472 KiB.
+  The real-Kent end-to-end execution ran in CI, not on the shared VM.
+- Corrections and review: The first full fixture exposed hard-coded inspection labels; inspection now samples each represented region, with a single-region regression test.
+  Independent review found a stale launcher, publication validation using historical cohorts/default config, and cards assuming biological origins and phyloP-filtered anchors.
+  All findings were fixed in published commits and re-reviewed; no actionable finding remains at bc75de55.
+- Publication: PR #549 is ready for human review, and the user's single-path review thread was answered and resolved at https://github.com/Open-Athena/marin-dna/pull/549#discussion_r3969342545.
+  PR #548's wording comment was separately fixed and independently reviewed at `ca759761523675fc56a80feabdad2c1f976a6144`.
+  Neither PR was merged.
+- Limits: This pass launched no paid worker, downloaded no biological data-scale input, rebuilt no biological dataset, and uploaded nothing to Hugging Face.
+  The synthetic integration test does not broaden the earlier three-species sampled biological equivalence claim.
+  Full biological execution requires the chosen manifests and verified digests before its own approved run.
