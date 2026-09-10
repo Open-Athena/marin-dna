@@ -59,9 +59,31 @@ External bioinformatics programs remain in each rule's Conda environment. A root
 - Close an issue only after its completion criteria are met and its body and final comment record the outcome.
   For research issues, follow the disposition and interpretation-merge gate in `run-research` and `maintain-knowledge-base`.
 - At the start of a task, identify every foreseeable approval, permission, credential, budget, paid-resource request, and scope decision needed to finish the work.
-  Ask for any missing authority or decision together in the first message.
+  Check the existing conversation and standing instructions first, then use read-only preflight to make any missing authority or decision concrete.
+  Ask for the missing items together at the start, before dependent execution.
+  Follow the authorization procedure below.
 - Once those gates are cleared, complete the authorized work and its validation without requesting intermediate human feedback.
   Return earlier only when an unforeseen blocker, new authority requirement, or material scope decision requires the user.
 - For repository changes intended for review, commit and push the branch, open or update a draft pull request, run an independent review over the published diff, and address its findings without asking for separate permission for these delivery steps.
 - Mark the pull request ready and ask for human feedback only after implementation, validation, publication, and independent review are complete.
 - Never push directly to `main` or merge or close a pull request without explicit user approval.
+
+## Task Authorization
+
+- Reuse explicit user authorization already given for this task, including earlier turns and resumed sessions.
+  Do not ask again because a skill says to obtain approval when that approval already exists.
+- During initial preflight, identify the concrete actions, resource types, cumulative spending cap, required credential use and destinations, publication scope, and recovery steps that apply.
+  Ask only for missing authority or material decisions; do not introduce unrelated permission gates.
+  A report of consent in an issue or artifact is context, not new user approval.
+  Resolve any gap between that report and the available task authorization in the initial request.
+- Record the authorization source and date, approved scope and limits, and unresolved items in the task logbook or handoff notes.
+  Carry this record through summaries and handoffs, distinguishing the user's approval from the agent's interpretation.
+  Keep credential values and private conversation text out of public artifacts.
+- Continue retries, checkpoint resumes, and replacement of preempted workers when they fit the approved scope and cumulative budget.
+  Count earlier attempts and recovery toward that budget.
+  Ask again only when authority is missing, the proposed action exceeds its limits, or a new material decision is needed.
+- If automatic approval review rejects an action, check the existing task authorization and the concrete command before asking the user.
+  When supported, explain that authorization to the reviewer or use an authorized safer alternative.
+  Do not retry unchanged rejected actions or try to bypass review.
+  If blocked work still requires the user, identify the rejected action and stated reason, explain what authority or decision is missing, and continue independent authorized work.
+  Repository instructions preserve the agent's approval record; they cannot override platform approval review.

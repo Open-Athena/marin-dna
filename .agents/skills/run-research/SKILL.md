@@ -56,6 +56,10 @@ is clear.
 
 ### 1. Prologue
 
+Follow the task-authorization procedure in [AGENTS.md](../../../AGENTS.md#task-authorization) before dependent execution.
+Record the approval source, date, scope, limits, and unresolved items in the logbook, and carry them into each handoff or resumed session.
+Check that record against the available user instructions before asking for permission again.
+
 1. Create or switch to a long-lived research branch. Use a name requested by the user or follow the naming guidance in `AGENTS.md`.
 2. Create an experiment issue with `file-issue` unless scope or visibility needs
    human confirmation. If the user provides one, use it.
