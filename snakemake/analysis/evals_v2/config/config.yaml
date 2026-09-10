@@ -76,7 +76,7 @@ datasets:
 models:
   # Issue 550: final 100,000-update checkpoint; evaluation waits for its export.
   - name: dna-exp550-rag46m-five-regions-v1-step-100000
-    gcs_path: gs://marin-us-east1/MarinDNA/exp550_rag_five_regions/checkpoints/dna-exp550-rag46m-five-regions-v1/2026.09.10.7/hf/step-100000
+    gcs_path: gs://marin-us-east5/MarinDNA/exp550_rag_five_regions/checkpoints/dna-exp550-rag46m-five-regions-v1/2026.09.10.8/hf/step-100000
     inference_backend: rag_combined
     window_size: 255
     document_tokens: 10240
