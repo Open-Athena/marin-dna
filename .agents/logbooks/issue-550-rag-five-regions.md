@@ -361,3 +361,11 @@ The immutable original evidence remains available in its earlier snapshot.
 Automatic approval review rejected optional copying of the already-published synthetic GPU report to W&B, including after supplying the earlier direct W&B authorization record.
 No W&B report upload occurred; the pinned GitHub artifact remains the numerical reporting source.
 This optional reporting step does not block dataset assembly or the approved HF publication.
+
+### 2026-09-10 03:03 UTC — Integrated validation and evaluation runtime
+
+The integrated permanent branch at eeb877f9 passed all five project test jobs and their configured dry-runs in GitHub Actions run 34431400058.
+Independent review found no integration issue in combined RAG precision forwarding at 1e4e59db.
+The experiment fp32 runtime overlay validates against the full existing inference policy and records its failed-candidate evidence.
+Exact model/harness registration still awaits the final dataset artifact and production output identity; no biological inference is scheduled yet.
+The assembly progress estimate was corrected: the uppercase mammalian species sort before the other vertebrates, so the two remaining jobs still contain substantial work.

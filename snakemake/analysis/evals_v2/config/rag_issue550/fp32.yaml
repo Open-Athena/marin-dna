@@ -1,0 +1,12 @@
+# Experiment runtime overlay; the model/dataset registry remains config.yaml.
+# Synthetic full-context parity evidence: issue550 GPU snapshot 1e4e59db.
+inference:
+  bf16: false
+  tf32: false
+  precision_reason: >-
+    Full bfloat16, bfloat16 autocast, and TF32 compilation failed the predefined
+    synthetic RAG parity gates; compiled strict fp32 passed.
+    Evidence: https://github.com/Open-Athena/marin-dna/tree/1e4e59db/.agents/artifacts/issue-550/gpu
+  batch_size: 2
+  num_workers: 2
+  eval_accumulation_steps: 8

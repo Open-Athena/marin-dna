@@ -67,3 +67,16 @@ Monitor pilot loss, actual TPU count, throughput, native save/resume, HF export,
 After the pilot completes, pass `--pilot --resume-pilot-from <pilot-output>/checkpoints/step-10` with a fresh calendar version to verify native resume through update 20 in a separate output directory.
 This check requires loading the full intermediate trainer state and keeps the production scratch-start recipe unchanged.
 The full run's completion time must be based on measured pilot throughput.
+
+## Development evaluation
+
+The maintained `snakemake/analysis/evals_v2` project owns combined RAG scoring, canonical benchmark metrics, and frozen probes.
+Register the exact final checkpoint and combined-harness SHA-256 in its model registry and submit the registration PR before biological inference.
+The registration must include Mendelian traits, complex traits, and SGE development cohorts and the corresponding probe cells.
+Use the experiment runtime overlay `config/rag_issue550/fp32.yaml` from that pipeline's root.
+It selects batch 2, two loader workers, compiled fp32, and an explicit TF32 disable, and records the precision decision in Snakemake provenance.
+The [synthetic GPU evidence](https://github.com/Open-Athena/marin-dna/tree/1e4e59db/.agents/artifacts/issue-550/gpu) records the failed reduced-precision candidates and the passing strict-fp32 check.
+Rerun a bounded synthetic parity check with the final checkpoint before its biological inference, since its weights differ from the pilot.
+Build only the registered final model's three metric and three probe-metric targets; those targets share one combined score computation.
+Retain the canonical `results/scores`, `results/metrics`, and `results/probe_metrics` output identities and the pipeline's existing probe and metric contracts.
+Use the remaining cumulative budget only after this final-checkpoint evaluation completes.
