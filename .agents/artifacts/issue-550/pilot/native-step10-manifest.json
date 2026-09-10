@@ -1,0 +1,635 @@
+{
+  "format_version": 1,
+  "array_driver": "zarr3",
+  "kvstore_driver": "ocdbt",
+  "arrays": [
+    {
+      "path": "step",
+      "shape": [],
+      "dtype": "int32",
+      "chunk_shape": []
+    },
+    {
+      "path": "model/transformer/layers/stacked/self_attn/q_proj/weight",
+      "shape": [
+        7,
+        5,
+        1,
+        128,
+        640
+      ],
+      "dtype": "float32",
+      "chunk_shape": [
+        7,
+        5,
+        1,
+        128,
+        80
+      ]
+    },
+    {
+      "path": "model/transformer/layers/stacked/self_attn/k_proj/weight",
+      "shape": [
+        7,
+        5,
+        128,
+        640
+      ],
+      "dtype": "float32",
+      "chunk_shape": [
+        7,
+        5,
+        128,
+        80
+      ]
+    },
+    {
+      "path": "model/transformer/layers/stacked/self_attn/v_proj/weight",
+      "shape": [
+        7,
+        5,
+        128,
+        640
+      ],
+      "dtype": "float32",
+      "chunk_shape": [
+        7,
+        5,
+        128,
+        80
+      ]
+    },
+    {
+      "path": "model/transformer/layers/stacked/self_attn/o_proj/weight",
+      "shape": [
+        7,
+        640,
+        5,
+        128
+      ],
+      "dtype": "float32",
+      "chunk_shape": [
+        7,
+        80,
+        5,
+        128
+      ]
+    },
+    {
+      "path": "model/transformer/layers/stacked/self_attn/q_norm/weight",
+      "shape": [
+        7,
+        128
+      ],
+      "dtype": "float32",
+      "chunk_shape": [
+        7,
+        128
+      ]
+    },
+    {
+      "path": "model/transformer/layers/stacked/self_attn/k_norm/weight",
+      "shape": [
+        7,
+        128
+      ],
+      "dtype": "float32",
+      "chunk_shape": [
+        7,
+        128
+      ]
+    },
+    {
+      "path": "model/transformer/layers/stacked/mlp/gate_proj/weight",
+      "shape": [
+        7,
+        2560,
+        640
+      ],
+      "dtype": "float32",
+      "chunk_shape": [
+        7,
+        2560,
+        80
+      ]
+    },
+    {
+      "path": "model/transformer/layers/stacked/mlp/up_proj/weight",
+      "shape": [
+        7,
+        2560,
+        640
+      ],
+      "dtype": "float32",
+      "chunk_shape": [
+        7,
+        2560,
+        80
+      ]
+    },
+    {
+      "path": "model/transformer/layers/stacked/mlp/down_proj/weight",
+      "shape": [
+        7,
+        640,
+        2560
+      ],
+      "dtype": "float32",
+      "chunk_shape": [
+        7,
+        80,
+        2560
+      ]
+    },
+    {
+      "path": "model/transformer/layers/stacked/input_layernorm/weight",
+      "shape": [
+        7,
+        640
+      ],
+      "dtype": "float32",
+      "chunk_shape": [
+        7,
+        80
+      ]
+    },
+    {
+      "path": "model/transformer/layers/stacked/post_attention_layernorm/weight",
+      "shape": [
+        7,
+        640
+      ],
+      "dtype": "float32",
+      "chunk_shape": [
+        7,
+        80
+      ]
+    },
+    {
+      "path": "model/transformer/norm/weight",
+      "shape": [
+        640
+      ],
+      "dtype": "float32",
+      "chunk_shape": [
+        80
+      ]
+    },
+    {
+      "path": "model/embeddings/token_embeddings/weight",
+      "shape": [
+        8,
+        640
+      ],
+      "dtype": "float32",
+      "chunk_shape": [
+        8,
+        80
+      ]
+    },
+    {
+      "path": "model/lm_head/weight",
+      "shape": [
+        8,
+        640
+      ],
+      "dtype": "float32",
+      "chunk_shape": [
+        8,
+        80
+      ]
+    },
+    {
+      "path": "opt_state/count",
+      "shape": [],
+      "dtype": "int32",
+      "chunk_shape": []
+    },
+    {
+      "path": "opt_state/hyperparams/adam_lr",
+      "shape": [],
+      "dtype": "float32",
+      "chunk_shape": []
+    },
+    {
+      "path": "opt_state/hyperparams/learning_rate",
+      "shape": [],
+      "dtype": "float32",
+      "chunk_shape": []
+    },
+    {
+      "path": "opt_state/hyperparams_states/adam_lr/count",
+      "shape": [],
+      "dtype": "int32",
+      "chunk_shape": []
+    },
+    {
+      "path": "opt_state/hyperparams_states/learning_rate/count",
+      "shape": [],
+      "dtype": "int32",
+      "chunk_shape": []
+    },
+    {
+      "path": "opt_state/inner_state/inner_states/adam/inner_state/1/count",
+      "shape": [],
+      "dtype": "int32",
+      "chunk_shape": []
+    },
+    {
+      "path": "opt_state/inner_state/inner_states/adam/inner_state/1/mu/transformer/layers/stacked/self_attn/q_norm/weight",
+      "shape": [
+        7,
+        128
+      ],
+      "dtype": "float32",
+      "chunk_shape": [
+        7,
+        128
+      ]
+    },
+    {
+      "path": "opt_state/inner_state/inner_states/adam/inner_state/1/mu/transformer/layers/stacked/self_attn/k_norm/weight",
+      "shape": [
+        7,
+        128
+      ],
+      "dtype": "float32",
+      "chunk_shape": [
+        7,
+        128
+      ]
+    },
+    {
+      "path": "opt_state/inner_state/inner_states/adam/inner_state/1/mu/transformer/layers/stacked/input_layernorm/weight",
+      "shape": [
+        7,
+        640
+      ],
+      "dtype": "float32",
+      "chunk_shape": [
+        7,
+        80
+      ]
+    },
+    {
+      "path": "opt_state/inner_state/inner_states/adam/inner_state/1/mu/transformer/layers/stacked/post_attention_layernorm/weight",
+      "shape": [
+        7,
+        640
+      ],
+      "dtype": "float32",
+      "chunk_shape": [
+        7,
+        80
+      ]
+    },
+    {
+      "path": "opt_state/inner_state/inner_states/adam/inner_state/1/mu/transformer/norm/weight",
+      "shape": [
+        640
+      ],
+      "dtype": "float32",
+      "chunk_shape": [
+        80
+      ]
+    },
+    {
+      "path": "opt_state/inner_state/inner_states/adam/inner_state/1/mu/embeddings/token_embeddings/weight",
+      "shape": [
+        8,
+        640
+      ],
+      "dtype": "float32",
+      "chunk_shape": [
+        8,
+        80
+      ]
+    },
+    {
+      "path": "opt_state/inner_state/inner_states/adam/inner_state/1/nu/transformer/layers/stacked/self_attn/q_norm/weight",
+      "shape": [
+        7,
+        128
+      ],
+      "dtype": "float32",
+      "chunk_shape": [
+        7,
+        128
+      ]
+    },
+    {
+      "path": "opt_state/inner_state/inner_states/adam/inner_state/1/nu/transformer/layers/stacked/self_attn/k_norm/weight",
+      "shape": [
+        7,
+        128
+      ],
+      "dtype": "float32",
+      "chunk_shape": [
+        7,
+        128
+      ]
+    },
+    {
+      "path": "opt_state/inner_state/inner_states/adam/inner_state/1/nu/transformer/layers/stacked/input_layernorm/weight",
+      "shape": [
+        7,
+        640
+      ],
+      "dtype": "float32",
+      "chunk_shape": [
+        7,
+        80
+      ]
+    },
+    {
+      "path": "opt_state/inner_state/inner_states/adam/inner_state/1/nu/transformer/layers/stacked/post_attention_layernorm/weight",
+      "shape": [
+        7,
+        640
+      ],
+      "dtype": "float32",
+      "chunk_shape": [
+        7,
+        80
+      ]
+    },
+    {
+      "path": "opt_state/inner_state/inner_states/adam/inner_state/1/nu/transformer/norm/weight",
+      "shape": [
+        640
+      ],
+      "dtype": "float32",
+      "chunk_shape": [
+        80
+      ]
+    },
+    {
+      "path": "opt_state/inner_state/inner_states/adam/inner_state/1/nu/embeddings/token_embeddings/weight",
+      "shape": [
+        8,
+        640
+      ],
+      "dtype": "float32",
+      "chunk_shape": [
+        8,
+        80
+      ]
+    },
+    {
+      "path": "opt_state/inner_state/inner_states/adamh/inner_state/1/count",
+      "shape": [],
+      "dtype": "int32",
+      "chunk_shape": []
+    },
+    {
+      "path": "opt_state/inner_state/inner_states/adamh/inner_state/1/mu/transformer/layers/stacked/self_attn/q_proj/weight",
+      "shape": [
+        7,
+        5,
+        1,
+        128,
+        640
+      ],
+      "dtype": "float32",
+      "chunk_shape": [
+        7,
+        5,
+        1,
+        128,
+        80
+      ]
+    },
+    {
+      "path": "opt_state/inner_state/inner_states/adamh/inner_state/1/mu/transformer/layers/stacked/self_attn/k_proj/weight",
+      "shape": [
+        7,
+        5,
+        128,
+        640
+      ],
+      "dtype": "float32",
+      "chunk_shape": [
+        7,
+        5,
+        128,
+        80
+      ]
+    },
+    {
+      "path": "opt_state/inner_state/inner_states/adamh/inner_state/1/mu/transformer/layers/stacked/self_attn/v_proj/weight",
+      "shape": [
+        7,
+        5,
+        128,
+        640
+      ],
+      "dtype": "float32",
+      "chunk_shape": [
+        7,
+        5,
+        128,
+        80
+      ]
+    },
+    {
+      "path": "opt_state/inner_state/inner_states/adamh/inner_state/1/mu/transformer/layers/stacked/self_attn/o_proj/weight",
+      "shape": [
+        7,
+        640,
+        5,
+        128
+      ],
+      "dtype": "float32",
+      "chunk_shape": [
+        7,
+        80,
+        5,
+        128
+      ]
+    },
+    {
+      "path": "opt_state/inner_state/inner_states/adamh/inner_state/1/mu/transformer/layers/stacked/mlp/gate_proj/weight",
+      "shape": [
+        7,
+        2560,
+        640
+      ],
+      "dtype": "float32",
+      "chunk_shape": [
+        7,
+        2560,
+        80
+      ]
+    },
+    {
+      "path": "opt_state/inner_state/inner_states/adamh/inner_state/1/mu/transformer/layers/stacked/mlp/up_proj/weight",
+      "shape": [
+        7,
+        2560,
+        640
+      ],
+      "dtype": "float32",
+      "chunk_shape": [
+        7,
+        2560,
+        80
+      ]
+    },
+    {
+      "path": "opt_state/inner_state/inner_states/adamh/inner_state/1/mu/transformer/layers/stacked/mlp/down_proj/weight",
+      "shape": [
+        7,
+        640,
+        2560
+      ],
+      "dtype": "float32",
+      "chunk_shape": [
+        7,
+        80,
+        2560
+      ]
+    },
+    {
+      "path": "opt_state/inner_state/inner_states/adamh/inner_state/1/mu/lm_head/weight",
+      "shape": [
+        8,
+        640
+      ],
+      "dtype": "float32",
+      "chunk_shape": [
+        8,
+        80
+      ]
+    },
+    {
+      "path": "opt_state/inner_state/inner_states/adamh/inner_state/1/nu/transformer/layers/stacked/self_attn/q_proj/weight",
+      "shape": [
+        7,
+        5,
+        1,
+        128,
+        640
+      ],
+      "dtype": "float32",
+      "chunk_shape": [
+        7,
+        5,
+        1,
+        128,
+        80
+      ]
+    },
+    {
+      "path": "opt_state/inner_state/inner_states/adamh/inner_state/1/nu/transformer/layers/stacked/self_attn/k_proj/weight",
+      "shape": [
+        7,
+        5,
+        128,
+        640
+      ],
+      "dtype": "float32",
+      "chunk_shape": [
+        7,
+        5,
+        128,
+        80
+      ]
+    },
+    {
+      "path": "opt_state/inner_state/inner_states/adamh/inner_state/1/nu/transformer/layers/stacked/self_attn/v_proj/weight",
+      "shape": [
+        7,
+        5,
+        128,
+        640
+      ],
+      "dtype": "float32",
+      "chunk_shape": [
+        7,
+        5,
+        128,
+        80
+      ]
+    },
+    {
+      "path": "opt_state/inner_state/inner_states/adamh/inner_state/1/nu/transformer/layers/stacked/self_attn/o_proj/weight",
+      "shape": [
+        7,
+        640,
+        5,
+        128
+      ],
+      "dtype": "float32",
+      "chunk_shape": [
+        7,
+        80,
+        5,
+        128
+      ]
+    },
+    {
+      "path": "opt_state/inner_state/inner_states/adamh/inner_state/1/nu/transformer/layers/stacked/mlp/gate_proj/weight",
+      "shape": [
+        7,
+        2560,
+        640
+      ],
+      "dtype": "float32",
+      "chunk_shape": [
+        7,
+        2560,
+        80
+      ]
+    },
+    {
+      "path": "opt_state/inner_state/inner_states/adamh/inner_state/1/nu/transformer/layers/stacked/mlp/up_proj/weight",
+      "shape": [
+        7,
+        2560,
+        640
+      ],
+      "dtype": "float32",
+      "chunk_shape": [
+        7,
+        2560,
+        80
+      ]
+    },
+    {
+      "path": "opt_state/inner_state/inner_states/adamh/inner_state/1/nu/transformer/layers/stacked/mlp/down_proj/weight",
+      "shape": [
+        7,
+        640,
+        2560
+      ],
+      "dtype": "float32",
+      "chunk_shape": [
+        7,
+        80,
+        2560
+      ]
+    },
+    {
+      "path": "opt_state/inner_state/inner_states/adamh/inner_state/1/nu/lm_head/weight",
+      "shape": [
+        8,
+        640
+      ],
+      "dtype": "float32",
+      "chunk_shape": [
+        8,
+        80
+      ]
+    },
+    {
+      "path": "training_key",
+      "shape": [
+        2
+      ],
+      "dtype": "uint32",
+      "chunk_shape": [
+        2
+      ]
+    }
+  ]
+}

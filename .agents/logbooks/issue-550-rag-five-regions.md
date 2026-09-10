@@ -262,3 +262,28 @@ The cache bug is confirmed with three synthetic rows: `get_batch([0,1,0])` retur
 [Issue #557](https://github.com/Open-Athena/marin-dna/issues/557) records the reusable upstream defect.
 The experiment-local adapter reads unique component indices before shuffle/mixing and restores every sampled occurrence in order.
 All 18 locked training tests passed in 16.79 seconds, including real TreeCache-to-NamedLmDataset repeated-read parity and optimizer configuration serialization after cloudpickle round-trip.
+
+### 2026-09-10 01:24 UTC — RAG-550-011: TPU pilot and exact native-resume parity passed
+
+The c0585d0e synthetic pilot completed 20 updates on eight TPU v6e chips with microbatch 5 and 200 documents per update.
+The last steady update took 1.552648577 seconds, or 1,319,036 allocated tokens/second.
+The 100,000-update compute-only projection is 43.13 hours; cache construction, checkpoint/validation overhead, and interruptions add time.
+This exceeds one night, and the user was informed; the agreed 100,000-update scope is unchanged.
+
+Native and HF milestones exist at completed updates 5, 10, 15, and 20.
+Synthetic validation loss at those milestones was 2.286274, 2.222548, 2.121411, and 1.989978.
+These values validate execution and are not biological results.
+The full model export is 183,596,040 bytes and retains the 640/2560/7-layer/5-head architecture, vocabulary 8, and maximum context 10,240.
+
+The separate native-resume job loaded update 10 and completed update 20.
+Its final model has the same GCS MD5 and CRC32C as the uninterrupted pilot (`IpYBgDMQ2sZlO8knwEsuZQ==`, `Cyx4BA==`), and both update-15 and update-20 validation losses match exactly.
+The resumed native metadata records step 20; full optimizer state was required on load.
+The TPU backend took about three minutes to initialize on the resume worker, then proceeded successfully without a retry.
+
+Small machine-readable evidence is in `.agents/artifacts/issue-550/pilot/`.
+Independent review found no material issues in c0585d0e.
+The training preflight is complete; production awaits the prepared datasets and verified immutable public revisions.
+
+Release preparation is queued with the documented `--keep-storage-local-copies` option so the downstream audit can inspect its exact files.
+The current preparation PID is 25210; audit PID 13203 and explicitly authorized upload PID 14373 remain gated in sequence.
+At 01:22 UTC the biological producer had completed 153 of its 159 recovery jobs.

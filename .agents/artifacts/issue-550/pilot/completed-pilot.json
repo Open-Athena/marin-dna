@@ -1,0 +1,106 @@
+{
+  "git_commit": "c0585d0e117075026b4384d552d59b52009d257e",
+  "iris_job": "/gonzalo/dna-exp550-rag46m-pilot-mb5-20260910-cachefix",
+  "wandb_run": "https://wandb.ai/gonzalobenegas/marin/runs/dna-exp550-rag46m-five-regions-v1-pilot-mb5",
+  "artifact_root": "gs://marin-us-east5/MarinDNA/exp550_rag_five_regions/checkpoints/dna-exp550-rag46m-five-regions-v1-pilot-mb5/2026.09.10.3",
+  "synthetic_only": true,
+  "completed_updates": 20,
+  "documents_per_update": 200,
+  "allocated_tokens_per_update": 2048000,
+  "allocated_tokens_completed": 40960000,
+  "num_devices": 8,
+  "device_kind": "TPU v6 lite",
+  "last_steady_update_seconds": 1.5526485770001273,
+  "last_steady_allocated_tokens_per_second": 1319036.406781077,
+  "projected_100000_update_compute_hours": 43.12912713889243,
+  "projection_excludes": "cache construction, checkpoint/evaluation overhead, interruption and recovery",
+  "final_train_loss": 1.5800892114639282,
+  "validation_losses_by_completed_update": {
+    "5": {
+      "eval/cds/loss": 2.2853338718414307,
+      "eval/enhancer/loss": 2.2857728004455566,
+      "eval/loss": 2.286273956298828,
+      "eval/ncrna/loss": 2.2864019870758057,
+      "eval/region=cds/loss": 2.2853338718414307,
+      "eval/region=enhancer/loss": 2.2857728004455566,
+      "eval/region=ncrna/loss": 2.2864019870758057,
+      "eval/region=tss_utr5/loss": 2.285773754119873,
+      "eval/region=utr3/loss": 2.2880876064300537,
+      "eval/tss_utr5/loss": 2.285773754119873,
+      "eval/utr3/loss": 2.2880876064300537
+    },
+    "10": {
+      "eval/cds/loss": 2.2223103046417236,
+      "eval/enhancer/loss": 2.2221732139587402,
+      "eval/loss": 2.222548484802246,
+      "eval/ncrna/loss": 2.2226223945617676,
+      "eval/region=cds/loss": 2.2223103046417236,
+      "eval/region=enhancer/loss": 2.2221732139587402,
+      "eval/region=ncrna/loss": 2.2226223945617676,
+      "eval/region=tss_utr5/loss": 2.22277569770813,
+      "eval/region=utr3/loss": 2.22286057472229,
+      "eval/tss_utr5/loss": 2.22277569770813,
+      "eval/utr3/loss": 2.22286057472229
+    },
+    "15": {
+      "eval/cds/loss": 2.1212453842163086,
+      "eval/enhancer/loss": 2.1205203533172607,
+      "eval/loss": 2.1214113235473633,
+      "eval/ncrna/loss": 2.1219089031219482,
+      "eval/region=cds/loss": 2.1212453842163086,
+      "eval/region=enhancer/loss": 2.1205203533172607,
+      "eval/region=ncrna/loss": 2.1219089031219482,
+      "eval/region=tss_utr5/loss": 2.121457099914551,
+      "eval/region=utr3/loss": 2.1219239234924316,
+      "eval/tss_utr5/loss": 2.121457099914551,
+      "eval/utr3/loss": 2.1219239234924316
+    },
+    "20": {
+      "eval/cds/loss": 1.9909473657608032,
+      "eval/enhancer/loss": 1.9901777505874634,
+      "eval/loss": 1.9899779558181763,
+      "eval/ncrna/loss": 1.989789366722107,
+      "eval/region=cds/loss": 1.9909473657608032,
+      "eval/region=enhancer/loss": 1.9901777505874634,
+      "eval/region=ncrna/loss": 1.989789366722107,
+      "eval/region=tss_utr5/loss": 1.988961935043335,
+      "eval/region=utr3/loss": 1.9900124073028564,
+      "eval/tss_utr5/loss": 1.988961935043335,
+      "eval/utr3/loss": 1.9900124073028564
+    }
+  },
+  "native_milestones": [
+    5,
+    10,
+    15,
+    20
+  ],
+  "hf_milestones": [
+    5,
+    10,
+    15,
+    20
+  ],
+  "final_hf_model_object": {
+    "crc32c_hash": "Cyx4BA==",
+    "generation": "1789002669216840",
+    "md5_hash": "IpYBgDMQ2sZlO8knwEsuZQ==",
+    "size": 183596040
+  },
+  "native_resume_status": "passed: update 10 to update 20, byte-identical final model and exact validation-loss parity",
+  "locked_tests": "18 passed in 16.79 seconds on the authorized remote worker",
+  "independent_review": "No material findings at c0585d0e; read-only review",
+  "resume_iris_job": "/gonzalo/dna-exp550-rag46m-pilot-mb5-20260910-resume",
+  "resume_artifact_root": "gs://marin-us-east5/MarinDNA/exp550_rag_five_regions/checkpoints/dna-exp550-rag46m-five-regions-v1-pilot-mb5-resume/2026.09.10.4",
+  "resume_final_hf_model_object": {
+    "crc32c_hash": "Cyx4BA==",
+    "generation": "1789003226314364",
+    "md5_hash": "IpYBgDMQ2sZlO8knwEsuZQ==",
+    "size": 183596040
+  },
+  "resume_native_metadata": {
+    "step": 20,
+    "timestamp": "2026-09-10T01:20:29.028003",
+    "is_temporary": false
+  }
+}
