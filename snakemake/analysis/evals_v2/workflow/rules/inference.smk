@@ -15,6 +15,7 @@ rule compute_scores:
         dataset="|".join(DATASETS),
     threads: config["inference"]["num_workers"]
     params:
+        **inference_precision_params(config["inference"]),
         # 255 for BOS-using checkpoints (e.g. exp136), 256 for older runs;
         # the tokenizer baked into each checkpoint handles BOS itself.
         # NOTE: only output-affecting fields belong in `params:` — values
