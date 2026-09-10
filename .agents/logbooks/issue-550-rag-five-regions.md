@@ -434,7 +434,7 @@ The prepared production submission retains the tested code and lockfile from c05
 It requires the exact five verified public revisions committed inside the experiment project, selects eight free preemptible v6e chips in us-east5, and preserves 100,000 updates, 200 documents per update, and the AdamH scaling heuristic.
 Training has not been submitted while the final datasets are still being assembled.
 
-### 2026-09-10 14:55 UTC — Public training inputs verified
+### 2026-09-10 14:53 UTC — Public training inputs verified
 
 Final biological assembly completed and uploaded all ten train/validation Parquets, the split summary, and the combined development harness by 14:38 UTC.
 The aggregate target initially lacked a local copy of the already-durable producer manifest.
@@ -453,3 +453,25 @@ The user also identified an unrelated idle #517 EC2 worker during this launch.
 Postmortem #564 tracks its approximately 400 idle hours and the cleanup investigation.
 The user explicitly authorized termination and reported that no local output needed retention; AWS confirms i-0b417bcfc77ecc94e terminated at 14:50:46 UTC and its root volume is absent.
 That historical worker's cost is separate from the approved #550 budget.
+
+### 2026-09-10 15:09 UTC — Production submitted and CPU recovery worker reclaimed
+
+Iris accepted /gonzalo/dna-exp550-rag46m-five-regions-v1-20260910 at 14:54:10.128 UTC from commit 41eaed8cb31d4a53a201497fd9ba1b5ac1e8e187.
+The coordinator successfully installed the locked environment and dispatched train-worker at 14:55:23.566 UTC.
+It retains the tested v6e-8 configuration, us-east5 placement, 100,000 updates, 200 documents per update, and version 2026.09.10.5.
+The checkpoint root is gs://marin-us-east5/MarinDNA/exp550_rag_five_regions/checkpoints/dna-exp550-rag46m-five-regions-v1/2026.09.10.5.
+The worker initially remained pending because quota-pool tier monotonicity blocked matching capacity.
+At 15:06 UTC the controller reported 13 matching v6e-8 slices booting in us-east5; the submitted job was retained without a duplicate launch or region change.
+Optimizer progress is not yet verified.
+
+The CPU recovery and publication driver exited successfully at 14:49:27 UTC.
+All biological outputs and publication receipts are stored in their existing S3 workflow namespaces, public HF revisions are pinned in the committed manifest, and 464,519 bytes of recovery logs and status markers are retained locally in /tmp/issue550-recovery-retained-logs.
+Automatic approval review rejected an optional S3 recovery-log archive because its sensitive-content and destination approval checks were unresolved; no archive was uploaded.
+Automatic approval review also initially rejected cleanup of the CPU worker under an incorrect active-NVMe-state premise.
+New read-only evidence established successful completion, durable data, retained logs, and AWS InstanceStorageSupported=false for r6i.4xlarge; review then accepted normal cleanup under the existing task scope.
+AWS confirms i-03039e0a95792b4e0 terminated at 15:03:40 UTC after 59.5 minutes, costing $0.9996 in compute before disk charges.
+No #550 EC2 worker remains running.
+
+The public release audit estimates 126,343,840,095.63 unpadded positions across training under four million draws per region, compared with 204.8 billion allocated positions.
+Those are expected exposures from the exact dataset histograms; observed training exposure remains to be measured.
+Postmortem #564 is delegated to a separate investigation agent at the user's request while this task monitors training startup.
