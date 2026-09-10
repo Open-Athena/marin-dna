@@ -214,3 +214,26 @@ A prior preflight helper used a nonexistent `--plan` flag; rerunning with the do
 
 The next pilot submission uses version `2026.09.10.uv` and job name `dna-exp550-rag46m-pilot-mb5-20260910-uv`.
 No training updates or biological VEP have completed yet.
+
+### 2026-09-10 00:44 UTC — RAG-550-009: Resume verification ready; publication review gate
+
+Snapshot `62cdd734` adds `--resume-pilot-from` for an intermediate native synthetic-pilot checkpoint, with required full-state loading and a separate run/output identity.
+The flag rejects production runs and final/non-native checkpoints.
+All 15 locked training tests passed on the recovery worker in 17.58 seconds.
+The current active pilot remains the tested `54b6f936` snapshot at [Iris job](https://iris.oa.dev/#/job/%2Fgonzalo%2Fdna-exp550-rag46m-pilot-mb5-20260910-uv1), version `2026.09.10.1`.
+The attempted `2026.09.10.uv` version was rejected by the CLI before worker dispatch; the valid numeric calendar version passed a separate exact-command plan check before submission.
+
+The pilot's child is pending because the controller reports `tier_blocked: 1 matching group(s) blocked by quota-pool tier monotonicity`.
+At 00:35 UTC, the lower-tier v6e-4 us-east1 group had degraded health, blocking new v6e-8 allocations despite the latter group's available status.
+The checked v6e-4/v6e-8 pools in other regions also had degraded capacity or occupied ready slices.
+No cluster policy or budget was modified.
+A task-log follower is active; no training update has run.
+
+The existing Hugging Face credential identifies the user account as an administrator of `marin-dna`.
+Authenticated metadata checks returned 404 for all five intended dataset destinations, so none would overwrite an existing repository.
+Automatic approval review nevertheless rejected queuing their future public upload: it classified the operation as sensitive genomic-data egress without specific user authorization for the payload and destination.
+The rejected command did not create or run its publication helper and did not transfer the credential.
+
+The safer preparation-only continuation is queued on the existing CPU worker, gated on producer exit status zero and a successful Snakemake dry-run.
+It runs `rag_all_publication_files` from publisher snapshot `54b6f936`, writes the schema-constrained sequence-only shards and release manifests under the workflow owner, and performs no Hugging Face upload or credential transfer.
+After the exact files exist, inspect their public-reference provenance and manifests before reconsidering the rejected action; ask the user only if the remaining authority gap cannot be resolved with that evidence.
