@@ -9,10 +9,9 @@ import torch
 from levanter.layers.attention import AttentionMask
 from levanter.models.lm_model import LmExample
 from levanter.models.qwen import Qwen3LMHeadModel
-from transformers import AutoModelForCausalLM
-
 from marin_dna_exp550.launch import model_config, training_config
 from marin_dna_exp550.recipe import encode_document
+from transformers import AutoModelForCausalLM
 
 
 def test_padding_cannot_change_real_logits_loss_or_gradients_and_hf_roundtrip(tmp_path):

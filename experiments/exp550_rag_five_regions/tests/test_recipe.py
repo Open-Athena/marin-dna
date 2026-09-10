@@ -1,5 +1,4 @@
 import pytest
-
 from marin_dna_exp550.recipe import (
     BASE_IDS,
     BOS_ID,

@@ -2,7 +2,6 @@ from types import SimpleNamespace
 
 import pytest
 from levanter.trainer import StepInfo, TrainerHooks
-
 from marin_dna_exp550.cadence import MILESTONE_CALLBACKS, CompletedUpdateHooks
 
 

@@ -237,3 +237,28 @@ The rejected command did not create or run its publication helper and did not tr
 The safer preparation-only continuation is queued on the existing CPU worker, gated on producer exit status zero and a successful Snakemake dry-run.
 It runs `rag_all_publication_files` from publisher snapshot `54b6f936`, writes the schema-constrained sequence-only shards and release manifests under the workflow owner, and performs no Hugging Face upload or credential transfer.
 After the exact files exist, inspect their public-reference provenance and manifests before reconsidering the rejected action; ask the user only if the remaining authority gap cannot be resolved with that evidence.
+
+### 2026-09-10 00:59 UTC — RAG-550-010: Explicit public Hub authorization and live TPU preflight
+
+The user explicitly stated in this task: “btw, I approve HF upload, if it wasn't clear”.
+This authorizes public publication of the five prepared `marin-dna/rag-five-regions-v1-{cds,tss_utr5,utr3,ncrna,enhancer}` datasets using the existing Hub credential.
+The prior automatic-review authority gap is resolved by this direct task instruction.
+Preparation and the queued payload audit still precede upload; no additional user approval is needed within that exact scope.
+
+All 16 training tests passed at `e98980ba08c35b805024fe0718397e429646a161` on the authorized CPU worker in 21.15 seconds.
+The exact us-east5 plan passed, and the replacement [Iris pilot](https://iris.oa.dev/#/job/%2Fgonzalo%2Fdna-exp550-rag46m-pilot-mb5-20260910-east5) launched at 00:53 UTC with version `2026.09.10.2`.
+Cancelled only the superseded pending us-east1 pilot and its descendants.
+The replacement reached its TPU worker, installed uv 0.11.31, built all ten synthetic caches, and authenticated W&B.
+Before its first training update, the adapter rejected a 10,176-token example against the required 10,240-token axis.
+Investigation found that upstream jagged-array batch reads special-case only the last occurrence of row zero, potentially truncating earlier repeated reads by the shard row count (64 in this pilot).
+A reproduction and a local adapter fix are in progress.
+The CLI-defined optimizer class also failed configuration serialization under `__main__`; it will move to an importable module before retrying.
+
+The upload command was accepted after the user's explicit authorization and is queued on the recovery worker (PID 14373).
+It waits for successful release preparation and the complete payload audit (PID 13203), then dry-runs and publishes the five exact destinations serially.
+The existing HF token is supplied only through encrypted SSH stdin into process memory/environment; no credential file is copied or written.
+
+The cache bug is confirmed with three synthetic rows: `get_batch([0,1,0])` returned lengths `[10237,10240,10240]`.
+[Issue #557](https://github.com/Open-Athena/marin-dna/issues/557) records the reusable upstream defect.
+The experiment-local adapter reads unique component indices before shuffle/mixing and restores every sampled occurrence in order.
+All 18 locked training tests passed in 16.79 seconds, including real TreeCache-to-NamedLmDataset repeated-read parity and optimizer configuration serialization after cloudpickle round-trip.

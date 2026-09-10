@@ -61,6 +61,8 @@ Its synthetic documents cover one, 20, and 40 species and do not read biological
 Tokenization runs in a CPU-only child process on the allocated TPU host, using the standard Marin cache writer and a local Zephyr client with two threads.
 The child removes `IRIS_TASK_ID` so cache preparation cannot dispatch additional CPU workers.
 Production caches use immutable public dataset revisions; the training process then loads those prebuilt document caches.
+An experiment-local data adapter reads each requested cache row once and restores repeated draws in their original order, preserving the mixture distribution while avoiding the pinned upstream reader's [repeated-row-zero truncation bug](https://github.com/Open-Athena/marin-dna/issues/557).
+The fixed-horizon optimizer lives in an importable module so dispatched workers can serialize its registered configuration.
 Monitor pilot loss, actual TPU count, throughput, native save/resume, HF export, and validation before launching the full run.
 After the pilot completes, pass `--pilot --resume-pilot-from <pilot-output>/checkpoints/step-10` with a fresh calendar version to verify native resume through update 20 in a separate output directory.
 This check requires loading the full intermediate trainer state and keeps the production scratch-start recipe unchanged.

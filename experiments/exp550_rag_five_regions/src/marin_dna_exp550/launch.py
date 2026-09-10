@@ -22,14 +22,11 @@ from iris.cluster.setup_scripts import default_setup_script
 from levanter.checkpoint import CheckpointerConfig
 from levanter.data.text.datasets import (
     DatasetComponent,
-    LmDataConfig,
     UrlDatasetSourceConfig,
 )
 from levanter.layers.rotary import Llama3RotaryEmbeddingsConfig
 from levanter.main.train_lm import TrainLmConfig
 from levanter.models.qwen import Qwen3Config
-from levanter.optim.adamh import AdamHConfig
-from levanter.optim.config import OptimizerConfig
 from levanter.tracker.wandb import WandbConfig
 from levanter.trainer import TrainerConfig
 from levanter.utils.mesh import MeshConfig
@@ -44,7 +41,9 @@ from marin.training.training import (
 )
 
 from marin_dna_exp550.cadence import CompletedUpdateAdaptor
+from marin_dna_exp550.data import RagDataConfig
 from marin_dna_exp550.formats import RagFormat
+from marin_dna_exp550.optimizer import FixedHorizonAdamH
 from marin_dna_exp550.recipe import (
     BATCH_DOCUMENTS,
     CHECKPOINT_EVERY,
@@ -72,15 +71,6 @@ def model_config() -> Qwen3Config:
         tokenizer=tokenizer_path(),
         reference_checkpoint=tokenizer_path(),
     )
-
-
-@OptimizerConfig.register_subclass("exp550_fixed_horizon_adamh")
-@dataclass(frozen=True)
-class FixedHorizonAdamH(AdamHConfig):
-    def build(self, num_train_steps: int) -> Any:
-        # A short pilot follows the identical first updates of the 100k schedule.
-        del num_train_steps
-        return super().build(TRAIN_UPDATES)
 
 
 @dataclass(frozen=True)
@@ -143,7 +133,7 @@ def training_config(
             format=RagFormat(),
             tags=[f"region={region}"],
         )
-    data = LmDataConfig(
+    data = RagDataConfig(
         components=components,
         train_weights={region: 0.2 for region in REGIONS},
         tokenizer=tokenizer_path(),

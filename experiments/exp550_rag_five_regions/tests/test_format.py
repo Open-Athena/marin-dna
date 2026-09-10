@@ -1,10 +1,9 @@
 from pathlib import Path
 
 import numpy as np
-from transformers import PreTrainedTokenizerFast
-
 from marin_dna_exp550.formats import RagFormat, RagProcessor, RagTokenizedCache
 from marin_dna_exp550.recipe import encode_document
+from transformers import PreTrainedTokenizerFast
 
 
 def test_direct_encoding_matches_exported_tokenizer():
