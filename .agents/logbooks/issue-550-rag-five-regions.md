@@ -353,3 +353,11 @@ At 02:47 UTC, the biological producer remained at 157/159 recovery jobs, ingesti
 HF payload preparation, audit, explicitly authorized upload, and immutable input-manifest checks remain queued in order.
 An optional EBS IOPS increase was rejected by automatic approval review as additional disk spend outside the clearly approved CPU/GPU scope; no disk change occurred and processing continues on the original disk.
 The explicit HF approval persists for the five registered sequence-only datasets.
+
+### 2026-09-10 02:55 UTC — Reporting and quality follow-up
+
+Repository-wide pre-commit checks passed after formatting the one-off evidence scripts and adding terminal newlines to JSON evidence copies.
+The immutable original evidence remains available in its earlier snapshot.
+Automatic approval review rejected optional copying of the already-published synthetic GPU report to W&B, including after supplying the earlier direct W&B authorization record.
+No W&B report upload occurred; the pinned GitHub artifact remains the numerical reporting source.
+This optional reporting step does not block dataset assembly or the approved HF publication.
