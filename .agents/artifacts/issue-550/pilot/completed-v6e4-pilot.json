@@ -1,0 +1,118 @@
+{
+  "git_commit": "57c4124e24b313215f9d7662cf3eb9faac3f9200",
+  "iris_job": "/gonzalo/dna-exp550-rag46m-pilot-v6e4-20260910-east5",
+  "wandb_run": "https://wandb.ai/gonzalobenegas/marin/runs/dna-exp550-rag46m-five-regions-v1-pilot-mb5-v6e-4",
+  "artifact_root": "gs://marin-us-east5/MarinDNA/exp550_rag_five_regions/checkpoints/dna-exp550-rag46m-five-regions-v1-pilot-mb5-v6e-4/2026.09.10.2",
+  "synthetic_only": true,
+  "completed_updates": 20,
+  "wandb_global_step_zero_based": 19,
+  "num_devices": 4,
+  "documents_per_update": 200,
+  "last_steady_update_seconds": 2.7058421380002073,
+  "projected_100000_update_compute_hours": 75.16228161111688,
+  "final_train_loss": 1.5804566144943235,
+  "validation_losses_by_completed_update": {
+    "5": {
+      "eval/region=utr3/loss": 2.2879858016967773,
+      "eval/region=cds/loss": 2.2866053581237793,
+      "eval/loss": 2.2870240211486816,
+      "eval/region=tss_utr5/loss": 2.2859268188476562,
+      "eval/region=enhancer/loss": 2.287898302078247,
+      "eval/enhancer/loss": 2.287898302078247,
+      "eval/cds/loss": 2.2866053581237793,
+      "eval/tss_utr5/loss": 2.2859268188476562,
+      "eval/utr3/loss": 2.2879858016967773,
+      "eval/ncrna/loss": 2.286703586578369,
+      "eval/region=ncrna/loss": 2.286703586578369
+    },
+    "10": {
+      "eval/region=utr3/loss": 2.223118305206299,
+      "eval/region=cds/loss": 2.2221834659576416,
+      "eval/loss": 2.2235817909240723,
+      "eval/region=tss_utr5/loss": 2.22405743598938,
+      "eval/region=enhancer/loss": 2.2247376441955566,
+      "eval/enhancer/loss": 2.2247376441955566,
+      "eval/cds/loss": 2.2221834659576416,
+      "eval/tss_utr5/loss": 2.22405743598938,
+      "eval/utr3/loss": 2.223118305206299,
+      "eval/ncrna/loss": 2.223813056945801,
+      "eval/region=ncrna/loss": 2.223813056945801
+    },
+    "15": {
+      "eval/region=utr3/loss": 2.123051881790161,
+      "eval/region=cds/loss": 2.1233456134796143,
+      "eval/loss": 2.123105525970459,
+      "eval/region=tss_utr5/loss": 2.1230783462524414,
+      "eval/region=enhancer/loss": 2.122838020324707,
+      "eval/enhancer/loss": 2.122838020324707,
+      "eval/cds/loss": 2.1233456134796143,
+      "eval/tss_utr5/loss": 2.1230783462524414,
+      "eval/utr3/loss": 2.123051881790161,
+      "eval/ncrna/loss": 2.12321400642395,
+      "eval/region=ncrna/loss": 2.12321400642395
+    },
+    "20": {
+      "eval/region=utr3/loss": 1.9910725355148315,
+      "eval/region=cds/loss": 1.9905835390090942,
+      "eval/loss": 1.9907548427581787,
+      "eval/region=tss_utr5/loss": 1.9908883571624756,
+      "eval/region=enhancer/loss": 1.9910839796066284,
+      "eval/enhancer/loss": 1.9910839796066284,
+      "eval/cds/loss": 1.9905835390090942,
+      "eval/tss_utr5/loss": 1.9908883571624756,
+      "eval/utr3/loss": 1.9910725355148315,
+      "eval/ncrna/loss": 1.9901459217071533,
+      "eval/region=ncrna/loss": 1.9901459217071533
+    }
+  },
+  "native_milestone_metadata": {
+    "5": {
+      "step": 5,
+      "timestamp": "2026-09-10T16:21:18.597619",
+      "is_temporary": false
+    },
+    "10": {
+      "step": 10,
+      "timestamp": "2026-09-10T16:21:43.000869",
+      "is_temporary": false
+    },
+    "15": {
+      "step": 15,
+      "timestamp": "2026-09-10T16:21:59.201219",
+      "is_temporary": false
+    },
+    "20": {
+      "step": 20,
+      "timestamp": "2026-09-10T16:22:24.190096",
+      "is_temporary": false
+    }
+  },
+  "hf_milestone_objects": {
+    "5": {
+      "size": 183596040,
+      "generation": "1789057283848207",
+      "md5Hash": "XP05Lvc2bFZIX74MFd99WQ==",
+      "crc32c": "j926zw=="
+    },
+    "10": {
+      "size": 183596040,
+      "generation": "1789057300144140",
+      "md5Hash": "XzfJskIWJlugHv62CbKt0A==",
+      "crc32c": "ZIpAZQ=="
+    },
+    "15": {
+      "size": 183596040,
+      "generation": "1789057317242654",
+      "md5Hash": "GwIUiqWalIUH2HU2A0uFWg==",
+      "crc32c": "XGXGYg=="
+    },
+    "20": {
+      "size": 183596040,
+      "generation": "1789057342158643",
+      "md5Hash": "oSL2rsRsbdWZYZUulDD0Yw==",
+      "crc32c": "jwP87A=="
+    }
+  },
+  "locked_tests": "19 passed in 44.47 seconds",
+  "independent_review": "No blocking findings at 57c4124e"
+}

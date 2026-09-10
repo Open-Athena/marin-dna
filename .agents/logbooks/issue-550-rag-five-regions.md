@@ -530,3 +530,29 @@ No biological VEP inference has run, and no additional paid worker has been laun
 
 The user approved closing postmortem #564; its body records the completed investigation, evidence limits, cost estimate, and unimplemented recommendations.
 GitHub confirms closure at 15:38:01 UTC.
+
+### 2026-09-10 16:28 UTC — Four-chip pilot passed; production replaced
+
+The us-east1 four-chip pilot passed all 19 locked tests in 44.47 seconds but never acquired a TPU.
+Its parent and child were canceled at 16:13 UTC after the regional pool lost all ready workers and reported quota-pool tier blocking.
+Inspection of the pinned autoscaler code showed that failed allocation tiers cause that restriction; the pending eight-chip request was not itself the cause.
+Submitted the same tested snapshot in us-east5 at 16:14:01.994 UTC with Iris's normal interactive priority and a separate root job, /gonzalo/dna-exp550-rag46m-pilot-v6e4-20260910-east5.
+The child began setup at 16:18:26 UTC, completed synthetic caches, and ran all 20 training updates on four TPU v6 lite devices.
+Native and HF milestones at completed updates 5, 10, 15, and 20 are present in GCS, and the final W&B run state is finished.
+Final training loss is 1.5804566144943235; aggregate validation loss decreases from 2.2870240211486816 at update 5 to 1.9907548427581787 at update 20.
+The last steady update took 2.705842138 seconds, projecting 75.1623 compute hours for 100,000 updates before tokenization, validation, checkpoint overhead, and interruptions.
+The verification receipt is .agents/artifacts/issue-550/pilot/completed-v6e4-pilot.json.
+W&B global_step remains zero-based and ends at 19; the final evaluation uses _step 20 and native metadata confirms 20 completed updates.
+The first verification helper incorrectly expected global_step 20; correcting that helper to the documented convention verified all milestones without changing or rerunning training.
+
+Production was accepted at 16:25:14 UTC as /gonzalo/dna-exp550-rag46m-five-regions-v1-20260910-east5-v6e4, from the exact pilot snapshot 57c4124e24b313215f9d7662cf3eb9faac3f9200.
+It uses v6e-4, microbatch 5, batch 200, 100,000 updates, the five verified HF revisions, and version 2026.09.10.8 under gs://marin-us-east5/MarinDNA/exp550_rag_five_regions/checkpoints/dna-exp550-rag46m-five-regions-v1.
+The coordinator uses the normal interactive band, two coordinator retries, and a seven-day job timeout; native rolling checkpoints and permanent 10,000-update checkpoints retain the tested recovery behavior.
+No TPU or biological optimizer progress is claimed from coordinator submission alone.
+
+Automatic approval review initially rejected cancellation of the old version-7 parent because it inferred active training and missing authority for that job.
+Fresh task and descendant checks at 16:26 UTC proved that its sole live child was pending without a worker after three failures, its other descendants were killed, and the replacement was an independent root job.
+The pilot receipt was retained locally before cleanup.
+Review accepted cancellation under the existing autonomous execution/recovery scope after that evidence was supplied; no additional user permission was requested.
+Iris confirmed the old parent canceled at 16:27 UTC; its GCS artifacts were not deleted.
+The exact evaluation registration must now use the us-east5 version-8 export path.
