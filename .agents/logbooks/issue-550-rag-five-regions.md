@@ -475,3 +475,29 @@ No #550 EC2 worker remains running.
 The public release audit estimates 126,343,840,095.63 unpadded positions across training under four million draws per region, compared with 204.8 billion allocated positions.
 Those are expected exposures from the exact dataset histograms; observed training exposure remains to be measured.
 Postmortem #564 is delegated to a separate investigation agent at the user's request while this task monitors training startup.
+
+### 2026-09-10 15:33 UTC — Production worker allocated in us-east1
+
+The original us-east5 request and its child were canceled at 15:12:54 UTC after the matching pool degraded without providing a worker.
+The us-east1 replacement was accepted at 15:13:06.954 UTC from 872c5e68f11cc9067bb0bce741782e187594e6e8, using checkpoint version 2026.09.10.6.
+Its child initially lacked the requested 128 GiB RAM on the available v6e-8 host.
+The reviewed resource-only change bd948cf275c4bf23d733df34401c40707b8c55a3 reduces host RAM to 48 GiB while preserving 16 CPU cores, 80 GiB disk, eight v6e chips, and the entire scientific recipe.
+Independent review found no blocking issue; actual production memory usage still requires observation because the expanded token cache is approximately 91 GB and must stream to GCS.
+The two tokenization workers process regions sequentially with bounded batches, and the tokenization subprocess exits before model training starts.
+
+The version-6 child acquired capacity and began CDS tokenization while the RAM revision was being prepared.
+It was canceled at 15:26 UTC, after approximately 52,000 initial CDS records had been processed and before any optimizer steps.
+Both parent and child were confirmed killed before replacement submission.
+The first replacement command failed local CLI validation because a 4-GiB coordinator requires --enable-extra-resources; adding that documented flag allowed submission without another resource allocation or permission request.
+
+Iris accepted /gonzalo/dna-exp550-rag46m-five-regions-v1-20260910-east1-ram48 at 15:27:42.302 UTC from bd948cf275c4bf23d733df34401c40707b8c55a3.
+The 4-GiB CPU coordinator ran JAX_PLATFORMS=cpu OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 uv run --locked pytest before dispatch: all 18 tests passed in 52.81 seconds, with one upstream deprecation warning.
+The child was submitted at 15:29:53.819 UTC and started at 15:30:13.117 UTC on marin-tpu-v6e-preemptible-8-us-east1-d-20260910-1516-7f7b3e67-worker-0.
+Its controller resource receipt confirms v6e-8, count 8, 48 GiB RAM, 16 CPU cores, and 80 GiB disk.
+Production tokenization began at 15:30:39 UTC and is writing CDS caches to gs://marin-us-east1/MarinDNA/exp550_rag_five_regions/checkpoints/dna-exp550-rag46m-five-regions-v1/2026.09.10.7/tokenized.
+Both local tokenization workers are alive and document counts are advancing; optimizer steps and W&B training metrics are not yet available.
+Retain this active job while it builds all five caches, then verify compilation, finite advancing optimizer steps, observed memory, and checkpoint creation.
+
+The existing free-Iris authority and cumulative $30 CPU/GPU cap remain unchanged.
+No paid EC2 worker is active for this task, and no biological VEP inference has run.
+The user requested that all further postmortem #564 findings update its body directly, without new comments.
