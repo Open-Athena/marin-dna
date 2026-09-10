@@ -54,6 +54,9 @@ The launch uses free, preemptible `v6e-8` capacity and a microbatch of 5 per chi
 It defaults to `us-east1`; `--region us-east5` selects the verified capacity fallback and requires `MARIN_PREFIX=gs://marin-us-east5/MarinDNA/exp550_rag_five_regions` so caches and checkpoints stay in the compute region.
 It requests 80 GiB of local scratch within the pool's 100 GiB per-VM limit; tokenized caches and checkpoints are written to GCS.
 The host allocation reserves 48 GiB RAM and 16 CPU cores; tokenization streams through two workers with batches of 128 documents.
+Use `--tpu-variant v6e-4` when eight-chip capacity is unavailable, after validating a synthetic pilot on four chips.
+It preserves the model, optimizer, 200-document effective batch, and schedule; four chips with microbatch 5 accumulate ten microbatches per update.
+Four-chip pilots use a separate run name ending in `-v6e-4` so their metrics and checkpoints remain distinct.
 Microbatch 1 is the supported memory fallback and preserves the same effective batch.
 Larger data-parallel meshes do not divide this batch evenly and must not silently change the recipe.
 The synthetic pilot runs 20 updates with saves and validation every 5 completed updates while following the production optimizer schedule.

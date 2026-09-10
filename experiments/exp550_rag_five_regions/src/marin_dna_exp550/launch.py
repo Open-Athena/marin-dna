@@ -268,15 +268,20 @@ def build_training(
     per_device: int,
     region: str,
     resume_pilot_from: str | None = None,
+    tpu_variant: str = "v6e-8",
 ) -> ArtifactStep[LevanterCheckpoint]:
     if region not in {"us-east1", "us-east5"}:
         raise ValueError("this launch requires a verified free TPU region")
+    if tpu_variant not in {"v6e-8", "v6e-4"}:
+        raise ValueError("supported TPU variants are v6e-8 and v6e-4")
     expected_prefix = f"gs://marin-{region}/MarinDNA/exp550_rag_five_regions"
     if os.environ.get("MARIN_PREFIX") != expected_prefix:
         raise ValueError(f"MARIN_PREFIX must be {expected_prefix}")
     run_id = "dna-exp550-rag46m-five-regions-v1" + (
         f"-pilot-mb{per_device}" if pilot else ""
     )
+    if pilot and tpu_variant != "v6e-8":
+        run_id += f"-{tpu_variant}"
     if resume_pilot_from:
         if not pilot or not resume_pilot_from.startswith(
             f"{expected_prefix}/checkpoints/dna-exp550-rag46m-five-regions-v1-pilot-"
@@ -290,7 +295,12 @@ def build_training(
             )
         run_id += "-resume"
     resources = ResourceConfig.with_tpu(
-        "v6e-8", regions=[region], cpu=16, ram="48g", disk="80g", preemptible=True
+        tpu_variant,
+        regions=[region],
+        cpu=16,
+        ram="48g",
+        disk="80g",
+        preemptible=True,
     )
 
     def build_config(ctx: StepContext) -> TrainingRequest:
@@ -336,6 +346,7 @@ def build_training(
 @click.option("--pilot", is_flag=True)
 @click.option("--per-device", type=int, default=5)
 @click.option("--region", default="us-east1")
+@click.option("--tpu-variant", type=click.Choice(["v6e-8", "v6e-4"]), default="v6e-8")
 @click.option(
     "--resume-pilot-from", help="Verify resume from a native pilot milestone."
 )
@@ -346,6 +357,7 @@ def main(
     per_device: int,
     region: str,
     resume_pilot_from: str | None,
+    tpu_variant: str,
 ) -> ArtifactStep[LevanterCheckpoint]:
     return build_training(
         read_dataset_manifest(dataset_manifest, pilot=pilot),
@@ -353,6 +365,7 @@ def main(
         per_device=per_device,
         region=region,
         resume_pilot_from=resume_pilot_from,
+        tpu_variant=tpu_variant,
     )
 
 

@@ -82,3 +82,44 @@ def test_native_resume_is_required_and_uses_a_separate_pilot_run(monkeypatch, re
         )
     with pytest.raises(ValueError, match="intermediate native"):
         build(source.replace("step-10", "step-20"))
+
+
+def test_four_chip_fallback_preserves_recipe_and_separates_pilot(monkeypatch):
+    prefix = "gs://marin-us-east1/MarinDNA/exp550_rag_five_regions"
+    monkeypatch.setenv("MARIN_PREFIX", prefix)
+    monkeypatch.setattr(launch, "resolve_version", lambda *_: "2026.09.10.8")
+    steps = [
+        launch.build_training(
+            {}, pilot=True, per_device=5, region="us-east1", tpu_variant=variant
+        )
+        for variant in ("v6e-8", "v6e-4")
+    ]
+    assert steps[0].name != steps[1].name
+    assert steps[1].name.endswith("-v6e-4")
+    configs = [
+        step.build_config(
+            SimpleNamespace(
+                output_path=f"{prefix}/checkpoints/test",
+                runtime_arg=lambda key, step=step: step.runtime_args[key],
+            )
+        ).pod.train_config
+        for step in steps
+    ]
+    first, fallback = configs
+    assert first.model == fallback.model
+    assert first.optimizer == fallback.optimizer
+    assert first.data == fallback.data
+    assert first.trainer.train_batch_size == fallback.trainer.train_batch_size == 200
+    assert (
+        first.trainer.per_device_parallelism
+        == fallback.trainer.per_device_parallelism
+        == 5
+    )
+    assert first.trainer.num_train_steps == fallback.trainer.num_train_steps == 20
+    assert steps[1].runtime_args["train_resources"] == ResourceConfig.with_tpu(
+        "v6e-4", regions=["us-east1"], cpu=16, ram="48g", disk="80g", preemptible=True
+    )
+    with pytest.raises(ValueError, match="supported TPU variants"):
+        launch.build_training(
+            {}, pilot=True, per_device=5, region="us-east1", tpu_variant="v6e-16"
+        )
