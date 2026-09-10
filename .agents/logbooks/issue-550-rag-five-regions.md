@@ -192,3 +192,25 @@ The model, data, optimizer, and effective batch are unchanged.
 The user also requested durable guidance to prevent repeated permission questions.
 [Issue #555](https://github.com/Open-Athena/marin-dna/issues/555) and [PR #556](https://github.com/Open-Athena/marin-dna/pull/556) add initial approval consolidation and a persistent authorization record to AGENTS.md and the research/launch skills.
 Independent review is in progress; the guidance explicitly cannot override platform approval review.
+
+### 2026-09-10 00:25 UTC — RAG-550-008: Cached recovery and explicit worker setup
+
+Approval-persistence guidance passed all CI jobs and independent review with no findings in PR #556, which is ready for human review and remains unmerged.
+The same guidance is applied to this active branch at `c8b73e0f`.
+
+The recovery dry-run initially scheduled 361 jobs because the freshly checked-out manifest timestamps were newer than the durable provenance outputs.
+Verified the three manifest files byte-for-byte against producer commit `6b1593c274a886d20f5c0ddf3712916d446f5fed`, then restored their timestamps to that commit time.
+The refined dry-run reused 206 completed jobs and scheduled 159 missing jobs, including 18 liftOver jobs and 20 species sequence outputs.
+It preserves the original source hashes and S3 output namespace.
+The producer resumed at 00:20 UTC using `--cores 4 --resources mem_mb=56000 --rerun-triggers code params input --set-resources rag_chain_liftover:mem_mb=18000`.
+Completed mammal liftOver benchmarks peak at 12,801 MiB RSS, with all remaining compressed chains smaller than the measured mouse chain; 18 GB reservations allow at most three concurrent queries with headroom on the 64 GiB worker.
+The elephant query actually completed and uploaded its mapped/accepted outputs just before the old worker terminated; it is reused.
+
+The 80 GiB pilot retry reached an allocated TPU worker, but the shared image's uv 0.10.3 failed the project's required uv 0.11.31 check during child dependency setup.
+The coordinator's installed uv was not inherited by the worker.
+Snapshot `54b6f936467bbc657ae88753a6f24b768bd3363d` submits the child through Fray with an explicit pinned-uv bootstrap followed by the standard Iris TPU dependency setup.
+All 14 locked training tests passed on the recovery worker in 24.04 seconds, including child environment propagation through the actual Fray-to-Iris converter.
+A prior preflight helper used a nonexistent `--plan` flag; rerunning with the documented default plan mode passed.
+
+The next pilot submission uses version `2026.09.10.uv` and job name `dna-exp550-rag46m-pilot-mb5-20260910-uv`.
+No training updates or biological VEP have completed yet.

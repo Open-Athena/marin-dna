@@ -1,0 +1,359 @@
+[
+  {
+    "species": "Choloepus_hoffmanni",
+    "measurements": [
+      {
+        "s": "57.57",
+        "h:m:s": "0:00:57",
+        "max_rss": "10640.12",
+        "max_vms": "10659.43",
+        "max_uss": "10633.89",
+        "max_pss": "10635.08",
+        "io_in": "0.00",
+        "io_out": "28.65",
+        "mean_load": "94.36",
+        "cpu_time": "54.53"
+      }
+    ]
+  },
+  {
+    "species": "Elephantulus_edwardii",
+    "measurements": [
+      {
+        "s": "183.23",
+        "h:m:s": "0:03:03",
+        "max_rss": "9368.25",
+        "max_vms": "9387.42",
+        "max_uss": "9363.80",
+        "max_pss": "9364.52",
+        "io_in": "0.00",
+        "io_out": "51.18",
+        "mean_load": "95.39",
+        "cpu_time": "175.17"
+      }
+    ]
+  },
+  {
+    "species": "Heterohyrax_brucei",
+    "measurements": [
+      {
+        "s": "46.97",
+        "h:m:s": "0:00:46",
+        "max_rss": "10881.25",
+        "max_vms": "10900.51",
+        "max_uss": "10874.92",
+        "max_pss": "10876.59",
+        "io_in": "0.00",
+        "io_out": "57.02",
+        "mean_load": "113.42",
+        "cpu_time": "53.63"
+      }
+    ]
+  },
+  {
+    "species": "Loxodonta_africana",
+    "measurements": [
+      {
+        "s": "1503.78",
+        "h:m:s": "0:25:03",
+        "max_rss": "9232.88",
+        "max_vms": "9252.29",
+        "max_uss": "9228.59",
+        "max_pss": "9229.32",
+        "io_in": "0.00",
+        "io_out": "54.89",
+        "mean_load": "99.52",
+        "cpu_time": "1496.85"
+      }
+    ]
+  },
+  {
+    "species": "Microgale_talazaci",
+    "measurements": [
+      {
+        "s": "44.40",
+        "h:m:s": "0:00:44",
+        "max_rss": "5302.56",
+        "max_vms": "5344.46",
+        "max_uss": "5292.78",
+        "max_pss": "5295.67",
+        "io_in": "0.00",
+        "io_out": "0.00",
+        "mean_load": "56.41",
+        "cpu_time": "25.41"
+      }
+    ]
+  },
+  {
+    "species": "Mus_musculus",
+    "measurements": [
+      {
+        "s": "529.09",
+        "h:m:s": "0:08:49",
+        "max_rss": "12801.12",
+        "max_vms": "12820.60",
+        "max_uss": "12796.98",
+        "max_pss": "12797.72",
+        "io_in": "0.00",
+        "io_out": "55.67",
+        "mean_load": "100.86",
+        "cpu_time": "533.98"
+      }
+    ]
+  },
+  {
+    "species": "anaPla1",
+    "measurements": [
+      {
+        "s": "5.19",
+        "h:m:s": "0:00:05",
+        "max_rss": "191.88",
+        "max_vms": "211.21",
+        "max_uss": "185.48",
+        "max_pss": "186.95",
+        "io_in": "0.00",
+        "io_out": "57.94",
+        "mean_load": "88.68",
+        "cpu_time": "4.84"
+      }
+    ]
+  },
+  {
+    "species": "anoCar2",
+    "measurements": [
+      {
+        "s": "8.42",
+        "h:m:s": "0:00:08",
+        "max_rss": "160.12",
+        "max_vms": "179.16",
+        "max_uss": "155.42",
+        "max_pss": "156.15",
+        "io_in": "0.00",
+        "io_out": "55.27",
+        "mean_load": "90.57",
+        "cpu_time": "8.01"
+      }
+    ]
+  },
+  {
+    "species": "astMex1",
+    "measurements": [
+      {
+        "s": "1.24",
+        "h:m:s": "0:00:01",
+        "max_rss": "106.38",
+        "max_vms": "133.89",
+        "max_uss": "101.80",
+        "max_pss": "102.52",
+        "io_in": "0.00",
+        "io_out": "40.97",
+        "mean_load": "40.33",
+        "cpu_time": "0.83"
+      }
+    ]
+  },
+  {
+    "species": "cheMyd1",
+    "measurements": [
+      {
+        "s": "12.15",
+        "h:m:s": "0:00:12",
+        "max_rss": "288.62",
+        "max_vms": "307.79",
+        "max_uss": "284.07",
+        "max_pss": "284.81",
+        "io_in": "0.00",
+        "io_out": "55.07",
+        "mean_load": "92.38",
+        "cpu_time": "11.54"
+      }
+    ]
+  },
+  {
+    "species": "falChe1",
+    "measurements": [
+      {
+        "s": "10.87",
+        "h:m:s": "0:00:10",
+        "max_rss": "221.38",
+        "max_vms": "240.43",
+        "max_uss": "216.64",
+        "max_pss": "217.37",
+        "io_in": "0.00",
+        "io_out": "56.09",
+        "mean_load": "93.09",
+        "cpu_time": "10.48"
+      }
+    ]
+  },
+  {
+    "species": "fr3",
+    "measurements": [
+      {
+        "s": "1.44",
+        "h:m:s": "0:00:01",
+        "max_rss": "84.62",
+        "max_vms": "103.73",
+        "max_uss": "78.01",
+        "max_pss": "79.34",
+        "io_in": "0.00",
+        "io_out": "31.92",
+        "mean_load": "35.27",
+        "cpu_time": "0.71"
+      }
+    ]
+  },
+  {
+    "species": "galGal4",
+    "measurements": [
+      {
+        "s": "30.24",
+        "h:m:s": "0:00:30",
+        "max_rss": "215.25",
+        "max_vms": "234.08",
+        "max_uss": "210.45",
+        "max_pss": "211.17",
+        "io_in": "0.00",
+        "io_out": "31.25",
+        "mean_load": "48.15",
+        "cpu_time": "14.91"
+      }
+    ]
+  },
+  {
+    "species": "gasAcu1",
+    "measurements": [
+      {
+        "s": "1.28",
+        "h:m:s": "0:00:01",
+        "max_rss": "98.50",
+        "max_vms": "117.54",
+        "max_uss": "93.84",
+        "max_pss": "94.56",
+        "io_in": "0.00",
+        "io_out": "37.38",
+        "mean_load": "39.79",
+        "cpu_time": "0.77"
+      }
+    ]
+  },
+  {
+    "species": "latCha1",
+    "measurements": [
+      {
+        "s": "1.94",
+        "h:m:s": "0:00:01",
+        "max_rss": "128.88",
+        "max_vms": "147.91",
+        "max_uss": "122.26",
+        "max_pss": "123.63",
+        "io_in": "0.00",
+        "io_out": "39.52",
+        "mean_load": "52.14",
+        "cpu_time": "1.28"
+      }
+    ]
+  },
+  {
+    "species": "lepOcu1",
+    "measurements": [
+      {
+        "s": "2.87",
+        "h:m:s": "0:00:02",
+        "max_rss": "117.54",
+        "max_vms": "159.04",
+        "max_uss": "112.11",
+        "max_pss": "112.82",
+        "io_in": "0.00",
+        "io_out": "50.19",
+        "mean_load": "70.00",
+        "cpu_time": "2.36"
+      }
+    ]
+  },
+  {
+    "species": "oreNil2",
+    "measurements": [
+      {
+        "s": "2.02",
+        "h:m:s": "0:00:02",
+        "max_rss": "87.25",
+        "max_vms": "106.79",
+        "max_uss": "82.89",
+        "max_pss": "83.41",
+        "io_in": "0.00",
+        "io_out": "32.58",
+        "mean_load": "47.93",
+        "cpu_time": "1.13"
+      }
+    ]
+  },
+  {
+    "species": "oryLat2",
+    "measurements": [
+      {
+        "s": "1.25",
+        "h:m:s": "0:00:01",
+        "max_rss": "95.00",
+        "max_vms": "114.06",
+        "max_uss": "90.39",
+        "max_pss": "91.10",
+        "io_in": "0.00",
+        "io_out": "39.00",
+        "mean_load": "40.32",
+        "cpu_time": "0.76"
+      }
+    ]
+  },
+  {
+    "species": "petMar2",
+    "measurements": [
+      {
+        "s": "1.13",
+        "h:m:s": "0:00:01",
+        "max_rss": "70.38",
+        "max_vms": "98.62",
+        "max_uss": "65.75",
+        "max_pss": "66.28",
+        "io_in": "0.00",
+        "io_out": "46.78",
+        "mean_load": "43.20",
+        "cpu_time": "0.66"
+      }
+    ]
+  },
+  {
+    "species": "xenTro7",
+    "measurements": [
+      {
+        "s": "5.62",
+        "h:m:s": "0:00:05",
+        "max_rss": "175.88",
+        "max_vms": "194.97",
+        "max_uss": "169.26",
+        "max_pss": "170.60",
+        "io_in": "0.00",
+        "io_out": "53.69",
+        "mean_load": "81.65",
+        "cpu_time": "4.92"
+      }
+    ]
+  },
+  {
+    "species": "xipMac1",
+    "measurements": [
+      {
+        "s": "1.13",
+        "h:m:s": "0:00:01",
+        "max_rss": "91.00",
+        "max_vms": "110.17",
+        "max_uss": "86.42",
+        "max_pss": "87.16",
+        "io_in": "0.00",
+        "io_out": "49.27",
+        "mean_load": "45.12",
+        "cpu_time": "0.74"
+      }
+    ]
+  }
+]
