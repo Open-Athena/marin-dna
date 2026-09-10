@@ -678,3 +678,18 @@ The original four-hour recovery reservation remains preserved in the earlier bud
 At 18:03, the European production child was still TASK_STATE_RUNNING on attempt 0 with no error, and ten of sixteen CDS shards were complete.
 Production optimizer updates and final biological evaluation remain pending; the 43.09-hour pilot projection excludes tokenization and other overhead.
 The reviewed staging helper is published in fde7b9c1; the canonical model registration PR remains ready, fully checked, and unmerged at 51fd75ad.
+
+## 2026-09-10 19:49 UTC — Production training and recovery checkpoints verified
+
+The live controller reports the European production child TASK_STATE_RUNNING on attempt 0, with no error or worker restart.
+The prior local log follower stopped receiving output at 18:13, so this status uses a fresh controller log read rather than the stale local tail.
+Production completed tokenization and the training-loop elapsed time places its start at approximately 19:24:14 UTC.
+At 19:48:34, progress reached 900 of 100,000 updates, generally around 1.6 seconds per update, with reported training loss 0.864 versus approximately 1.10 at update 327.
+The logs show occasional ten-second data-loading waits followed by continued updates; no active failure is reported.
+Current progress implies about 43–45 training hours remaining before additional validation, checkpoint, and interruption overhead.
+
+The step-360 temporary recovery checkpoint committed at 19:34:21, and the step-737 checkpoint committed at 19:44:26.
+The older temporary checkpoint was removed only after the replacement committed.
+A bounded GCS listing independently confirmed step-737 metadata.json, manifest.json, manifest.ocdbt, and data under gs://marin-eu-west4/tmp/ttl=14d/checkpoints-temp/marin-eu-west4/MarinDNA/exp550_rag_five_regions/checkpoints/dna-exp550-rag46m-five-regions-v1/2026.09.10.9/checkpoints/step-737/.
+The first permanent checkpoint and full chr18 LM validation are scheduled at 10,000 completed updates.
+Final-checkpoint biological evaluation is still pending; no paid worker was launched or budget reservation changed during this status check.
