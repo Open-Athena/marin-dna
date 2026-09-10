@@ -661,7 +661,7 @@ A generation-pinned read of the existing 1,429-byte European pilot config succee
 The README documents plan/apply staging before paid GPU time, followed by the existing canonical S3 download, synthetic parity gates, and six development metric/probe targets.
 The newly published helper still requires independent review before actual final-checkpoint staging.
 
-## 2026-09-10 18:05 UTC — Final staging review completed
+## 2026-09-10 18:02 UTC — Final staging review completed
 
 Independent review of published helper commit 94dc07ed found a race between the pressure monitor reading ACTIVE and the transport clearing that global when a gcloud child exits.
 The corrected interrupt function captures the child once and sends the main-process interrupt in a finally block, including when child termination itself fails.
@@ -674,3 +674,7 @@ The reconciled budget snapshot is .agents/artifacts/issue-550/recovery/budget-re
 It retains the $4 prior-attempt allowance, $0.9996 completed recovery compute, $0.15 recovery disk allowance, and $18.108 reserved final GPU compute, leaving $6.7424 for further storage, setup, and permitted recovery under the cumulative $30 cap.
 This is a conservative reservation ledger, not a settled AWS bill.
 The original four-hour recovery reservation remains preserved in the earlier budget.json snapshot.
+
+At 18:03, the European production child was still TASK_STATE_RUNNING on attempt 0 with no error, and ten of sixteen CDS shards were complete.
+Production optimizer updates and final biological evaluation remain pending; the 43.09-hour pilot projection excludes tokenization and other overhead.
+The reviewed staging helper is published in fde7b9c1; the canonical model registration PR remains ready, fully checked, and unmerged at 51fd75ad.
