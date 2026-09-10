@@ -15,8 +15,10 @@ from typing import Any
 
 import click
 import jmp
-from fray.types import ResourceConfig
+from fray.current_client import current_client
+from fray.types import Entrypoint, JobRequest, ResourceConfig, create_environment
 from haliax.partitioning import ResourceAxis
+from iris.cluster.setup_scripts import default_setup_script
 from levanter.checkpoint import CheckpointerConfig
 from levanter.data.text.datasets import (
     DatasetComponent,
@@ -33,7 +35,6 @@ from levanter.trainer import TrainerConfig
 from levanter.utils.mesh import MeshConfig
 from marin.execution.build_context import resolve_version
 from marin.execution.lazy import ArtifactStep, StepContext
-from marin.execution.remote import remote
 from marin.experiment.cli import build_options
 from marin.training.training import (
     LevanterCheckpoint,
@@ -249,7 +250,25 @@ def dispatch(request: TrainingRequest) -> None:
         if name in os.environ:
             runtime_env[name] = os.environ[name]
     runtime_env = resolve_training_env(runtime_env, request.pod.resources)
-    remote(train_worker, resources=request.pod.resources, env_vars=runtime_env)(request)
+    # The shared worker image may carry an older uv than this project's lock.
+    # Explicit child setup is necessary: the coordinator's binary is not shipped.
+    setup = (
+        "set -eu\n"
+        "curl -fLsS https://astral.sh/uv/0.11.31/install.sh "
+        "| env UV_INSTALL_DIR=/usr/local/bin UV_NO_MODIFY_PATH=1 sh\n"
+        "export PATH=/usr/local/bin:$PATH\n"
+        "uv --version\n" + default_setup_script(extras=["tpu"], python_version="3.12")
+    )
+    current_client().submit(
+        JobRequest(
+            name="train-worker",
+            entrypoint=Entrypoint.from_callable(lambda: train_worker(request)),
+            resources=request.pod.resources,
+            environment=create_environment(
+                extras=["tpu"], env_vars=runtime_env, setup_scripts=[setup]
+            ),
+        )
+    ).wait(raise_on_failure=True)
 
 
 def build_training(
