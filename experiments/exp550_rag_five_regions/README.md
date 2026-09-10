@@ -84,3 +84,35 @@ Rerun a bounded synthetic parity check with the final checkpoint before its biol
 Build only the registered final model's three metric and three probe-metric targets; those targets share one combined score computation.
 Retain the canonical `results/scores`, `results/metrics`, and `results/probe_metrics` output identities and the pipeline's existing probe and metric contracts.
 Use the remaining cumulative budget only after this final-checkpoint evaluation completes.
+
+The registered model is `dna-exp550-rag46m-five-regions-v1-step-100000` in [PR #565](https://github.com/Open-Athena/marin-dna/pull/565).
+The active source is the us-east5 version-8 export; check the tracking issue before using it after a recovery.
+The permanent branch includes the combined backend, tokenizer compatibility, strict-fp32 controls, and registration together; none of their PRs needs to be merged to reproduce this experiment.
+
+After the final export exists, download the registered checkpoint through the pipeline on the authorized GPU worker, keeping its local storage copy for the synthetic recheck.
+Run these commands from `snakemake/analysis/evals_v2`, inspecting the dry-run before execution:
+
+```bash
+model=dna-exp550-rag46m-five-regions-v1-step-100000
+checkpoint_uri=gs://marin-us-east5/MarinDNA/exp550_rag_five_regions/checkpoints/dna-exp550-rag46m-five-regions-v1/2026.09.10.8/hf/step-100000
+uv sync --locked --group genome-s3
+uv run --locked --group genome-s3 snakemake -n "results/checkpoints/$model" --cores 2 --keep-storage-local-copies
+uv run --locked --group genome-s3 snakemake "results/checkpoints/$model" --cores 2 --keep-storage-local-copies
+uv run --locked --group genome-s3 python ../../../.agents/artifacts/issue-550/evaluation/recheck-final-checkpoint.py \
+  --checkpoint "results/checkpoints/$model" --checkpoint-uri "$checkpoint_uri" \
+  --output /opt/issue550/final-checkpoint-parity.json
+```
+
+The recheck retains the pilot's fixed numerical tolerances and writes its actual consumer commit, checkpoint URI, runtime, LLR/JSD and embedding errors, and measured throughput.
+It processes synthetic sequences only and exits unsuccessfully if parity fails.
+Proceed to biological inference only after that command succeeds and the measured remaining runtime fits the cumulative budget and worker shutdown deadline.
+The following target list includes all three zero-shot and frozen-probe metric outputs without widening the model registry:
+
+```bash
+targets=()
+for dataset in mendelian_traits complex_traits sge; do
+  targets+=("results/metrics/$model/$dataset.parquet" "results/probe_metrics/$model/$dataset.parquet")
+done
+uv run --locked --group genome-s3 snakemake -n "${targets[@]}" --cores 2 --configfile config/rag_issue550/fp32.yaml
+uv run --locked --group genome-s3 snakemake "${targets[@]}" --cores 2 --configfile config/rag_issue550/fp32.yaml
+```
