@@ -287,3 +287,9 @@ The training preflight is complete; production awaits the prepared datasets and 
 Release preparation is queued with the documented `--keep-storage-local-copies` option so the downstream audit can inspect its exact files.
 The current preparation PID is 25210; audit PID 13203 and explicitly authorized upload PID 14373 remain gated in sequence.
 At 01:22 UTC the biological producer had completed 153 of its 159 recovery jobs.
+
+The historical 46M final-checkpoint score files were audited against the current pinned development datasets on the CPU worker.
+They match all canonical variant and metric-membership tuples exactly: Mendelian 16,140 rows, Complex Traits 11,630, and SGE 23,853.
+The preserved zero-shot macro AUPRC values are 0.395455, 0.184042, and 0.476728; frozen-probe macro AUPRC values are 0.408816, 0.297643, and 0.418497.
+The compact artifact `.agents/artifacts/issue-550/baseline/exp402-exact-development-cohort-audit.json` records source URIs, canonical revisions, metric hashes, support counts, and standard errors.
+No new baseline inference, probe fitting, or held-out evaluation was run.

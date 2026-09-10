@@ -1,0 +1,156 @@
+{
+  "model": "exp402-rag-h640-p46m-b2m-step-29999",
+  "registration_commit": "e4c1edf9997845e2b0cf142120e44ac2a5982bb2",
+  "datasets": {
+    "mendelian_traits": {
+      "rows": 16140,
+      "canonical_revision": "4aed58e50c5dea0b878a665007af2ef9e5108e9f",
+      "exact_metric_membership_parity": true,
+      "columns_compared": [
+        "chrom",
+        "pos",
+        "ref",
+        "alt",
+        "label",
+        "subset",
+        "match_group"
+      ],
+      "scores_uri": "s3://oa-bolinas/snakemake/analysis/evals_v2/results/scores/exp402-rag-h640-p46m-b2m-step-29999/mendelian_traits.parquet",
+      "metrics": {
+        "metrics": {
+          "uri": "s3://oa-bolinas/snakemake/analysis/evals_v2/results/metrics/exp402-rag-h640-p46m-b2m-step-29999/mendelian_traits.parquet",
+          "sha256": "9b596a5f15b32febaef1da57b03bc4735033cff8e5cd03c87590a796943a4567",
+          "macro": {
+            "score_type": "minus_llr_avg",
+            "subset": "_macro_avg_",
+            "value": 0.39545527208900033,
+            "se": 0.01569702593819649,
+            "n_groups": 8,
+            "n_rows": 16100,
+            "model": "exp402-rag-h640-p46m-b2m-step-29999",
+            "dataset": "mendelian_traits",
+            "split": "train"
+          }
+        },
+        "probe_metrics": {
+          "uri": "s3://oa-bolinas/snakemake/analysis/evals_v2/results/probe_metrics/exp402-rag-h640-p46m-b2m-step-29999/mendelian_traits.parquet",
+          "sha256": "f4e2a2ccdaeac19b467ff75b8a597633e772962ac553af62c22884910240728d",
+          "macro": {
+            "score_type": "probe_score",
+            "subset": "_macro_avg_",
+            "value": 0.40881580498015263,
+            "se": 0.029020613541456106,
+            "n": 16100,
+            "n_pos": 1610,
+            "n_chrom": 12,
+            "model": "exp402-rag-h640-p46m-b2m-step-29999",
+            "dataset": "mendelian_traits",
+            "split": "train"
+          }
+        }
+      }
+    },
+    "complex_traits": {
+      "rows": 11630,
+      "canonical_revision": "22f86a89c65cb8f3007ac3cc2739f40efefa4340",
+      "exact_metric_membership_parity": true,
+      "columns_compared": [
+        "chrom",
+        "pos",
+        "ref",
+        "alt",
+        "label",
+        "subset",
+        "match_group"
+      ],
+      "scores_uri": "s3://oa-bolinas/snakemake/analysis/evals_v2/results/scores/exp402-rag-h640-p46m-b2m-step-29999/complex_traits.parquet",
+      "metrics": {
+        "metrics": {
+          "uri": "s3://oa-bolinas/snakemake/analysis/evals_v2/results/metrics/exp402-rag-h640-p46m-b2m-step-29999/complex_traits.parquet",
+          "sha256": "a57e41b8019364a841602381b74f371bb7d09719e6d8b6ba94b85a8b7246b6d9",
+          "macro": {
+            "score_type": "abs_llr_avg",
+            "subset": "_macro_avg_",
+            "value": 0.18404207564958042,
+            "se": 0.014906471158705107,
+            "n_groups": 6,
+            "n_rows": 11270,
+            "model": "exp402-rag-h640-p46m-b2m-step-29999",
+            "dataset": "complex_traits",
+            "split": "train"
+          }
+        },
+        "probe_metrics": {
+          "uri": "s3://oa-bolinas/snakemake/analysis/evals_v2/results/probe_metrics/exp402-rag-h640-p46m-b2m-step-29999/complex_traits.parquet",
+          "sha256": "4af2728cd5d488ed2be97aba84fe958cafedeb0b263ca92f46d96af93341945d",
+          "macro": {
+            "score_type": "probe_score",
+            "subset": "_macro_avg_",
+            "value": 0.29764346379000395,
+            "se": 0.023528963852934015,
+            "n": 11270,
+            "n_pos": 1127,
+            "n_chrom": 12,
+            "model": "exp402-rag-h640-p46m-b2m-step-29999",
+            "dataset": "complex_traits",
+            "split": "train"
+          }
+        }
+      }
+    },
+    "sge": {
+      "rows": 23853,
+      "canonical_revision": "225d3d1ea32a4af547891b13c33b5e92a5aae849",
+      "exact_metric_membership_parity": true,
+      "columns_compared": [
+        "chrom",
+        "pos",
+        "ref",
+        "alt",
+        "label",
+        "subset",
+        "mavedb_urn",
+        "gene"
+      ],
+      "scores_uri": "s3://oa-bolinas/snakemake/analysis/evals_v2/results/scores/exp402-rag-h640-p46m-b2m-step-29999/sge.parquet",
+      "metrics": {
+        "metrics": {
+          "uri": "s3://oa-bolinas/snakemake/analysis/evals_v2/results/metrics/exp402-rag-h640-p46m-b2m-step-29999/sge.parquet",
+          "sha256": "d5f47a59c15143eca08845c3fc7c10caa0aa021df8dbefee8ace78b22af6f5c3",
+          "macro": {
+            "metric": "AUPRC",
+            "subset": "_macro_avg_",
+            "accession": "_macro_avg_",
+            "gene": "_macro_avg_",
+            "score_type": "minus_llr_avg",
+            "value": 0.4767275271080021,
+            "se": 0.011537539978311525,
+            "n": 8,
+            "n_pos": 3501,
+            "model": "exp402-rag-h640-p46m-b2m-step-29999",
+            "dataset": "sge",
+            "split": "train"
+          }
+        },
+        "probe_metrics": {
+          "uri": "s3://oa-bolinas/snakemake/analysis/evals_v2/results/probe_metrics/exp402-rag-h640-p46m-b2m-step-29999/sge.parquet",
+          "sha256": "dace39d40b5f6d436a056702acea0f34eaec28ac3673bed2dd0b46686f7dde77",
+          "macro": {
+            "metric": "AUPRC",
+            "subset": "_macro_avg_",
+            "accession": "_macro_avg_",
+            "gene": "_macro_avg_",
+            "score_type": "probe_score",
+            "value": 0.4184973336653522,
+            "se": 0.009529733668216132,
+            "n": 8,
+            "n_pos": 3501,
+            "model": "exp402-rag-h640-p46m-b2m-step-29999",
+            "dataset": "sge",
+            "split": "train"
+          }
+        }
+      }
+    }
+  }
+}
