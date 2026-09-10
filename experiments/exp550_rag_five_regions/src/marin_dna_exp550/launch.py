@@ -270,11 +270,18 @@ def build_training(
     resume_pilot_from: str | None = None,
     tpu_variant: str = "v6e-8",
 ) -> ArtifactStep[LevanterCheckpoint]:
-    if region not in {"us-east1", "us-east5"}:
+    region_buckets = {
+        "us-east1": "marin-us-east1",
+        "us-east5": "marin-us-east5",
+        "europe-west4": "marin-eu-west4",
+    }
+    if region not in region_buckets:
         raise ValueError("this launch requires a verified free TPU region")
     if tpu_variant not in {"v6e-8", "v6e-4"}:
         raise ValueError("supported TPU variants are v6e-8 and v6e-4")
-    expected_prefix = f"gs://marin-{region}/MarinDNA/exp550_rag_five_regions"
+    expected_prefix = (
+        f"gs://{region_buckets[region]}/MarinDNA/exp550_rag_five_regions"
+    )
     if os.environ.get("MARIN_PREFIX") != expected_prefix:
         raise ValueError(f"MARIN_PREFIX must be {expected_prefix}")
     run_id = "dna-exp550-rag46m-five-regions-v1" + (
@@ -282,6 +289,8 @@ def build_training(
     )
     if pilot and tpu_variant != "v6e-8":
         run_id += f"-{tpu_variant}"
+    if pilot and region == "europe-west4":
+        run_id += "-europe-west4"
     if resume_pilot_from:
         if not pilot or not resume_pilot_from.startswith(
             f"{expected_prefix}/checkpoints/dna-exp550-rag46m-five-regions-v1-pilot-"

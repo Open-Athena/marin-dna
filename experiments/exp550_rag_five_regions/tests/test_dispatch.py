@@ -46,9 +46,18 @@ def test_child_job_carries_its_setup_instead_of_inheriting_the_image_uv(monkeypa
     assert "synthetic-test-credential" not in setup
 
 
-@pytest.mark.parametrize("region", ["us-east1", "us-east5"])
-def test_native_resume_is_required_and_uses_a_separate_pilot_run(monkeypatch, region):
-    prefix = f"gs://marin-{region}/MarinDNA/exp550_rag_five_regions"
+@pytest.mark.parametrize(
+    "region,bucket",
+    [
+        ("us-east1", "marin-us-east1"),
+        ("us-east5", "marin-us-east5"),
+        ("europe-west4", "marin-eu-west4"),
+    ],
+)
+def test_native_resume_is_required_and_uses_a_separate_pilot_run(
+    monkeypatch, region, bucket
+):
+    prefix = f"gs://{bucket}/MarinDNA/exp550_rag_five_regions"
     source = (
         f"{prefix}/checkpoints/dna-exp550-rag46m-five-regions-v1-pilot-mb5/"
         "2026.09.10.1/checkpoints/step-10"
@@ -69,6 +78,11 @@ def test_native_resume_is_required_and_uses_a_separate_pilot_run(monkeypatch, re
         return config.pod
 
     original, resumed = build(), build(source)
+    assert original.resources == ResourceConfig.with_tpu(
+        "v6e-8", regions=[region], cpu=16, ram="48g", disk="80g", preemptible=True
+    )
+    if region == "europe-west4":
+        assert original.train_config.trainer.id.endswith("-europe-west4")
     assert resumed.output_path != original.output_path
     assert resumed.train_config.trainer.id != original.train_config.trainer.id
     assert resumed.train_config.trainer.load_checkpoint is True
@@ -82,6 +96,9 @@ def test_native_resume_is_required_and_uses_a_separate_pilot_run(monkeypatch, re
         )
     with pytest.raises(ValueError, match="intermediate native"):
         build(source.replace("step-10", "step-20"))
+    monkeypatch.setenv("MARIN_PREFIX", prefix + "-wrong")
+    with pytest.raises(ValueError, match="MARIN_PREFIX must be"):
+        build()
 
 
 def test_four_chip_fallback_preserves_recipe_and_separates_pilot(monkeypatch):

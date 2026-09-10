@@ -52,6 +52,8 @@ Submit the entrypoint through the current Iris client with the committed project
 The dispatched worker installs the pinned `uv` before the standard Iris dependency setup, since the shared image may contain an older version.
 The launch uses free, preemptible `v6e-8` capacity and a microbatch of 5 per chip, accumulating to exactly 200 documents.
 It defaults to `us-east1`; `--region us-east5` selects the verified capacity fallback and requires `MARIN_PREFIX=gs://marin-us-east5/MarinDNA/exp550_rag_five_regions` so caches and checkpoints stay in the compute region.
+The European fallback uses `--region europe-west4` and `MARIN_PREFIX=gs://marin-eu-west4/MarinDNA/exp550_rag_five_regions`; the bucket name differs from the canonical GCP region.
+Its synthetic pilots append `-europe-west4` to the run identity to preserve the earlier US pilot's W&B history.
 It requests 80 GiB of local scratch within the pool's 100 GiB per-VM limit; tokenized caches and checkpoints are written to GCS.
 The host allocation reserves 48 GiB RAM and 16 CPU cores; tokenization streams through two workers with batches of 128 documents.
 Use `--tpu-variant v6e-4` when eight-chip capacity is unavailable, after validating a synthetic pilot on four chips.
