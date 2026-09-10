@@ -22,6 +22,7 @@ from marin_dna_evals.metrics import (
 )
 from marin_dna_evals.variant_probe import PAIR_COMBOS, run_subset_probes
 from marin_dna_evals.workflow_config import (
+    inference_precision_params,
     resolve_model_batch_size,
     resolve_model_eval_accumulation_steps,
     validate_inference_config,
@@ -279,11 +280,3 @@ for _d in config["datasets"]:
         f"dataset {_d['name']!r} `probe_feature` must be one of {PAIR_COMBOS}, "
         f"got {_pf!r}"
     )
-
-
-def get_inference_precision():
-    """Output-affecting precision settings and the documented fallback reason."""
-    return {
-        key: config["inference"].get(key)
-        for key in ("bf16", "tf32", "precision_reason")
-    }
