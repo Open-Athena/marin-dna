@@ -136,6 +136,7 @@ Every newly computed VEP score parquet contains pooled `emb_ref` and `emb_alt` v
 The global `inference.return_embeddings` and `inference.torch_compile` settings remain `true`; bfloat16 is the default precision.
 These settings cannot be overridden by a checkpoint entry.
 When bfloat16 fails a recorded numerical-parity check, a run configuration may set `inference.bf16: false`, `inference.tf32: false`, and a nonempty `inference.precision_reason` describing the evidence.
+Public APIs also accept an explicit `tf32` argument; with `bf16=False`, its default disables TF32.
 The explicit TF32 setting is applied after Trainer construction so Accelerate cannot override it during compilation setup.
 Explicit precision overrides and their reasons enter the scoring rules' Snakemake parameters; existing default runs retain their original parameter identity.
 Use explicit model targets when applying a precision override to an evaluation run.

@@ -51,7 +51,6 @@ rule compute_region_embeddings:
             num_workers=config["inference"]["num_workers"],
             torch_compile=config["inference"].get("torch_compile", False),
             bf16=config["inference"]["bf16"],
-            tf32=config["inference"].get("tf32"),
         )
         df.to_parquet(output[0])
         print(

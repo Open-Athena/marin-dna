@@ -153,7 +153,11 @@ def compute_region_embeddings(
             "per_device_eval_batch_size": batch_size,
             "torch_compile": torch_compile,
             "bf16_full_eval": bf16,
-            **({"tf32": tf32} if tf32 is not None else {}),
+            **(
+                {"tf32": tf32 if tf32 is not None else False}
+                if tf32 is not None or not bf16
+                else {}
+            ),
             "dataloader_num_workers": num_workers,
             "remove_unused_columns": False,
         },

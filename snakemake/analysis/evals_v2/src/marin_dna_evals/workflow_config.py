@@ -53,6 +53,12 @@ def validate_inference_config(
     tf32 = inference.get("tf32")
     if tf32 is not None and type(tf32) is not bool:
         raise ValueError("inference.tf32 must be a boolean or null")
+    if inference["bf16"] and (
+        tf32 is not None or inference.get("precision_reason") is not None
+    ):
+        raise ValueError(
+            "inference.tf32 overrides require the documented fp32 fallback"
+        )
     if inference["bf16"] is False:
         reason = inference.get("precision_reason")
         if tf32 is not False or not isinstance(reason, str) or not reason.strip():
