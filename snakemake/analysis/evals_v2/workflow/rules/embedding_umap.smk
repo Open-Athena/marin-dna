@@ -23,6 +23,7 @@ rule compute_region_embeddings:
         model="|".join(UMAP_MODELS),
     threads: config["inference"]["num_workers"]
     params:
+        precision=get_inference_precision(),
         # Output-affecting fields only (snakemake `params` rerun trigger);
         # batch_size is execution-only and read inside `run:`.
         dataset=UMAP_CFG.get("dataset", "songlab/gpn-star-umap-regions"),
@@ -49,7 +50,8 @@ rule compute_region_embeddings:
             ),
             num_workers=config["inference"]["num_workers"],
             torch_compile=config["inference"].get("torch_compile", False),
-            bf16=config["inference"]["bf16"],
+            bf16=params.precision["bf16"],
+            tf32=params.precision["tf32"],
         )
         df.to_parquet(output[0])
         print(

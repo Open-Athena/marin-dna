@@ -123,6 +123,7 @@ def test_compute_variant_scores_threads_execution_settings():
             num_workers=2,
             torch_compile=True,
             bf16=False,
+            tf32=False,
             rc=True,
             eval_accumulation_steps=3,
         )
@@ -132,6 +133,7 @@ def test_compute_variant_scores_threads_execution_settings():
     assert kwargs["dataloader_num_workers"] == 2
     assert kwargs["torch_compile"] is True
     assert kwargs["bf16_full_eval"] is False
+    assert kwargs["tf32"] is False
     assert kwargs["eval_accumulation_steps"] == 3
 
 

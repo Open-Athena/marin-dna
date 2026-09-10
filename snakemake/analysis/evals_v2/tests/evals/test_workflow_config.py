@@ -93,3 +93,37 @@ def test_invalid_checkpoint_execution_value_is_rejected(
             inference,
             [{"name": "model", field: value}],
         )
+
+
+def test_documented_fp32_fallback_is_accepted() -> None:
+    inference = dict(_config()["inference"])
+    inference.update(
+        bf16=False, tf32=False, precision_reason="Synthetic bf16 parity failed."
+    )
+    validate_inference_config(inference, [])
+
+
+@pytest.mark.parametrize(
+    "fields",
+    [
+        {"bf16": False},
+        {"bf16": False, "tf32": False},
+        {"bf16": False, "tf32": False, "precision_reason": " "},
+        {"bf16": False, "tf32": True, "precision_reason": "Parity failure"},
+        {"bf16": "false"},
+        {"bf16": True, "tf32": "false"},
+    ],
+)
+def test_incomplete_or_malformed_precision_fallback_is_rejected(fields) -> None:
+    inference = dict(_config()["inference"])
+    inference.update(fields)
+    with pytest.raises(ValueError, match="bf16|tf32|fp32"):
+        validate_inference_config(inference, [])
+
+
+@pytest.mark.parametrize("field", ["tf32", "precision_reason"])
+def test_precision_policy_cannot_be_overridden_by_checkpoint(field) -> None:
+    with pytest.raises(ValueError, match="cannot override"):
+        validate_inference_config(
+            _config()["inference"], [{"name": "model", field: False}]
+        )

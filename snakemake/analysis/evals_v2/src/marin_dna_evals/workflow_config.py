@@ -14,10 +14,21 @@ def _positive_int(value: object, *, field: str) -> int:
 def validate_inference_config(
     inference: Mapping[str, object], models: Sequence[Mapping[str, object]]
 ) -> None:
-    """Require global-on semantic switches and reject checkpoint overrides."""
-    for field in sorted(GLOBAL_INFERENCE_SWITCHES):
+    """Validate global inference policy and documented fp32 fallbacks."""
+    for field in sorted(GLOBAL_INFERENCE_SWITCHES - {"bf16"}):
         if inference.get(field) is not True:
             raise ValueError(f"inference.{field} must be globally set to true")
+    if type(inference.get("bf16")) is not bool:
+        raise ValueError("inference.bf16 must be a boolean")
+    tf32 = inference.get("tf32")
+    if tf32 is not None and type(tf32) is not bool:
+        raise ValueError("inference.tf32 must be a boolean or null")
+    if inference["bf16"] is False:
+        reason = inference.get("precision_reason")
+        if tf32 is not False or not isinstance(reason, str) or not reason.strip():
+            raise ValueError(
+                "fp32 fallback requires inference.tf32=false and a precision_reason"
+            )
     if inference.get("rc") is not True:
         raise ValueError("inference.return_embeddings=true requires inference.rc=true")
 
@@ -31,7 +42,11 @@ def validate_inference_config(
 
     for model in models:
         model_name = str(model.get("name", "<unnamed>"))
-        forbidden = sorted(GLOBAL_INFERENCE_SWITCHES.intersection(model))
+        forbidden = sorted(
+            (GLOBAL_INFERENCE_SWITCHES | {"tf32", "precision_reason"}).intersection(
+                model
+            )
+        )
         if forbidden:
             raise ValueError(
                 f"model {model_name!r} cannot override global inference switches: "

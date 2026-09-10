@@ -131,7 +131,12 @@ to the three #292 gLMs via their per-model `datasets:` lists.
 ### Pooled embeddings (#318)
 
 Every newly computed VEP score parquet contains pooled `emb_ref` and `emb_alt` vectors.
-The global `inference.return_embeddings`, `inference.torch_compile`, and `inference.bf16` settings are all `true` and cannot be overridden by a checkpoint entry.
+The global `inference.return_embeddings` and `inference.torch_compile` settings remain `true`; bfloat16 is the default precision.
+These settings cannot be overridden by a checkpoint entry.
+When bfloat16 fails a recorded numerical-parity check, a run configuration may set `inference.bf16: false`, `inference.tf32: false`, and a nonempty `inference.precision_reason` describing the evidence.
+The explicit TF32 setting is applied after Trainer construction so Accelerate cannot override it during compilation setup.
+Precision settings and the fallback reason are recorded in the scoring rules' Snakemake parameters; changing them invalidates prior scoring provenance.
+Use explicit model targets when applying a precision override to an evaluation run.
 The embeddings come from the same FWD and RC forward passes that produce LLR and JSD.
 
 Each allele column stores a length-`D` Float16 vector.

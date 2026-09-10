@@ -35,6 +35,7 @@ def compute_hf_ll_gap(
     num_workers: int = 4,
     torch_compile: bool = False,
     bf16: bool = True,
+    tf32: bool | None = None,
 ) -> pd.DataFrame:
     """Per-sequence functional/non-functional LL atoms for an HF causal LM.
 
@@ -61,6 +62,7 @@ def compute_hf_ll_gap(
         num_workers: Dataloader workers.
         torch_compile: Whether to ``torch.compile`` the forward pass.
         bf16: Whether to run evaluation forwards in bfloat16.
+        tf32: Explicit CUDA matmul precision; None retains framework defaults.
 
     Returns:
         DataFrame with columns ``[id?, ll_sum_upper, ll_sum_lower, n_upper,
@@ -92,6 +94,7 @@ def compute_hf_ll_gap(
             "per_device_eval_batch_size": batch_size,
             "torch_compile": torch_compile,
             "bf16_full_eval": bf16,
+            **({"tf32": tf32} if tf32 is not None else {}),
             "dataloader_num_workers": num_workers,
             "remove_unused_columns": False,
         },
