@@ -411,16 +411,34 @@ def load_hf_checkpoint_tokenizer(
     """Load native Transformers 4 and Transformers 5 tokenizer exports."""
     checkpoint_path = Path(checkpoint_path)
     tokenizer_config_path = checkpoint_path / "tokenizer_config.json"
+    load_kwargs: dict[str, Any] = {}
     if tokenizer_config_path.is_file():
         tokenizer_config = _read_json_object(tokenizer_config_path)
+        extra_tokens = tokenizer_config.get("extra_special_tokens")
+        if isinstance(extra_tokens, list):
+            # Transformers 5 renamed the additional-special-token list. In
+            # Transformers 4 this name instead denotes named token attributes.
+            if (
+                "additional_special_tokens" in tokenizer_config
+                and tokenizer_config["additional_special_tokens"] != extra_tokens
+            ):
+                raise HfCheckpointCompatibilityError(
+                    f"{tokenizer_config_path}: conflicting special-token lists"
+                )
+            load_kwargs = {
+                "extra_special_tokens": {},
+                "additional_special_tokens": extra_tokens,
+            }
         if tokenizer_config.get("tokenizer_class") == "TokenizersBackend":
             tokenizer_json_path = checkpoint_path / "tokenizer.json"
             if not tokenizer_json_path.is_file():
                 raise HfCheckpointCompatibilityError(
                     f"TokenizersBackend export is missing tokenizer.json: {tokenizer_json_path}"
                 )
-            return PreTrainedTokenizerFast.from_pretrained(checkpoint_path)
-    return AutoTokenizer.from_pretrained(checkpoint_path)
+            return PreTrainedTokenizerFast.from_pretrained(
+                checkpoint_path, **load_kwargs
+            )
+    return AutoTokenizer.from_pretrained(checkpoint_path, **load_kwargs)
 
 
 def _load_hf_model_and_tokenizer(
