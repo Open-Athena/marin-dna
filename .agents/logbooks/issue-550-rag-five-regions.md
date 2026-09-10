@@ -433,3 +433,23 @@ The worker has over 120 GiB available at the start of ingestion.
 The prepared production submission retains the tested code and lockfile from c0585d0e117075026b4384d552d59b52009d257e.
 It requires the exact five verified public revisions committed inside the experiment project, selects eight free preemptible v6e chips in us-east5, and preserves 100,000 updates, 200 documents per update, and the AdamH scaling heuristic.
 Training has not been submitted while the final datasets are still being assembled.
+
+### 2026-09-10 14:55 UTC — Public training inputs verified
+
+Final biological assembly completed and uploaded all ten train/validation Parquets, the split summary, and the combined development harness by 14:38 UTC.
+The aggregate target initially lacked a local copy of the already-durable producer manifest.
+Staging that exact S3 manifest restored the aggregate; the subsequent dry-run reported no work, so the expensive assembly was not repeated.
+The immutable producer identity and configuration remain unchanged.
+The completed data contain 1,110,006 training documents and 2,000 validation documents, with all chr18 excluded from training.
+The 51,623-row development harness has SHA-256 6631d35f9ae0afc754c623a2e3960682e8a834a28001906279745882f99cb73b.
+
+All five release payloads passed the bounded schema, sequence-geometry, row-count, size, and checksum audit, then published under the existing explicit HF authorization.
+The publisher verified public access without credentials and recorded immutable revisions and release hashes.
+The production input manifest is experiments/exp550_rag_five_regions/config/verified-public-datasets.json; assembly and release evidence are under .agents/artifacts/issue-550/publication/.
+The biological producer, publisher, and tested training code retain their earlier immutable identities.
+This snapshot records the verified public inputs before production submission.
+
+The user also identified an unrelated idle #517 EC2 worker during this launch.
+Postmortem #564 tracks its approximately 400 idle hours and the cleanup investigation.
+The user explicitly authorized termination and reported that no local output needed retention; AWS confirms i-0b417bcfc77ecc94e terminated at 14:50:46 UTC and its root volume is absent.
+That historical worker's cost is separate from the approved #550 budget.

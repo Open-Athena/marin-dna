@@ -1,0 +1,1003 @@
+{
+  "checked_at": "2026-09-10T14:48:19.695707+00:00",
+  "datasets": {
+    "cds": {
+      "repo_id": "marin-dna/rag-five-regions-v1-cds",
+      "destination": "https://huggingface.co/datasets/marin-dna/rag-five-regions-v1-cds",
+      "public": true,
+      "columns": {
+        "sequence": "string"
+      },
+      "rows": {
+        "train": 581256,
+        "validation": 400
+      },
+      "species_segments_min": 1,
+      "species_segments_max": 40,
+      "rows_with_n": 201467,
+      "token_statistics": {
+        "train": {
+          "species_count_histogram": {
+            "1": 286,
+            "2": 508,
+            "3": 580,
+            "4": 704,
+            "5": 836,
+            "6": 1004,
+            "7": 1004,
+            "8": 1028,
+            "9": 1048,
+            "10": 1118,
+            "11": 1260,
+            "12": 1306,
+            "13": 1600,
+            "14": 1806,
+            "15": 2328,
+            "16": 3086,
+            "17": 5028,
+            "18": 7786,
+            "19": 12490,
+            "20": 12870,
+            "21": 13970,
+            "22": 14564,
+            "23": 14776,
+            "24": 15816,
+            "25": 16048,
+            "26": 16700,
+            "27": 18296,
+            "28": 19388,
+            "29": 20208,
+            "30": 21302,
+            "31": 20056,
+            "32": 19246,
+            "33": 19108,
+            "34": 19354,
+            "35": 21368,
+            "36": 25524,
+            "37": 35310,
+            "38": 51962,
+            "39": 74682,
+            "40": 65902
+          },
+          "unpadded_positions": 4706658816,
+          "allocated_positions": 5952061440,
+          "loss_bearing_positions": 4706077560,
+          "mean_species_per_document": 31.630445105082785,
+          "padding_fraction": 0.20923887237293037
+        },
+        "validation": {
+          "species_count_histogram": {
+            "4": 2,
+            "10": 2,
+            "11": 2,
+            "13": 1,
+            "14": 4,
+            "15": 1,
+            "16": 1,
+            "17": 1,
+            "18": 2,
+            "19": 7,
+            "20": 7,
+            "21": 5,
+            "22": 11,
+            "23": 11,
+            "24": 16,
+            "25": 15,
+            "26": 13,
+            "27": 11,
+            "28": 17,
+            "29": 17,
+            "30": 14,
+            "31": 15,
+            "32": 13,
+            "33": 11,
+            "34": 17,
+            "35": 15,
+            "36": 16,
+            "37": 15,
+            "38": 38,
+            "39": 57,
+            "40": 43
+          },
+          "unpadded_positions": 3257344,
+          "allocated_positions": 4096000,
+          "loss_bearing_positions": 3256944,
+          "mean_species_per_document": 31.81,
+          "padding_fraction": 0.20475
+        }
+      },
+      "expected_training_unpadded_positions": 32389575787.604774,
+      "exposure_note": "Dataset totals are exact; training exposure is the expectation under four million draws per region, not an observed count of sampled tokens.",
+      "payload_bytes": 1207967310,
+      "manifest_sha256": "0d99b6588106e3767f5f47cc4fc72f19b22cc753f67273a6a2a2b1ee193c5a8d",
+      "producer": {
+        "root": "s3://oa-bolinas/snakemake/vertebrate_projection_dataset/results/rag-five-regions-v1/6b1593c274a886d20f5c0ddf3712916d446f5fed/10ba63bc375ba912909b82cda68143df4677431124fc8e15f6ac42850ce0fca6/full/rag",
+        "pipeline_commit": "6b1593c274a886d20f5c0ddf3712916d446f5fed",
+        "config_sha256": "10ba63bc375ba912909b82cda68143df4677431124fc8e15f6ac42850ce0fca6",
+        "pipeline_version": "rag-five-regions-v1",
+        "tier": "full"
+      },
+      "publisher": {
+        "root": "s3://oa-bolinas/snakemake/vertebrate_projection_dataset/results/rag-five-regions-publication-v1/54b6f936467bbc657ae88753a6f24b768bd3363d/e2af428648e45c1f7b23d938842b85325d9d864dc5335940da99d0cca3bbe0e0/full/rag",
+        "pipeline_commit": "54b6f936467bbc657ae88753a6f24b768bd3363d",
+        "config_sha256": "e2af428648e45c1f7b23d938842b85325d9d864dc5335940da99d0cca3bbe0e0",
+        "pipeline_version": "rag-five-regions-publication-v1",
+        "tier": "full"
+      },
+      "files": {
+        "README.md": {
+          "bytes": 2450,
+          "sha256": "945352716c44cdf61f563d44c12585215abfb6f49fb3039bcb8cd8df7c94b7c3"
+        },
+        "train/00000-of-00016.parquet": {
+          "bytes": 75188587,
+          "sha256": "0e5f9b9f8ce93ec79a62bfba2c5955011bd8d4f25f3a8e59adceff005e393100"
+        },
+        "train/00001-of-00016.parquet": {
+          "bytes": 75802632,
+          "sha256": "04a3516416fd9a518c447e09a3e29ac5503d509eb0f7ea332422dfdcabc1862a"
+        },
+        "train/00002-of-00016.parquet": {
+          "bytes": 75399323,
+          "sha256": "cdef66f60a4d2ed6c13a1916d96affc5c250128566fa97979b927d60f7e44825"
+        },
+        "train/00003-of-00016.parquet": {
+          "bytes": 74980977,
+          "sha256": "0aa169f5d805dfbfcfb827479704bbfe8ede954d5a1aec4807f3c8bbd4161da7"
+        },
+        "train/00004-of-00016.parquet": {
+          "bytes": 75771373,
+          "sha256": "1f4263c1e06560acaefbd18e894a2eab28077a6d8028549480eeb019cd5972ff"
+        },
+        "train/00005-of-00016.parquet": {
+          "bytes": 75404696,
+          "sha256": "0fddf129694f448a12ea2bd693131e64f5a962902adc72f5591179198be92368"
+        },
+        "train/00006-of-00016.parquet": {
+          "bytes": 75307457,
+          "sha256": "a3f9b5418ed779899a5adfc1601fbe259f0c89805b2c19b46461dc28a0d7f860"
+        },
+        "train/00007-of-00016.parquet": {
+          "bytes": 76425822,
+          "sha256": "ee2b9941772cf8c786e96796e1c9009615d335a326dfa06ee3a37440fa8115a5"
+        },
+        "train/00008-of-00016.parquet": {
+          "bytes": 75346239,
+          "sha256": "86e0b67afea4b23edb6e73a160f10548f7a54e4da5c0210d132ae52d4e46eca9"
+        },
+        "train/00009-of-00016.parquet": {
+          "bytes": 75598149,
+          "sha256": "cd8f2fa72850973cb626f2c776169e6f188694158e8fb287f2db16b4013ee032"
+        },
+        "train/00010-of-00016.parquet": {
+          "bytes": 74486077,
+          "sha256": "24994cd8a3e375654ab0009210d228edf26a9dd6b534eaf036fc6c9027f8d87a"
+        },
+        "train/00011-of-00016.parquet": {
+          "bytes": 75504853,
+          "sha256": "a6d2b8133cd0a9d35c557973b682e5c8b91b7e1ccdf936d17f4f84e3d0d7118a"
+        },
+        "train/00012-of-00016.parquet": {
+          "bytes": 75252570,
+          "sha256": "58131ce9c69fd77b4e3656bd2f892be7a68cb62a306698a8a3e51f8818c44634"
+        },
+        "train/00013-of-00016.parquet": {
+          "bytes": 75444655,
+          "sha256": "b56007ff47144a4a8de175d89b627fb717b156ac255fc88695ff2df63575929d"
+        },
+        "train/00014-of-00016.parquet": {
+          "bytes": 75239538,
+          "sha256": "abb3fd5274ee65cbfbfdc239eb59b814d312e941b1272958cda2e25622a76763"
+        },
+        "train/00015-of-00016.parquet": {
+          "bytes": 75974241,
+          "sha256": "15b4007636a336d65326bf3aaa2aee99521ea4cccbea9f9cf45911a40545869c"
+        },
+        "validation/00000-of-00001.parquet": {
+          "bytes": 837671,
+          "sha256": "159cd1de2690c4b246f33a623cbcd938b54f087d1f7a29a7774590f6ef95f444"
+        }
+      }
+    },
+    "enhancer": {
+      "repo_id": "marin-dna/rag-five-regions-v1-enhancer",
+      "destination": "https://huggingface.co/datasets/marin-dna/rag-five-regions-v1-enhancer",
+      "public": true,
+      "columns": {
+        "sequence": "string"
+      },
+      "rows": {
+        "train": 228064,
+        "validation": 400
+      },
+      "species_segments_min": 1,
+      "species_segments_max": 40,
+      "rows_with_n": 45325,
+      "token_statistics": {
+        "train": {
+          "species_count_histogram": {
+            "1": 760,
+            "2": 278,
+            "3": 230,
+            "4": 206,
+            "5": 222,
+            "6": 108,
+            "7": 104,
+            "8": 142,
+            "9": 200,
+            "10": 294,
+            "11": 420,
+            "12": 728,
+            "13": 1042,
+            "14": 966,
+            "15": 2074,
+            "16": 5078,
+            "17": 13390,
+            "18": 33932,
+            "19": 62502,
+            "20": 15254,
+            "21": 9994,
+            "22": 6894,
+            "23": 5638,
+            "24": 5964,
+            "25": 6464,
+            "26": 8984,
+            "27": 11714,
+            "28": 10930,
+            "29": 6740,
+            "30": 5052,
+            "31": 3552,
+            "32": 1416,
+            "33": 1126,
+            "34": 590,
+            "35": 688,
+            "36": 890,
+            "37": 1080,
+            "38": 1270,
+            "39": 1090,
+            "40": 58
+          },
+          "unpadded_positions": 1253295616,
+          "allocated_positions": 2335375360,
+          "loss_bearing_positions": 1253067552,
+          "mean_species_per_document": 21.466281394696225,
+          "padding_fraction": 0.4633429651325943
+        },
+        "validation": {
+          "species_count_histogram": {
+            "1": 1,
+            "4": 1,
+            "11": 1,
+            "15": 2,
+            "16": 6,
+            "17": 23,
+            "18": 72,
+            "19": 104,
+            "20": 16,
+            "21": 16,
+            "22": 14,
+            "23": 7,
+            "24": 12,
+            "25": 15,
+            "26": 18,
+            "27": 26,
+            "28": 26,
+            "29": 17,
+            "30": 5,
+            "31": 6,
+            "32": 5,
+            "33": 1,
+            "36": 1,
+            "37": 2,
+            "38": 2,
+            "39": 1
+          },
+          "unpadded_positions": 2236928,
+          "allocated_positions": 4096000,
+          "loss_bearing_positions": 2236528,
+          "mean_species_per_document": 21.845,
+          "padding_fraction": 0.45387500000000003
+        }
+      },
+      "expected_training_unpadded_positions": 21981472148.168934,
+      "exposure_note": "Dataset totals are exact; training exposure is the expectation under four million draws per region, not an observed count of sampled tokens.",
+      "payload_bytes": 289071700,
+      "manifest_sha256": "8e98479eca3d3b36698372b993383fb3711f102e4a390aa399b30afd57ea91ee",
+      "producer": {
+        "root": "s3://oa-bolinas/snakemake/vertebrate_projection_dataset/results/rag-five-regions-v1/6b1593c274a886d20f5c0ddf3712916d446f5fed/10ba63bc375ba912909b82cda68143df4677431124fc8e15f6ac42850ce0fca6/full/rag",
+        "pipeline_commit": "6b1593c274a886d20f5c0ddf3712916d446f5fed",
+        "config_sha256": "10ba63bc375ba912909b82cda68143df4677431124fc8e15f6ac42850ce0fca6",
+        "pipeline_version": "rag-five-regions-v1",
+        "tier": "full"
+      },
+      "publisher": {
+        "root": "s3://oa-bolinas/snakemake/vertebrate_projection_dataset/results/rag-five-regions-publication-v1/54b6f936467bbc657ae88753a6f24b768bd3363d/e2af428648e45c1f7b23d938842b85325d9d864dc5335940da99d0cca3bbe0e0/full/rag",
+        "pipeline_commit": "54b6f936467bbc657ae88753a6f24b768bd3363d",
+        "config_sha256": "e2af428648e45c1f7b23d938842b85325d9d864dc5335940da99d0cca3bbe0e0",
+        "pipeline_version": "rag-five-regions-publication-v1",
+        "tier": "full"
+      },
+      "files": {
+        "README.md": {
+          "bytes": 2465,
+          "sha256": "9a9bd6896b177f350a86c96da68bc25b6be4b43130f852c7a18768166b1da64f"
+        },
+        "train/00000-of-00016.parquet": {
+          "bytes": 17669558,
+          "sha256": "4f3169808842368c877f8ecf1fc898cf9441d555f667294472b7b375c8cba88a"
+        },
+        "train/00001-of-00016.parquet": {
+          "bytes": 17785555,
+          "sha256": "3743b0a959bc30a4a6d33cb5a732a5712bc8fb7a0b3e44b383f63187c94e56df"
+        },
+        "train/00002-of-00016.parquet": {
+          "bytes": 18139454,
+          "sha256": "ed4e3e27551ded63d663916c55cf34bb08c29a7a196b1d69facf178fa07b9110"
+        },
+        "train/00003-of-00016.parquet": {
+          "bytes": 18152912,
+          "sha256": "5cd8c14d2cca145f380334d0201bf4178ff3762265cbef37ec6b5416797cf7f3"
+        },
+        "train/00004-of-00016.parquet": {
+          "bytes": 17990161,
+          "sha256": "78d73d3e7cb3c9e7c006040bd64a5b255257b79c77fc2a7210f87e861da1b17e"
+        },
+        "train/00005-of-00016.parquet": {
+          "bytes": 18179322,
+          "sha256": "54a20801c7fb6aea3ae77bee7ffc8099c1bba1e71221a3f911742bb54c03b997"
+        },
+        "train/00006-of-00016.parquet": {
+          "bytes": 17833682,
+          "sha256": "bafa168201670bead45cb44be764d6bd6cc6ec26cf671327d3bcf653fb39d485"
+        },
+        "train/00007-of-00016.parquet": {
+          "bytes": 18005337,
+          "sha256": "1d0a729d147a0974349facf502ea2100c8a81eba4040ef3b2c34076aad00c886"
+        },
+        "train/00008-of-00016.parquet": {
+          "bytes": 18044784,
+          "sha256": "44dfc1c323a98de37d715ba1fd1c740aca302148e621506f56f94e45a0fa626a"
+        },
+        "train/00009-of-00016.parquet": {
+          "bytes": 17998606,
+          "sha256": "d0e92e72058ed17821f384a80ef9f40118c2c4028161a876ea1a679a8fbcb107"
+        },
+        "train/00010-of-00016.parquet": {
+          "bytes": 18045566,
+          "sha256": "d2af6df9ff9f61f5c7171b9f98c3facdeb4d50edf80fd065ec299d634f8ea603"
+        },
+        "train/00011-of-00016.parquet": {
+          "bytes": 18184126,
+          "sha256": "64cc1e0086ca72fbfdb6e1b3014bd3a551045bc40897a51ce39fa1b914a41b13"
+        },
+        "train/00012-of-00016.parquet": {
+          "bytes": 18178606,
+          "sha256": "bf2f446b590864d7b14988f10a59f26d65aa04ef0bf24a1538ef4fb4c81ba688"
+        },
+        "train/00013-of-00016.parquet": {
+          "bytes": 18028213,
+          "sha256": "9c4a36556b2cb3a10a97601d49b98953ed0f33be5c3fb2c0c2632f21052839e5"
+        },
+        "train/00014-of-00016.parquet": {
+          "bytes": 18285096,
+          "sha256": "5f7dd97257c67721d1ffc5924d8f9f0fe0dd99fc0d930c39496db31c1cfcf530"
+        },
+        "train/00015-of-00016.parquet": {
+          "bytes": 18039947,
+          "sha256": "b29db00f70c15cab519e5ad44ba1485ac364d0519af14e913c8a57c1d34e8adb"
+        },
+        "validation/00000-of-00001.parquet": {
+          "bytes": 508310,
+          "sha256": "246aa8f95d7317a9c843c77a4f2ef9dd7ba3ebf7c2db39f05b064bb8e0e995c7"
+        }
+      }
+    },
+    "ncrna": {
+      "repo_id": "marin-dna/rag-five-regions-v1-ncrna",
+      "destination": "https://huggingface.co/datasets/marin-dna/rag-five-regions-v1-ncrna",
+      "public": true,
+      "columns": {
+        "sequence": "string"
+      },
+      "rows": {
+        "train": 56396,
+        "validation": 400
+      },
+      "species_segments_min": 1,
+      "species_segments_max": 40,
+      "rows_with_n": 15657,
+      "token_statistics": {
+        "train": {
+          "species_count_histogram": {
+            "1": 292,
+            "2": 154,
+            "3": 122,
+            "4": 106,
+            "5": 114,
+            "6": 90,
+            "7": 78,
+            "8": 68,
+            "9": 108,
+            "10": 112,
+            "11": 172,
+            "12": 198,
+            "13": 284,
+            "14": 298,
+            "15": 546,
+            "16": 1108,
+            "17": 2534,
+            "18": 5318,
+            "19": 9148,
+            "20": 3206,
+            "21": 2470,
+            "22": 1968,
+            "23": 1672,
+            "24": 1686,
+            "25": 1790,
+            "26": 2222,
+            "27": 2638,
+            "28": 2392,
+            "29": 1868,
+            "30": 1644,
+            "31": 1260,
+            "32": 950,
+            "33": 878,
+            "34": 886,
+            "35": 942,
+            "36": 1126,
+            "37": 1324,
+            "38": 1704,
+            "39": 1860,
+            "40": 1060
+          },
+          "unpadded_positions": 350595072,
+          "allocated_positions": 577495040,
+          "loss_bearing_positions": 350538676,
+          "mean_species_per_document": 24.28384991843393,
+          "padding_fraction": 0.39290375203915173
+        },
+        "validation": {
+          "species_count_histogram": {
+            "1": 1,
+            "2": 1,
+            "3": 2,
+            "9": 1,
+            "10": 1,
+            "11": 1,
+            "12": 4,
+            "13": 2,
+            "14": 2,
+            "15": 1,
+            "16": 8,
+            "17": 14,
+            "18": 41,
+            "19": 77,
+            "20": 26,
+            "21": 20,
+            "22": 20,
+            "23": 11,
+            "24": 11,
+            "25": 19,
+            "26": 8,
+            "27": 17,
+            "28": 25,
+            "29": 13,
+            "30": 7,
+            "31": 6,
+            "32": 10,
+            "33": 2,
+            "34": 5,
+            "35": 8,
+            "36": 3,
+            "37": 3,
+            "38": 14,
+            "39": 14,
+            "40": 2
+          },
+          "unpadded_positions": 2418688,
+          "allocated_positions": 4096000,
+          "loss_bearing_positions": 2418288,
+          "mean_species_per_document": 23.62,
+          "padding_fraction": 0.4095
+        }
+      },
+      "expected_training_unpadded_positions": 24866662316.476345,
+      "exposure_note": "Dataset totals are exact; training exposure is the expectation under four million draws per region, not an observed count of sampled tokens.",
+      "payload_bytes": 86467941,
+      "manifest_sha256": "e9c9476651e313786f96694d4206eaa4d756ac941593e130791a0643e1dee3e2",
+      "producer": {
+        "root": "s3://oa-bolinas/snakemake/vertebrate_projection_dataset/results/rag-five-regions-v1/6b1593c274a886d20f5c0ddf3712916d446f5fed/10ba63bc375ba912909b82cda68143df4677431124fc8e15f6ac42850ce0fca6/full/rag",
+        "pipeline_commit": "6b1593c274a886d20f5c0ddf3712916d446f5fed",
+        "config_sha256": "10ba63bc375ba912909b82cda68143df4677431124fc8e15f6ac42850ce0fca6",
+        "pipeline_version": "rag-five-regions-v1",
+        "tier": "full"
+      },
+      "publisher": {
+        "root": "s3://oa-bolinas/snakemake/vertebrate_projection_dataset/results/rag-five-regions-publication-v1/54b6f936467bbc657ae88753a6f24b768bd3363d/e2af428648e45c1f7b23d938842b85325d9d864dc5335940da99d0cca3bbe0e0/full/rag",
+        "pipeline_commit": "54b6f936467bbc657ae88753a6f24b768bd3363d",
+        "config_sha256": "e2af428648e45c1f7b23d938842b85325d9d864dc5335940da99d0cca3bbe0e0",
+        "pipeline_version": "rag-five-regions-publication-v1",
+        "tier": "full"
+      },
+      "files": {
+        "README.md": {
+          "bytes": 2455,
+          "sha256": "bbd3f994db97bfd0ecc67e3aa02081ac25c179b30253edebc4a2cce70ad1b862"
+        },
+        "train/00000-of-00016.parquet": {
+          "bytes": 5516786,
+          "sha256": "1c2c6416b431dccc76095338c1b755fc129f2bbd7ec724401dc5ce3a004c6cd4"
+        },
+        "train/00001-of-00016.parquet": {
+          "bytes": 5157899,
+          "sha256": "0418dac3fa52cb3e05702bf394775c4759ea411cdc8246e6cf0e2e87e21cd7ac"
+        },
+        "train/00002-of-00016.parquet": {
+          "bytes": 5443319,
+          "sha256": "8285ebed0af606cf51a5ed659be62bedece962af1fe3491f25f8fd85e1f6e18c"
+        },
+        "train/00003-of-00016.parquet": {
+          "bytes": 5449108,
+          "sha256": "92c026a4772ecbdcc90c39d9ce94d24586545f536830fb8509dda5bd3374a2b7"
+        },
+        "train/00004-of-00016.parquet": {
+          "bytes": 5272398,
+          "sha256": "ac4e8e082e53b8af2c47ed6580e576aec253c230f0ad8bcd9e7ee4ee6abbe665"
+        },
+        "train/00005-of-00016.parquet": {
+          "bytes": 5418480,
+          "sha256": "a416c7a44233b4259a2419d4c7ec14128c4954c22eeeb18fb0c7472ff77372f7"
+        },
+        "train/00006-of-00016.parquet": {
+          "bytes": 5288544,
+          "sha256": "33f4e99c44498977780791832ca1f60fabe53cf53adb9d792f2d4842f52cbccd"
+        },
+        "train/00007-of-00016.parquet": {
+          "bytes": 5397216,
+          "sha256": "6b28d95a00558e5e6c56b36fa1299aae2fe71bc638ab6630a96959416a0e8ffb"
+        },
+        "train/00008-of-00016.parquet": {
+          "bytes": 5289238,
+          "sha256": "57362f504ec71178170ebc0ac81e2e349cdecfc2eb34456c5cea0b567ae953ae"
+        },
+        "train/00009-of-00016.parquet": {
+          "bytes": 5459648,
+          "sha256": "609874fcbaad0ff9a79663e959defbac48ad31e77a790b54563ea7ce160957dc"
+        },
+        "train/00010-of-00016.parquet": {
+          "bytes": 5386086,
+          "sha256": "5e172ba1c074d8c07bf2273b9a057a219a9c143c69c8d0787c112e8585c80d11"
+        },
+        "train/00011-of-00016.parquet": {
+          "bytes": 5391732,
+          "sha256": "caede06c2912fc71a8e6ffe5feeda57e35d5693d7be3a553a2d76a85135e6055"
+        },
+        "train/00012-of-00016.parquet": {
+          "bytes": 5521526,
+          "sha256": "acb28837a6ad36ac4cc423bcee9725ba782fcd7a6759d43e34bf75c2eacb7f17"
+        },
+        "train/00013-of-00016.parquet": {
+          "bytes": 5313382,
+          "sha256": "60e1789dc158d422ea7903bbfe8e94a3d903604dda572cde1cfb42191ad80e00"
+        },
+        "train/00014-of-00016.parquet": {
+          "bytes": 5307041,
+          "sha256": "204374774ddf3d0c3f42bac2b21dfe546f65cf9700430da5c2ac1b002ed7bfcb"
+        },
+        "train/00015-of-00016.parquet": {
+          "bytes": 5287114,
+          "sha256": "ab0a18a97e6b303a95dfd4babfdd48256a097511499ecce35ce5a4b297e99bd2"
+        },
+        "validation/00000-of-00001.parquet": {
+          "bytes": 565969,
+          "sha256": "d764320b4fcb4af47d3a313e6d3b0a0973cd9e0ff248cab34d414d35945dc757"
+        }
+      }
+    },
+    "tss_utr5": {
+      "repo_id": "marin-dna/rag-five-regions-v1-tss_utr5",
+      "destination": "https://huggingface.co/datasets/marin-dna/rag-five-regions-v1-tss_utr5",
+      "public": true,
+      "columns": {
+        "sequence": "string"
+      },
+      "rows": {
+        "train": 112740,
+        "validation": 400
+      },
+      "species_segments_min": 1,
+      "species_segments_max": 40,
+      "rows_with_n": 56476,
+      "token_statistics": {
+        "train": {
+          "species_count_histogram": {
+            "1": 310,
+            "2": 348,
+            "3": 426,
+            "4": 440,
+            "5": 438,
+            "6": 356,
+            "7": 404,
+            "8": 412,
+            "9": 338,
+            "10": 442,
+            "11": 494,
+            "12": 702,
+            "13": 1052,
+            "14": 1326,
+            "15": 2044,
+            "16": 3464,
+            "17": 6192,
+            "18": 10608,
+            "19": 15352,
+            "20": 11090,
+            "21": 8822,
+            "22": 6700,
+            "23": 5458,
+            "24": 4504,
+            "25": 4130,
+            "26": 3912,
+            "27": 3670,
+            "28": 3326,
+            "29": 2766,
+            "30": 2662,
+            "31": 1964,
+            "32": 1322,
+            "33": 1148,
+            "34": 1122,
+            "35": 832,
+            "36": 786,
+            "37": 884,
+            "38": 908,
+            "39": 990,
+            "40": 596
+          },
+          "unpadded_positions": 628141568,
+          "allocated_positions": 1154457600,
+          "loss_bearing_positions": 628028828,
+          "mean_species_per_document": 21.764041156643604,
+          "padding_fraction": 0.45589897108390987
+        },
+        "validation": {
+          "species_count_histogram": {
+            "3": 2,
+            "4": 2,
+            "5": 3,
+            "6": 2,
+            "7": 1,
+            "8": 1,
+            "9": 1,
+            "11": 3,
+            "12": 3,
+            "13": 5,
+            "14": 5,
+            "15": 10,
+            "16": 10,
+            "17": 18,
+            "18": 26,
+            "19": 49,
+            "20": 39,
+            "21": 35,
+            "22": 29,
+            "23": 19,
+            "24": 11,
+            "25": 16,
+            "26": 10,
+            "27": 18,
+            "28": 16,
+            "29": 11,
+            "30": 12,
+            "31": 6,
+            "32": 7,
+            "33": 5,
+            "34": 1,
+            "35": 3,
+            "36": 4,
+            "37": 4,
+            "38": 3,
+            "39": 7,
+            "40": 3
+          },
+          "unpadded_positions": 2284544,
+          "allocated_positions": 4096000,
+          "loss_bearing_positions": 2284144,
+          "mean_species_per_document": 22.31,
+          "padding_fraction": 0.44225000000000003
+        }
+      },
+      "expected_training_unpadded_positions": 22286378144.40305,
+      "exposure_note": "Dataset totals are exact; training exposure is the expectation under four million draws per region, not an observed count of sampled tokens.",
+      "payload_bytes": 160666544,
+      "manifest_sha256": "0b8660f1ba4b7872c5cba23bc3448d1b7d6556f04acb86f557c052da8dcad91b",
+      "producer": {
+        "root": "s3://oa-bolinas/snakemake/vertebrate_projection_dataset/results/rag-five-regions-v1/6b1593c274a886d20f5c0ddf3712916d446f5fed/10ba63bc375ba912909b82cda68143df4677431124fc8e15f6ac42850ce0fca6/full/rag",
+        "pipeline_commit": "6b1593c274a886d20f5c0ddf3712916d446f5fed",
+        "config_sha256": "10ba63bc375ba912909b82cda68143df4677431124fc8e15f6ac42850ce0fca6",
+        "pipeline_version": "rag-five-regions-v1",
+        "tier": "full"
+      },
+      "publisher": {
+        "root": "s3://oa-bolinas/snakemake/vertebrate_projection_dataset/results/rag-five-regions-publication-v1/54b6f936467bbc657ae88753a6f24b768bd3363d/e2af428648e45c1f7b23d938842b85325d9d864dc5335940da99d0cca3bbe0e0/full/rag",
+        "pipeline_commit": "54b6f936467bbc657ae88753a6f24b768bd3363d",
+        "config_sha256": "e2af428648e45c1f7b23d938842b85325d9d864dc5335940da99d0cca3bbe0e0",
+        "pipeline_version": "rag-five-regions-publication-v1",
+        "tier": "full"
+      },
+      "files": {
+        "README.md": {
+          "bytes": 2465,
+          "sha256": "6df09e3beb09bef75ac2a359aa0497b757c64dad970a73a02151fe827fcc6568"
+        },
+        "train/00000-of-00016.parquet": {
+          "bytes": 10069551,
+          "sha256": "c7825c33d3011093a8620df8ea218843ff52d016f753786a9a5e7ada03936fe3"
+        },
+        "train/00001-of-00016.parquet": {
+          "bytes": 9801847,
+          "sha256": "24a7c0588dcc19f52e909c6a34d0996b2e7d4ff82757e79ed8199ee29faeebf7"
+        },
+        "train/00002-of-00016.parquet": {
+          "bytes": 9923255,
+          "sha256": "9e24cfe04b50af285f2f458241707ebe92c759cf647ab993750a17a939dc7f0e"
+        },
+        "train/00003-of-00016.parquet": {
+          "bytes": 10147476,
+          "sha256": "c80ce97eba7efd4bccb6321674ab747657d94b848b289e0142e88eef85e0910a"
+        },
+        "train/00004-of-00016.parquet": {
+          "bytes": 10030655,
+          "sha256": "7aeaf9a1ce2cc990c0bfefb296c8b15afc0931965699c51034213d145804a0a2"
+        },
+        "train/00005-of-00016.parquet": {
+          "bytes": 9918685,
+          "sha256": "806e0d727e43fa602fff859694508293ded364d5204bcc56c7c786bb18416b54"
+        },
+        "train/00006-of-00016.parquet": {
+          "bytes": 9974698,
+          "sha256": "ac2353c10c007017738572595789760538b8faa15244df738d7b7a6b9ef1d220"
+        },
+        "train/00007-of-00016.parquet": {
+          "bytes": 10006600,
+          "sha256": "7114d8f9ab7732f00198f88b3ea3814ae3ae2ab1dae96f26b40e339cad0cef0d"
+        },
+        "train/00008-of-00016.parquet": {
+          "bytes": 10096614,
+          "sha256": "1fce27ad57a364cc8d375399f5c5e4217e4035dae9724d9d6f2ff0a97bbd8f1a"
+        },
+        "train/00009-of-00016.parquet": {
+          "bytes": 10031390,
+          "sha256": "44c820b54fc7e08cebe6cb2efb0b2251668bf62e45e57de605814c60b19ec3bb"
+        },
+        "train/00010-of-00016.parquet": {
+          "bytes": 9956483,
+          "sha256": "567db898a531f0b1fba14be0372f786200367dcb7a9e38a707f6dba120231460"
+        },
+        "train/00011-of-00016.parquet": {
+          "bytes": 10090369,
+          "sha256": "46ca9b8a96770c01ad761936e9f2dc7fdca2014f124eb0311043b3faa967104b"
+        },
+        "train/00012-of-00016.parquet": {
+          "bytes": 9767151,
+          "sha256": "2209b22ccfa060423071605f134ba496cb54082107cc125bdc68909cdad1179f"
+        },
+        "train/00013-of-00016.parquet": {
+          "bytes": 10153108,
+          "sha256": "ae2683c02aec423812a3dca0c77c26422337c17a5d7c9b9801ac19556a5efdf0"
+        },
+        "train/00014-of-00016.parquet": {
+          "bytes": 10058408,
+          "sha256": "aeba29940c4f793b0193d4a55bdd4137830b4a6722d9e03cee046c74996473cb"
+        },
+        "train/00015-of-00016.parquet": {
+          "bytes": 10072931,
+          "sha256": "66c94bfa7fbb2fbde0e5c0ef7263242ca70488fa8ae161682e13c19dd79c3045"
+        },
+        "validation/00000-of-00001.parquet": {
+          "bytes": 564858,
+          "sha256": "49d833d8d1aa0b1c475fd4b8d8dab5f8c2fd657bc6692b002d7b039e2bd962f2"
+        }
+      }
+    },
+    "utr3": {
+      "repo_id": "marin-dna/rag-five-regions-v1-utr3",
+      "destination": "https://huggingface.co/datasets/marin-dna/rag-five-regions-v1-utr3",
+      "public": true,
+      "columns": {
+        "sequence": "string"
+      },
+      "rows": {
+        "train": 131550,
+        "validation": 400
+      },
+      "species_segments_min": 1,
+      "species_segments_max": 40,
+      "rows_with_n": 35283,
+      "token_statistics": {
+        "train": {
+          "species_count_histogram": {
+            "1": 414,
+            "2": 326,
+            "3": 260,
+            "4": 284,
+            "5": 308,
+            "6": 250,
+            "7": 248,
+            "8": 258,
+            "9": 316,
+            "10": 386,
+            "11": 430,
+            "12": 610,
+            "13": 658,
+            "14": 690,
+            "15": 1072,
+            "16": 1970,
+            "17": 3930,
+            "18": 8110,
+            "19": 12898,
+            "20": 8180,
+            "21": 6642,
+            "22": 6110,
+            "23": 5594,
+            "24": 5762,
+            "25": 6524,
+            "26": 7910,
+            "27": 9266,
+            "28": 9642,
+            "29": 7506,
+            "30": 6188,
+            "31": 4448,
+            "32": 3076,
+            "33": 2176,
+            "34": 1798,
+            "35": 1540,
+            "36": 1496,
+            "37": 1548,
+            "38": 1330,
+            "39": 1084,
+            "40": 312
+          },
+          "unpadded_positions": 816259584,
+          "allocated_positions": 1347072000,
+          "loss_bearing_positions": 816128034,
+          "mean_species_per_document": 24.238038768529076,
+          "padding_fraction": 0.3940490307867731
+        },
+        "validation": {
+          "species_count_histogram": {
+            "1": 1,
+            "2": 2,
+            "4": 1,
+            "5": 1,
+            "8": 1,
+            "11": 1,
+            "12": 4,
+            "13": 2,
+            "14": 1,
+            "15": 1,
+            "16": 1,
+            "17": 6,
+            "18": 25,
+            "19": 32,
+            "20": 18,
+            "21": 15,
+            "22": 13,
+            "23": 17,
+            "24": 17,
+            "25": 21,
+            "26": 25,
+            "27": 40,
+            "28": 28,
+            "29": 28,
+            "30": 26,
+            "31": 19,
+            "32": 9,
+            "33": 6,
+            "34": 9,
+            "35": 7,
+            "36": 8,
+            "37": 2,
+            "38": 6,
+            "39": 7
+          },
+          "unpadded_positions": 2609152,
+          "allocated_positions": 4096000,
+          "loss_bearing_positions": 2608752,
+          "mean_species_per_document": 25.48,
+          "padding_fraction": 0.363
+        }
+      },
+      "expected_training_unpadded_positions": 24819751698.973774,
+      "exposure_note": "Dataset totals are exact; training exposure is the expectation under four million draws per region, not an observed count of sampled tokens.",
+      "payload_bytes": 201926535,
+      "manifest_sha256": "c7f16ce1df10af4c695032dc4f4d47864f2edcd55b1ec594912dc6adc7eabd80",
+      "producer": {
+        "root": "s3://oa-bolinas/snakemake/vertebrate_projection_dataset/results/rag-five-regions-v1/6b1593c274a886d20f5c0ddf3712916d446f5fed/10ba63bc375ba912909b82cda68143df4677431124fc8e15f6ac42850ce0fca6/full/rag",
+        "pipeline_commit": "6b1593c274a886d20f5c0ddf3712916d446f5fed",
+        "config_sha256": "10ba63bc375ba912909b82cda68143df4677431124fc8e15f6ac42850ce0fca6",
+        "pipeline_version": "rag-five-regions-v1",
+        "tier": "full"
+      },
+      "publisher": {
+        "root": "s3://oa-bolinas/snakemake/vertebrate_projection_dataset/results/rag-five-regions-publication-v1/54b6f936467bbc657ae88753a6f24b768bd3363d/e2af428648e45c1f7b23d938842b85325d9d864dc5335940da99d0cca3bbe0e0/full/rag",
+        "pipeline_commit": "54b6f936467bbc657ae88753a6f24b768bd3363d",
+        "config_sha256": "e2af428648e45c1f7b23d938842b85325d9d864dc5335940da99d0cca3bbe0e0",
+        "pipeline_version": "rag-five-regions-publication-v1",
+        "tier": "full"
+      },
+      "files": {
+        "README.md": {
+          "bytes": 2453,
+          "sha256": "dca2903ad603be93bda7a5a6706c64bc0dd7defaf71cfff7aef021857b301c2c"
+        },
+        "train/00000-of-00016.parquet": {
+          "bytes": 12646081,
+          "sha256": "a4c4c1c7fb1ffe52e5e7d362ecc3f0d3b62148cda30d826e74f7e293dcc07498"
+        },
+        "train/00001-of-00016.parquet": {
+          "bytes": 12838177,
+          "sha256": "af2026e4045e8e08939a2a40bd320089cd9c1362a28dd277fec2c15cde1be6c3"
+        },
+        "train/00002-of-00016.parquet": {
+          "bytes": 12238575,
+          "sha256": "3483ddd7851d58b9f5bf201506b04eaa560c21426813b8af79e7224366b16f73"
+        },
+        "train/00003-of-00016.parquet": {
+          "bytes": 12539380,
+          "sha256": "7d47b529a94ced6806a50924fdb98fb12c7997afdc4512b2774666ef5f266fd5"
+        },
+        "train/00004-of-00016.parquet": {
+          "bytes": 12815485,
+          "sha256": "3297bfe7e14cc6a19f4392286191f50972142a76640705830f9ca06eeab8ac0f"
+        },
+        "train/00005-of-00016.parquet": {
+          "bytes": 12432318,
+          "sha256": "af82898c0031c2266b7c29b6ed9fa6b0675fea9ed7c00f16f248276cf5698839"
+        },
+        "train/00006-of-00016.parquet": {
+          "bytes": 12683524,
+          "sha256": "3a544a06fac59d4e5e3a969448d1f10f16947fa3759ca6a2bca8a8f49209ecf2"
+        },
+        "train/00007-of-00016.parquet": {
+          "bytes": 12287092,
+          "sha256": "2ddb62cea62a039af4eb41c1c1966b7d63db63d30ec0ecc80ab5b31658fa6ae5"
+        },
+        "train/00008-of-00016.parquet": {
+          "bytes": 12611478,
+          "sha256": "df47fcac807e3e781ecc237946e1a3a3ceb9f6b01e093e62bff8fb92b0839049"
+        },
+        "train/00009-of-00016.parquet": {
+          "bytes": 12724278,
+          "sha256": "91e58234dd0905cdca27413e40cc4631acb8ba561d0da12df273eb46bd38c49b"
+        },
+        "train/00010-of-00016.parquet": {
+          "bytes": 12549315,
+          "sha256": "442f4494dd0fe05a0a1cbf665d979e60382a92ea7357010279aa90fe05fe5e93"
+        },
+        "train/00011-of-00016.parquet": {
+          "bytes": 12669617,
+          "sha256": "5be7007bd7d721fa7cf0cacf18c9faf4dc1711fc72bf5697b2b277e99f68d838"
+        },
+        "train/00012-of-00016.parquet": {
+          "bytes": 12516233,
+          "sha256": "9d4d5d3a26f88f059ba7e261280e1c90aaad896c1672e7e451c64ad2eab6ca96"
+        },
+        "train/00013-of-00016.parquet": {
+          "bytes": 12438661,
+          "sha256": "4110e042e18a043853c4f671325c602d1835a8988f8c2ee8e47addd3d3ce9cc0"
+        },
+        "train/00014-of-00016.parquet": {
+          "bytes": 12638450,
+          "sha256": "f36d022cb796a4bba3ba3068523097963e83e7205a93a3f640989891a38ada58"
+        },
+        "train/00015-of-00016.parquet": {
+          "bytes": 12648314,
+          "sha256": "668ed47e536803a3b1fff535a32946cd85eb4aacbc7247d657179bc7882ebca8"
+        },
+        "validation/00000-of-00001.parquet": {
+          "bytes": 647104,
+          "sha256": "bc42688dadfdf709bf49afec8947eb0820046fa2189fb937818c669f1a3c3a7d"
+        }
+      }
+    }
+  }
+}

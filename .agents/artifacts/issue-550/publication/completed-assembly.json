@@ -1,0 +1,62 @@
+{
+  "summary": {
+    "validation_chromosome": "chr18",
+    "validation_seed": 42,
+    "exact_cross_region_duplicate_memberships": 0,
+    "cross_region_duplicates": "retain original region membership outside chr18",
+    "regions": {
+      "cds": {
+        "source_anchors": 295561,
+        "unused_chr18_anchors": 4533,
+        "train_rows": 581256,
+        "train_allocated_tokens": 5952061440,
+        "validation_rows": 400,
+        "validation_allocated_tokens": 4096000,
+        "expected_training_epochs": 6.881649393726688
+      },
+      "enhancer": {
+        "source_anchors": 117010,
+        "unused_chr18_anchors": 2578,
+        "train_rows": 228064,
+        "train_allocated_tokens": 2335375360,
+        "validation_rows": 400,
+        "validation_allocated_tokens": 4096000,
+        "expected_training_epochs": 17.538936438894346
+      },
+      "ncrna": {
+        "source_anchors": 28815,
+        "unused_chr18_anchors": 217,
+        "train_rows": 56396,
+        "train_allocated_tokens": 577495040,
+        "validation_rows": 400,
+        "validation_allocated_tokens": 4096000,
+        "expected_training_epochs": 70.92701610043265
+      },
+      "tss_utr5": {
+        "source_anchors": 57418,
+        "unused_chr18_anchors": 648,
+        "train_rows": 112740,
+        "train_allocated_tokens": 1154457600,
+        "validation_rows": 400,
+        "validation_allocated_tokens": 4096000,
+        "expected_training_epochs": 35.47986517651233
+      },
+      "utr3": {
+        "source_anchors": 67155,
+        "unused_chr18_anchors": 980,
+        "train_rows": 131550,
+        "train_allocated_tokens": 1347072000,
+        "validation_rows": 400,
+        "validation_allocated_tokens": 4096000,
+        "expected_training_epochs": 30.40668947168377
+      }
+    }
+  },
+  "development_counts": {
+    "complex_traits": 11630,
+    "mendelian_traits": 16140,
+    "sge": 23853
+  },
+  "harness_sha256": "6631d35f9ae0afc754c623a2e3960682e8a834a28001906279745882f99cb73b",
+  "harness_bytes": 46903794
+}

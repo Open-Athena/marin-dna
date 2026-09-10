@@ -1,0 +1,42 @@
+{
+  "cds": {
+    "repo_id": "marin-dna/rag-five-regions-v1-cds",
+    "revision": "4d15e7a288ab5d028b5012d4efb6251665097475",
+    "train_rows": 581256,
+    "validation_rows": 400,
+    "anonymous_verified": true,
+    "release_manifest_sha256": "0d99b6588106e3767f5f47cc4fc72f19b22cc753f67273a6a2a2b1ee193c5a8d"
+  },
+  "tss_utr5": {
+    "repo_id": "marin-dna/rag-five-regions-v1-tss_utr5",
+    "revision": "9f2e7eb97f8a482cac59c175f3a1df6cc4abdf63",
+    "train_rows": 112740,
+    "validation_rows": 400,
+    "anonymous_verified": true,
+    "release_manifest_sha256": "0b8660f1ba4b7872c5cba23bc3448d1b7d6556f04acb86f557c052da8dcad91b"
+  },
+  "utr3": {
+    "repo_id": "marin-dna/rag-five-regions-v1-utr3",
+    "revision": "2e48edae1efe5c86b9b6d1ed9db98f5152c7d8d8",
+    "train_rows": 131550,
+    "validation_rows": 400,
+    "anonymous_verified": true,
+    "release_manifest_sha256": "c7f16ce1df10af4c695032dc4f4d47864f2edcd55b1ec594912dc6adc7eabd80"
+  },
+  "ncrna": {
+    "repo_id": "marin-dna/rag-five-regions-v1-ncrna",
+    "revision": "dd3689a282f48a79d1340483f8149c0524214903",
+    "train_rows": 56396,
+    "validation_rows": 400,
+    "anonymous_verified": true,
+    "release_manifest_sha256": "e9c9476651e313786f96694d4206eaa4d756ac941593e130791a0643e1dee3e2"
+  },
+  "enhancer": {
+    "repo_id": "marin-dna/rag-five-regions-v1-enhancer",
+    "revision": "07cea1150db3fae4de696a99e9ab8179bc36ad5f",
+    "train_rows": 228064,
+    "validation_rows": 400,
+    "anonymous_verified": true,
+    "release_manifest_sha256": "8e98479eca3d3b36698372b993383fb3711f102e4a390aa399b30afd57ea91ee"
+  }
+}
