@@ -636,3 +636,27 @@ Do not run two production optimizers concurrently under the same W&B identity.
 Final evaluation staging now explicitly runs the native checkpoint-download rule on a host with GCS and S3 access before paid GPU time.
 The AWS GPU worker copies the resulting canonical S3 checkpoint into the correct Snakemake cache before the synthetic parity recheck, so it requires no copied GCP credential.
 Independent review of these corrected cross-host commands found no actionable issues; the model registry remains on US version 8 until the production replacement is adopted.
+
+## 2026-09-10 17:56 UTC — European production adopted and final staging prepared
+
+The European worker completed four full CDS shards by 17:39 without a failure, meeting the recorded replacement gate.
+The US four-chip fallback was canceled at 17:42:51 and its child reached TASK_STATE_KILLED at 17:43:07.818 with reason "Parent job terminated".
+The European child remained TASK_STATE_RUNNING on attempt 0 at 17:49; eight of sixteen CDS shards were complete by 17:54.
+Neither run had begun optimizer updates when the fallback was retired; its partial version-8 GCS caches remain intact.
+No paid resource was launched.
+
+PR #565 now registers the exact European version-9 final export, in commit 51fd75ad and experiment-branch cherry-pick abecf0d2.
+All CI checks passed, including all five project test jobs and the credential-free evaluation dry-run.
+Independent review of the published delta found no code issues; the PR description was corrected to the European source and the PR is ready and unmerged.
+The final numerical-parity receipt now records training source ddff6e1fa59dcc7dc386fe08c954cdec69224a2e.
+Issue #550's body was updated and read back, preserving the planned final-checkpoint-first evaluation and cumulative $30 cap.
+
+The shared VM cannot run the full evaluation/Snakemake imports within its 500 MiB working-set limit.
+A lightweight one-off stage-final-checkpoint.py therefore prepares the canonical S3 checkpoint using normal GCS and S3 credential providers, without copying credentials or importing the ML workflow.
+It pins GCS object generations, verifies size and MD5, checks model geometry, validates all existing S3 objects before writes, uses conditional puts, rereads uploaded bytes, and creates the directory completion marker last.
+It holds the nonblocking shared heavy-work lock, enforces the headroom and load thresholds, monitors resource pressure, and records start/end time, exit status, and a conservative peak-RSS upper bound, including failures.
+Its transport working-set estimate is 400 MiB; total checkpoint payload is limited to 200 MB and processed through disk and 1 MiB hashing buffers.
+Eight small mocked contract tests and pinned Ruff checks pass; no final checkpoint objects were uploaded because those weights do not yet exist.
+A generation-pinned read of the existing 1,429-byte European pilot config succeeded and matched MD5 HnYMvWUzjZBiXxGYiAGtbw==.
+The README documents plan/apply staging before paid GPU time, followed by the existing canonical S3 download, synthetic parity gates, and six development metric/probe targets.
+The newly published helper still requires independent review before actual final-checkpoint staging.

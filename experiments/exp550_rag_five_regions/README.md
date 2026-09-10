@@ -88,29 +88,31 @@ Retain the canonical `results/scores`, `results/metrics`, and `results/probe_met
 Use the remaining cumulative budget only after this final-checkpoint evaluation completes.
 
 The registered model is `dna-exp550-rag46m-five-regions-v1-step-100000` in [PR #565](https://github.com/Open-Athena/marin-dna/pull/565).
-The active source is the us-east5 version-8 export; check the tracking issue before using it after a recovery.
+The active source is the europe-west4 version-9 export; check the tracking issue before using it after a recovery.
 The permanent branch includes the combined backend, tokenizer compatibility, strict-fp32 controls, and registration together; none of their PRs needs to be merged to reproduce this experiment.
 
-After the final export exists, stage the registered checkpoint through the pipeline on a host with normal GCS and S3 access, before starting paid GPU time.
-Use a suitably sized CPU worker or apply the shared VM's heavy-work guard for this stage.
-Run these commands from `snakemake/analysis/evals_v2`, inspecting the dry-run before execution:
+After the final export exists, stage the registered checkpoint on the shared VM before starting paid GPU time.
+The lightweight experiment helper uses normal GCS and S3 credential providers, pins GCS generations, validates model geometry and byte checksums, and writes the canonical S3 checkpoint directory with conditional puts.
+It acquires the shared heavy-work lock, checks memory and load, monitors pressure throughout the transfer, and records timing, status, and peak RSS in its receipt.
+Existing S3 objects must match; it never replaces a different checkpoint.
+Run these commands from the repository root and inspect the plan before applying it:
 
 ```bash
-model=dna-exp550-rag46m-five-regions-v1-step-100000
-checkpoint_uri=gs://marin-us-east5/MarinDNA/exp550_rag_five_regions/checkpoints/dna-exp550-rag46m-five-regions-v1/2026.09.10.8/hf/step-100000
-uv sync --locked --group genome-s3
-uv run --locked --group genome-s3 snakemake -n "results/checkpoints/$model" --cores 2
-uv run --locked --group genome-s3 snakemake "results/checkpoints/$model" --cores 2
+uv run --locked --script .agents/artifacts/issue-550/evaluation/stage-final-checkpoint.py \
+  --receipt /tmp/issue550-final-checkpoint-plan.json
+uv run --locked --script .agents/artifacts/issue-550/evaluation/stage-final-checkpoint.py \
+  --apply --receipt /tmp/issue550-final-checkpoint-stage.json
 ```
 
-The default profile publishes that checkpoint directory to its canonical S3 location.
+The helper avoids the evaluation workflow's up-front ML imports, which exceed this shared VM's 500 MiB working-set limit.
+Its small contract tests run with `uv run --locked --script .agents/artifacts/issue-550/evaluation/test-stage-final-checkpoint.py` and perform no cloud writes.
 On the GPU worker, use the same consumer commit and copy the completed S3 checkpoint into the explicit storage cache before the synthetic recheck.
 This uses the GPU worker's normal S3 access; GCP credentials stay on the staging host.
-Run from the same pipeline root:
+Run from `snakemake/analysis/evals_v2`:
 
 ```bash
 model=dna-exp550-rag46m-five-regions-v1-step-100000
-checkpoint_uri=gs://marin-us-east5/MarinDNA/exp550_rag_five_regions/checkpoints/dna-exp550-rag46m-five-regions-v1/2026.09.10.8/hf/step-100000
+checkpoint_uri=gs://marin-eu-west4/MarinDNA/exp550_rag_five_regions/checkpoints/dna-exp550-rag46m-five-regions-v1/2026.09.10.9/hf/step-100000
 storage_prefix=/opt/issue550/storage
 checkpoint_local="$storage_prefix/s3/oa-bolinas/snakemake/analysis/evals_v2/results/checkpoints/$model"
 uv sync --locked --group genome-s3

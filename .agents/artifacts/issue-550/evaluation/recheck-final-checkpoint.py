@@ -77,7 +77,7 @@ def main() -> None:
         ).strip(),
         "checkpoint": args.checkpoint_uri,
         "local_checkpoint": str(Path(args.checkpoint).resolve()),
-        "training_source_commit": "57c4124e24b313215f9d7662cf3eb9faac3f9200",
+        "training_source_commit": "ddff6e1fa59dcc7dc386fe08c954cdec69224a2e",
         "runtime": {
             "python": platform.python_version(),
             "torch": torch.__version__,
