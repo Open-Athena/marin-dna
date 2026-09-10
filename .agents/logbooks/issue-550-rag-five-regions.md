@@ -369,3 +369,19 @@ Independent review found no integration issue in combined RAG precision forwardi
 The experiment fp32 runtime overlay validates against the full existing inference policy and records its failed-candidate evidence.
 Exact model/harness registration still awaits the final dataset artifact and production output identity; no biological inference is scheduled yet.
 The assembly progress estimate was corrected: the uppercase mammalian species sort before the other vertebrates, so the two remaining jobs still contain substantial work.
+
+### 2026-09-10 03:12 UTC — Platform approval blocker on worker extension
+
+Reusable SQLite write-amplification follow-up is tracked in [issue #563](https://github.com/Open-Athena/marin-dna/issues/563).
+At 03:09 UTC the original immutable producer was ingesting anaPla1, the twentieth of 39 sorted non-human species; recovery job count remained 157/159.
+The existing CPU worker's shutdown deadline remains approximately 04:05 UTC.
+Automatic approval review rejected extending it to roughly 06:10 UTC, including after checking the original task permission questions and the user's direct affirmative response.
+No shutdown timer or disk-performance setting was changed.
+A consolidated user confirmation is pending for the concrete worker extension, cumulative $30 CPU/GPU scope including retries/extensions, free TPU training, and synthetic/training W&B logging to gonzalobenegas/marin with the existing credential.
+The approval question is required by that platform rejection; the earlier task authorization remains recorded and the repository guidance itself does not request a new approval.
+
+The separately and explicitly approved HF upload remains queued behind producer completion, payload preparation, and audit.
+The audit's existing bounded pass now also records exact per-split species histograms and padding totals, with expected training exposure explicitly distinguished from observed sampled-token counts.
+The updated audit is /opt/issue550/audit-release.py on the worker; its local copy is /tmp/issue550-audit-release.py.
+The registration worktree /tmp/issue550-registration exists on codex/issue-550-register-final-rag based on PR #554, with no registration edits yet.
+Training still awaits actual immutable public dataset revisions, and no biological VEP inference has run.
