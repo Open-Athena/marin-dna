@@ -39,7 +39,9 @@ Inspect the resolved dependency tree when accelerator extras, custom indexes, Tr
 ## Prepare The Launch
 
 - Read the current `iris --help` and the launch API used by the selected Marin release before constructing the command.
-- Obtain explicit user approval before launching paid remote resources.
+- Follow [AGENTS.md](../../../AGENTS.md#task-authorization) to establish launch authority during initial preflight.
+  Reuse existing explicit approval for paid resources, required credential use, and retries within the approved scope and cumulative budget.
+  Include coordinators, failed attempts, and replacement workers in the budget; ask only for missing authority or an expansion beyond its limits.
 - Pin or snapshot the experiment branch before submitting the job.
 - Propagate required dependency groups and environment variables to every remote step according to the current API. Parent coordinator settings may not propagate to workers.
 - Follow `wandb-reporting` for run and group naming. MarinDNA experiment runs must map back to `dna-exp<N>`.
