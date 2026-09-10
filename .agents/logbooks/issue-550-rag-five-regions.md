@@ -409,3 +409,27 @@ Independent review found no issues and checked resumed-budget, execution-mismatc
 Resume data construction from the 40 saved sequence Parquets and other immutable cached inputs, then audit and publish the five sequence-only datasets before production training.
 Retain the producer identity and additive pipeline contracts; any implementation change must receive a distinct producing identity.
 Use the latest checkpoint first for development VEP after training and spend on earlier checkpoints only if the cumulative budget permits.
+
+### 2026-09-10 14:12 UTC — Final assembly recovery for production launch
+
+The user directly requested launching the production training run in the resumed task.
+Existing authorization covers the required data recovery, five public HF datasets, free Iris training, W&B logging, and the cumulative $30 CPU/GPU limit.
+Current AWS public pricing confirms r6i.4xlarge at $1.008/hour and g5.xlarge at $1.006/hour in us-east-2.
+The conservative plan reserves $4 for prior attempts, $4.182 for a four-hour recovery worker and its disk, $18.108 for 18 GPU hours, and $3.71 for remaining overhead/recovery.
+The budget remains cumulative; these are upper allowances and reservations rather than an AWS billing settlement.
+
+CPU worker i-03039e0a95792b4e0 launched at 14:04:10 UTC with 128 GiB RAM, a 200-GiB delete-on-termination gp3 disk, and automatic shutdown at approximately 18:04 UTC.
+The producer and publisher remain pinned to 6b1593c274a886d20f5c0ddf3712916d446f5fed and 54b6f936467bbc657ae88753a6f24b768bd3363d.
+Final assembly uses a 96-GiB tmpfs for its temporary SQLite database and local dataset outputs; successful outputs are uploaded through the existing S3 workflow.
+This changes the execution storage location without changing the biological producer code or artifact identity.
+The dry-run schedules only rag_documents and rag_all_documents, reusing all 363 completed upstream jobs.
+Initial setup needed Conda installed before the dry-run could inspect the workflow; the corrected bootstrap includes that dependency.
+
+The recovery driver started at 14:08 UTC and sequences assembly, public release preparation, bounded payload validation, approved HF publication, and verification of immutable input receipts.
+The HF token is provided only through the remote process environment and is absent from committed scripts and logs.
+Initial process inspection showed about 950 MiB RSS, 712 MB of SQLite write calls, and only 70 KB of physical writes, confirming that the previous disk bottleneck is avoided.
+The worker has over 120 GiB available at the start of ingestion.
+
+The prepared production submission retains the tested code and lockfile from c0585d0e117075026b4384d552d59b52009d257e.
+It requires the exact five verified public revisions committed inside the experiment project, selects eight free preemptible v6e chips in us-east5, and preserves 100,000 updates, 200 documents per update, and the AdamH scaling heuristic.
+Training has not been submitted while the final datasets are still being assembled.

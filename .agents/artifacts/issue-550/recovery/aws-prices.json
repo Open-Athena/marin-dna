@@ -1,0 +1,27 @@
+{
+  "checked_at": "2026-09-10T14:02:46.058781+00:00",
+  "source": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonEC2/current/us-east-2/index.csv",
+  "prices": {
+    "g5.xlarge": {
+      "SKU": "7DSWD9TUGHZ9KJB4",
+      "PricePerUnit": "1.0060000000",
+      "Unit": "Hrs",
+      "EffectiveDate": "2026-09-01",
+      "PriceDescription": "$1.006 per On Demand Linux g5.xlarge Instance Hour"
+    },
+    "r6i.2xlarge": {
+      "SKU": "BP8MTRD66KW669AY",
+      "PricePerUnit": "0.5040000000",
+      "Unit": "Hrs",
+      "EffectiveDate": "2026-09-01",
+      "PriceDescription": "$0.504 per On Demand Linux r6i.2xlarge Instance Hour"
+    },
+    "r6i.4xlarge": {
+      "SKU": "C2N434SQBGHCYP33",
+      "PricePerUnit": "1.0080000000",
+      "Unit": "Hrs",
+      "EffectiveDate": "2026-09-01",
+      "PriceDescription": "$1.008 per On Demand Linux r6i.4xlarge Instance Hour"
+    }
+  }
+}

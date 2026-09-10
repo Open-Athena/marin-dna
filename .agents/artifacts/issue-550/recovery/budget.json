@@ -1,0 +1,19 @@
+{
+  "checked_at": "2026-09-10T14:03:59.792822+00:00",
+  "cap_usd": 30,
+  "prior_cost_upper_allowance_usd": 4,
+  "prior_allowance_basis": "First CPU <=0.34 compute; replacement CPU <=2.02 compute; GPU <=0.96 compute using on-demand bound; remaining 0.68 covers prior EBS/rounding.",
+  "assembly_instance_type": "r6i.4xlarge",
+  "assembly_runtime_limit_hours": 4,
+  "assembly_compute_max_usd": 4.032,
+  "assembly_ebs_allowance_usd": 0.15,
+  "final_gpu_reserved_hours": 18,
+  "final_gpu_compute_reserved_usd": 18.108,
+  "remaining_reserve_usd": 3.71,
+  "notes": [
+    "All reservations and previous attempts count toward 30 USD.",
+    "Free Iris TPU training is separate.",
+    "Final VEP measured compute estimate 15.958 hours; 18-hour reservation includes setup and probe allowance.",
+    "No previous resource ID remains active under task tag."
+  ]
+}
