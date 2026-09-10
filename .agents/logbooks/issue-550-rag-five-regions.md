@@ -501,3 +501,32 @@ Retain this active job while it builds all five caches, then verify compilation,
 The existing free-Iris authority and cumulative $30 CPU/GPU cap remain unchanged.
 No paid EC2 worker is active for this task, and no biological VEP inference has run.
 The user requested that all further postmortem #564 findings update its body directly, without new comments.
+
+### 2026-09-10 16:07 UTC — Worker failures and four-chip pilot
+
+The version-7 production child lost three workers between 15:30 and 15:49 UTC.
+Each controller receipt reports worker reconcile failure threshold exceeded; none reports an optimizer step or an out-of-memory failure.
+The last task status at 16:05 UTC is pending retry 3, although the aggregate job list labels the child running.
+Tokenization completed at least one CDS shard before the last failure, so surviving GCS cache outputs can be reused.
+A 15:42 resource snapshot measured approximately 4.7 GiB current and 4.9 GiB peak task memory.
+At 15:50 the controller showed no ready or booting v6e-8 slices, while v6e-4 capacity remained available.
+Do not confuse aggregate job state with an allocated, advancing training process.
+
+Snapshot 57c4124e24b313215f9d7662cf3eb9faac3f9200 adds an explicit v6e-4 option and a distinct synthetic pilot identity.
+The model, data, optimizer, schedule, and effective batch of 200 remain unchanged; microbatch 5 uses ten accumulation steps across four chips.
+Independent review found no blocking issues, and the 19-test suite runs remotely before pilot dispatch.
+The shared-node heavy-work lock prevented local packaging, so the existing Iris CPU coordinator downloaded and packaged the exact pushed snapshot.
+Its initial CLI submission selected the public IAP URL and returned Forbidden; using the runtime-provided controller address, as the Iris worker client normally does, succeeded without credential extraction or another user permission request.
+Iris accepted the pilot at 16:06:03 UTC as /gonzalo/dna-exp550-rag46m-five-regions-v1-20260910-east1-ram48/dna-exp550-rag46m-pilot-v6e4-20260910.
+Its artifacts use run ID dna-exp550-rag46m-five-regions-v1-pilot-mb5-v6e-4 and version 2026.09.10.1 under the us-east1 checkpoint root.
+Keep the original parent alive while this nested pilot runs; canceling the parent also cancels its descendants.
+The pilot must verify four accelerators, finite advancing updates, checkpoint/export files, and throughput before production moves to four chips.
+
+Draft PR #565 registers the final checkpoint and three development probe cells on top of #554.
+Commit b08391e9f6965a0ed6eae64de814bd8d8d631d91 also fixes the credential-free CI dry-run by substituting temporary local harness inputs while preserving the full registry and production checksum/storage behavior.
+All CI checks pass, and independent review found no blocking issues.
+The registration currently points to version 2026.09.10.7; update it before evaluation if a replacement uses another version.
+No biological VEP inference has run, and no additional paid worker has been launched.
+
+The user approved closing postmortem #564; its body records the completed investigation, evidence limits, cost estimate, and unimplemented recommendations.
+GitHub confirms closure at 15:38:01 UTC.
