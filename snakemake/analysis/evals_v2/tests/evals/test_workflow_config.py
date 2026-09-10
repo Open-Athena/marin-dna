@@ -1,5 +1,8 @@
 """Contracts for global inference semantics and checkpoint execution sizing."""
 
+import hashlib
+import json
+import re
 from pathlib import Path
 
 import pytest
@@ -144,3 +147,19 @@ def test_explicit_precision_override_enters_snakemake_provenance() -> None:
             "precision_reason": "Recorded parity failure",
         }
     }
+
+
+def test_existing_scoring_run_source_is_unchanged() -> None:
+    # Snakemake hashes run_func_src verbatim: even default-equivalent edits
+    # invalidate existing artifacts via the independent code rerun trigger.
+    fixture = json.loads(
+        (PROJECT_ROOT / "tests/fixtures/legacy_scoring_run_hashes.json").read_text()
+    )
+    for filename, expected in fixture["run_blocks"].items():
+        text = (PROJECT_ROOT / "workflow/rules" / filename).read_text()
+        blocks = re.findall(
+            r"^    run:\n(.*?)(?=^rule |\Z)", text, re.MULTILINE | re.DOTALL
+        )
+        assert [
+            hashlib.sha256(block.encode()).hexdigest() for block in blocks
+        ] == expected

@@ -85,7 +85,8 @@ def compute_variant_scores(
             embedding run can otherwise accumulate on-GPU and OOM. ``None``
             (default) leaves behaviour unchanged.
         bf16: Whether to run evaluation forwards in bfloat16.
-        tf32: Explicit CUDA matmul precision; None retains framework defaults.
+        tf32: Explicit CUDA matmul precision. None preserves the bf16 default
+            and disables TF32 when bf16=False requests fp32 inference.
 
     Returns:
         DataFrame with per-strand score atoms. Rows align with input
@@ -124,8 +125,8 @@ def compute_variant_scores(
         "dataloader_num_workers": num_workers,
         "remove_unused_columns": False,
     }
-    if tf32 is not None:
-        inference_kwargs["tf32"] = tf32
+    if tf32 is not None or not bf16:
+        inference_kwargs["tf32"] = tf32 if tf32 is not None else False
     if eval_accumulation_steps is not None:
         inference_kwargs["eval_accumulation_steps"] = eval_accumulation_steps
 

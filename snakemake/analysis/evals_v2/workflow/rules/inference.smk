@@ -61,7 +61,6 @@ rule compute_scores:
             ],
             torch_compile=config["inference"]["torch_compile"],
             bf16=config["inference"]["bf16"],
-            tf32=config["inference"].get("tf32"),
             rc=params.rc,
             return_embeddings=config["inference"]["return_embeddings"],
             eval_accumulation_steps=eval_accumulation_steps,

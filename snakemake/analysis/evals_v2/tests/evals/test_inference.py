@@ -102,7 +102,8 @@ def test_compute_variant_scores_rc_true_returns_four_cols():
     assert len(scores) == len(ds)
 
 
-def test_compute_variant_scores_threads_execution_settings():
+@pytest.mark.parametrize("tf32", [None, False])
+def test_compute_variant_scores_threads_execution_settings(tf32):
     ds = _stub_dataset()
     fwd = np.zeros((len(ds), 2), dtype=np.float32)
     rc = np.zeros((len(ds), 2), dtype=np.float32)
@@ -123,7 +124,7 @@ def test_compute_variant_scores_threads_execution_settings():
             num_workers=2,
             torch_compile=True,
             bf16=False,
-            tf32=False,
+            tf32=tf32,
             rc=True,
             eval_accumulation_steps=3,
         )
@@ -361,4 +362,5 @@ def test_compute_variant_scores_preserves_legacy_positional_order():
         "return_embeddings",
         "eval_accumulation_steps",
         "bf16",
+        "tf32",
     ]
