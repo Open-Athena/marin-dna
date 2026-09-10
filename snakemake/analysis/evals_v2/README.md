@@ -17,6 +17,8 @@ For each `model` × `dataset` in the config:
    Before tokenizer or model construction, `marin_dna_evals.hf_compat` reads the local `config.json` and validates its effective RoPE semantics.
    Transformers-5-only `rope_parameters` are translated in memory for the pinned Transformers 4 consumer.
    Consistent dual-schema exports are accepted, while conflicting, malformed, incomplete, or unrepresentable schemas fail before weights load.
+   Transformers 5 special-token lists are mapped to the Transformers 4 `additional_special_tokens` field in memory, preserving the serialized tokenizer and token IDs.
+   Conflicting old/new lists fail explicitly; native Transformers 4 named-token dictionaries retain their meaning.
 2. **Score** every variant with `compute_variant_scores`. The score
    bundle is per-strand LLR + JSD (`down_jsd_mean` in issue #175 — the
    per-position 4-nuc next-token JSD averaged over downstream positions).
