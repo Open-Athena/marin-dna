@@ -12,7 +12,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 spec = importlib.util.spec_from_file_location(
     "staging", Path(__file__).with_name("stage-final-checkpoint.py")
@@ -65,6 +65,33 @@ class FakeS3:
 
 
 class TransportTests(unittest.TestCase):
+    def test_pressure_interrupt_survives_concurrent_child_cleanup(self):
+        child = Mock()
+
+        def cleared_during_poll():
+            staging.ACTIVE = None
+
+        child.poll.side_effect = cleared_during_poll
+        with (
+            patch.object(staging, "ACTIVE", child),
+            patch.object(staging.os, "kill") as kill,
+        ):
+            staging.interrupt_transport()
+        child.terminate.assert_called_once_with()
+        kill.assert_called_once_with(staging.os.getpid(), staging.signal.SIGINT)
+
+    def test_pressure_interrupt_survives_child_termination_failure(self):
+        child = Mock()
+        child.poll.return_value = None
+        child.terminate.side_effect = ProcessLookupError
+        with (
+            patch.object(staging, "ACTIVE", child),
+            patch.object(staging.os, "kill") as kill,
+            self.assertRaises(ProcessLookupError),
+        ):
+            staging.interrupt_transport()
+        kill.assert_called_once_with(staging.os.getpid(), staging.signal.SIGINT)
+
     def run_stage(self, client, *, payloads=None, corrupt_download=False, apply=True):
         payloads = payloads or PAYLOADS
         registry = {"models": [{"name": staging.MODEL, "gcs_path": SOURCE}]}

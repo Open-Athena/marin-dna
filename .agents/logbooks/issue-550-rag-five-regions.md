@@ -660,3 +660,17 @@ Eight small mocked contract tests and pinned Ruff checks pass; no final checkpoi
 A generation-pinned read of the existing 1,429-byte European pilot config succeeded and matched MD5 HnYMvWUzjZBiXxGYiAGtbw==.
 The README documents plan/apply staging before paid GPU time, followed by the existing canonical S3 download, synthetic parity gates, and six development metric/probe targets.
 The newly published helper still requires independent review before actual final-checkpoint staging.
+
+## 2026-09-10 18:05 UTC — Final staging review completed
+
+Independent review of published helper commit 94dc07ed found a race between the pressure monitor reading ACTIVE and the transport clearing that global when a gcloud child exits.
+The corrected interrupt function captures the child once and sends the main-process interrupt in a finally block, including when child termination itself fails.
+Two deterministic regression tests cover concurrent child cleanup and termination failure; all ten tiny transport tests and pinned Ruff checks pass.
+Review confirmed the correction and found no additional blocking issues in generation pinning, checksum validation, conditional S3 writes, resource bounds, or checkpoint compatibility.
+The README now explicitly requires a successful staging exit and a receipt with exit_status 0 and applied true before paid GPU launch or checkpoint copying: Snakemake can recognize a partial S3 directory, and its timestamp file is not a completion gate.
+No checkpoint was uploaded, and final model weights are still pending.
+
+The reconciled budget snapshot is .agents/artifacts/issue-550/recovery/budget-reconciled-20260910.json.
+It retains the $4 prior-attempt allowance, $0.9996 completed recovery compute, $0.15 recovery disk allowance, and $18.108 reserved final GPU compute, leaving $6.7424 for further storage, setup, and permitted recovery under the cumulative $30 cap.
+This is a conservative reservation ledger, not a settled AWS bill.
+The original four-hour recovery reservation remains preserved in the earlier budget.json snapshot.

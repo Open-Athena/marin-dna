@@ -106,6 +106,9 @@ uv run --locked --script .agents/artifacts/issue-550/evaluation/stage-final-chec
 
 The helper avoids the evaluation workflow's up-front ML imports, which exceed this shared VM's 500 MiB working-set limit.
 Its small contract tests run with `uv run --locked --script .agents/artifacts/issue-550/evaluation/test-stage-final-checkpoint.py` and perform no cloud writes.
+Require a successful staging exit and a receipt with `exit_status: 0` and `applied: true` before starting the GPU worker or copying the checkpoint.
+S3 prefix existence and `.snakemake_timestamp` alone are insufficient: Snakemake can recognize a directory while a failed upload has left only some of its files.
+Retry a failed stage through the same helper so all retained objects are revalidated.
 On the GPU worker, use the same consumer commit and copy the completed S3 checkpoint into the explicit storage cache before the synthetic recheck.
 This uses the GPU worker's normal S3 access; GCP credentials stay on the staging host.
 Run from `snakemake/analysis/evals_v2`:

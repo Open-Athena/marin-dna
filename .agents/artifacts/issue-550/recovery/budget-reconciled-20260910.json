@@ -1,0 +1,27 @@
+{
+  "checked_at": "2026-09-10T18:02:00Z",
+  "cap_usd": 30,
+  "accounting": "Conservative task allowances and reservations, not a settled AWS bill",
+  "prior_cost_upper_allowance_usd": 4,
+  "prior_allowance_basis": "Earlier CPU attempts <=2.36 compute, GPU <=0.96 compute using an on-demand bound, and 0.68 for earlier EBS and rounding",
+  "completed_recovery_instance_id": "i-03039e0a95792b4e0",
+  "completed_recovery_instance_type": "r6i.4xlarge",
+  "completed_recovery_launch_time": "2026-09-10T14:04:10Z",
+  "completed_recovery_termination_time": "2026-09-10T15:03:40Z",
+  "completed_recovery_runtime_seconds": 3570,
+  "completed_recovery_compute_usd": 0.9996,
+  "completed_recovery_ebs_allowance_usd": 0.15,
+  "final_gpu_reserved_hours": 18,
+  "final_gpu_on_demand_hourly_usd": 1.006,
+  "final_gpu_compute_reserved_usd": 18.108,
+  "remaining_reserve_usd": 6.7424,
+  "notes": [
+    "Replaces the original four-hour recovery reservation with the completed 59.5-minute runtime",
+    "All earlier attempts and future recovery remain within the cumulative cap",
+    "Free Iris TPU training is separate from the paid CPU/GPU cap",
+    "The unrelated orphan investigated in issue 564 is outside issue 550",
+    "Final checkpoint VEP takes priority; earlier checkpoints are optional only after final evaluation and budget reconciliation",
+    "Recheck price, cumulative spend, runtime estimate, and verified worker shutdown deadline before paid GPU launch",
+    "No final GPU worker is launched by this reservation"
+  ]
+}

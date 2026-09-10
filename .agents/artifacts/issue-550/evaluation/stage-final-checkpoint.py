@@ -42,6 +42,16 @@ ESTIMATED_WORKING_SET = 400 * 1024**2
 ACTIVE: subprocess.Popen | None = None
 
 
+def interrupt_transport() -> None:
+    """Interrupt even if the active child exits while pressure is checked."""
+    active = ACTIVE
+    try:
+        if active is not None and active.poll() is None:
+            active.terminate()
+    finally:
+        os.kill(os.getpid(), signal.SIGINT)
+
+
 def available_memory() -> int:
     for line in Path("/proc/meminfo").read_text().splitlines():
         if line.startswith("MemAvailable:"):
@@ -83,9 +93,7 @@ def shared_node_guard():
                 except (OSError, ValueError, RuntimeError):
                     unsafe = True
                 if unsafe:
-                    if ACTIVE is not None and ACTIVE.poll() is None:
-                        ACTIVE.terminate()
-                    os.kill(os.getpid(), signal.SIGINT)
+                    interrupt_transport()
                     return
 
         thread = threading.Thread(target=monitor, daemon=True)
