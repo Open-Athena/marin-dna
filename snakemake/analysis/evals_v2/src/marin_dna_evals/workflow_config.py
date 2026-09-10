@@ -90,3 +90,17 @@ def resolve_model_eval_accumulation_steps(
         value,
         field=f"model {model_name!r} eval_accumulation_steps",
     )
+
+
+def inference_precision_params(inference: Mapping[str, object]) -> dict[str, object]:
+    """Add provenance only for an explicitly selected precision override.
+
+    Existing default runs must retain their original Snakemake parameter map;
+    adding even a default-valued key would invalidate completed score outputs.
+    """
+    precision = {
+        key: inference.get(key) for key in ("bf16", "tf32", "precision_reason")
+    }
+    if precision == {"bf16": True, "tf32": None, "precision_reason": None}:
+        return {}
+    return {"precision": precision}

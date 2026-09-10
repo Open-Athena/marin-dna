@@ -6,6 +6,7 @@ import pytest
 import yaml
 from marin_dna_evals.workflow_config import (
     GLOBAL_INFERENCE_SWITCHES,
+    inference_precision_params,
     resolve_model_batch_size,
     resolve_model_eval_accumulation_steps,
     validate_inference_config,
@@ -127,3 +128,19 @@ def test_precision_policy_cannot_be_overridden_by_checkpoint(field) -> None:
         validate_inference_config(
             _config()["inference"], [{"name": "model", field: False}]
         )
+
+
+def test_default_precision_preserves_existing_snakemake_parameter_identity() -> None:
+    assert inference_precision_params(_config()["inference"]) == {}
+
+
+def test_explicit_precision_override_enters_snakemake_provenance() -> None:
+    settings = dict(_config()["inference"])
+    settings.update(bf16=False, tf32=False, precision_reason="Recorded parity failure")
+    assert inference_precision_params(settings) == {
+        "precision": {
+            "bf16": False,
+            "tf32": False,
+            "precision_reason": "Recorded parity failure",
+        }
+    }

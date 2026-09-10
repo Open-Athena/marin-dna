@@ -15,7 +15,7 @@ rule compute_scores:
         dataset="|".join(DATASETS),
     threads: config["inference"]["num_workers"]
     params:
-        precision=get_inference_precision(),
+        **inference_precision_params(config["inference"]),
         # 255 for BOS-using checkpoints (e.g. exp136), 256 for older runs;
         # the tokenizer baked into each checkpoint handles BOS itself.
         # NOTE: only output-affecting fields belong in `params:` — values
@@ -60,8 +60,8 @@ rule compute_scores:
                 "data_transform_on_the_fly"
             ],
             torch_compile=config["inference"]["torch_compile"],
-            bf16=params.precision["bf16"],
-            tf32=params.precision["tf32"],
+            bf16=config["inference"]["bf16"],
+            tf32=config["inference"].get("tf32"),
             rc=params.rc,
             return_embeddings=config["inference"]["return_embeddings"],
             eval_accumulation_steps=eval_accumulation_steps,
