@@ -385,3 +385,27 @@ The audit's existing bounded pass now also records exact per-split species histo
 The updated audit is /opt/issue550/audit-release.py on the worker; its local copy is /tmp/issue550-audit-release.py.
 The registration worktree /tmp/issue550-registration exists on codex/issue-550-register-final-rag based on PR #554, with no registration edits yet.
 Training still awaits actual immutable public dataset revisions, and no biological VEP inference has run.
+
+### 2026-09-10 13:33 UTC — Unattended access guidance and durable recovery state
+
+At 13:11 UTC, the previous CPU worker was unreachable after its approximately 04:05 UTC shutdown deadline; the task's prior CPU and GPU instance IDs no longer appeared in EC2 describe results.
+The immutable biological S3 prefix retained 399 objects: five anchor artifacts, 351 chain artifacts, 40 species sequence Parquets, and three source artifacts.
+No final RAG datasets or combined evaluation harness were present, the publication prefix was empty, and the anonymous Hugging Face dataset listing contained no five-region releases.
+The queued continuation on the expired worker did not complete.
+Production training and biological VEP have not started.
+The validated TPU pilot, resume check, and synthetic GPU precision evidence remain durable.
+
+The existing task authority remains free Iris TPU training and a cumulative $30 CPU/GPU budget, including failed attempts and recovery, with explicit approval for the five public HF datasets.
+The original direct approval is recorded in the September 10 00:11 entry; its private message references remain in task handoff context.
+The expired-worker extension question is obsolete; prior consent does not need to be repeated to resume within the authorized scope.
+Reconcile spending and outstanding commitments before selecting a replacement worker.
+The current session still has restricted workspace execution and automatic approval review; repository edits do not change those platform settings.
+
+[PR #556](https://github.com/Open-Athena/marin-dna/pull/556) now adds effective-permission preflight, supported persistent Full Access setup, approval references in handoffs, and worker lifetime/recovery planning for future sessions.
+Its published commit is 2299ad04ec6a2230b31ecf942b25859616a1c522, applied here at 31606d8d.
+Repository quality checks, four skill validators, relative links, and the TOML example pass.
+Independent review found no issues and checked resumed-budget, execution-mismatch, denied-upload, and missing-budget scenarios; it did not exercise actual permission changes or external actions.
+
+Resume data construction from the 40 saved sequence Parquets and other immutable cached inputs, then audit and publish the five sequence-only datasets before production training.
+Retain the producer identity and additive pipeline contracts; any implementation change must receive a distinct producing identity.
+Use the latest checkpoint first for development VEP after training and spend on earlier checkpoints only if the cumulative budget permits.
