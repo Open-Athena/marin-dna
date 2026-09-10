@@ -50,7 +50,8 @@ uv run --locked --extra tpu python -m marin_dna_exp550.launch --dataset-manifest
 
 Submit the entrypoint through the current Iris client with the committed project bundled and the TPU extra available to dispatched workers.
 The dispatched worker installs the pinned `uv` before the standard Iris dependency setup, since the shared image may contain an older version.
-The launch pins free, preemptible `v6e-8` capacity in `us-east1` and uses a microbatch of 5 per chip, accumulating to exactly 200 documents.
+The launch uses free, preemptible `v6e-8` capacity and a microbatch of 5 per chip, accumulating to exactly 200 documents.
+It defaults to `us-east1`; `--region us-east5` selects the verified capacity fallback and requires `MARIN_PREFIX=gs://marin-us-east5/MarinDNA/exp550_rag_five_regions` so caches and checkpoints stay in the compute region.
 It requests 80 GiB of local scratch within the pool's 100 GiB per-VM limit; tokenized caches and checkpoints are written to GCS.
 Microbatch 1 is the supported memory fallback and preserves the same effective batch.
 Larger data-parallel meshes do not divide this batch evenly and must not silently change the recipe.

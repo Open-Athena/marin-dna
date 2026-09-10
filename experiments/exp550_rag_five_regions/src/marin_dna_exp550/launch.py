@@ -279,9 +279,9 @@ def build_training(
     region: str,
     resume_pilot_from: str | None = None,
 ) -> ArtifactStep[LevanterCheckpoint]:
-    if region != "us-east1":
-        raise ValueError("this launch pins the verified us-east1 free TPU placement")
-    expected_prefix = "gs://marin-us-east1/MarinDNA/exp550_rag_five_regions"
+    if region not in {"us-east1", "us-east5"}:
+        raise ValueError("this launch requires a verified free TPU region")
+    expected_prefix = f"gs://marin-{region}/MarinDNA/exp550_rag_five_regions"
     if os.environ.get("MARIN_PREFIX") != expected_prefix:
         raise ValueError(f"MARIN_PREFIX must be {expected_prefix}")
     run_id = "dna-exp550-rag46m-five-regions-v1" + (
