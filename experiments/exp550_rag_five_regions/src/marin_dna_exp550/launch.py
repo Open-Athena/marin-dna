@@ -264,7 +264,7 @@ def build_training(
         f"-pilot-mb{per_device}" if pilot else ""
     )
     resources = ResourceConfig.with_tpu(
-        "v6e-8", regions=[region], cpu=16, ram="128g", disk="200g", preemptible=True
+        "v6e-8", regions=[region], cpu=16, ram="128g", disk="80g", preemptible=True
     )
 
     def build_config(ctx: StepContext) -> TrainingRequest:

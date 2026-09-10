@@ -169,3 +169,26 @@ The replacement worker must first dry-run the original producer and confirm cach
 Before biological VEP, register the exact checkpoint and harness hash in a small evals_v2 PR and perform GPU precision/compilation and throughput pilot checks.
 The free-TPU/W&B approval and the $30 paid CPU/GPU budget approval remain pending in the task.
 No blocked compute action was retried after the direct approval requests, and no training or biological evaluation has run.
+
+### 2026-09-10 00:11 UTC — RAG-550-007: Direct authorization and execution recovery
+
+The user directly approved the pending combined request in this task on September 10: free Iris TPU training, W&B logging with the existing credential, and a $30 cumulative CPU/GPU budget.
+This covers the synthetic pilot and full run, CPU coordination, and replacement/retries within the cap.
+The earlier issue-only approval blocker is resolved; no further approval is needed for these actions within their limits.
+Scientific scope remains the five-region recipe, whole-chr18 holdout, and final-checkpoint evaluation first.
+PR merges remain unauthorized.
+
+The old Spot worker terminated after 99.6 minutes; estimated compute plus root-disk cost was approximately $0.32.
+Launched on-demand recovery instance `i-00f345f512d4a8956` in us-east-2 at 00:05:31 UTC, r6i.2xlarge with 200 GiB gp3 and automatic termination after four hours.
+Its four-hour estimate is about $2.2; all attempts remain within the cumulative $30 cap.
+Recovery restores producer commit `6b1593c274a886d20f5c0ddf3712916d446f5fed`, identical pinned source assets, and the original durable S3 namespace, with a dry-run before resuming incomplete work.
+
+Submitted the pilot from `4c00035108d0fcd64790a51aea3fee88a0108323` at 00:06:03 UTC: [Iris job](https://iris.oa.dev/#/job/%2Fgonzalo%2Fdna-exp550-rag46m-pilot-mb5-20260909).
+The coordinator installed the locked runtime and constructed the graph, then submission of its TPU worker failed because the request specified 200 GiB local disk but the v6e-8 us-east1 pool provides 100 GiB per VM.
+No training updates ran.
+The next retry requests 80 GiB scratch; tokenized outputs and checkpoints use GCS.
+The model, data, optimizer, and effective batch are unchanged.
+
+The user also requested durable guidance to prevent repeated permission questions.
+[Issue #555](https://github.com/Open-Athena/marin-dna/issues/555) and [PR #556](https://github.com/Open-Athena/marin-dna/pull/556) add initial approval consolidation and a persistent authorization record to AGENTS.md and the research/launch skills.
+Independent review is in progress; the guidance explicitly cannot override platform approval review.

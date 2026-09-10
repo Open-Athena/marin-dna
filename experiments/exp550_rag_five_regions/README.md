@@ -50,6 +50,7 @@ uv run --locked --extra tpu python -m marin_dna_exp550.launch --dataset-manifest
 
 Submit the entrypoint through the current Iris client with the committed project bundled and the TPU extra available to dispatched workers.
 The launch pins free, preemptible `v6e-8` capacity in `us-east1` and uses a microbatch of 5 per chip, accumulating to exactly 200 documents.
+It requests 80 GiB of local scratch within the pool's 100 GiB per-VM limit; tokenized caches and checkpoints are written to GCS.
 Microbatch 1 is the supported memory fallback and preserves the same effective batch.
 Larger data-parallel meshes do not divide this batch evenly and must not silently change the recipe.
 The synthetic pilot runs 20 updates with saves and validation every 5 completed updates while following the production optimizer schedule.
