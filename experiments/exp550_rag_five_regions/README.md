@@ -61,4 +61,6 @@ Tokenization runs in a CPU-only child process on the allocated TPU host, using t
 The child removes `IRIS_TASK_ID` so cache preparation cannot dispatch additional CPU workers.
 Production caches use immutable public dataset revisions; the training process then loads those prebuilt document caches.
 Monitor pilot loss, actual TPU count, throughput, native save/resume, HF export, and validation before launching the full run.
+After the pilot completes, pass `--pilot --resume-pilot-from <pilot-output>/checkpoints/step-10` with a fresh calendar version to verify native resume through update 20 in a separate output directory.
+This check requires loading the full intermediate trainer state and keeps the production scratch-start recipe unchanged.
 The full run's completion time must be based on measured pilot throughput.

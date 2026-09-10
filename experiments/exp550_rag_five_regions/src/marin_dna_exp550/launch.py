@@ -272,7 +272,12 @@ def dispatch(request: TrainingRequest) -> None:
 
 
 def build_training(
-    datasets: dict[str, dict[str, Any]], *, pilot: bool, per_device: int, region: str
+    datasets: dict[str, dict[str, Any]],
+    *,
+    pilot: bool,
+    per_device: int,
+    region: str,
+    resume_pilot_from: str | None = None,
 ) -> ArtifactStep[LevanterCheckpoint]:
     if region != "us-east1":
         raise ValueError("this launch pins the verified us-east1 free TPU placement")
@@ -282,6 +287,18 @@ def build_training(
     run_id = "dna-exp550-rag46m-five-regions-v1" + (
         f"-pilot-mb{per_device}" if pilot else ""
     )
+    if resume_pilot_from:
+        if not pilot or not resume_pilot_from.startswith(
+            f"{expected_prefix}/checkpoints/dna-exp550-rag46m-five-regions-v1-pilot-"
+        ):
+            raise ValueError(
+                "resume verification requires a synthetic pilot checkpoint"
+            )
+        if not re.search(r"/checkpoints/step-(5|10|15)/?$", resume_pilot_from):
+            raise ValueError(
+                "resume verification requires an intermediate native checkpoint"
+            )
+        run_id += "-resume"
     resources = ResourceConfig.with_tpu(
         "v6e-8", regions=[region], cpu=16, ram="128g", disk="80g", preemptible=True
     )
@@ -290,6 +307,15 @@ def build_training(
         inner = training_config(
             ctx.output_path, run_id=run_id, pilot=pilot, per_device=per_device
         )
+        if resume_pilot_from:
+            inner = replace(
+                inner,
+                trainer=replace(
+                    inner.trainer,
+                    load_checkpoint=True,
+                    load_checkpoint_path=resume_pilot_from,
+                ),
+            )
         return TrainingRequest(
             TrainLmOnPodConfig(
                 train_config=inner,
@@ -320,15 +346,23 @@ def build_training(
 @click.option("--pilot", is_flag=True)
 @click.option("--per-device", type=int, default=5)
 @click.option("--region", default="us-east1")
+@click.option(
+    "--resume-pilot-from", help="Verify resume from a native pilot milestone."
+)
 @build_options
 def main(
-    dataset_manifest: str | None, pilot: bool, per_device: int, region: str
+    dataset_manifest: str | None,
+    pilot: bool,
+    per_device: int,
+    region: str,
+    resume_pilot_from: str | None,
 ) -> ArtifactStep[LevanterCheckpoint]:
     return build_training(
         read_dataset_manifest(dataset_manifest, pilot=pilot),
         pilot=pilot,
         per_device=per_device,
         region=region,
+        resume_pilot_from=resume_pilot_from,
     )
 
 
