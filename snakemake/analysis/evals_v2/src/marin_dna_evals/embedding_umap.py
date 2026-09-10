@@ -89,6 +89,7 @@ def compute_region_embeddings(
     num_workers: int = 4,
     torch_compile: bool = False,
     bf16: bool = True,
+    tf32: bool | None = None,
 ) -> pd.DataFrame:
     """Embed every region window; return embeddings + carried metadata.
 
@@ -152,6 +153,7 @@ def compute_region_embeddings(
             "per_device_eval_batch_size": batch_size,
             "torch_compile": torch_compile,
             "bf16_full_eval": bf16,
+            **({"tf32": tf32} if tf32 is not None else {}),
             "dataloader_num_workers": num_workers,
             "remove_unused_columns": False,
         },

@@ -25,6 +25,7 @@ rule compute_ll_gap:
         region="|".join(LL_GAP_DATASETS),
     threads: config["inference"]["num_workers"]
     params:
+        precision=get_inference_precision(),
         # Output-affecting fields (snakemake `params` rerun trigger); batch_size
         # is execution-only and read inside `run:`.
         window_size=lambda wc: get_model_config(wc.model)["window_size"],
@@ -45,7 +46,8 @@ rule compute_ll_gap:
             batch_size=batch_size,
             num_workers=config["inference"]["num_workers"],
             torch_compile=config["inference"].get("torch_compile", False),
-            bf16=config["inference"]["bf16"],
+            bf16=params.precision["bf16"],
+            tf32=params.precision["tf32"],
         )
         out.to_parquet(output[0], index=False)
         print(

@@ -279,3 +279,11 @@ for _d in config["datasets"]:
         f"dataset {_d['name']!r} `probe_feature` must be one of {PAIR_COMBOS}, "
         f"got {_pf!r}"
     )
+
+
+def get_inference_precision():
+    """Output-affecting precision settings and the documented fallback reason."""
+    return {
+        key: config["inference"].get(key)
+        for key in ("bf16", "tf32", "precision_reason")
+    }
