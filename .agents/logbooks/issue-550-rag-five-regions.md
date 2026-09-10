@@ -293,3 +293,63 @@ They match all canonical variant and metric-membership tuples exactly: Mendelian
 The preserved zero-shot macro AUPRC values are 0.395455, 0.184042, and 0.476728; frozen-probe macro AUPRC values are 0.408816, 0.297643, and 0.418497.
 The compact artifact `.agents/artifacts/issue-550/baseline/exp402-exact-development-cohort-audit.json` records source URIs, canonical revisions, metric hashes, support counts, and standard errors.
 No new baseline inference, probe fitting, or held-out evaluation was run.
+
+### 2026-09-10 02:28 UTC — RAG-550-012: Public-release assembly and GPU precision validation
+
+The last horse liftOver query finished after about 58 minutes at full CPU.
+All 39 non-human chain queries are complete, and the producer reached `rag_documents` at 157 of 159 recovery jobs.
+Final assembly is active with about 1 GiB RSS; release preparation, payload audit, authorized public upload, and immutable training-manifest verification remain queued sequentially.
+The biological producer stays pinned to `6b1593c274a886d20f5c0ddf3712916d446f5fed` and the publisher to `54b6f936467bbc657ae88753a6f24b768bd3363d`.
+
+Launched one Spot A10G worker (`i-0ca9594bb60eaf836`, us-east-2c) at 01:46:26 UTC for a one-hour synthetic inference check within the existing $30 cumulative CPU/GPU cap.
+The initial us-east-2a request returned insufficient capacity without creating a worker.
+SkyPilot had no connected API server, so the existing authorized direct-EC2 launch path was used.
+The pinned runtime smoke check passed: DLAMI `ami-0324f0ad73bdcd087`, driver 595.71.05, PyTorch 2.13.0/CUDA 13.0, Transformers 4.57.6, NVIDIA A10G.
+Only synthetic DNA documents and the completed synthetic TPU pilot's update-20 export were used.
+The model weights were streamed over SSH without copying GCP credentials; their MD5 and 183,596,040-byte size matched the original export.
+The shared-VM transfer held the nonblocking heavy-work lock, took 13.59 seconds, and peaked at 95,696 KiB RSS.
+
+The GPU check discovered a Transformers 5 tokenizer export incompatibility: `extra_special_tokens` is a list, but the pinned Transformers 4 consumer expects a named-token dictionary.
+[Issue #558](https://github.com/Open-Athena/marin-dna/issues/558) and [PR #559](https://github.com/Open-Athena/marin-dna/pull/559) add an in-memory translation that preserves tokenizer bytes, token IDs, and special-token behavior.
+The regression was reproduced before the fix; all 424 evaluation tests passed with CUDA disabled, the workflow dry-run passed, and CI plus independent review passed.
+An initial GPU-visible test run exposed five existing CPU-fixture device mismatches; the new tokenizer tests passed there too.
+PR #559 is ready and unmerged; the fix is applied to the experiment branch at `614e18e105849736ee5c278ca5d9fd38aa9d191d`.
+
+The existing Trainer wrapper also flattens bare tensor outputs at batch size one; eight RAG records became a length-10,256 vector instead of an 8-by-1,282 matrix.
+[Issue #560](https://github.com/Open-Athena/marin-dna/issues/560) tracks that separate defect.
+The synthetic fp32 reference and all intended production inference batches use at least two records.
+
+Full bfloat16 parameter casting failed the predeclared numerical gate: reverse-strand LLR differed from eager fp32 by up to 0.19475, exceeding the maintained 0.15 tolerance.
+Bfloat16 autocast with fp32 weights also failed the unchanged gates.
+Both were rejected before biological benchmark inference.
+The fp32 fallback exposed a second framework issue: Accelerate re-enables TF32 during Trainer construction, even after `tf32=False` was explicitly requested.
+[Issue #561](https://github.com/Open-Athena/marin-dna/issues/561) and draft [PR #562](https://github.com/Open-Athena/marin-dna/pull/562) restore the explicit setting after construction and support a documented workflow fp32 fallback.
+Independent review caught unconditional new provenance parameters that would invalidate existing default results; snapshot `9b0c69232683a65f70d88481cf6a0510e97beb85` adds those parameters only for explicit precision overrides.
+Updated CI, dry-run, and independent review are pending.
+
+With TF32 actually disabled, compiled fp32 matches eager fp32: maximum LLR difference 2.84e-5, JSD difference 4.81e-9, and pooled-embedding difference 9.54e-7.
+Warmed batch-two inference reaches 0.89759 variants/second, including REF/ALT, both strands, tokenization, data loading, and prediction collection, at 7.32 GB peak GPU allocation.
+Batch four reaches 0.89245 variants/second at 14.66 GB, while batch eight exceeds A10G memory.
+Batch two is selected; this projects about 16 hours for all 51,623 development variants before probe fitting and setup.
+The final combined-versus-separate synthetic timing comparison is still running.
+Small failed-gate and passing-fallback reports are retained under `.agents/artifacts/issue-550/gpu/`; no biological scores have been computed.
+
+## RAG-550-013 — 2026-09-10 02:49 UTC — Precision validation complete
+
+The final synthetic A10G pilot completed successfully with strict fp32, compilation, batch 2, and explicit post-Trainer TF32 disabling.
+The maximum compiled-versus-eager LLR difference was 2.83718e-5; pooled-embedding difference was 9.53674e-7.
+Measured throughput was 0.898592 variants/second, projecting 15.958 hours for all 51,623 development variants before setup and frozen probes.
+The warmed 96-row comparison took 108.871 seconds with three model loads and 107.309 seconds with one, saving 1.562 seconds.
+Full bfloat16, bfloat16 autocast, and TF32 compiler candidates failed their predefined parity gates; the JSON evidence retains those failures.
+The GPU Spot instance was reclaimed at 02:43:37 UTC after about 57.2 minutes, during a subsequent CPU-only test rerun; completed pilot reports had already been retrieved.
+
+PR #562 at 92bc85b30944a44c5959d4caf8a320eb2b7a9cb6 passed 426 tests with five skips, the default 806-job workflow dry-run, and quality checks.
+Independent review found no remaining material issues after restoring all three legacy rule bodies and their default parameter identities.
+A Snakemake 9.25.1 completed-output fixture retained the prior output under the new default and scheduled a params-triggered rerun only for the documented fp32 fallback.
+The reusable precision fix is ready for review and has been applied to the permanent experiment branch; no PR has been merged.
+The experiment's new combined RAG rule now records and forwards the same precision setting.
+
+At 02:47 UTC, the biological producer remained at 157/159 recovery jobs, ingesting Tolypeutes_matacus into the final document store.
+HF payload preparation, audit, explicitly authorized upload, and immutable input-manifest checks remain queued in order.
+An optional EBS IOPS increase was rejected by automatic approval review as additional disk spend outside the clearly approved CPU/GPU scope; no disk change occurred and processing continues on the original disk.
+The explicit HF approval persists for the five registered sequence-only datasets.

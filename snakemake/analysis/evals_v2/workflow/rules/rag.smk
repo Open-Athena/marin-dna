@@ -22,6 +22,7 @@ rule compute_rag_scores:
         model="|".join(RAG_MODELS) or r"(?!)",
     threads: config["inference"]["num_workers"]
     params:
+        **inference_precision_params(config["inference"]),
         harness=lambda wc: get_model_config(wc.model)["rag_harness"],
         revisions=lambda wc: {
             name: get_dataset_config(name)["hf_revision"]
@@ -47,6 +48,7 @@ rule compute_rag_scores:
             "per_device_eval_batch_size": get_model_batch_size(wildcards.model),
             "torch_compile": inference["torch_compile"],
             "bf16_full_eval": inference["bf16"],
+            "tf32": inference.get("tf32"),
             "dataloader_num_workers": inference["num_workers"],
             "dataloader_pin_memory": True,
             "remove_unused_columns": False,

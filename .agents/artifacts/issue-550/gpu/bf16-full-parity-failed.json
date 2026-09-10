@@ -1,0 +1,139 @@
+{
+  "synthetic_only": true,
+  "source_commit": "c0585d0e117075026b4384d552d59b52009d257e",
+  "compatibility_fix_commit": "ddc8f9aa85ebd20515e11aee2e432e437dc71741",
+  "checkpoint": "gs://marin-us-east5/MarinDNA/exp550_rag_five_regions/checkpoints/dna-exp550-rag46m-five-regions-v1-pilot-mb5/2026.09.10.3/hf/step-20",
+  "runtime": {
+    "python": "3.13.14",
+    "torch": "2.13.0+cu130",
+    "transformers": "4.57.6",
+    "cuda": "13.0",
+    "device": "NVIDIA A10G"
+  },
+  "tolerances_rtol_atol": {
+    "bf16_vs_fp32": {
+      "llr": [
+        0.0001,
+        0.15
+      ],
+      "jsd": [
+        0.001,
+        0.0001
+      ],
+      "embedding": [
+        0.01,
+        0.03
+      ]
+    },
+    "compiled_vs_bf16": {
+      "llr": [
+        0.0001,
+        0.01
+      ],
+      "jsd": [
+        0.001,
+        1e-05
+      ],
+      "embedding": [
+        0.005,
+        0.01
+      ]
+    }
+  },
+  "fixture_species_counts": [
+    1,
+    2,
+    20,
+    40,
+    40,
+    20,
+    2,
+    1
+  ],
+  "reference_batch_note": "Use batch 2 because the pinned Trainer unwraps bare singleton-batch tensor outputs; tracked separately in the repository.",
+  "timing_unit": "variants/sec including REF/ALT, FWD/RC, on-the-fly tokenization, data loading, and output collection",
+  "measurements": {
+    "fp32_eager": {
+      "variants": 8,
+      "seconds": 10.435691843999962,
+      "variants_per_second": 0.7665998689487586,
+      "peak_allocated_bytes": 3034529280,
+      "batch": 2,
+      "bf16": false,
+      "compiled": false
+    },
+    "bf16_eager": {
+      "variants": 8,
+      "seconds": 3.79072588300005,
+      "variants_per_second": 2.1104137431506,
+      "peak_allocated_bytes": 1731637760,
+      "batch": 2,
+      "bf16": true,
+      "compiled": false
+    },
+    "compiled_cold": {
+      "variants": 8,
+      "seconds": 24.218680716999984,
+      "variants_per_second": 0.33032352560742523,
+      "peak_allocated_bytes": 3718771200,
+      "batch": 2,
+      "bf16": true,
+      "compiled": true
+    }
+  },
+  "parity": {
+    "bf16_vs_fp32": {
+      "fwd_llr": {
+        "max_abs_error": 0.12511003017425537,
+        "passed": true
+      },
+      "fwd_jsd": {
+        "max_abs_error": 9.39774326980114e-06,
+        "passed": true
+      },
+      "fwd_embedding": {
+        "max_abs_error": 0.03158891201019287,
+        "passed": false
+      },
+      "rc_llr": {
+        "max_abs_error": 0.1947488784790039,
+        "passed": false
+      },
+      "rc_jsd": {
+        "max_abs_error": 2.061069244518876e-05,
+        "passed": true
+      },
+      "rc_embedding": {
+        "max_abs_error": 0.03396076709032059,
+        "passed": false
+      }
+    },
+    "compiled_vs_bf16": {
+      "fwd_llr": {
+        "max_abs_error": 0.2190086841583252,
+        "passed": false
+      },
+      "fwd_jsd": {
+        "max_abs_error": 5.245732609182596e-06,
+        "passed": true
+      },
+      "fwd_embedding": {
+        "max_abs_error": 0.014470815658569336,
+        "passed": false
+      },
+      "rc_llr": {
+        "max_abs_error": 0.32905328273773193,
+        "passed": false
+      },
+      "rc_jsd": {
+        "max_abs_error": 7.5526186265051365e-06,
+        "passed": true
+      },
+      "rc_embedding": {
+        "max_abs_error": 0.011624321341514587,
+        "passed": false
+      }
+    }
+  },
+  "parity_passed": false
+}

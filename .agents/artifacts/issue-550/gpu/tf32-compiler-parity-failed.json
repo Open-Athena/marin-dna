@@ -1,0 +1,140 @@
+{
+  "synthetic_only": true,
+  "precision_policy": "fp32 parameters and activations with TF32 matmul enabled after the eager reference; bf16 failed the initial predeclared parity gate and is disabled",
+  "source_commit": "c0585d0e117075026b4384d552d59b52009d257e",
+  "compatibility_fix_commit": "ddc8f9aa85ebd20515e11aee2e432e437dc71741",
+  "checkpoint": "gs://marin-us-east5/MarinDNA/exp550_rag_five_regions/checkpoints/dna-exp550-rag46m-five-regions-v1-pilot-mb5/2026.09.10.3/hf/step-20",
+  "runtime": {
+    "python": "3.13.14",
+    "torch": "2.13.0+cu130",
+    "transformers": "4.57.6",
+    "cuda": "13.0",
+    "device": "NVIDIA A10G"
+  },
+  "tolerances_rtol_atol": {
+    "tf32_vs_fp32": {
+      "llr": [
+        0.0001,
+        0.15
+      ],
+      "jsd": [
+        0.001,
+        0.0001
+      ],
+      "embedding": [
+        0.01,
+        0.03
+      ]
+    },
+    "compiled_vs_tf32": {
+      "llr": [
+        0.0001,
+        0.01
+      ],
+      "jsd": [
+        0.001,
+        1e-05
+      ],
+      "embedding": [
+        0.005,
+        0.01
+      ]
+    }
+  },
+  "fixture_species_counts": [
+    1,
+    2,
+    20,
+    40,
+    40,
+    20,
+    2,
+    1
+  ],
+  "reference_batch_note": "Use batch 2 because the pinned Trainer unwraps bare singleton-batch tensor outputs; tracked separately in the repository.",
+  "timing_unit": "variants/sec including REF/ALT, FWD/RC, on-the-fly tokenization, data loading, and output collection",
+  "measurements": {
+    "fp32_eager": {
+      "variants": 8,
+      "seconds": 10.45375408699988,
+      "variants_per_second": 0.7652753196049131,
+      "peak_allocated_bytes": 3034529280,
+      "batch": 2,
+      "bf16": false,
+      "compiled": false
+    },
+    "tf32_eager": {
+      "variants": 8,
+      "seconds": 9.101637315000062,
+      "variants_per_second": 0.8789627319927926,
+      "peak_allocated_bytes": 3034529280,
+      "batch": 2,
+      "bf16": false,
+      "compiled": false
+    },
+    "fp32_compiled_cold": {
+      "variants": 8,
+      "seconds": 25.891580830000066,
+      "variants_per_second": 0.3089807475459574,
+      "peak_allocated_bytes": 7428144640,
+      "batch": 2,
+      "bf16": false,
+      "compiled": true
+    }
+  },
+  "parity": {
+    "tf32_vs_fp32": {
+      "fwd_llr": {
+        "max_abs_error": 0.008996367454528809,
+        "passed": true
+      },
+      "fwd_jsd": {
+        "max_abs_error": 4.980684025213122e-07,
+        "passed": true
+      },
+      "fwd_embedding": {
+        "max_abs_error": 0.003131955862045288,
+        "passed": true
+      },
+      "rc_llr": {
+        "max_abs_error": 0.018033862113952637,
+        "passed": true
+      },
+      "rc_jsd": {
+        "max_abs_error": 6.532063707709312e-07,
+        "passed": true
+      },
+      "rc_embedding": {
+        "max_abs_error": 0.003091365098953247,
+        "passed": true
+      }
+    },
+    "compiled_vs_tf32": {
+      "fwd_llr": {
+        "max_abs_error": 0.011724352836608887,
+        "passed": false
+      },
+      "fwd_jsd": {
+        "max_abs_error": 1.4142278814688325e-07,
+        "passed": true
+      },
+      "fwd_embedding": {
+        "max_abs_error": 0.00021028518676757812,
+        "passed": true
+      },
+      "rc_llr": {
+        "max_abs_error": 0.012844085693359375,
+        "passed": false
+      },
+      "rc_jsd": {
+        "max_abs_error": 4.104513209313154e-07,
+        "passed": true
+      },
+      "rc_embedding": {
+        "max_abs_error": 0.00021439790725708008,
+        "passed": true
+      }
+    }
+  },
+  "parity_passed": false
+}

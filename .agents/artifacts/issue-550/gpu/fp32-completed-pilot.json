@@ -1,0 +1,216 @@
+{
+  "synthetic_only": true,
+  "prior_batch_sweep": "Batch 4 delivered 0.89245 variants/sec at 14.66 GB peak allocation versus batch 2 at 0.89759 and 7.32 GB; batch 8 exceeded the A10G memory capacity. Final comparison uses batch 2.",
+  "precision_policy": "fp32 parameters, activations, and matrix multiplication; bf16 failed reference parity and TF32 compilation narrowly exceeded the predeclared compiler LLR tolerance, so both are disabled",
+  "source_commit": "c0585d0e117075026b4384d552d59b52009d257e",
+  "compatibility_fix_commit": "ddc8f9aa85ebd20515e11aee2e432e437dc71741",
+  "checkpoint": "gs://marin-us-east5/MarinDNA/exp550_rag_five_regions/checkpoints/dna-exp550-rag46m-five-regions-v1-pilot-mb5/2026.09.10.3/hf/step-20",
+  "runtime": {
+    "python": "3.13.14",
+    "torch": "2.13.0+cu130",
+    "transformers": "4.57.6",
+    "cuda": "13.0",
+    "device": "NVIDIA A10G"
+  },
+  "tolerances_rtol_atol": {
+    "fp32_repeat": {
+      "llr": [
+        0.0001,
+        0.15
+      ],
+      "jsd": [
+        0.001,
+        0.0001
+      ],
+      "embedding": [
+        0.01,
+        0.03
+      ]
+    },
+    "compiled_vs_fp32": {
+      "llr": [
+        0.0001,
+        0.01
+      ],
+      "jsd": [
+        0.001,
+        1e-05
+      ],
+      "embedding": [
+        0.005,
+        0.01
+      ]
+    }
+  },
+  "fixture_species_counts": [
+    1,
+    2,
+    20,
+    40,
+    40,
+    20,
+    2,
+    1
+  ],
+  "reference_batch_note": "Use batch 2 because the pinned Trainer unwraps bare singleton-batch tensor outputs; tracked separately in the repository.",
+  "timing_unit": "variants/sec including REF/ALT, FWD/RC, on-the-fly tokenization, data loading, and output collection",
+  "measurements": {
+    "fp32_eager": {
+      "variants": 8,
+      "seconds": 10.436079527999937,
+      "variants_per_second": 0.766571390964974,
+      "peak_allocated_bytes": 3034529280,
+      "batch": 2,
+      "bf16": false,
+      "compiled": false,
+      "tf32_actual": false
+    },
+    "fp32_repeat": {
+      "variants": 8,
+      "seconds": 9.794668359999832,
+      "variants_per_second": 0.8167708906481176,
+      "peak_allocated_bytes": 3034529280,
+      "batch": 2,
+      "bf16": false,
+      "compiled": false,
+      "tf32_actual": false
+    },
+    "fp32_compiled_cold": {
+      "variants": 8,
+      "seconds": 17.20915104200003,
+      "variants_per_second": 0.46486895143609874,
+      "peak_allocated_bytes": 7428144640,
+      "batch": 2,
+      "bf16": false,
+      "compiled": true,
+      "tf32_actual": false
+    },
+    "warmup_batch2": {
+      "variants": 8,
+      "seconds": 9.152201987000353,
+      "variants_per_second": 0.8741065823681642,
+      "peak_allocated_bytes": 7428144640,
+      "batch": 2,
+      "bf16": false,
+      "compiled": true,
+      "tf32_actual": false
+    },
+    "warmed_batch2": {
+      "variants": 96,
+      "seconds": 106.83376799200005,
+      "variants_per_second": 0.8985922878540491,
+      "peak_allocated_bytes": 7428185600,
+      "batch": 2,
+      "bf16": false,
+      "compiled": true,
+      "tf32_actual": false
+    },
+    "separate_partition0": {
+      "variants": 32,
+      "seconds": 35.93775037799969,
+      "variants_per_second": 0.8904285789571765,
+      "peak_allocated_bytes": 7324311040,
+      "batch": 2,
+      "bf16": false,
+      "compiled": true,
+      "tf32_actual": false
+    },
+    "separate_partition1": {
+      "variants": 32,
+      "seconds": 35.95897710899999,
+      "variants_per_second": 0.8899029553315877,
+      "peak_allocated_bytes": 7324311040,
+      "batch": 2,
+      "bf16": false,
+      "compiled": true,
+      "tf32_actual": false
+    },
+    "separate_partition2": {
+      "variants": 32,
+      "seconds": 35.98401556299996,
+      "variants_per_second": 0.8892837416651058,
+      "peak_allocated_bytes": 7324311040,
+      "batch": 2,
+      "bf16": false,
+      "compiled": true,
+      "tf32_actual": false
+    },
+    "joint_with_reload": {
+      "variants": 96,
+      "seconds": 107.26078018299995,
+      "variants_per_second": 0.89501493310241,
+      "peak_allocated_bytes": 7324311040,
+      "batch": 2,
+      "bf16": false,
+      "compiled": true,
+      "tf32_actual": false
+    }
+  },
+  "parity": {
+    "fp32_repeat": {
+      "fwd_llr": {
+        "max_abs_error": 0.0,
+        "passed": true
+      },
+      "fwd_jsd": {
+        "max_abs_error": 0.0,
+        "passed": true
+      },
+      "fwd_embedding": {
+        "max_abs_error": 0.0,
+        "passed": true
+      },
+      "rc_llr": {
+        "max_abs_error": 0.0,
+        "passed": true
+      },
+      "rc_jsd": {
+        "max_abs_error": 0.0,
+        "passed": true
+      },
+      "rc_embedding": {
+        "max_abs_error": 0.0,
+        "passed": true
+      }
+    },
+    "compiled_vs_fp32": {
+      "fwd_llr": {
+        "max_abs_error": 2.8371810913085938e-05,
+        "passed": true
+      },
+      "fwd_jsd": {
+        "max_abs_error": 4.802132025361061e-09,
+        "passed": true
+      },
+      "fwd_embedding": {
+        "max_abs_error": 9.387731552124023e-07,
+        "passed": true
+      },
+      "rc_llr": {
+        "max_abs_error": 2.0056962966918945e-05,
+        "passed": true
+      },
+      "rc_jsd": {
+        "max_abs_error": 2.9685907065868378e-09,
+        "passed": true
+      },
+      "rc_embedding": {
+        "max_abs_error": 9.5367431640625e-07,
+        "passed": true
+      }
+    }
+  },
+  "parity_passed": true,
+  "selected_batch": 2,
+  "projected_51623_variant_inference_hours": 15.957984968318918,
+  "synthetic_partition_comparison": {
+    "variants": 96,
+    "separate_three_loads_seconds": 108.87097067400009,
+    "joint_one_load_seconds": 107.30931477600006,
+    "saved_seconds": 1.5616558980000264,
+    "note": "Both use an already warmed compiler cache; includes model loading and Trainer setup, not package installation."
+  },
+  "completed": true,
+  "precision_fix_commit": "1198b83e7cbaa0ac22af288bd0099b643588dc66",
+  "provenance_note": "Post-run annotation: GPU checkout was c0585d0e plus the recorded tokenizer compatibility patch and the five-line runner precision fix from 1198b83e; no other scoring-source changes."
+}
