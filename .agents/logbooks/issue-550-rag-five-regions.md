@@ -598,3 +598,41 @@ The tiny standard-library reproducer completes in under a second and reports wri
 Its source, immutable wheel metadata, and detailed review are retained under .agents/artifacts/issue-550/tokenizer.
 Current completed shards and ongoing progress do not establish that this bug occurred in production or explain the earlier worker reconcile failures.
 Track the upstream failure mode separately; do not modify an advancing production job based on this unobserved hypothesis.
+
+### 2026-09-10 17:25 UTC — European eight-chip pilot and exact native resume passed
+
+The latent writer-closure failure is tracked in #566 with its bounded reproducer; it remains unobserved in production.
+The active four-chip production request confirms 100 automatic preemption retries, no hard-task retries, and no separate child timeout.
+Its parent has two failure retries and a 604,800-second timeout.
+The pinned trainer automatically searches its permanent and temporary checkpoint roots when restarted with the same output identity.
+
+At 16:56, the US v6e-8 pools still had no ready or booting slices, while europe-west4 had five ready slices and 22 booting.
+The active regional storage mapping uses marin-eu-west4, not marin-europe-west4; normal gcloud bucket metadata confirmed its EUROPE-WEST4 location.
+Snapshot ddff6e1fa59dcc7dc386fe08c954cdec69224a2e adds only the explicit European region-to-bucket mapping and distinct European synthetic pilot identity, plus tests and documentation.
+Model, dataset, optimizer, effective batch, tokenization, and schedule remain unchanged from the tested source.
+Independent review found no actionable issues, and all 20 locked project tests passed remotely in 55.14 seconds before dispatch.
+
+The independent pilot root /gonzalo/dna-exp550-rag46m-pilot-v6e8-20260910-europe was accepted at 17:02:06 UTC and completed at approximately 17:08:26 UTC.
+Eight TPU devices, finite losses, and native/HF milestones 5, 10, 15, and 20 were verified through W&B and GCS.
+The last steady update took 1.551344731 seconds, projecting 43.0929 compute hours for 100,000 updates before preprocessing, validation, checkpoint overhead, and interruptions.
+Final training loss is 1.5800892114639282, exactly matching the earlier US eight-chip pilot.
+Its receipt is .agents/artifacts/issue-550/pilot/completed-europe-pilot.json.
+
+The separate native-resume root /gonzalo/dna-exp550-rag46m-pilot-v6e8-20260910-europe-resume was accepted at 17:10:25 UTC and completed at approximately 17:16:46 UTC.
+It loaded the full native update-10 checkpoint and resumed through update 20 on eight chips.
+The final HF model MD5, final training loss, and every region/aggregate validation loss at updates 15 and 20 match the uninterrupted run exactly.
+The verification receipt is .agents/artifacts/issue-550/pilot/completed-europe-resume.json.
+
+Both verified receipts gated submission of the independent production root /gonzalo/dna-exp550-rag46m-five-regions-v1-20260910-europe-v6e8 at 17:19:04 UTC.
+It uses the exact ddff6e1f source, v6e-8, microbatch 5, batch 200, the same five public revisions, and 100,000 updates.
+Artifacts use gs://marin-eu-west4/MarinDNA/exp550_rag_five_regions/checkpoints/dna-exp550-rag46m-five-regions-v1/2026.09.10.9.
+The coordinator has a seven-day timeout and normal interactive priority; no paid resource was launched.
+At 17:25, its first two CDS training shards were advancing, while the US four-chip fallback had completed 12 of 16 CDS shards.
+Neither production run has reached optimizer updates.
+Retain the US fallback until the European worker completes at least four full-data CDS shards without a worker failure, then release the fallback before either trainer starts using their common production W&B identity.
+If the European replacement fails repeatedly during this overlap, retain the active four-chip fallback and cancel the replacement.
+Do not run two production optimizers concurrently under the same W&B identity.
+
+Final evaluation staging now explicitly runs the native checkpoint-download rule on a host with GCS and S3 access before paid GPU time.
+The AWS GPU worker copies the resulting canonical S3 checkpoint into the correct Snakemake cache before the synthetic parity recheck, so it requires no copied GCP credential.
+Independent review of these corrected cross-host commands found no actionable issues; the model registry remains on US version 8 until the production replacement is adopted.

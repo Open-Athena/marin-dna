@@ -1,0 +1,74 @@
+{
+  "git_commit": "ddff6e1fa59dcc7dc386fe08c954cdec69224a2e",
+  "iris_job": "/gonzalo/dna-exp550-rag46m-pilot-v6e8-20260910-europe-resume",
+  "wandb_run": "https://wandb.ai/gonzalobenegas/marin/runs/dna-exp550-rag46m-five-regions-v1-pilot-mb5-europe-west4-resume",
+  "artifact_root": "gs://marin-eu-west4/MarinDNA/exp550_rag_five_regions/checkpoints/dna-exp550-rag46m-five-regions-v1-pilot-mb5-europe-west4-resume/2026.09.10.2",
+  "synthetic_only": true,
+  "completed_updates": 20,
+  "wandb_global_step_zero_based": 19,
+  "num_devices": 8,
+  "documents_per_update": 200,
+  "last_steady_update_seconds": 1.5512623199997506,
+  "projected_100000_update_compute_hours": 43.090619999993066,
+  "final_train_loss": 1.5800892114639282,
+  "validation_losses_by_completed_update": {
+    "15": {
+      "eval/region=utr3/loss": 2.1219239234924316,
+      "eval/region=cds/loss": 2.1212453842163086,
+      "eval/loss": 2.1214113235473633,
+      "eval/region=tss_utr5/loss": 2.121457099914551,
+      "eval/region=enhancer/loss": 2.1205203533172607,
+      "eval/enhancer/loss": 2.1205203533172607,
+      "eval/cds/loss": 2.1212453842163086,
+      "eval/tss_utr5/loss": 2.121457099914551,
+      "eval/utr3/loss": 2.1219239234924316,
+      "eval/ncrna/loss": 2.1219089031219482,
+      "eval/region=ncrna/loss": 2.1219089031219482
+    },
+    "20": {
+      "eval/region=utr3/loss": 1.9900124073028564,
+      "eval/region=cds/loss": 1.9909473657608032,
+      "eval/loss": 1.9899779558181763,
+      "eval/region=tss_utr5/loss": 1.988961935043335,
+      "eval/region=enhancer/loss": 1.9901777505874634,
+      "eval/enhancer/loss": 1.9901777505874634,
+      "eval/cds/loss": 1.9909473657608032,
+      "eval/tss_utr5/loss": 1.988961935043335,
+      "eval/utr3/loss": 1.9900124073028564,
+      "eval/ncrna/loss": 1.989789366722107,
+      "eval/region=ncrna/loss": 1.989789366722107
+    }
+  },
+  "native_milestone_metadata": {
+    "15": {
+      "step": 15,
+      "timestamp": "2026-09-10T17:16:22.952988",
+      "is_temporary": false
+    },
+    "20": {
+      "step": 20,
+      "timestamp": "2026-09-10T17:16:37.808916",
+      "is_temporary": false
+    }
+  },
+  "hf_milestone_objects": {
+    "15": {
+      "size": 183596040,
+      "generation": "1789060581421133",
+      "md5Hash": "LKc3RYq8IunIhedlsfuCKg==",
+      "crc32c": "ftumUQ=="
+    },
+    "20": {
+      "size": 183596040,
+      "generation": "1789060596979046",
+      "md5Hash": "IpYBgDMQ2sZlO8knwEsuZQ==",
+      "crc32c": "Cyx4BA=="
+    }
+  },
+  "locked_tests": "20 passed in 55.14 seconds",
+  "independent_review": "No blocking findings at ddff6e1f",
+  "native_resume_verified": true,
+  "source_checkpoint": "gs://marin-eu-west4/MarinDNA/exp550_rag_five_regions/checkpoints/dna-exp550-rag46m-five-regions-v1-pilot-mb5-europe-west4/2026.09.10.1/checkpoints/step-10",
+  "final_weights_md5_matches_uninterrupted": true,
+  "final_validation_exact_match": true
+}

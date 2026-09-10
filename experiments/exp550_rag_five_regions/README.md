@@ -91,8 +91,22 @@ The registered model is `dna-exp550-rag46m-five-regions-v1-step-100000` in [PR #
 The active source is the us-east5 version-8 export; check the tracking issue before using it after a recovery.
 The permanent branch includes the combined backend, tokenizer compatibility, strict-fp32 controls, and registration together; none of their PRs needs to be merged to reproduce this experiment.
 
-After the final export exists, download the registered checkpoint through the pipeline on the authorized GPU worker, keeping its local storage copy for the synthetic recheck.
+After the final export exists, stage the registered checkpoint through the pipeline on a host with normal GCS and S3 access, before starting paid GPU time.
+Use a suitably sized CPU worker or apply the shared VM's heavy-work guard for this stage.
 Run these commands from `snakemake/analysis/evals_v2`, inspecting the dry-run before execution:
+
+```bash
+model=dna-exp550-rag46m-five-regions-v1-step-100000
+checkpoint_uri=gs://marin-us-east5/MarinDNA/exp550_rag_five_regions/checkpoints/dna-exp550-rag46m-five-regions-v1/2026.09.10.8/hf/step-100000
+uv sync --locked --group genome-s3
+uv run --locked --group genome-s3 snakemake -n "results/checkpoints/$model" --cores 2
+uv run --locked --group genome-s3 snakemake "results/checkpoints/$model" --cores 2
+```
+
+The default profile publishes that checkpoint directory to its canonical S3 location.
+On the GPU worker, use the same consumer commit and copy the completed S3 checkpoint into the explicit storage cache before the synthetic recheck.
+This uses the GPU worker's normal S3 access; GCP credentials stay on the staging host.
+Run from the same pipeline root:
 
 ```bash
 model=dna-exp550-rag46m-five-regions-v1-step-100000
@@ -100,8 +114,7 @@ checkpoint_uri=gs://marin-us-east5/MarinDNA/exp550_rag_five_regions/checkpoints/
 storage_prefix=/opt/issue550/storage
 checkpoint_local="$storage_prefix/s3/oa-bolinas/snakemake/analysis/evals_v2/results/checkpoints/$model"
 uv sync --locked --group genome-s3
-uv run --locked --group genome-s3 snakemake -n "results/checkpoints/$model" --cores 2 --keep-storage-local-copies --local-storage-prefix "$storage_prefix"
-uv run --locked --group genome-s3 snakemake "results/checkpoints/$model" --cores 2 --keep-storage-local-copies --local-storage-prefix "$storage_prefix"
+aws s3 sync "s3://oa-bolinas/snakemake/analysis/evals_v2/results/checkpoints/$model/" "$checkpoint_local/" --only-show-errors
 uv run --locked --group genome-s3 python ../../../.agents/artifacts/issue-550/evaluation/recheck-final-checkpoint.py \
   --checkpoint "$checkpoint_local" --checkpoint-uri "$checkpoint_uri" \
   --output /opt/issue550/final-checkpoint-parity.json
