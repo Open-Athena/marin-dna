@@ -40,8 +40,10 @@ Inspect the resolved dependency tree when accelerator extras, custom indexes, Tr
 
 - Read the current `iris --help` and the launch API used by the selected Marin release before constructing the command.
 - Follow [AGENTS.md](../../../AGENTS.md#task-authorization) to establish launch authority during initial preflight.
-  Reuse existing explicit approval for paid resources, required credential use, and retries within the approved scope and cumulative budget.
+  Reuse existing explicit approval for paid resources, required credential use, retries, and runtime extensions within the approved scope and cumulative budget.
   Include coordinators, failed attempts, and replacement workers in the budget; ask only for missing authority or an expansion beyond its limits.
+- Complete [execution-permissions preflight](../../../docs/operations/unattended-codex.md) before an unattended launch.
+  Set worker deadlines to cover setup, execution, export, and upload within the remaining budget, and record a durable recovery path for interruptions.
 - Pin or snapshot the experiment branch before submitting the job.
 - Propagate required dependency groups and environment variables to every remote step according to the current API. Parent coordinator settings may not propagate to workers.
 - Follow `wandb-reporting` for run and group naming. MarinDNA experiment runs must map back to `dna-exp<N>`.
@@ -56,6 +58,8 @@ Watch the first minutes of a new script, dependency set, or compute configuratio
 3. Confirm the expected accelerator count and device type. Treat CPU fallback as a failure when an accelerator was requested.
 4. Confirm W&B reports an advancing step and sane throughput, loss, and memory use.
 5. Check mounts, credentials, and output paths before leaving the job unattended.
+6. Compare observed throughput with shutdown deadlines and the remaining cumulative budget.
+   Extend or replace workers under the existing authorization when needed, while enough time remains to preserve outputs and recover.
 
 Use event-driven status tools or coarse polling that respects shared-node safety. Do not rely on submission success as evidence that the coordinator or workers started.
 
