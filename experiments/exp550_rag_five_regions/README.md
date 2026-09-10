@@ -95,11 +95,13 @@ Run these commands from `snakemake/analysis/evals_v2`, inspecting the dry-run be
 ```bash
 model=dna-exp550-rag46m-five-regions-v1-step-100000
 checkpoint_uri=gs://marin-us-east5/MarinDNA/exp550_rag_five_regions/checkpoints/dna-exp550-rag46m-five-regions-v1/2026.09.10.8/hf/step-100000
+storage_prefix=/opt/issue550/storage
+checkpoint_local="$storage_prefix/s3/oa-bolinas/snakemake/analysis/evals_v2/results/checkpoints/$model"
 uv sync --locked --group genome-s3
-uv run --locked --group genome-s3 snakemake -n "results/checkpoints/$model" --cores 2 --keep-storage-local-copies
-uv run --locked --group genome-s3 snakemake "results/checkpoints/$model" --cores 2 --keep-storage-local-copies
+uv run --locked --group genome-s3 snakemake -n "results/checkpoints/$model" --cores 2 --keep-storage-local-copies --local-storage-prefix "$storage_prefix"
+uv run --locked --group genome-s3 snakemake "results/checkpoints/$model" --cores 2 --keep-storage-local-copies --local-storage-prefix "$storage_prefix"
 uv run --locked --group genome-s3 python ../../../.agents/artifacts/issue-550/evaluation/recheck-final-checkpoint.py \
-  --checkpoint "results/checkpoints/$model" --checkpoint-uri "$checkpoint_uri" \
+  --checkpoint "$checkpoint_local" --checkpoint-uri "$checkpoint_uri" \
   --output /opt/issue550/final-checkpoint-parity.json
 ```
 
@@ -113,6 +115,6 @@ targets=()
 for dataset in mendelian_traits complex_traits sge; do
   targets+=("results/metrics/$model/$dataset.parquet" "results/probe_metrics/$model/$dataset.parquet")
 done
-uv run --locked --group genome-s3 snakemake -n "${targets[@]}" --cores 2 --configfile config/rag_issue550/fp32.yaml
-uv run --locked --group genome-s3 snakemake "${targets[@]}" --cores 2 --configfile config/rag_issue550/fp32.yaml
+uv run --locked --group genome-s3 snakemake -n "${targets[@]}" --cores 2 --configfile config/rag_issue550/fp32.yaml --local-storage-prefix "$storage_prefix"
+uv run --locked --group genome-s3 snakemake "${targets[@]}" --cores 2 --configfile config/rag_issue550/fp32.yaml --local-storage-prefix "$storage_prefix"
 ```

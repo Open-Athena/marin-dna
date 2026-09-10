@@ -556,3 +556,45 @@ The pilot receipt was retained locally before cleanup.
 Review accepted cancellation under the existing autonomous execution/recovery scope after that evidence was supplied; no additional user permission was requested.
 Iris confirmed the old parent canceled at 16:27 UTC; its GCS artifacts were not deleted.
 The exact evaluation registration must now use the us-east5 version-8 export path.
+
+### 2026-09-10 16:46 UTC — Production tokenization and final-evaluation preparation
+
+The four-chip production worker acquired its TPU at 16:32:40.978 UTC and began tokenization at approximately 16:33:42 UTC.
+At 16:45, get-task-status confirmed attempt 0 running on marin-tpu-v6e-preemptible-4-us-east5-b-20260910-1627-e8662a69-worker-0 with four v6e chips, 16 CPUs, 48 GiB RAM, and 80 GiB disk.
+At 16:43, two of sixteen CDS training shards had completed and the next two were advancing.
+Queue-full messages reflect writer backpressure; submitted-record counts alone do not prove durable shard completion.
+Production has not yet reached optimizer updates.
+The event-driven child log follower writes /tmp/issue550-production-v6e4-live.log; authoritative task status comes from `iris --cluster marin rpc controller get-task-status --task-id /gonzalo/dna-exp550-rag46m-five-regions-v1-20260910-east5-v6e4/train-worker/0`.
+
+PR #565 now pins the exact us-east5 version-8 final export, passes all CI checks at ef4c34399f6c6bf1ecee8c618e05f65e27353559, and passed independent review.
+It was marked ready without merging.
+The permanent experiment branch incorporates the registration and credential-free CI overlay together with the existing combined backend, tokenizer compatibility, and strict-fp32 fixes.
+Snapshot c5978e8fd2251dd7b36998afbd3e6c93d462adc8 adds the final-checkpoint synthetic parity recheck and exact checkpoint-download, inference, and probe commands to the experiment README.
+The recheck retains the pilot's predeclared tolerances, verifies the requested URI against the registered model, records the actual consumer commit, and uses only synthetic sequences.
+Its syntax check passes; execution with final weights remains pending their production.
+GitHub workflow run 34503945833 validates the integrated consumer branch before final evaluation.
+Normal authenticated `gcloud storage ls` verified access to the four-chip pilot's final HF export without copying or printing credentials.
+
+The paid-budget reconciliation retains a $4 upper allowance for earlier CPU/GPU attempts and disks, $0.9996 for the completed recovery worker, and its original $0.15 disk allowance.
+An 18-hour on-demand g5.xlarge compute reservation costs $18.108 at the verified $1.006/hour upper bound, leaving $6.7424 for further storage, setup, and permitted recovery within the $30 cap.
+This is an allowance-based reconciliation, not an AWS billing settlement.
+No new paid worker is active.
+Next: verify completed production caches and finite optimizer progress, then measure actual training throughput and retain the final-checkpoint-first evaluation policy.
+
+### 2026-09-10 16:51 UTC — Evaluation review complete; latent writer failure reproduced
+
+GitHub workflow run 34503945833 passed all five project test jobs and the applicable offline Snakemake dry-runs for integrated consumer c5978e8fd2251dd7b36998afbd3e6c93d462adc8.
+Independent review found that the checkpoint download commands retain files under Snakemake's S3 storage cache, whereas the initial synthetic command addressed results/checkpoints directly.
+The README now declares /opt/issue550/storage as the local storage prefix and passes its exact s3/oa-bolinas/snakemake/analysis/evals_v2/results/checkpoints/<model> path to the recheck.
+The same prefix is used for subsequent inference to reuse the cache.
+Review of the corrected commands, fixed synthetic tolerances, integrated tokenizer/precision fixes, registry, and six final metric targets found no remaining actionable issues.
+The correction changes documentation only; the integrated runtime's completed CI remains applicable.
+
+The tokenizer source review verified the hashes and sizes of the five exact locked Marin wheels before reading their implementation.
+Two writer queues can retain approximately 2.5 GiB of array payload at the current 128-document batch and 128-batch queue depth; queue-full warnings are compatible with ordinary backpressure.
+Shard completion drains outstanding batches and renames the temporary GCS prefix, so progress counters may pause after the last submitted row while durable writes finish.
+The review also reproduced a latent error-handling bug: ThreadedBatchWriter.close blocks while inserting a sentinel into a full queue after its background writer has failed, before checking the recorded exception.
+The tiny standard-library reproducer completes in under a second and reports writer_failed=true, queued_batches=1, and close_blocked_in_sentinel_put=true.
+Its source, immutable wheel metadata, and detailed review are retained under .agents/artifacts/issue-550/tokenizer.
+Current completed shards and ongoing progress do not establish that this bug occurred in production or explain the earlier worker reconcile failures.
+Track the upstream failure mode separately; do not modify an advancing production job based on this unobserved hypothesis.

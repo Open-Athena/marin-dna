@@ -1,0 +1,52 @@
+[
+  {
+    "name": "marin-core",
+    "version": "0.2.106.dev34338714012",
+    "wheel": {
+      "url": "https://files.pythonhosted.org/packages/88/4b/d9da8ffd028f6c719e99b8bc475d65114aeadf2647bc7127aed726472216/marin_core-0.2.106.dev34338714012-py3-none-any.whl",
+      "hash": "sha256:04f627a0b30766bfb7e3a3f97f881b23c1737a971fa57888add5c5be2269ee09",
+      "size": 786732,
+      "upload-time": "2026-09-09T10:11:05.292Z"
+    }
+  },
+  {
+    "name": "marin-fray",
+    "version": "0.2.106.dev34338714012",
+    "wheel": {
+      "url": "https://files.pythonhosted.org/packages/24/df/a8eba70437d2ab4fcc2cba925155351a643e32c8a43aa07ee282d5718b94/marin_fray-0.2.106.dev34338714012-py3-none-any.whl",
+      "hash": "sha256:f4e241b32dec00d7300a971340bbe0d9995d6adba5018996d79469423ddb3639",
+      "size": 30884,
+      "upload-time": "2026-09-09T10:11:08.319Z"
+    }
+  },
+  {
+    "name": "marin-levanter",
+    "version": "0.2.106.dev34338714012",
+    "wheel": {
+      "url": "https://files.pythonhosted.org/packages/0f/b5/49183dd9348fbfc03f8072d38d6e00242d15ef026f24532ed99c201869ab/marin_levanter-0.2.106.dev34338714012-py3-none-any.whl",
+      "hash": "sha256:56be114d144da80c19ba5a45d43a8c81882f8ae72cac51514969c9c09daf2911",
+      "size": 911853,
+      "upload-time": "2026-09-09T10:11:13.111Z"
+    }
+  },
+  {
+    "name": "marin-rigging",
+    "version": "0.2.106.dev34338714012",
+    "wheel": {
+      "url": "https://files.pythonhosted.org/packages/20/32/90f4aa8c840d3c1881ca948bc419a715805bfd4545e6c3870cea43a40355/marin_rigging-0.2.106.dev34338714012-py3-none-any.whl",
+      "hash": "sha256:ba419b3d591cc6543e2c1151ad21fe3a279fe8bd8939c9d6425c9f3fc7a1741a",
+      "size": 430850,
+      "upload-time": "2026-09-09T10:11:15.088Z"
+    }
+  },
+  {
+    "name": "marin-zephyr",
+    "version": "0.2.106.dev34338714012",
+    "wheel": {
+      "url": "https://files.pythonhosted.org/packages/4e/b7/0eed31bc8bc623c77915d16cc790344c446fcc3ce02eea1550faa0715929/marin_zephyr-0.2.106.dev34338714012-py3-none-any.whl",
+      "hash": "sha256:a099d5ff4d00f61c7095078d61e1e237c800d3674a6abe8928488f1baa779bba",
+      "size": 113500,
+      "upload-time": "2026-09-09T10:11:16.492Z"
+    }
+  }
+]
