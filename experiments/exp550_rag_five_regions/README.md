@@ -97,6 +97,12 @@ Run it without `--execute` first and inspect the plan.
 The companion `run-10k-a10g.sh` executes it, preserves logs and recovery outputs in S3, and terminates the worker on completion or failure.
 These wrappers have the September 11 worker paths and deadline pinned; review and update them before reuse on another worker.
 The existing Snakemake S3 profile publishes the score bundles and metrics directly to their canonical paths.
+If execution review blocks S3 publication, invoke the Python driver directly with `--local-only` for planning and add `--execute` after inspecting its dry-run.
+That option uses `--workflow-profile none`, keeps the score and metric outputs local, and retains the explicit S3 harness input as a read.
+Do not use the uploading shell wrapper for this mode.
+The September 11 worker uses this local mode and stops automatically when the systemd evaluation service exits; its verified deadline also stops it at 6 p.m. NYC time.
+EBS survives a stop, so retrieve and verify outputs before terminating the instance, and include temporary disk storage in the cumulative budget.
+Canonical S3 publication is a separate pending step while execution access remains blocked.
 The 10k score bundles include embeddings; the final checkpoint additionally requires all three frozen-probe metric targets.
 Retain the final evaluation reservation when choosing compute for this additional run.
 

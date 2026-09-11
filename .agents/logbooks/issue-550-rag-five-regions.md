@@ -760,3 +760,32 @@ Execution review accepted the completion transfer after receiving this additiona
 The bounded completion-and-transfer watcher is active, replacing the read-only watcher.
 Canonical publication is scheduled after evaluation completion and still requires its final checksum-verification receipt.
 Training reached approximately 15,900 updates at 15:02 UTC, and first-checkpoint VEP remains running.
+
+## 2026-09-11 16:46 UTC (12:46 p.m. NYC) — Cached BF16 VEP on A10G
+
+The requested runtime is now EC2 A10G with BF16, compilation, shared-prefix caching, full padded documents, and REF/ALT embeddings.
+The earlier strict-FP32 gate is superseded by this explicit precision choice.
+The H100 evaluation was killed and both transfer watchers were stopped; a fresh controller read confirmed its killed state.
+Training remains separate and reached a new resumable checkpoint at update 19,445 at 16:36 UTC.
+
+The maintained RAG adapter now left-pads to 10,240 tokens, placing every human variant at token 10,112 without length grouping.
+It passes attention masks and unpadded position IDs to the existing evals_v2 cached scorer, which performs one shared prefix forward and one batched REF/ALT suffix forward.
+The standard score bundle includes embeddings pooled over the final 255 human bases, with FWD/RC averaging.
+All 441 locked evals_v2 tests passed with five skips, current PR #554 CI passes, and independent review found no remaining issues.
+
+Synthetic throughput includes loading, tokenization, both strands, scores, and embeddings after compilation warmup.
+Batch sizes 2, 4, 8, and 12 measured 5.423, 5.613, 5.707, and 5.425 variants per second, respectively; batch 16 exhausted GPU memory.
+Batch 8 was selected, with peak allocated memory 13.49 GB and finite outputs in both timed trials.
+The receipt is `.agents/artifacts/issue-550/evaluation/step-10000-a10g-bf16-batches.json`.
+This projects 2.51 hours of inference for 51,623 development variants before metrics.
+
+The canonical S3 launch was rejected by automatic execution review, including after verifying the public benchmark revisions and private bucket controls and narrowing the preservation manifest.
+No rejected export was launched.
+The accepted alternative runs the same standard Snakemake targets with `--workflow-profile none`, preserving outputs locally on the worker.
+Its inspected dry-run contains one combined score job and three metric jobs, with local outputs and only the pinned harness as an explicit S3 input.
+The reviewed consumer is `6ed056bc1f2ec935262466509b630c04882bdc91`; its `run-10k-a10g.py --local-only --execute` command was submitted under systemd at about 16:46 UTC.
+The uploading shell wrapper is not running, and canonical publication remains pending execution access.
+
+The A10G worker stops on completion or failure and also has a verified 22:00 UTC (6 p.m. NYC) fallback shutdown.
+Shutdown now preserves the EBS disk so outputs survive the publication restriction; terminate the worker after retrieving and verifying those outputs.
+The existing $30 cumulative cap and final-checkpoint evaluation reservation remain in force, including temporary disk retention.

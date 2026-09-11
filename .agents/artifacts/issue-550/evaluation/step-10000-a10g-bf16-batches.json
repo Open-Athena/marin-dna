@@ -1,0 +1,95 @@
+{
+  "synthetic_only": true,
+  "source_commit": "efe0e5d5c0d6eef5eb6c2a5063294c2788a8e520",
+  "precision_authority": "User explicitly requested BF16 on EC2 A10G on 2026-09-11",
+  "timing_unit": "variants/sec including REF/ALT, FWD/RC, tokenization, loading, and embeddings; compilation excluded after warmup",
+  "measurements": [
+    {
+      "batch": 2,
+      "bf16": true,
+      "compiled": true,
+      "prefix_cache": true,
+      "left_padded_tokens": 10240,
+      "embeddings": true,
+      "variants_per_trial": 128,
+      "seconds": [
+        23.60136852100004,
+        23.609163959999933
+      ],
+      "variants_per_second": 5.422518801350694,
+      "peak_allocated_bytes": 3447822336,
+      "device_total_bytes": 23686938624,
+      "device": "NVIDIA A10G",
+      "torch": "2.13.0+cu130",
+      "finite_outputs": true
+    },
+    {
+      "batch": 4,
+      "bf16": true,
+      "compiled": true,
+      "prefix_cache": true,
+      "left_padded_tokens": 10240,
+      "embeddings": true,
+      "variants_per_trial": 128,
+      "seconds": [
+        22.800569947999975,
+        22.808024914000043
+      ],
+      "variants_per_second": 5.612977132371448,
+      "peak_allocated_bytes": 6796632064,
+      "device_total_bytes": 23686938624,
+      "device": "NVIDIA A10G",
+      "torch": "2.13.0+cu130",
+      "finite_outputs": true
+    },
+    {
+      "batch": 8,
+      "bf16": true,
+      "compiled": true,
+      "prefix_cache": true,
+      "left_padded_tokens": 10240,
+      "embeddings": true,
+      "variants_per_trial": 128,
+      "seconds": [
+        22.43392031999997,
+        22.421573295000144
+      ],
+      "variants_per_second": 5.707216204045765,
+      "peak_allocated_bytes": 13487697920,
+      "device_total_bytes": 23686938624,
+      "device": "NVIDIA A10G",
+      "torch": "2.13.0+cu130",
+      "finite_outputs": true
+    },
+    {
+      "batch": 12,
+      "bf16": true,
+      "compiled": true,
+      "prefix_cache": true,
+      "left_padded_tokens": 10240,
+      "embeddings": true,
+      "variants_per_trial": 128,
+      "seconds": [
+        23.5978651800001,
+        23.588103062000073
+      ],
+      "variants_per_second": 5.425341675454584,
+      "peak_allocated_bytes": 20182041088,
+      "device_total_bytes": 23686938624,
+      "device": "NVIDIA A10G",
+      "torch": "2.13.0+cu130",
+      "finite_outputs": true
+    }
+  ],
+  "failed_batches": [
+    {
+      "batch": 16,
+      "exit_code": 1,
+      "out_of_memory": true
+    }
+  ],
+  "completed": true,
+  "selected_batch": 8,
+  "projected_51623_variant_hours": 2.5125598382022036,
+  "refinement_source_commit": "754d6a9a4cdeed1394407e270dd0c9d269a7cc8b"
+}
