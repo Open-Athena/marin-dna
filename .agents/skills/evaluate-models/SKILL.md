@@ -7,6 +7,11 @@ description: Protect held-out labeled variant-effect prediction data and design,
 
 Apply these rules before computing aggregates or choosing tables and plots.
 
+## Choose VEP Compute
+
+Prefer NVIDIA A10G GPUs on Amazon EC2 for new VEP runs within the task's approved compute budget.
+Use another accelerator when capacity or workload requirements call for it, or when the user chooses it.
+
 ## Protect Held-Out VEP Data
 
 - Use odd-numbered autosomes and chromosome X for development, training, validation, model selection, probing, and tuning on labeled variant-effect prediction data.
