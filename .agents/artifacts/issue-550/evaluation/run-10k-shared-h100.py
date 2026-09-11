@@ -19,6 +19,7 @@ import urllib.request
 from pathlib import Path
 
 import boto3
+from botocore.config import Config
 import pandas as pd
 import torch
 import yaml
@@ -94,6 +95,7 @@ def main() -> None:
         assert digest(path) == sha256, f"SHA-256 mismatch: {entry['name']}"
     del entries
     (checkpoint / ".snakemake_timestamp").touch()
+    print("REGISTERED_INPUT_BYTES_VERIFIED", flush=True)
 
     # Only transport location changes; the registered harness SHA-256 and all
     # model, cohort, precision, bootstrap, and scoring contracts stay fixed.
@@ -101,7 +103,7 @@ def main() -> None:
     overlay = Path("/tmp/issue550-local-inputs.yaml")
     overlay.write_text(yaml.safe_dump({"models": config["models"]}))
     prefix = f"marin/MarinDNA/exp550_rag_five_regions/evaluation-staging/{MODEL}/{commit}"
-    client = boto3.client("s3")
+    client = boto3.client("s3", config=Config(s3={"addressing_style": "virtual"}))
     canary = f"{prefix}/storage-preflight.txt"
     client.put_object(Bucket=BUCKET, Key=canary, Body=b"issue550-storage-ready\n")
     assert client.get_object(Bucket=BUCKET, Key=canary)["Body"].read() == b"issue550-storage-ready\n"
