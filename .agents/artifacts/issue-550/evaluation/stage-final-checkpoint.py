@@ -34,7 +34,7 @@ from botocore.exceptions import ClientError
 
 ROOT = Path(__file__).resolve().parents[4]
 MODELS = tuple(
-    f"dna-exp550-rag46m-five-regions-v1-step-{step}" for step in (10000, 100000)
+    f"dna-exp550-rag46m-five-regions-v1-step-{step}" for step in (10000, 20000, 100000)
 )
 MODEL = MODELS[-1]
 BUCKET = "oa-bolinas"

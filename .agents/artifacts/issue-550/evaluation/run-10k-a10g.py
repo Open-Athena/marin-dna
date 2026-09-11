@@ -23,10 +23,21 @@ STORAGE = WORK / "storage"
 
 
 def main() -> None:
+    global MODEL
     parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--model",
+        choices=[
+            f"dna-exp550-rag46m-five-regions-v1-step-{step}"
+            for step in (10000, 20000, 100000)
+        ],
+        default=MODEL,
+    )
+    parser.add_argument("--shutdown-epoch", type=int, default=1789164043)
     parser.add_argument("--execute", action="store_true")
     parser.add_argument("--local-only", action="store_true")
     args = parser.parse_args()
+    MODEL = args.model
     os.chdir(PROJECT)
     sweep = json.loads((WORK / "batch-sweep/summary.json").read_text())
     assert sweep["completed"] and sweep["synthetic_only"]
@@ -52,8 +63,8 @@ def main() -> None:
     assert selected["bf16"] and selected["compiled"] and selected["embeddings"]
     # Include 30% inference margin and 30 minutes for metric jobs and uploads.
     estimated_seconds = sweep["projected_51623_variant_hours"] * 3600 * 1.3 + 1800
-    assert time.time() + estimated_seconds < 1789164043, (
-        "Runtime exceeds 6 p.m. NYC shutdown"
+    assert time.time() + estimated_seconds < args.shutdown_epoch, (
+        "Runtime exceeds the worker shutdown deadline"
     )
     config = yaml.safe_load(Path("config/config.yaml").read_text())
     assert config["split"] == "train"
@@ -82,7 +93,8 @@ def main() -> None:
     cache.mkdir(parents=True, exist_ok=True)
     stage = json.loads(
         (
-            ROOT / ".agents/artifacts/issue-550/evaluation/step-10000-staged.json"
+            ROOT
+            / f".agents/artifacts/issue-550/evaluation/step-{MODEL.rsplit('-', 1)[1]}-staged.json"
         ).read_text()
     )
     assert stage["applied"] and stage["exit_status"] == 0 and stage["model"] == MODEL

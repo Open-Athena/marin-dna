@@ -205,6 +205,21 @@ class TransportTests(unittest.TestCase):
             )
         self.assertEqual(client.writes, [])
 
+    def test_twenty_thousand_checkpoint_uses_its_own_canonical_prefix(self):
+        model = "dna-exp550-rag46m-five-regions-v1-step-20000"
+        self.assertIn(model, staging.MODELS)
+        prefix = f"snakemake/analysis/evals_v2/results/checkpoints/{model}/"
+        with (
+            patch.object(staging, "MODEL", model),
+            patch.object(staging, "PREFIX", prefix),
+        ):
+            report = self.run_stage(
+                FakeS3(), source_root=SOURCE.replace("step-100000", "step-20000")
+            )
+        self.assertEqual(report["model"], model)
+        self.assertEqual(report["destination"], f"s3://oa-bolinas/{prefix}")
+        self.assertTrue(report["applied"])
+
     def test_failed_guard_records_status_and_timing(self):
         with tempfile.TemporaryDirectory() as temporary:
             receipt = Path(temporary) / "failure.json"
