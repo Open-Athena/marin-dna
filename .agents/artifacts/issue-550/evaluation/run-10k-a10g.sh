@@ -5,6 +5,11 @@ cd /opt/issue550/repo/snakemake/analysis/evals_v2
 export OMP_NUM_THREADS=2 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1
 export TOKENIZERS_PARALLELISM=false PYTHONUNBUFFERED=1
 artifact_prefix=s3://oa-bolinas/marin/MarinDNA/exp550_rag_five_regions/evaluation/a10g-10k-20260911
+upload_file() {
+  if [[ -f "$1" && ! -L "$1" ]]; then
+    aws s3 cp "$1" "$artifact_prefix/$2" --only-show-errors || upload_failed=1
+  fi
+}
 finish() {
   run_status=$?
   trap - EXIT
@@ -13,12 +18,24 @@ finish() {
   # Preserve any local results after a failure in a separate recovery prefix.
   for attempt in 1 2 3; do
     upload_failed=0
+    model=dna-exp550-rag46m-five-regions-v1-step-10000
     results=/opt/issue550/storage/s3/oa-bolinas/snakemake/analysis/evals_v2/results
-    if [[ -d "$results" ]]; then
-      aws s3 sync "$results/" "$artifact_prefix/recovery-results/" --exclude '*' --include '*.parquet' --only-show-errors || upload_failed=1
-    fi
-    aws s3 sync /opt/issue550/batch-sweep/ "$artifact_prefix/batch-sweep/" --only-show-errors || upload_failed=1
-    aws s3 sync /opt/issue550/ "$artifact_prefix/runtime/" --exclude '*' --include '*.log' --include 'a10g-*.json' --include 'a10g-*.yaml' --include 'a10g-exit-status.txt' --only-show-errors || upload_failed=1
+    for kind in scores metrics; do
+      for cohort in mendelian_traits complex_traits sge; do
+        relative="$kind/$model/$cohort.parquet"
+        upload_file "$results/$relative" "recovery-results/$relative"
+      done
+    done
+    upload_file /opt/issue550/batch-sweep/summary.json batch-sweep/summary.json
+    for batch in 2 4 8 12 16 32 64; do
+      for extension in json log; do
+        name="batch-$batch.$extension"
+        upload_file "/opt/issue550/batch-sweep/$name" "batch-sweep/$name"
+      done
+    done
+    for name in a10g-plan.log a10g-vep.log a10g-run-receipt.json a10g-exit-status.txt; do
+      upload_file "/opt/issue550/$name" "runtime/$name"
+    done
     if [[ "$upload_failed" == 0 ]]; then
       break
     fi
