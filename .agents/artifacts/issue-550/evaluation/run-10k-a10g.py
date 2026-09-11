@@ -1,4 +1,4 @@
-"""Run the registered 10k development targets with measured A10G BF16 settings."""
+"""Run registered development targets with measured A10G BF16 settings."""
 
 from __future__ import annotations
 
@@ -61,8 +61,9 @@ def main() -> None:
     selected = next(m for m in sweep["measurements"] if m["batch"] == batch)
     assert selected["finite_outputs"] and selected["prefix_cache"]
     assert selected["bf16"] and selected["compiled"] and selected["embeddings"]
-    # Include 30% inference margin and 30 minutes for metric jobs and uploads.
-    estimated_seconds = sweep["projected_51623_variant_hours"] * 3600 * 1.3 + 1800
+    # Include 20% inference margin and 30 minutes for metric jobs and uploads.
+    # The completed 10k run took only 2.5% longer than its inference estimate.
+    estimated_seconds = sweep["projected_51623_variant_hours"] * 3600 * 1.2 + 1800
     assert time.time() + estimated_seconds < args.shutdown_epoch, (
         "Runtime exceeds the worker shutdown deadline"
     )

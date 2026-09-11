@@ -823,3 +823,21 @@ The A10G stopped automatically after successful saving and verification.
 It was briefly restarted solely to recover the completion log, receipts, configuration, and metric summary, then termination was requested after all durable outputs were verified.
 The H100 allocation remains released.
 At 19:42 UTC, free-TPU training reached approximately 26,400/100,000 updates with about 32 compute hours remaining.
+
+## 2026-09-11 20:14 UTC (4:14 p.m. NYC) — Requested 20k evaluation prepared
+
+The user requested VEP on the 20,000-update checkpoint, retaining the established development cohorts, EC2 A10G, BF16, shared-prefix caching, full padding, and embeddings.
+The 20k registry entry and exact version-9 source are published in PR #565; all CI checks and independent review pass.
+The completed 10k A10G instance is confirmed terminated, and the H100 allocation remains released.
+
+The revised reservation remains below the original cumulative $30 cap: $5.1496 prior allowance, $4.024 for completed 10k compute including recovery, $4.024 for at most four hours of 20k compute, $16.096 reserved for final VEP plus frozen probes, and $0.30 additional disk allowance, totaling $29.5936.
+This is a conservative reservation ledger rather than a settled bill.
+The four-hour 20k limit includes setup, tests, a fresh synthetic batch-8 timing, scoring, metrics, and normal Snakemake S3 saving.
+The worker will stop on completion or failure and at its hard deadline, retaining EBS until logs are recovered, then be terminated.
+
+Local staging correctly aborted below the shared VM's required memory headroom.
+The existing free Iris CPU coordinator has sufficient headroom and normal GCS access, so a bounded remote transport stages the weights without transferring checkpoint bytes through this VM.
+Its preparation read all four generation-pinned objects, validated the model geometry, and matched GCS MD5 hashes in 14 seconds.
+The 20k weight SHA-256 is ca9c876ecc53913299908d6fa06f4d84a21cf001162ed28bbe75609e53d5ea89.
+S3 delivery uses five-minute, object-specific conditional PUT capabilities requiring both source MD5 and computed SHA-256; the coordinator never receives long-lived AWS credentials, and capabilities are not printed or persisted.
+The transfer is not complete until canonical S3 heads confirm all four sizes and server SHA-256 checksums and the completion marker is written last.

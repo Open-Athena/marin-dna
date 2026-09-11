@@ -1,0 +1,16 @@
+{
+  "date": "2026-09-11",
+  "currency": "USD",
+  "cumulative_cap": 30.0,
+  "prior_conservative_allowance": 5.1496,
+  "a10g_hourly_rate": 1.006,
+  "completed_10k_a10g_hours_upper_bound": 4,
+  "completed_10k_a10g_allowance": 4.024,
+  "requested_20k_a10g_max_hours": 4,
+  "requested_20k_a10g_allowance": 4.024,
+  "reserved_final_vep_and_probes_hours": 16,
+  "reserved_final_vep_and_probes_allowance": 16.096,
+  "additional_disk_allowance": 0.3,
+  "total_reserved": 29.5936,
+  "basis": "10k VEP plus metrics finished in 9272 seconds; retain 16 A10G hours for the final checkpoint and frozen probes. The 20k four-hour cap includes setup, validation, scoring, metrics, and automatic Snakemake S3 saving. Stop automatically on completion or failure; retain EBS only until logs are retrieved and then terminate."
+}
