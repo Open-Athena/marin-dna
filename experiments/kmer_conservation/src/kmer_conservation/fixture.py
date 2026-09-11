@@ -67,7 +67,7 @@ def assign_components(records: list[dict], seed: int, heldout: float) -> None:
         row["component"] = find(row["group"])
         row["split"] = (
             "heldout"
-            if stable_hash(f"{seed}:{row['component']}") / 2**64 < heldout
+            if stable_hash(f"split:{seed}:{row['component']}") / 2**64 < heldout
             else "dev"
         )
 

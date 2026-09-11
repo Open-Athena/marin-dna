@@ -10,7 +10,7 @@ from kmer_conservation.core import (
     rank_loci,
     window_starts,
 )
-from kmer_conservation.fixture import assign_components
+from kmer_conservation.fixture import assign_components, stable_hash
 
 
 def row(seq, name="a", start=0, species="human"):
@@ -93,3 +93,12 @@ def test_overlap_in_either_species_unions_homologs_before_split():
     assert records[0]["component"] == records[3]["component"]
     assert records[4]["component"] != records[0]["component"]
     assert len({r["split"] for r in records[:4]}) == 1
+
+
+def test_split_hash_is_independent_of_anchor_sampling():
+    sampled = sorted(
+        (f"locus{i}" for i in range(2000)), key=lambda x: stable_hash(f"568:{x}")
+    )[:128]
+    records = [row("A" * 10, name, i * 100) for i, name in enumerate(sampled)]
+    assign_components(records, 568, 0.4)
+    assert 30 < sum(r["split"] == "heldout" for r in records) < 75
