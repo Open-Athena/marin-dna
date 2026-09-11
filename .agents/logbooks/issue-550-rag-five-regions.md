@@ -693,3 +693,43 @@ The older temporary checkpoint was removed only after the replacement committed.
 A bounded GCS listing independently confirmed step-737 metadata.json, manifest.json, manifest.ocdbt, and data under gs://marin-eu-west4/tmp/ttl=14d/checkpoints-temp/marin-eu-west4/MarinDNA/exp550_rag_five_regions/checkpoints/dna-exp550-rag46m-five-regions-v1/2026.09.10.9/checkpoints/step-737/.
 The first permanent checkpoint and full chr18 LM validation are scheduled at 10,000 completed updates.
 Final-checkpoint biological evaluation is still pending; no paid worker was launched or budget reservation changed during this status check.
+
+## 2026-09-11 13:17 UTC — Host-memory failure recovered; first-checkpoint VEP added
+
+The European production coordinator exhausted its retries overnight.
+Its final worker exited at 01:13:02 UTC with code 137 and the explicit controller error "OOM killed (container exceeded memory limit)" under a 48-GiB host-memory limit.
+This differs from the earlier US reconciliation failures.
+The permanent update-10,000 native checkpoint, HF export, and full chr18 LM validation all completed around 00:22 UTC.
+Aggregate validation loss is 0.56209385 and the equal-region macro loss is 0.55885416; these are language-model losses, not VEP results.
+The last complete rolling native checkpoint is step 11501; the partially written step 11876 has no metadata.json and is excluded by native checkpoint discovery.
+The sanitized failure, recovery configuration, and region validation values are in .agents/artifacts/issue-550/recovery/20260911-oom-recovery.json.
+
+Recovery source 51d5c1fbd0636c6a953eec4997cfa45fa87c8b1e raises production host memory to 256 GiB and bounds training-loader prefetch to eight buffered/eight fetched batches, preserving data order, model, optimizer, and effective batch.
+All 22 locked training tests passed remotely in 53.63 seconds, and independent review found no material defects.
+The separate /gonzalo/dna-exp550-recovery-check-v6e8-20260911 pilot resumed the old native step-10 state through update 20 and produced byte-identical HF weights and exactly matching region/aggregate validation losses.
+Its comparison receipt is .agents/artifacts/issue-550/recovery/20260911-memory-resume-parity.json.
+The pilot reused an existing W&B run ID whose step was already ahead; verification therefore uses the durable GCS bytes and eval_metrics.jsonl, not newly logged W&B metrics.
+
+The replacement production root /gonzalo/dna-exp550-rag46m-five-regions-v1-20260911-europe-memory was accepted at 13:01:51 UTC from eddd3a6e1f4d379b9d2aeb9a8745e60ea87221bf, whose training source and lock match 51d5c1fb.
+It reuses production version 2026.09.10.9, the existing tokenized inputs, eight European v6e chips, and the canonical production W&B run ID.
+Logs confirm native resume from step 11501 at 13:06:21 and continued optimizer updates at about 1.6 seconds each by 13:10, projecting roughly 39 remaining compute hours before interruption/validation overhead.
+The coordinator has four failure retries and a seven-day timeout; completed native checkpoints remain the recovery authority.
+W&B temporarily ignores replayed steps below the previous attempt's logged step 11867, after which normal logging can resume.
+No paid AWS worker was launched.
+
+The user now explicitly requests development VEP at the first 10,000-update checkpoint as well as the final checkpoint.
+PR #565 adds the canonical dna-exp550-rag46m-five-regions-v1-step-10000 model and its three development/probe cells while preserving the final registration.
+Its published head 29978e0d passed all CI checks and independent review and is ready, open, and unmerged.
+The generalized checkpoint staging helper passed 12 bounded mock tests and staged all four generation-pinned 10k files into the canonical evals_v2 S3 checkpoint prefix.
+The successful receipt .agents/artifacts/issue-550/evaluation/step-10000-staged.json records SHA-256 and reread verification, a 40-second transfer, and peak RSS below 158 MB.
+The 10k weights have SHA-256 a4fd7d562c61aade4f86d7a3349c5894d3a18c93357d797b6a1e3cd8171d3dad.
+
+The original $30 cumulative paid cap remains in force; the conservative ledger still reserves $18.108 for final-checkpoint GPU inference and leaves $6.7424 for other work after prior allowances.
+Two full on-demand AWS evaluations project approximately $42 including previous allowances; a decision on a $45 cap versus retaining $30 and using shared capacity is pending.
+No budget increase is inferred from elapsed time or the added evaluation request.
+Shared H100 capacity on the existing Iris cw-us-east-02a federation is being checked to avoid additional AWS compute.
+The initial synthetic-only job failed because the workspace bundle lacked Git metadata; its replacement fetched and verified the exact public source commit before inference.
+Automatic approval review initially rejected that retry on checkpoint-egress grounds, then accepted it after checking the public training-input provenance, the organization's configured Iris destination, exact four-file payload, and scoped one-hour read URLs.
+No new user consent was requested for that resolved restriction, and no reusable AWS credentials were copied.
+The second attempt exposed a missing Python.h in the image's system Python before scoring; the next attempt uses a separate uv-managed Python 3.13 environment with the same locked dependencies.
+All these synthetic checks use one H100, a 30-minute timeout, and zero automatic retries; biological VEP has not yet run.

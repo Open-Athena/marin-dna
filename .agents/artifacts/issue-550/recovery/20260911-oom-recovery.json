@@ -1,0 +1,37 @@
+{
+  "original_job": "/gonzalo/dna-exp550-rag46m-five-regions-v1-20260910-europe-v6e8",
+  "original_training_source_commit": "ddff6e1fa59dcc7dc386fe08c954cdec69224a2e",
+  "failure": {
+    "state": "TASK_STATE_FAILED",
+    "exit_code": 137,
+    "error": "Exit code 137: OOM killed (container exceeded memory limit). stderr: I20260911 01:12:45 123147270591296 jax.experimental.array_serialization.serialization Error check finished successfully",
+    "started_at": {
+      "epoch_ms": "1789085074448"
+    },
+    "finished_at": {
+      "epoch_ms": "1789089182091"
+    }
+  },
+  "original_memory_bytes": 51539607552,
+  "last_complete_native_step": 11501,
+  "ignored_incomplete_native_step": 11876,
+  "permanent_hf_step": 10000,
+  "recovery_job": "/gonzalo/dna-exp550-rag46m-five-regions-v1-20260911-europe-memory",
+  "recovery_submission_commit": "eddd3a6e1f4d379b9d2aeb9a8745e60ea87221bf",
+  "recovery_training_code_commit": "51d5c1fbd0636c6a953eec4997cfa45fa87c8b1e",
+  "recovery_memory_bytes": 274877906944,
+  "max_buffered_batches": 8,
+  "fetch_batch_size": 8,
+  "verified_resume_at": "2026-09-11T13:06:21Z",
+  "production_output": "gs://marin-eu-west4/MarinDNA/exp550_rag_five_regions/checkpoints/dna-exp550-rag46m-five-regions-v1/2026.09.10.9",
+  "step_10000_chr18_validation": {
+    "loss": 0.5620938539505005,
+    "macro_loss": 0.5588541626930237,
+    "cds_loss": 0.5988149642944336,
+    "tss_utr5_loss": 0.6038805842399597,
+    "utr3_loss": 0.5705501437187195,
+    "ncrna_loss": 0.5269957184791565,
+    "enhancer_loss": 0.4940292537212372
+  },
+  "vep_completed": false
+}
