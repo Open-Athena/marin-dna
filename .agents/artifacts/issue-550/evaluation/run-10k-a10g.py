@@ -25,6 +25,7 @@ STORAGE = WORK / "storage"
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--execute", action="store_true")
+    parser.add_argument("--local-only", action="store_true")
     args = parser.parse_args()
     os.chdir(PROJECT)
     sweep = json.loads((WORK / "batch-sweep/summary.json").read_text())
@@ -76,6 +77,8 @@ def main() -> None:
         / "s3/oa-bolinas/snakemake/analysis/evals_v2/results/checkpoints"
         / MODEL
     )
+    if args.local_only:
+        cache = PROJECT / "results/checkpoints" / MODEL
     cache.mkdir(parents=True, exist_ok=True)
     stage = json.loads(
         (
@@ -106,6 +109,8 @@ def main() -> None:
         "config/config.yaml",
         str(overlay),
     ]
+    if args.local_only:
+        command[3:3] = ["--workflow-profile", "none"]
     targets = [f"results/metrics/{MODEL}/{name}.parquet" for name in COHORTS]
     subprocess.run(command + ["--dry-run", "--"] + targets, check=True)
     if not args.execute:
@@ -128,6 +133,7 @@ def main() -> None:
         "checkpoint_sha256": stage["verified_objects"]["model.safetensors"]["sha256"],
         "harness_sha256": registered["rag_harness"]["sha256"],
         "completed": False,
+        "publication": "local_only" if args.local_only else "canonical_s3",
     }
     receipt_path = WORK / "a10g-run-receipt.json"
     receipt_path.write_text(json.dumps(receipt, indent=2) + "\n")
