@@ -1,0 +1,169 @@
+{
+  "synthetic_only": true,
+  "prior_batch_sweep": "Batch 4 delivered 0.89245 variants/sec at 14.66 GB peak allocation versus batch 2 at 0.89759 and 7.32 GB; batch 8 exceeded the A10G memory capacity. Final comparison uses batch 2.",
+  "precision_policy": "fp32 parameters, activations, and matrix multiplication; bf16 failed reference parity and TF32 compilation narrowly exceeded the predeclared compiler LLR tolerance, so both are disabled",
+  "source_commit": "eddd3a6e1f4d379b9d2aeb9a8745e60ea87221bf",
+  "checkpoint": "gs://marin-eu-west4/MarinDNA/exp550_rag_five_regions/checkpoints/dna-exp550-rag46m-five-regions-v1/2026.09.10.9/hf/step-10000",
+  "registered_model": "dna-exp550-rag46m-five-regions-v1-step-10000",
+  "local_checkpoint": "/tmp/issue550-10k-checkpoint",
+  "training_source_commit": "ddff6e1fa59dcc7dc386fe08c954cdec69224a2e",
+  "runtime": {
+    "python": "3.13.14",
+    "torch": "2.13.0+cu130",
+    "transformers": "4.57.6",
+    "cuda": "13.0",
+    "device": "NVIDIA H100 80GB HBM3"
+  },
+  "tolerances_rtol_atol": {
+    "fp32_repeat": {
+      "llr": [
+        0.0001,
+        0.15
+      ],
+      "jsd": [
+        0.001,
+        0.0001
+      ],
+      "embedding": [
+        0.01,
+        0.03
+      ]
+    },
+    "compiled_vs_fp32": {
+      "llr": [
+        0.0001,
+        0.01
+      ],
+      "jsd": [
+        0.001,
+        1e-05
+      ],
+      "embedding": [
+        0.005,
+        0.01
+      ]
+    }
+  },
+  "fixture_species_counts": [
+    1,
+    2,
+    20,
+    40,
+    40,
+    20,
+    2,
+    1
+  ],
+  "reference_batch_note": "Use batch 2 because the pinned Trainer unwraps bare singleton-batch tensor outputs; tracked separately in the repository.",
+  "timing_unit": "variants/sec including REF/ALT, FWD/RC, on-the-fly tokenization, data loading, and output collection",
+  "measurements": {
+    "fp32_eager": {
+      "variants": 8,
+      "seconds": 4.368076800368726,
+      "variants_per_second": 1.8314696296834088,
+      "peak_allocated_bytes": 3059564032,
+      "batch": 2,
+      "bf16": false,
+      "compiled": false,
+      "tf32_actual": false
+    },
+    "fp32_repeat": {
+      "variants": 8,
+      "seconds": 2.8350853119045496,
+      "variants_per_second": 2.821784574315251,
+      "peak_allocated_bytes": 3059564032,
+      "batch": 2,
+      "bf16": false,
+      "compiled": false,
+      "tf32_actual": false
+    },
+    "fp32_compiled_cold": {
+      "variants": 8,
+      "seconds": 17.344438245519996,
+      "variants_per_second": 0.46124295793012327,
+      "peak_allocated_bytes": 7453179392,
+      "batch": 2,
+      "bf16": false,
+      "compiled": true,
+      "tf32_actual": false
+    },
+    "warmup_batch2": {
+      "variants": 8,
+      "seconds": 2.693823264911771,
+      "variants_per_second": 2.969756815231165,
+      "peak_allocated_bytes": 7453179392,
+      "batch": 2,
+      "bf16": false,
+      "compiled": true,
+      "tf32_actual": false
+    },
+    "warmed_batch2": {
+      "variants": 96,
+      "seconds": 29.278303659521043,
+      "variants_per_second": 3.278878486827281,
+      "peak_allocated_bytes": 7453220352,
+      "batch": 2,
+      "bf16": false,
+      "compiled": true,
+      "tf32_actual": false
+    }
+  },
+  "parity": {
+    "fp32_repeat": {
+      "fwd_llr": {
+        "max_abs_error": 0.0,
+        "passed": true
+      },
+      "fwd_jsd": {
+        "max_abs_error": 0.0,
+        "passed": true
+      },
+      "fwd_embedding": {
+        "max_abs_error": 0.0,
+        "passed": true
+      },
+      "rc_llr": {
+        "max_abs_error": 0.0,
+        "passed": true
+      },
+      "rc_jsd": {
+        "max_abs_error": 0.0,
+        "passed": true
+      },
+      "rc_embedding": {
+        "max_abs_error": 0.0,
+        "passed": true
+      }
+    },
+    "compiled_vs_fp32": {
+      "fwd_llr": {
+        "max_abs_error": 4.5299530029296875e-06,
+        "passed": true
+      },
+      "fwd_jsd": {
+        "max_abs_error": 7.101334631443024e-09,
+        "passed": true
+      },
+      "fwd_embedding": {
+        "max_abs_error": 1.9073486328125e-06,
+        "passed": true
+      },
+      "rc_llr": {
+        "max_abs_error": 6.377696990966797e-06,
+        "passed": true
+      },
+      "rc_jsd": {
+        "max_abs_error": 9.807990863919258e-09,
+        "passed": true
+      },
+      "rc_embedding": {
+        "max_abs_error": 9.5367431640625e-07,
+        "passed": true
+      }
+    }
+  },
+  "parity_passed": true,
+  "selected_batch": 2,
+  "projected_51623_variant_inference_hours": 4.373361891827126,
+  "completed": true
+}
