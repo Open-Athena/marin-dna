@@ -33,7 +33,9 @@ def canonical_codes(sequence: str, k: int) -> np.ndarray:
     return output
 
 
-def window_starts(start: int, length: int, width: int, stride: int, phase: int) -> list[int]:
+def window_starts(
+    start: int, length: int, width: int, stride: int, phase: int
+) -> list[int]:
     """Offsets within a fixed interval; two edge windows ensure identical coverage."""
     if not 0 < width <= length or stride < 1:
         raise ValueError("invalid window geometry")
@@ -51,7 +53,9 @@ class Windows:
     edge_count: int
 
 
-def make_windows(records: list[dict], width: int, k: int, divisor: int, mask: bool = False) -> Windows:
+def make_windows(
+    records: list[dict], width: int, k: int, divisor: int, mask: bool = False
+) -> Windows:
     features, owners, starts = [], [], []
     stride = max(1, width // divisor)
     seen: set[tuple] = set()
@@ -75,7 +79,9 @@ def make_windows(records: list[dict], width: int, k: int, divisor: int, mask: bo
             owners.append(owner)
             starts.append(start)
             edges += (row["start"] + start - phase) % stride != 0
-    return Windows(features, np.asarray(owners), np.asarray(starts), records, width, edges)
+    return Windows(
+        features, np.asarray(owners), np.asarray(starts), records, width, edges
+    )
 
 
 def exact_index(windows: Windows) -> tuple[sparse.csr_matrix, np.ndarray, np.ndarray]:
@@ -83,12 +89,18 @@ def exact_index(windows: Windows) -> tuple[sparse.csr_matrix, np.ndarray, np.nda
     lengths = np.array([len(values) for values in windows.features], dtype=np.int64)
     flat = np.concatenate(windows.features)
     vocab, inverse = np.unique(flat, return_inverse=True)
-    matrix = sparse.csr_matrix((np.ones(len(inverse), dtype=np.int32), inverse,
-                               np.r_[0, lengths.cumsum()]), shape=(len(lengths), len(vocab)))
-    return matrix, vocab, lengths
+    matrix = sparse.csr_matrix(
+        (np.ones(len(inverse), dtype=np.int32), inverse, np.r_[0, lengths.cumsum()]),
+        shape=(len(lengths), len(vocab)),
+    )
+    # Column storage is the inverted index. Its transpose is CSR and can be reused
+    # for all queries without converting the full target matrix on every multiply.
+    return matrix.tocsc(), vocab, lengths
 
 
-def query_matrix(features: list[np.ndarray], vocab: np.ndarray) -> tuple[sparse.csr_matrix, np.ndarray]:
+def query_matrix(
+    features: list[np.ndarray], vocab: np.ndarray
+) -> tuple[sparse.csr_matrix, np.ndarray]:
     rows, cols = [], []
     for i, values in enumerate(features):
         positions = np.searchsorted(vocab, values)
@@ -97,18 +109,28 @@ def query_matrix(features: list[np.ndarray], vocab: np.ndarray) -> tuple[sparse.
         positions = positions[vocab[positions] == values[valid]]
         rows.extend([i] * len(positions))
         cols.extend(positions)
-    matrix = sparse.csr_matrix((np.ones(len(rows), dtype=np.int32), (rows, cols)),
-                               shape=(len(features), len(vocab)))
+    matrix = sparse.csr_matrix(
+        (np.ones(len(rows), dtype=np.int32), (rows, cols)),
+        shape=(len(features), len(vocab)),
+    )
     # Full query lengths include features absent from the target vocabulary.
     return matrix, np.array([len(x) for x in features])
 
 
-def exact_scores(query_features: list[np.ndarray], index: sparse.csr_matrix,
-                 vocab: np.ndarray, target_lengths: np.ndarray) -> tuple[np.ndarray, int, int]:
+def exact_scores(
+    query_features: list[np.ndarray],
+    index: sparse.csr_matrix,
+    vocab: np.ndarray,
+    target_lengths: np.ndarray,
+) -> tuple[np.ndarray, int, int]:
     query, query_lengths = query_matrix(query_features, vocab)
     intersection = (query @ index.T).tocoo()
     scores = np.zeros(index.shape[0], dtype=np.float64)
-    denom = query_lengths[intersection.row] + target_lengths[intersection.col] - intersection.data
+    denom = (
+        query_lengths[intersection.row]
+        + target_lengths[intersection.col]
+        - intersection.data
+    )
     np.maximum.at(scores, intersection.col, intersection.data / denom)
     # Every posting expansion contributes one shared-feature occurrence to a window pair.
     return scores, intersection.nnz, int(intersection.data.sum())
@@ -122,6 +144,13 @@ def rank_loci(scores: np.ndarray, windows: Windows, limit: int = 100) -> list[di
         locus = row["component"]
         value = float(scores[wi])
         if locus not in best or value > best[locus]["score"]:
-            best[locus] = {"component": locus, "id": row["id"], "kind": row["kind"],
-                           "score": value, "window": int(wi)}
-    return sorted(best.values(), key=lambda x: (-x["score"], stable_hash(x["component"])))[:limit]
+            best[locus] = {
+                "component": locus,
+                "id": row["id"],
+                "kind": row["kind"],
+                "score": value,
+                "window": int(wi),
+            }
+    return sorted(
+        best.values(), key=lambda x: (-x["score"], stable_hash(x["component"]))
+    )[:limit]
