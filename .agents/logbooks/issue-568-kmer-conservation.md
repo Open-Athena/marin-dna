@@ -152,3 +152,35 @@ The experiment locks the actual installed version and must not apply ordinary ba
   `run_methods.sh` and `run_diagnostics.sh` record the exact method and diagnostic commands.
 - Inference boundary: stop the tested LSH selector path if the limiting-stage result persists; do not infer conservation enrichment from the homology-enriched retrieval universe.
   Independently sampled backgrounds lack a fair set of known partners for a genome-wide selector test.
+
+### 2026-09-11 22:20 UTC — KMER-CONS-003 held-out result
+
+- Frozen selection commit: `f577dbe82a9b4e4a2631f9ee9bb202ef534bd30b`.
+  `run_heldout.py` completed all 23 commands; its receipt records the selection SHA-256 and completion times.
+  An SSH connection ended during the run; the remote process continued, and a Linux pidfd wait plus the completed receipt confirmed successful completion without restarting or retuning any arm.
+- Held-out universe: 210 known physical pairs, 204 queries, 65 split groups.
+  Exact W255/k9/half-stride recovered 204/210 at C=10 (97.14%; grouped 95% CI 94.87–99.10%), 89.05% at C=1, and 99.52% at C=100.
+  Query time was 11.67 seconds; measured cold stages were 25.04 seconds.
+- Matched H512 scan and row-two LSH each recovered 201/210 (95.71%), with 9.65/11.31 seconds query time and 66.69/71.78 seconds cold stages.
+  The paired scan-minus-exact recall difference was −1.43 percentage points (95% CI −3.62 to +0.49), so the small recall gap alone is uncertain.
+  Frozen exact W511/k9 also recovered 97.14% in 7.82 seconds, and whole-context k13 recovered 96.67% in 0.80 seconds.
+  Thus neither tested sketch nor LSH supplies an improved held-out recall–runtime frontier.
+- W1024/k13 exact recall was 95.24%; H512 scan and permissive row-one LSH both reached 90.00%.
+  Their paired recall loss was 5.24 percentage points (95% CI 2.05–8.65).
+  Row-two LSH fell to 50.95%, separating additional index loss from the preceding sketch loss.
+- Matched Linclust recovered 42.38% at W255 and 18.10% at W1024, including its intrinsic masking/alignment/clustering choices.
+  This is not a direct comparison with #521's five-million-window historical result.
+- Geometry and controls: full/half/quarter W255 strides gave 95.71/97.14/97.14% recall and 5.35/11.67/33.25 seconds query time; the two-scale union gave 96.67% while paying both costs.
+  W1024 repeat masking raised recall from 95.24% to 96.67% but increased shuffled-decoy contamination from 0.54% to 7.84% of top-ten candidates.
+  Majority-repeat query contexts had 83.33% W255 recall over 24 known pairs (95% CI 66.67–96.00%).
+- The separate global 30%-edit verifier reduced C=10 recall to 30.95% at W255 and 13.81% at W1024.
+  Each C=100 profile used 40,800 strand-specific calls; verification took 7.41/6.35 seconds after 10.99/11.32 seconds of feature preparation.
+- Synthetic diagnostic: W255/k9 recovered 67.13% of 216 designated pairs at C=10 versus 53.24% for W4096/k9.
+  Adding ten similarly mutated target copies reduced designated-partner recall at C=1 from 62.50% to 9.26%; those competitors are potential homologs, not validated false positives.
+- GC/repeat matching was close (anchor/matched mean GC 0.4280/0.4287; mean repeat fraction 0.2723/0.2812), but three-mer richness was largely saturated and is not a strong complexity control.
+  No annotated repeat-family or curated biological-paralog benchmark was claimed.
+- Validation: 26 tests pass, plus complete invariants over 76 real prediction files, 22 synthetic files, and five duplicate-challenge files.
+  The final tables, paired intervals, strata, verifier records, execution receipt, and inspected figures are in `.agents/artifacts/issue-568-kmer-conservation/final/`.
+- Decision: stop before selector enrichment under the issue's failed-index gate.
+  Promote the valid homology-retrieval and limiting-stage findings, with explicit limits on conservation inference, complexity controls, and scale.
+  No genome-scale run or training was launched.

@@ -284,6 +284,7 @@ def main() -> None:
     (args.out / "dominance.json").write_text(json.dumps(dominance, indent=2) + "\n")
     if args.figures:
         import matplotlib.pyplot as plt
+        from matplotlib import ticker
 
         plt.rcParams.update({"svg.fonttype": "none", "font.size": 11})
         fig, ax = plt.subplots(figsize=(6, 5), layout="constrained")
@@ -350,7 +351,9 @@ def main() -> None:
                         ]
                     )
                     * 100,
-                    label=method,
+                    label={"exact": "Full sets", "scan": "MinHash scan", "lsh": "LSH"}[
+                        method
+                    ],
                     color=color,
                     fmt="o",
                     capsize=0,
@@ -363,6 +366,9 @@ def main() -> None:
                 title=f"W={width}, k={9 if width == 255 else 13}",
             )
             axis.set_box_aspect(1)
+            axis.set_xticks([1, 10, 100] if width == 255 else [0.2, 1, 5])
+            axis.xaxis.set_major_formatter(ticker.ScalarFormatter())
+            axis.xaxis.set_minor_formatter(ticker.NullFormatter())
         axes[1].legend(title="Method", loc="lower right")
         fig.savefig(args.out / "index-frontier.svg")
         fig.savefig(args.out / "index-frontier.png", dpi=160)

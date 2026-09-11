@@ -1,0 +1,22 @@
+{
+  "width": 255,
+  "k": 9,
+  "divisor": 2,
+  "n": 210,
+  "n_queries": 204,
+  "profiled_budget": 100,
+  "build_windows_seconds": 10.98575234413147,
+  "seconds": 7.405149698257446,
+  "max_rss_kib": 524844,
+  "alignment_calls": 40800,
+  "threshold": "global edit distance <= floor(0.30 W), best of both strands, no backfill",
+  "recall_at_1": 0.29523809523809524,
+  "verified_candidates_at_1": 62,
+  "verified_decoys_at_1": 0,
+  "recall_at_10": 0.30952380952380953,
+  "verified_candidates_at_10": 72,
+  "verified_decoys_at_10": 0,
+  "recall_at_100": 0.30952380952380953,
+  "verified_candidates_at_100": 87,
+  "verified_decoys_at_100": 0
+}

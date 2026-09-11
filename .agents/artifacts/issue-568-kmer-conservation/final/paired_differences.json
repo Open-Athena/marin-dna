@@ -1,0 +1,1334 @@
+{
+  "dev-union-255k9-1024k13 minus dev-w255-k9-d2-mask0": {
+    "difference": -0.0072992700729927005,
+    "ci95": [
+      -0.027491408934707903,
+      0.011280331510594656
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w1024-k13-d1-mask0 minus dev-w255-k9-d2-mask0": {
+    "difference": -0.04744525547445255,
+    "ci95": [
+      -0.07942238267148015,
+      -0.018796992481203006
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w1024-k13-d2-linclust minus dev-w255-k9-d2-mask0": {
+    "difference": -0.8029197080291971,
+    "ci95": [
+      -0.8492647058823529,
+      -0.7536764705882353
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w1024-k13-d2-mask0-h128-lsh-r1 minus dev-w255-k9-d2-mask0": {
+    "difference": -0.18248175182481752,
+    "ci95": [
+      -0.24296256994018908,
+      -0.12685494939097622
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w1024-k13-d2-mask0-h128-lsh-r2 minus dev-w255-k9-d2-mask0": {
+    "difference": -0.6715328467153284,
+    "ci95": [
+      -0.7427611714975845,
+      -0.5971677706270406
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w1024-k13-d2-mask0-h128-lsh-r4 minus dev-w255-k9-d2-mask0": {
+    "difference": -0.9562043795620438,
+    "ci95": [
+      -0.9847908745247148,
+      -0.9236363636363636
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w1024-k13-d2-mask0-h128-scan-r2 minus dev-w255-k9-d2-mask0": {
+    "difference": -0.18248175182481752,
+    "ci95": [
+      -0.24296256994018908,
+      -0.12685494939097622
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w1024-k13-d2-mask0-h32-lsh-r1 minus dev-w255-k9-d2-mask0": {
+    "difference": -0.40145985401459855,
+    "ci95": [
+      -0.47945899666790076,
+      -0.31936980706942697
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w1024-k13-d2-mask0-h32-lsh-r2 minus dev-w255-k9-d2-mask0": {
+    "difference": -0.8175182481751825,
+    "ci95": [
+      -0.875,
+      -0.7554744525547445
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w1024-k13-d2-mask0-h32-lsh-r4 minus dev-w255-k9-d2-mask0": {
+    "difference": -0.9598540145985401,
+    "ci95": [
+      -0.9885057471264368,
+      -0.9280262667660208
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w1024-k13-d2-mask0-h32-scan-r2 minus dev-w255-k9-d2-mask0": {
+    "difference": -0.40145985401459855,
+    "ci95": [
+      -0.47945899666790076,
+      -0.31936980706942697
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w1024-k13-d2-mask0-h512-lsh-r1 minus dev-w255-k9-d2-mask0": {
+    "difference": -0.06204379562043796,
+    "ci95": [
+      -0.09964951508251142,
+      -0.029194426011944274
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w1024-k13-d2-mask0-h512-lsh-r2 minus dev-w255-k9-d2-mask0": {
+    "difference": -0.40145985401459855,
+    "ci95": [
+      -0.48434758005035733,
+      -0.3198414085215836
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w1024-k13-d2-mask0-h512-lsh-r4 minus dev-w255-k9-d2-mask0": {
+    "difference": -0.927007299270073,
+    "ci95": [
+      -0.9655237970368429,
+      -0.8834524724219308
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w1024-k13-d2-mask0-h512-scan-r2 minus dev-w255-k9-d2-mask0": {
+    "difference": -0.06204379562043796,
+    "ci95": [
+      -0.09964951508251142,
+      -0.029194426011944274
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w1024-k13-d2-mask0 minus dev-w255-k9-d2-mask0": {
+    "difference": -0.0364963503649635,
+    "ci95": [
+      -0.06617711108833778,
+      -0.011152416356877323
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w1024-k13-d2-mask1 minus dev-w255-k9-d2-mask0": {
+    "difference": -0.021897810218978103,
+    "ci95": [
+      -0.04887218045112782,
+      0.003472222222222222
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w1024-k13-d4-mask0 minus dev-w255-k9-d2-mask0": {
+    "difference": -0.032846715328467155,
+    "ci95": [
+      -0.06160544271659791,
+      -0.0075743335611756744
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w1024-k17-d2-mask0 minus dev-w255-k9-d2-mask0": {
+    "difference": -0.07664233576642336,
+    "ci95": [
+      -0.11579328756674294,
+      -0.040145985401459854
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w1024-k21-d2-mask0 minus dev-w255-k9-d2-mask0": {
+    "difference": -0.14233576642335766,
+    "ci95": [
+      -0.20069204152249134,
+      -0.08921933085501858
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w1024-k9-d2-mask0 minus dev-w255-k9-d2-mask0": {
+    "difference": -0.029197080291970802,
+    "ci95": [
+      -0.055176867285914234,
+      -0.007380073800738007
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w128-k13-d2-mask0 minus dev-w255-k9-d2-mask0": {
+    "difference": -0.058394160583941604,
+    "ci95": [
+      -0.09191893512724239,
+      -0.02631578947368421
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w128-k17-d2-mask0 minus dev-w255-k9-d2-mask0": {
+    "difference": -0.08759124087591241,
+    "ci95": [
+      -0.12767093208147193,
+      -0.04868913857677903
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w128-k21-d2-mask0 minus dev-w255-k9-d2-mask0": {
+    "difference": -0.14233576642335766,
+    "ci95": [
+      -0.19855595667870035,
+      -0.08888068880688811
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w128-k9-d2-mask0 minus dev-w255-k9-d2-mask0": {
+    "difference": -0.014598540145985401,
+    "ci95": [
+      -0.031578947368421054,
+      0.0
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w255-k13-d2-mask0 minus dev-w255-k9-d2-mask0": {
+    "difference": -0.04744525547445255,
+    "ci95": [
+      -0.07808656780056228,
+      -0.01900960652148866
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w255-k17-d2-mask0 minus dev-w255-k9-d2-mask0": {
+    "difference": -0.08029197080291971,
+    "ci95": [
+      -0.12069254802129137,
+      -0.04182113434727505
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w255-k21-d2-mask0 minus dev-w255-k9-d2-mask0": {
+    "difference": -0.1386861313868613,
+    "ci95": [
+      -0.19649274047186932,
+      -0.08549394189728766
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w255-k9-d1-mask0 minus dev-w255-k9-d2-mask0": {
+    "difference": -0.01824817518248175,
+    "ci95": [
+      -0.04044117647058824,
+      0.0
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w255-k9-d2-linclust minus dev-w255-k9-d2-mask0": {
+    "difference": -0.551094890510949,
+    "ci95": [
+      -0.6059507716570913,
+      -0.4964008939906898
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w255-k9-d2-mask0-h128-lsh-r1 minus dev-w255-k9-d2-mask0": {
+    "difference": -0.06204379562043796,
+    "ci95": [
+      -0.09677698403839714,
+      -0.032137158054711276
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w255-k9-d2-mask0-h128-lsh-r2 minus dev-w255-k9-d2-mask0": {
+    "difference": -0.15693430656934307,
+    "ci95": [
+      -0.21697185230024213,
+      -0.09885133634925485
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w255-k9-d2-mask0-h128-lsh-r4 minus dev-w255-k9-d2-mask0": {
+    "difference": -0.7116788321167883,
+    "ci95": [
+      -0.7868995259039241,
+      -0.6323383414737737
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w255-k9-d2-mask0-h128-scan-r2 minus dev-w255-k9-d2-mask0": {
+    "difference": -0.06204379562043796,
+    "ci95": [
+      -0.09677698403839714,
+      -0.032137158054711276
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w255-k9-d2-mask0-h32-lsh-r1 minus dev-w255-k9-d2-mask0": {
+    "difference": -0.2664233576642336,
+    "ci95": [
+      -0.3299201612278118,
+      -0.20532071108336647
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w255-k9-d2-mask0-h32-lsh-r2 minus dev-w255-k9-d2-mask0": {
+    "difference": -0.3686131386861314,
+    "ci95": [
+      -0.4424476098563658,
+      -0.29817212566844925
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w255-k9-d2-mask0-h32-lsh-r4 minus dev-w255-k9-d2-mask0": {
+    "difference": -0.8357664233576643,
+    "ci95": [
+      -0.8945502392344498,
+      -0.7720588235294118
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w255-k9-d2-mask0-h32-scan-r2 minus dev-w255-k9-d2-mask0": {
+    "difference": -0.2664233576642336,
+    "ci95": [
+      -0.3299201612278118,
+      -0.20532071108336647
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w255-k9-d2-mask0-h512-lsh-r1 minus dev-w255-k9-d2-mask0": {
+    "difference": -0.0072992700729927005,
+    "ci95": [
+      -0.027586206896551724,
+      0.011406844106463879
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w255-k9-d2-mask0-h512-lsh-r2 minus dev-w255-k9-d2-mask0": {
+    "difference": -0.025547445255474453,
+    "ci95": [
+      -0.0487890457851947,
+      -0.0037174721189591076
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w255-k9-d2-mask0-h512-lsh-r4 minus dev-w255-k9-d2-mask0": {
+    "difference": -0.6131386861313869,
+    "ci95": [
+      -0.6949215550374898,
+      -0.5265148168968841
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w255-k9-d2-mask0-h512-scan-r2 minus dev-w255-k9-d2-mask0": {
+    "difference": -0.0072992700729927005,
+    "ci95": [
+      -0.027586206896551724,
+      0.011406844106463879
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w255-k9-d2-mask1 minus dev-w255-k9-d2-mask0": {
+    "difference": -0.032846715328467155,
+    "ci95": [
+      -0.06015370873993494,
+      -0.007326007326007326
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w255-k9-d4-mask0 minus dev-w255-k9-d2-mask0": {
+    "difference": 0.0,
+    "ci95": [
+      -0.010169491525423728,
+      0.011152416356877323
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w4096-k13-d2-mask0 minus dev-w255-k9-d2-mask0": {
+    "difference": -0.029197080291970802,
+    "ci95": [
+      -0.0553702984398265,
+      -0.007325338894681964
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w4096-k9-d2-mask0 minus dev-w255-k9-d2-mask0": {
+    "difference": -0.12408759124087591,
+    "ci95": [
+      -0.16666666666666666,
+      -0.08455882352941177
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w511-k13-d2-mask0 minus dev-w255-k9-d2-mask0": {
+    "difference": -0.043795620437956206,
+    "ci95": [
+      -0.07692307692307693,
+      -0.014597213005972137
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w511-k17-d2-mask0 minus dev-w255-k9-d2-mask0": {
+    "difference": -0.08029197080291971,
+    "ci95": [
+      -0.12069254802129137,
+      -0.04182113434727505
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w511-k21-d2-mask0 minus dev-w255-k9-d2-mask0": {
+    "difference": -0.14233576642335766,
+    "ci95": [
+      -0.20069204152249134,
+      -0.08921933085501858
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w511-k9-d2-mask0 minus dev-w255-k9-d2-mask0": {
+    "difference": -0.010948905109489052,
+    "ci95": [
+      -0.028368794326241134,
+      0.0037178188980746805
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w64-k13-d2-mask0 minus dev-w255-k9-d2-mask0": {
+    "difference": -0.08029197080291971,
+    "ci95": [
+      -0.11962224458617261,
+      -0.0436324110671937
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w64-k17-d2-mask0 minus dev-w255-k9-d2-mask0": {
+    "difference": -0.11313868613138686,
+    "ci95": [
+      -0.16072327420901247,
+      -0.06665441176470595
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w64-k21-d2-mask0 minus dev-w255-k9-d2-mask0": {
+    "difference": -0.15693430656934307,
+    "ci95": [
+      -0.2120293955366681,
+      -0.10266159695817491
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w64-k9-d2-mask0 minus dev-w255-k9-d2-mask0": {
+    "difference": -0.043795620437956206,
+    "ci95": [
+      -0.07420793142966288,
+      -0.015206255828969095
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-union-255k9-1024k13 minus dev-w1024-k13-d2-mask0": {
+    "difference": 0.029197080291970802,
+    "ci95": [
+      0.01060070671378092,
+      0.05338554905948142
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w1024-k13-d1-mask0 minus dev-w1024-k13-d2-mask0": {
+    "difference": -0.010948905109489052,
+    "ci95": [
+      -0.023650652771415485,
+      0.0
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w1024-k13-d2-linclust minus dev-w1024-k13-d2-mask0": {
+    "difference": -0.7664233576642335,
+    "ci95": [
+      -0.8155007720289968,
+      -0.7158543748358832
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w1024-k13-d2-mask0-h128-lsh-r1 minus dev-w1024-k13-d2-mask0": {
+    "difference": -0.145985401459854,
+    "ci95": [
+      -0.1956559744603223,
+      -0.09890005431830527
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w1024-k13-d2-mask0-h128-lsh-r2 minus dev-w1024-k13-d2-mask0": {
+    "difference": -0.635036496350365,
+    "ci95": [
+      -0.7048030210517933,
+      -0.5634274746954882
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w1024-k13-d2-mask0-h128-lsh-r4 minus dev-w1024-k13-d2-mask0": {
+    "difference": -0.9197080291970803,
+    "ci95": [
+      -0.9557276671667816,
+      -0.8776223776223776
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w1024-k13-d2-mask0-h128-scan-r2 minus dev-w1024-k13-d2-mask0": {
+    "difference": -0.145985401459854,
+    "ci95": [
+      -0.1956559744603223,
+      -0.09890005431830527
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w1024-k13-d2-mask0-h32-lsh-r1 minus dev-w1024-k13-d2-mask0": {
+    "difference": -0.36496350364963503,
+    "ci95": [
+      -0.43912137985016214,
+      -0.2888086642599278
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w1024-k13-d2-mask0-h32-lsh-r2 minus dev-w1024-k13-d2-mask0": {
+    "difference": -0.781021897810219,
+    "ci95": [
+      -0.8419166021671827,
+      -0.7164736661519987
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w1024-k13-d2-mask0-h32-lsh-r4 minus dev-w1024-k13-d2-mask0": {
+    "difference": -0.9233576642335767,
+    "ci95": [
+      -0.9619771863117871,
+      -0.8832116788321168
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w1024-k13-d2-mask0-h32-scan-r2 minus dev-w1024-k13-d2-mask0": {
+    "difference": -0.36496350364963503,
+    "ci95": [
+      -0.43912137985016214,
+      -0.2888086642599278
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w1024-k13-d2-mask0-h512-lsh-r1 minus dev-w1024-k13-d2-mask0": {
+    "difference": -0.025547445255474453,
+    "ci95": [
+      -0.05091373589913736,
+      0.0
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w1024-k13-d2-mask0-h512-lsh-r2 minus dev-w1024-k13-d2-mask0": {
+    "difference": -0.36496350364963503,
+    "ci95": [
+      -0.43574096880131363,
+      -0.291963199513382
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w1024-k13-d2-mask0-h512-lsh-r4 minus dev-w1024-k13-d2-mask0": {
+    "difference": -0.8905109489051095,
+    "ci95": [
+      -0.935855085827777,
+      -0.8422939068100358
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w1024-k13-d2-mask0-h512-scan-r2 minus dev-w1024-k13-d2-mask0": {
+    "difference": -0.025547445255474453,
+    "ci95": [
+      -0.05091373589913736,
+      0.0
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w1024-k13-d2-mask1 minus dev-w1024-k13-d2-mask0": {
+    "difference": 0.014598540145985401,
+    "ci95": [
+      -0.011406844106463879,
+      0.0436241610738255
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w1024-k13-d4-mask0 minus dev-w1024-k13-d2-mask0": {
+    "difference": 0.0036496350364963502,
+    "ci95": [
+      0.0,
+      0.011363636363636364
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w1024-k17-d2-mask0 minus dev-w1024-k13-d2-mask0": {
+    "difference": -0.040145985401459854,
+    "ci95": [
+      -0.06320720637881434,
+      -0.018518518518518517
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w1024-k21-d2-mask0 minus dev-w1024-k13-d2-mask0": {
+    "difference": -0.10583941605839416,
+    "ci95": [
+      -0.14931379257907543,
+      -0.06463878326996197
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w1024-k9-d2-mask0 minus dev-w1024-k13-d2-mask0": {
+    "difference": 0.0072992700729927005,
+    "ci95": [
+      -0.011279259469428288,
+      0.026615969581749048
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w128-k13-d2-mask0 minus dev-w1024-k13-d2-mask0": {
+    "difference": -0.021897810218978103,
+    "ci95": [
+      -0.038599888806523354,
+      -0.0072992700729927005
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w128-k17-d2-mask0 minus dev-w1024-k13-d2-mask0": {
+    "difference": -0.051094890510948905,
+    "ci95": [
+      -0.07665505226480836,
+      -0.026217228464419477
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w128-k21-d2-mask0 minus dev-w1024-k13-d2-mask0": {
+    "difference": -0.10583941605839416,
+    "ci95": [
+      -0.14930957147093712,
+      -0.06568745852687462
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w128-k9-d2-mask0 minus dev-w1024-k13-d2-mask0": {
+    "difference": 0.021897810218978103,
+    "ci95": [
+      -0.003623517786561265,
+      0.05323566025736436
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w255-k13-d2-mask0 minus dev-w1024-k13-d2-mask0": {
+    "difference": -0.010948905109489052,
+    "ci95": [
+      -0.026619466663275557,
+      0.003787878787878788
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w255-k17-d2-mask0 minus dev-w1024-k13-d2-mask0": {
+    "difference": -0.043795620437956206,
+    "ci95": [
+      -0.06786322324628775,
+      -0.02197802197802198
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w255-k21-d2-mask0 minus dev-w1024-k13-d2-mask0": {
+    "difference": -0.10218978102189781,
+    "ci95": [
+      -0.14634834036310287,
+      -0.06130268199233716
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w255-k9-d1-mask0 minus dev-w1024-k13-d2-mask0": {
+    "difference": 0.01824817518248175,
+    "ci95": [
+      -0.011032486879510169,
+      0.046441142341413034
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w255-k9-d2-linclust minus dev-w1024-k13-d2-mask0": {
+    "difference": -0.5145985401459854,
+    "ci95": [
+      -0.5687732342007435,
+      -0.46042605362077127
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w255-k9-d2-mask0-h128-lsh-r1 minus dev-w1024-k13-d2-mask0": {
+    "difference": -0.025547445255474453,
+    "ci95": [
+      -0.05514705882352941,
+      0.0
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w255-k9-d2-mask0-h128-lsh-r2 minus dev-w1024-k13-d2-mask0": {
+    "difference": -0.12043795620437957,
+    "ci95": [
+      -0.16967509025270758,
+      -0.07351109984223585
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w255-k9-d2-mask0-h128-lsh-r4 minus dev-w1024-k13-d2-mask0": {
+    "difference": -0.6751824817518248,
+    "ci95": [
+      -0.7481216727951265,
+      -0.599250936329588
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w255-k9-d2-mask0-h128-scan-r2 minus dev-w1024-k13-d2-mask0": {
+    "difference": -0.025547445255474453,
+    "ci95": [
+      -0.05514705882352941,
+      0.0
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w255-k9-d2-mask0-h32-lsh-r1 minus dev-w1024-k13-d2-mask0": {
+    "difference": -0.22992700729927007,
+    "ci95": [
+      -0.2857142857142857,
+      -0.17622976146335442
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w255-k9-d2-mask0-h32-lsh-r2 minus dev-w1024-k13-d2-mask0": {
+    "difference": -0.33211678832116787,
+    "ci95": [
+      -0.3971772243713733,
+      -0.2673983134920635
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w255-k9-d2-mask0-h32-lsh-r4 minus dev-w1024-k13-d2-mask0": {
+    "difference": -0.7992700729927007,
+    "ci95": [
+      -0.8592057761732852,
+      -0.7338403041825095
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w255-k9-d2-mask0-h32-scan-r2 minus dev-w1024-k13-d2-mask0": {
+    "difference": -0.22992700729927007,
+    "ci95": [
+      -0.2857142857142857,
+      -0.17622976146335442
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w255-k9-d2-mask0-h512-lsh-r1 minus dev-w1024-k13-d2-mask0": {
+    "difference": 0.029197080291970802,
+    "ci95": [
+      0.003676470588235294,
+      0.05904059040590406
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w255-k9-d2-mask0-h512-lsh-r2 minus dev-w1024-k13-d2-mask0": {
+    "difference": 0.010948905109489052,
+    "ci95": [
+      -0.007518796992481203,
+      0.03409414967162114
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w255-k9-d2-mask0-h512-lsh-r4 minus dev-w1024-k13-d2-mask0": {
+    "difference": -0.5766423357664233,
+    "ci95": [
+      -0.6551756792058516,
+      -0.496322848583878
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w255-k9-d2-mask0-h512-scan-r2 minus dev-w1024-k13-d2-mask0": {
+    "difference": 0.029197080291970802,
+    "ci95": [
+      0.003676470588235294,
+      0.05904059040590406
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w255-k9-d2-mask0 minus dev-w1024-k13-d2-mask0": {
+    "difference": 0.0364963503649635,
+    "ci95": [
+      0.011152416356877323,
+      0.06617711108833776
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w255-k9-d2-mask1 minus dev-w1024-k13-d2-mask0": {
+    "difference": 0.0036496350364963502,
+    "ci95": [
+      -0.022304832713754646,
+      0.02909090909090909
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w255-k9-d4-mask0 minus dev-w1024-k13-d2-mask0": {
+    "difference": 0.0364963503649635,
+    "ci95": [
+      0.014439134612887308,
+      0.06251092657342651
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w4096-k13-d2-mask0 minus dev-w1024-k13-d2-mask0": {
+    "difference": 0.0072992700729927005,
+    "ci95": [
+      0.0,
+      0.01845018450184502
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w4096-k9-d2-mask0 minus dev-w1024-k13-d2-mask0": {
+    "difference": -0.08759124087591241,
+    "ci95": [
+      -0.12408823833928664,
+      -0.05303030303030303
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w511-k13-d2-mask0 minus dev-w1024-k13-d2-mask0": {
+    "difference": -0.0072992700729927005,
+    "ci95": [
+      -0.01785874295954941,
+      0.0
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w511-k17-d2-mask0 minus dev-w1024-k13-d2-mask0": {
+    "difference": -0.043795620437956206,
+    "ci95": [
+      -0.06786322324628775,
+      -0.02197802197802198
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w511-k21-d2-mask0 minus dev-w1024-k13-d2-mask0": {
+    "difference": -0.10583941605839416,
+    "ci95": [
+      -0.14931379257907543,
+      -0.06463878326996197
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w511-k9-d2-mask0 minus dev-w1024-k13-d2-mask0": {
+    "difference": 0.025547445255474453,
+    "ci95": [
+      0.0,
+      0.05415162454873646
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w64-k13-d2-mask0 minus dev-w1024-k13-d2-mask0": {
+    "difference": -0.043795620437956206,
+    "ci95": [
+      -0.06666666666666667,
+      -0.02165870191933097
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w64-k17-d2-mask0 minus dev-w1024-k13-d2-mask0": {
+    "difference": -0.07664233576642336,
+    "ci95": [
+      -0.10915643176464933,
+      -0.04411764705882353
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w64-k21-d2-mask0 minus dev-w1024-k13-d2-mask0": {
+    "difference": -0.12043795620437957,
+    "ci95": [
+      -0.16246129841522364,
+      -0.07894736842105263
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "dev-w64-k9-d2-mask0 minus dev-w1024-k13-d2-mask0": {
+    "difference": -0.0072992700729927005,
+    "ci95": [
+      -0.034482758620689655,
+      0.022304832713754646
+    ],
+    "bootstrap_groups": 87,
+    "budget": 10
+  },
+  "heldout-union-255k9-1024k13 minus heldout-w255-k9-d2-mask0": {
+    "difference": -0.004761904761904762,
+    "ci95": [
+      -0.02232645592020592,
+      0.009900990099009901
+    ],
+    "bootstrap_groups": 65,
+    "budget": 10
+  },
+  "heldout-w1024-k13-d1-mask0 minus heldout-w255-k9-d2-mask0": {
+    "difference": -0.02857142857142857,
+    "ci95": [
+      -0.05474709784411277,
+      -0.004760781671159036
+    ],
+    "bootstrap_groups": 65,
+    "budget": 10
+  },
+  "heldout-w1024-k13-d2-linclust minus heldout-w255-k9-d2-mask0": {
+    "difference": -0.7904761904761904,
+    "ci95": [
+      -0.8527956106300388,
+      -0.7207530432211329
+    ],
+    "bootstrap_groups": 65,
+    "budget": 10
+  },
+  "heldout-w1024-k13-d2-mask0-h512-lsh-r1 minus heldout-w255-k9-d2-mask0": {
+    "difference": -0.07142857142857142,
+    "ci95": [
+      -0.10945273631840796,
+      -0.037037037037037035
+    ],
+    "bootstrap_groups": 65,
+    "budget": 10
+  },
+  "heldout-w1024-k13-d2-mask0-h512-lsh-r2 minus heldout-w255-k9-d2-mask0": {
+    "difference": -0.46190476190476193,
+    "ci95": [
+      -0.5450448932562285,
+      -0.37623644507307874
+    ],
+    "bootstrap_groups": 65,
+    "budget": 10
+  },
+  "heldout-w1024-k13-d2-mask0-h512-scan-r2 minus heldout-w255-k9-d2-mask0": {
+    "difference": -0.07142857142857142,
+    "ci95": [
+      -0.10945273631840796,
+      -0.037037037037037035
+    ],
+    "bootstrap_groups": 65,
+    "budget": 10
+  },
+  "heldout-w1024-k13-d2-mask0 minus heldout-w255-k9-d2-mask0": {
+    "difference": -0.01904761904761905,
+    "ci95": [
+      -0.04205607476635514,
+      0.0
+    ],
+    "bootstrap_groups": 65,
+    "budget": 10
+  },
+  "heldout-w1024-k13-d2-mask1 minus heldout-w255-k9-d2-mask0": {
+    "difference": -0.004761904761904762,
+    "ci95": [
+      -0.027522935779816515,
+      0.014925373134328358
+    ],
+    "bootstrap_groups": 65,
+    "budget": 10
+  },
+  "heldout-w1024-k13-d4-mask0 minus heldout-w255-k9-d2-mask0": {
+    "difference": -0.014285714285714285,
+    "ci95": [
+      -0.035897435897435895,
+      0.0049261083743842365
+    ],
+    "bootstrap_groups": 65,
+    "budget": 10
+  },
+  "heldout-w1024-k17-d2-mask0 minus heldout-w255-k9-d2-mask0": {
+    "difference": -0.06666666666666667,
+    "ci95": [
+      -0.10096153846153846,
+      -0.0358883248730965
+    ],
+    "bootstrap_groups": 65,
+    "budget": 10
+  },
+  "heldout-w1024-k21-d2-mask0 minus heldout-w255-k9-d2-mask0": {
+    "difference": -0.11904761904761904,
+    "ci95": [
+      -0.16751269035532995,
+      -0.07766879460921222
+    ],
+    "bootstrap_groups": 65,
+    "budget": 10
+  },
+  "heldout-w255-k9-d1-mask0 minus heldout-w255-k9-d2-mask0": {
+    "difference": -0.014285714285714285,
+    "ci95": [
+      -0.03556352765321375,
+      0.00495111078272006
+    ],
+    "bootstrap_groups": 65,
+    "budget": 10
+  },
+  "heldout-w255-k9-d2-linclust minus heldout-w255-k9-d2-mask0": {
+    "difference": -0.5476190476190477,
+    "ci95": [
+      -0.6153846153846154,
+      -0.477151503319016
+    ],
+    "bootstrap_groups": 65,
+    "budget": 10
+  },
+  "heldout-w255-k9-d2-mask0-h512-lsh-r2 minus heldout-w255-k9-d2-mask0": {
+    "difference": -0.014285714285714285,
+    "ci95": [
+      -0.037037037037037035,
+      0.004831504150837199
+    ],
+    "bootstrap_groups": 65,
+    "budget": 10
+  },
+  "heldout-w255-k9-d2-mask0-h512-scan-r2 minus heldout-w255-k9-d2-mask0": {
+    "difference": -0.014285714285714285,
+    "ci95": [
+      -0.03620320855614974,
+      0.004878048780487805
+    ],
+    "bootstrap_groups": 65,
+    "budget": 10
+  },
+  "heldout-w255-k9-d2-mask1 minus heldout-w255-k9-d2-mask0": {
+    "difference": -0.03333333333333333,
+    "ci95": [
+      -0.06220095693779904,
+      -0.005128205128205128
+    ],
+    "bootstrap_groups": 65,
+    "budget": 10
+  },
+  "heldout-w255-k9-d4-mask0 minus heldout-w255-k9-d2-mask0": {
+    "difference": 0.0,
+    "ci95": [
+      -0.01835073774996829,
+      0.01990049751243781
+    ],
+    "bootstrap_groups": 65,
+    "budget": 10
+  },
+  "heldout-w4096-k13-d2-mask0 minus heldout-w255-k9-d2-mask0": {
+    "difference": -0.004761904761904762,
+    "ci95": [
+      -0.022836310838962186,
+      0.009950248756218905
+    ],
+    "bootstrap_groups": 65,
+    "budget": 10
+  },
+  "heldout-w4096-k9-d2-mask0 minus heldout-w255-k9-d2-mask0": {
+    "difference": -0.06190476190476191,
+    "ci95": [
+      -0.11013215859030837,
+      -0.019040912139503728
+    ],
+    "bootstrap_groups": 65,
+    "budget": 10
+  },
+  "heldout-w511-k9-d2-mask0 minus heldout-w255-k9-d2-mask0": {
+    "difference": 0.0,
+    "ci95": [
+      -0.023696682464454975,
+      0.023474178403755867
+    ],
+    "bootstrap_groups": 65,
+    "budget": 10
+  },
+  "heldout-union-255k9-1024k13 minus heldout-w1024-k13-d2-mask0": {
+    "difference": 0.014285714285714285,
+    "ci95": [
+      0.0,
+      0.03076923076923077
+    ],
+    "bootstrap_groups": 65,
+    "budget": 10
+  },
+  "heldout-w1024-k13-d1-mask0 minus heldout-w1024-k13-d2-mask0": {
+    "difference": -0.009523809523809525,
+    "ci95": [
+      -0.024512822370327442,
+      0.0
+    ],
+    "bootstrap_groups": 65,
+    "budget": 10
+  },
+  "heldout-w1024-k13-d2-linclust minus heldout-w1024-k13-d2-mask0": {
+    "difference": -0.7714285714285715,
+    "ci95": [
+      -0.8325980392156863,
+      -0.698019801980198
+    ],
+    "bootstrap_groups": 65,
+    "budget": 10
+  },
+  "heldout-w1024-k13-d2-mask0-h512-lsh-r1 minus heldout-w1024-k13-d2-mask0": {
+    "difference": -0.05238095238095238,
+    "ci95": [
+      -0.0865444214876033,
+      -0.020512820512820513
+    ],
+    "bootstrap_groups": 65,
+    "budget": 10
+  },
+  "heldout-w1024-k13-d2-mask0-h512-lsh-r2 minus heldout-w1024-k13-d2-mask0": {
+    "difference": -0.44285714285714284,
+    "ci95": [
+      -0.5219298245614035,
+      -0.358456873315364
+    ],
+    "bootstrap_groups": 65,
+    "budget": 10
+  },
+  "heldout-w1024-k13-d2-mask0-h512-scan-r2 minus heldout-w1024-k13-d2-mask0": {
+    "difference": -0.05238095238095238,
+    "ci95": [
+      -0.0865444214876033,
+      -0.020512820512820513
+    ],
+    "bootstrap_groups": 65,
+    "budget": 10
+  },
+  "heldout-w1024-k13-d2-mask1 minus heldout-w1024-k13-d2-mask0": {
+    "difference": 0.014285714285714285,
+    "ci95": [
+      -0.009570528156054471,
+      0.03902704135737008
+    ],
+    "bootstrap_groups": 65,
+    "budget": 10
+  },
+  "heldout-w1024-k13-d4-mask0 minus heldout-w1024-k13-d2-mask0": {
+    "difference": 0.004761904761904762,
+    "ci95": [
+      0.0,
+      0.015228426395939087
+    ],
+    "bootstrap_groups": 65,
+    "budget": 10
+  },
+  "heldout-w1024-k17-d2-mask0 minus heldout-w1024-k13-d2-mask0": {
+    "difference": -0.047619047619047616,
+    "ci95": [
+      -0.0784313725490196,
+      -0.0196078431372549
+    ],
+    "bootstrap_groups": 65,
+    "budget": 10
+  },
+  "heldout-w1024-k21-d2-mask0 minus heldout-w1024-k13-d2-mask0": {
+    "difference": -0.1,
+    "ci95": [
+      -0.14354066985645933,
+      -0.062492523923445016
+    ],
+    "bootstrap_groups": 65,
+    "budget": 10
+  },
+  "heldout-w255-k9-d1-mask0 minus heldout-w1024-k13-d2-mask0": {
+    "difference": 0.004761904761904762,
+    "ci95": [
+      -0.009952748818720467,
+      0.022627005347593567
+    ],
+    "bootstrap_groups": 65,
+    "budget": 10
+  },
+  "heldout-w255-k9-d2-linclust minus heldout-w1024-k13-d2-mask0": {
+    "difference": -0.5285714285714286,
+    "ci95": [
+      -0.6000224215246637,
+      -0.4531903291424651
+    ],
+    "bootstrap_groups": 65,
+    "budget": 10
+  },
+  "heldout-w255-k9-d2-mask0-h512-lsh-r2 minus heldout-w1024-k13-d2-mask0": {
+    "difference": 0.004761904761904762,
+    "ci95": [
+      -0.019706872165049016,
+      0.029556650246305417
+    ],
+    "bootstrap_groups": 65,
+    "budget": 10
+  },
+  "heldout-w255-k9-d2-mask0-h512-scan-r2 minus heldout-w1024-k13-d2-mask0": {
+    "difference": 0.004761904761904762,
+    "ci95": [
+      -0.01990049751243781,
+      0.029556650246305417
+    ],
+    "bootstrap_groups": 65,
+    "budget": 10
+  },
+  "heldout-w255-k9-d2-mask0 minus heldout-w1024-k13-d2-mask0": {
+    "difference": 0.01904761904761905,
+    "ci95": [
+      0.0,
+      0.04205607476635514
+    ],
+    "bootstrap_groups": 65,
+    "budget": 10
+  },
+  "heldout-w255-k9-d2-mask1 minus heldout-w1024-k13-d2-mask0": {
+    "difference": -0.014285714285714285,
+    "ci95": [
+      -0.041025641025641026,
+      0.013824884792626729
+    ],
+    "bootstrap_groups": 65,
+    "budget": 10
+  },
+  "heldout-w255-k9-d4-mask0 minus heldout-w1024-k13-d2-mask0": {
+    "difference": 0.01904761904761905,
+    "ci95": [
+      0.0,
+      0.04265402843601896
+    ],
+    "bootstrap_groups": 65,
+    "budget": 10
+  },
+  "heldout-w4096-k13-d2-mask0 minus heldout-w1024-k13-d2-mask0": {
+    "difference": 0.014285714285714285,
+    "ci95": [
+      0.0,
+      0.031260605203619854
+    ],
+    "bootstrap_groups": 65,
+    "budget": 10
+  },
+  "heldout-w4096-k9-d2-mask0 minus heldout-w1024-k13-d2-mask0": {
+    "difference": -0.04285714285714286,
+    "ci95": [
+      -0.09009009009009009,
+      0.0
+    ],
+    "bootstrap_groups": 65,
+    "budget": 10
+  },
+  "heldout-w511-k9-d2-mask0 minus heldout-w1024-k13-d2-mask0": {
+    "difference": 0.01904761904761905,
+    "ci95": [
+      -0.004951110782720063,
+      0.04455445544554455
+    ],
+    "bootstrap_groups": 65,
+    "budget": 10
+  }
+}

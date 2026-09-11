@@ -1,0 +1,3237 @@
+{
+  "dev-w1024-k9-d2-mask0": {
+    "species_pairs": {
+      "human-armadillo": {
+        "pairs": 72,
+        "recall10": 0.625,
+        "ci95": [
+          0.5138888888888888,
+          0.7361111111111112
+        ]
+      },
+      "human-mouse": {
+        "pairs": 72,
+        "recall10": 0.6666666666666666,
+        "ci95": [
+          0.5555555555555556,
+          0.7777777777777778
+        ]
+      },
+      "mouse-armadillo": {
+        "pairs": 72,
+        "recall10": 0.4166666666666667,
+        "ci95": [
+          0.3055555555555556,
+          0.5277777777777778
+        ]
+      }
+    },
+    "query_context_strata": {
+      "gc:0.4-0.6": {
+        "pairs": 216,
+        "recall1": 0.10185185185185185,
+        "recall10": 0.5694444444444444,
+        "ci95": [
+          0.4722222222222222,
+          0.6666666666666666
+        ]
+      },
+      "repeat:<0.1": {
+        "pairs": 216,
+        "recall1": 0.10185185185185185,
+        "recall10": 0.5694444444444444,
+        "ci95": [
+          0.4722222222222222,
+          0.6666666666666666
+        ]
+      },
+      "complexity:>=1.0": {
+        "pairs": 216,
+        "recall1": 0.10185185185185185,
+        "recall10": 0.5694444444444444,
+        "ci95": [
+          0.4722222222222222,
+          0.6666666666666666
+        ]
+      },
+      "ancestral_span:1024": {
+        "pairs": 36,
+        "recall1": 0.1388888888888889,
+        "recall10": 0.8888888888888888,
+        "ci95": [
+          0.8055555555555556,
+          0.9722222222222222
+        ]
+      },
+      "divergence:0.0": {
+        "pairs": 72,
+        "recall1": 0.1388888888888889,
+        "recall10": 0.9444444444444444,
+        "ci95": [
+          0.8888888888888888,
+          0.9861111111111112
+        ]
+      },
+      "indel_rate:0.03": {
+        "pairs": 108,
+        "recall1": 0.10185185185185185,
+        "recall10": 0.5277777777777778,
+        "ci95": [
+          0.3979166666666667,
+          0.6666666666666666
+        ]
+      },
+      "span_divergence:1024:0.0:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "indel_rate:0.0": {
+        "pairs": 108,
+        "recall1": 0.10185185185185185,
+        "recall10": 0.6111111111111112,
+        "ci95": [
+          0.48148148148148145,
+          0.7314814814814815
+        ]
+      },
+      "divergence:0.15": {
+        "pairs": 72,
+        "recall1": 0.1111111111111111,
+        "recall10": 0.5416666666666666,
+        "ci95": [
+          0.3888888888888889,
+          0.6947916666666647
+        ]
+      },
+      "span_divergence:1024:0.15:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.25,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "divergence:0.3": {
+        "pairs": 72,
+        "recall1": 0.05555555555555555,
+        "recall10": 0.2222222222222222,
+        "ci95": [
+          0.12465277777777779,
+          0.3194444444444444
+        ]
+      },
+      "span_divergence:1024:0.3:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "ancestral_span:128": {
+        "pairs": 36,
+        "recall1": 0.027777777777777776,
+        "recall10": 0.4166666666666667,
+        "ci95": [
+          0.2222222222222222,
+          0.6388888888888888
+        ]
+      },
+      "span_divergence:128:0.0:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.75,
+        "ci95": [
+          0.25,
+          1.0
+        ]
+      },
+      "span_divergence:128:0.15:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.75,
+        "ci95": [
+          0.25,
+          1.0
+        ]
+      },
+      "span_divergence:128:0.3:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "ancestral_span:255": {
+        "pairs": 36,
+        "recall1": 0.1111111111111111,
+        "recall10": 0.7222222222222222,
+        "ci95": [
+          0.5277777777777778,
+          0.8888888888888888
+        ]
+      },
+      "span_divergence:255:0.0:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:255:0.15:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.25,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:255:0.3:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.5,
+        "ci95": [
+          0.0,
+          1.0
+        ]
+      },
+      "ancestral_span:32": {
+        "pairs": 36,
+        "recall1": 0.1111111111111111,
+        "recall10": 0.3611111111111111,
+        "ci95": [
+          0.1111111111111111,
+          0.6388888888888888
+        ]
+      },
+      "span_divergence:32:0.0:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.25,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:32:0.15:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "span_divergence:32:0.3:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.25,
+        "ci95": [
+          0.0,
+          0.75
+        ]
+      },
+      "ancestral_span:511": {
+        "pairs": 36,
+        "recall1": 0.1111111111111111,
+        "recall10": 0.6388888888888888,
+        "ci95": [
+          0.4166666666666667,
+          0.8611111111111112
+        ]
+      },
+      "span_divergence:511:0.0:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.25,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:511:0.15:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:511:0.3:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.25,
+        "recall10": 0.5,
+        "ci95": [
+          0.0,
+          1.0
+        ]
+      },
+      "ancestral_span:64": {
+        "pairs": 36,
+        "recall1": 0.1111111111111111,
+        "recall10": 0.3888888888888889,
+        "ci95": [
+          0.19444444444444445,
+          0.6111111111111112
+        ]
+      },
+      "span_divergence:64:0.0:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.25,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:64:0.15:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.25,
+        "ci95": [
+          0.0,
+          0.75
+        ]
+      },
+      "span_divergence:64:0.3:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "span_divergence:1024:0.0:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:1024:0.15:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.5,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:1024:0.3:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.25,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:128:0.0:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:128:0.15:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.25,
+        "recall10": 0.5,
+        "ci95": [
+          0.0,
+          1.0
+        ]
+      },
+      "span_divergence:128:0.3:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "span_divergence:255:0.0:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:255:0.15:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.25,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:255:0.3:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.5,
+        "recall10": 0.5,
+        "ci95": [
+          0.0,
+          1.0
+        ]
+      },
+      "span_divergence:32:0.0:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.25,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:32:0.15:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "span_divergence:32:0.3:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "span_divergence:511:0.0:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:511:0.15:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.25,
+        "recall10": 0.75,
+        "ci95": [
+          0.25,
+          1.0
+        ]
+      },
+      "span_divergence:511:0.3:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "span_divergence:64:0.0:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.5,
+        "recall10": 0.75,
+        "ci95": [
+          0.25,
+          1.0
+        ]
+      },
+      "span_divergence:64:0.15:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.5,
+        "ci95": [
+          0.0,
+          1.0
+        ]
+      },
+      "span_divergence:64:0.3:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.25,
+        "ci95": [
+          0.0,
+          0.75
+        ]
+      },
+      "span_divergence:1024:0.0:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:1024:0.15:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.25,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:1024:0.3:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "span_divergence:128:0.0:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.75,
+        "ci95": [
+          0.25,
+          1.0
+        ]
+      },
+      "span_divergence:128:0.15:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "span_divergence:128:0.3:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "span_divergence:255:0.0:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:255:0.15:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.5,
+        "ci95": [
+          0.0,
+          1.0
+        ]
+      },
+      "span_divergence:255:0.3:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "span_divergence:32:0.0:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.5,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:32:0.15:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "span_divergence:32:0.3:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "span_divergence:511:0.0:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.25,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:511:0.15:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.5,
+        "ci95": [
+          0.0,
+          1.0
+        ]
+      },
+      "span_divergence:511:0.3:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "span_divergence:64:0.0:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.25,
+        "recall10": 0.75,
+        "ci95": [
+          0.25,
+          1.0
+        ]
+      },
+      "span_divergence:64:0.15:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "span_divergence:64:0.3:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ]
+      }
+    },
+    "top10_candidate_kind_counts": {
+      "planted_paralog": 1808,
+      "anchor": 198,
+      "background": 154
+    }
+  },
+  "dev-w128-k9-d2-mask0": {
+    "species_pairs": {
+      "human-armadillo": {
+        "pairs": 72,
+        "recall10": 0.5694444444444444,
+        "ci95": [
+          0.4583333333333333,
+          0.6805555555555556
+        ]
+      },
+      "human-mouse": {
+        "pairs": 72,
+        "recall10": 0.7083333333333334,
+        "ci95": [
+          0.5972222222222222,
+          0.8055555555555556
+        ]
+      },
+      "mouse-armadillo": {
+        "pairs": 72,
+        "recall10": 0.4305555555555556,
+        "ci95": [
+          0.3194444444444444,
+          0.5420138888888869
+        ]
+      }
+    },
+    "query_context_strata": {
+      "gc:0.4-0.6": {
+        "pairs": 216,
+        "recall1": 0.0787037037037037,
+        "recall10": 0.5694444444444444,
+        "ci95": [
+          0.48148148148148145,
+          0.6574074074074074
+        ]
+      },
+      "repeat:<0.1": {
+        "pairs": 216,
+        "recall1": 0.0787037037037037,
+        "recall10": 0.5694444444444444,
+        "ci95": [
+          0.48148148148148145,
+          0.6574074074074074
+        ]
+      },
+      "complexity:>=1.0": {
+        "pairs": 216,
+        "recall1": 0.0787037037037037,
+        "recall10": 0.5694444444444444,
+        "ci95": [
+          0.48148148148148145,
+          0.6574074074074074
+        ]
+      },
+      "ancestral_span:1024": {
+        "pairs": 36,
+        "recall1": 0.1111111111111111,
+        "recall10": 0.75,
+        "ci95": [
+          0.6111111111111112,
+          0.8888888888888888
+        ]
+      },
+      "divergence:0.0": {
+        "pairs": 72,
+        "recall1": 0.08333333333333333,
+        "recall10": 0.9305555555555556,
+        "ci95": [
+          0.875,
+          0.9722222222222222
+        ]
+      },
+      "indel_rate:0.03": {
+        "pairs": 108,
+        "recall1": 0.09259259259259259,
+        "recall10": 0.5462962962962963,
+        "ci95": [
+          0.4074074074074074,
+          0.6666666666666666
+        ]
+      },
+      "span_divergence:1024:0.0:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.25,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "indel_rate:0.0": {
+        "pairs": 108,
+        "recall1": 0.06481481481481481,
+        "recall10": 0.5925925925925926,
+        "ci95": [
+          0.4722222222222222,
+          0.7129629629629629
+        ]
+      },
+      "divergence:0.15": {
+        "pairs": 72,
+        "recall1": 0.09722222222222222,
+        "recall10": 0.5138888888888888,
+        "ci95": [
+          0.3611111111111111,
+          0.6666666666666666
+        ]
+      },
+      "span_divergence:1024:0.15:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "divergence:0.3": {
+        "pairs": 72,
+        "recall1": 0.05555555555555555,
+        "recall10": 0.2638888888888889,
+        "ci95": [
+          0.16631944444444446,
+          0.375
+        ]
+      },
+      "span_divergence:1024:0.3:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.25,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "ancestral_span:128": {
+        "pairs": 36,
+        "recall1": 0.05555555555555555,
+        "recall10": 0.5277777777777778,
+        "ci95": [
+          0.3055555555555556,
+          0.7222222222222222
+        ]
+      },
+      "span_divergence:128:0.0:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.75,
+        "ci95": [
+          0.25,
+          1.0
+        ]
+      },
+      "span_divergence:128:0.15:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.75,
+        "ci95": [
+          0.25,
+          1.0
+        ]
+      },
+      "span_divergence:128:0.3:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.25,
+        "ci95": [
+          0.0,
+          0.75
+        ]
+      },
+      "ancestral_span:255": {
+        "pairs": 36,
+        "recall1": 0.1111111111111111,
+        "recall10": 0.7222222222222222,
+        "ci95": [
+          0.5277777777777778,
+          0.8888888888888888
+        ]
+      },
+      "span_divergence:255:0.0:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.75,
+        "ci95": [
+          0.25,
+          1.0
+        ]
+      },
+      "span_divergence:255:0.15:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.5,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:255:0.3:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.75,
+        "ci95": [
+          0.25,
+          1.0
+        ]
+      },
+      "ancestral_span:32": {
+        "pairs": 36,
+        "recall1": 0.027777777777777776,
+        "recall10": 0.3888888888888889,
+        "ci95": [
+          0.1388888888888889,
+          0.6666666666666666
+        ]
+      },
+      "span_divergence:32:0.0:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.25,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:32:0.15:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.25,
+        "ci95": [
+          0.0,
+          0.75
+        ]
+      },
+      "span_divergence:32:0.3:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.25,
+        "ci95": [
+          0.0,
+          0.75
+        ]
+      },
+      "ancestral_span:511": {
+        "pairs": 36,
+        "recall1": 0.08333333333333333,
+        "recall10": 0.6388888888888888,
+        "ci95": [
+          0.4444444444444444,
+          0.8333333333333334
+        ]
+      },
+      "span_divergence:511:0.0:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.25,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:511:0.15:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.75,
+        "ci95": [
+          0.25,
+          1.0
+        ]
+      },
+      "span_divergence:511:0.3:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.25,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "ancestral_span:64": {
+        "pairs": 36,
+        "recall1": 0.08333333333333333,
+        "recall10": 0.3888888888888889,
+        "ci95": [
+          0.16666666666666666,
+          0.6388888888888888
+        ]
+      },
+      "span_divergence:64:0.0:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:64:0.15:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.25,
+        "ci95": [
+          0.0,
+          0.75
+        ]
+      },
+      "span_divergence:64:0.3:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "span_divergence:1024:0.0:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.75,
+        "ci95": [
+          0.25,
+          1.0
+        ]
+      },
+      "span_divergence:1024:0.15:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.25,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:1024:0.3:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.25,
+        "recall10": 0.5,
+        "ci95": [
+          0.0,
+          1.0
+        ]
+      },
+      "span_divergence:128:0.0:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.75,
+        "ci95": [
+          0.25,
+          1.0
+        ]
+      },
+      "span_divergence:128:0.15:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.25,
+        "recall10": 0.75,
+        "ci95": [
+          0.25,
+          1.0
+        ]
+      },
+      "span_divergence:128:0.3:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.25,
+        "ci95": [
+          0.0,
+          0.75
+        ]
+      },
+      "span_divergence:255:0.0:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:255:0.15:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.25,
+        "recall10": 0.75,
+        "ci95": [
+          0.25,
+          1.0
+        ]
+      },
+      "span_divergence:255:0.3:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.25,
+        "recall10": 0.5,
+        "ci95": [
+          0.0,
+          1.0
+        ]
+      },
+      "span_divergence:32:0.0:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:32:0.15:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "span_divergence:32:0.3:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "span_divergence:511:0.0:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:511:0.15:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.25,
+        "recall10": 0.25,
+        "ci95": [
+          0.0,
+          0.75
+        ]
+      },
+      "span_divergence:511:0.3:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.25,
+        "ci95": [
+          0.0,
+          0.75
+        ]
+      },
+      "span_divergence:64:0.0:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.25,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:64:0.15:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.5,
+        "ci95": [
+          0.0,
+          1.0
+        ]
+      },
+      "span_divergence:64:0.3:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "span_divergence:1024:0.0:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:1024:0.15:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.5,
+        "ci95": [
+          0.0,
+          1.0
+        ]
+      },
+      "span_divergence:1024:0.3:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "span_divergence:128:0.0:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:128:0.15:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.25,
+        "recall10": 0.25,
+        "ci95": [
+          0.0,
+          0.75
+        ]
+      },
+      "span_divergence:128:0.3:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "span_divergence:255:0.0:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:255:0.15:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.75,
+        "ci95": [
+          0.25,
+          1.0
+        ]
+      },
+      "span_divergence:255:0.3:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "span_divergence:32:0.0:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:32:0.15:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "span_divergence:32:0.3:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "span_divergence:511:0.0:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:511:0.15:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.5,
+        "ci95": [
+          0.0,
+          1.0
+        ]
+      },
+      "span_divergence:511:0.3:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "span_divergence:64:0.0:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.5,
+        "recall10": 0.75,
+        "ci95": [
+          0.25,
+          1.0
+        ]
+      },
+      "span_divergence:64:0.15:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "span_divergence:64:0.3:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ]
+      }
+    },
+    "top10_candidate_kind_counts": {
+      "anchor": 182,
+      "planted_paralog": 1837,
+      "background": 141
+    }
+  },
+  "dev-w255-k9-d2-mask0": {
+    "species_pairs": {
+      "human-armadillo": {
+        "pairs": 72,
+        "recall10": 0.6666666666666666,
+        "ci95": [
+          0.5555555555555556,
+          0.7777777777777778
+        ]
+      },
+      "human-mouse": {
+        "pairs": 72,
+        "recall10": 0.6805555555555556,
+        "ci95": [
+          0.5694444444444444,
+          0.7916666666666666
+        ]
+      },
+      "mouse-armadillo": {
+        "pairs": 72,
+        "recall10": 0.4444444444444444,
+        "ci95": [
+          0.3333333333333333,
+          0.5555555555555556
+        ]
+      }
+    },
+    "query_context_strata": {
+      "gc:0.4-0.6": {
+        "pairs": 216,
+        "recall1": 0.09259259259259259,
+        "recall10": 0.5972222222222222,
+        "ci95": [
+          0.5046296296296297,
+          0.6851851851851852
+        ]
+      },
+      "repeat:<0.1": {
+        "pairs": 216,
+        "recall1": 0.09259259259259259,
+        "recall10": 0.5972222222222222,
+        "ci95": [
+          0.5046296296296297,
+          0.6851851851851852
+        ]
+      },
+      "complexity:>=1.0": {
+        "pairs": 216,
+        "recall1": 0.09259259259259259,
+        "recall10": 0.5972222222222222,
+        "ci95": [
+          0.5046296296296297,
+          0.6851851851851852
+        ]
+      },
+      "ancestral_span:1024": {
+        "pairs": 36,
+        "recall1": 0.1388888888888889,
+        "recall10": 0.8055555555555556,
+        "ci95": [
+          0.6944444444444444,
+          0.9166666666666666
+        ]
+      },
+      "divergence:0.0": {
+        "pairs": 72,
+        "recall1": 0.125,
+        "recall10": 0.9305555555555556,
+        "ci95": [
+          0.8611111111111112,
+          0.9861111111111112
+        ]
+      },
+      "indel_rate:0.03": {
+        "pairs": 108,
+        "recall1": 0.10185185185185185,
+        "recall10": 0.5925925925925926,
+        "ci95": [
+          0.4537037037037037,
+          0.7222222222222222
+        ]
+      },
+      "span_divergence:1024:0.0:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.5,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "indel_rate:0.0": {
+        "pairs": 108,
+        "recall1": 0.08333333333333333,
+        "recall10": 0.6018518518518519,
+        "ci95": [
+          0.4722222222222222,
+          0.7222222222222222
+        ]
+      },
+      "divergence:0.15": {
+        "pairs": 72,
+        "recall1": 0.08333333333333333,
+        "recall10": 0.5833333333333334,
+        "ci95": [
+          0.4305555555555556,
+          0.7361111111111112
+        ]
+      },
+      "span_divergence:1024:0.15:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.75,
+        "ci95": [
+          0.25,
+          1.0
+        ]
+      },
+      "divergence:0.3": {
+        "pairs": 72,
+        "recall1": 0.06944444444444445,
+        "recall10": 0.2777777777777778,
+        "ci95": [
+          0.16666666666666666,
+          0.3888888888888889
+        ]
+      },
+      "span_divergence:1024:0.3:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.25,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "ancestral_span:128": {
+        "pairs": 36,
+        "recall1": 0.1111111111111111,
+        "recall10": 0.5555555555555556,
+        "ci95": [
+          0.3333333333333333,
+          0.7777777777777778
+        ]
+      },
+      "span_divergence:128:0.0:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.75,
+        "ci95": [
+          0.25,
+          1.0
+        ]
+      },
+      "span_divergence:128:0.15:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.75,
+        "ci95": [
+          0.25,
+          1.0
+        ]
+      },
+      "span_divergence:128:0.3:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "ancestral_span:255": {
+        "pairs": 36,
+        "recall1": 0.05555555555555555,
+        "recall10": 0.7777777777777778,
+        "ci95": [
+          0.6388888888888888,
+          0.9166666666666666
+        ]
+      },
+      "span_divergence:255:0.0:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:255:0.15:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:255:0.3:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.25,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "ancestral_span:32": {
+        "pairs": 36,
+        "recall1": 0.1111111111111111,
+        "recall10": 0.3333333333333333,
+        "ci95": [
+          0.08333333333333333,
+          0.5833333333333334
+        ]
+      },
+      "span_divergence:32:0.0:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.5,
+        "recall10": 0.75,
+        "ci95": [
+          0.25,
+          1.0
+        ]
+      },
+      "span_divergence:32:0.15:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.25,
+        "ci95": [
+          0.0,
+          0.75
+        ]
+      },
+      "span_divergence:32:0.3:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "ancestral_span:511": {
+        "pairs": 36,
+        "recall1": 0.05555555555555555,
+        "recall10": 0.6944444444444444,
+        "ci95": [
+          0.5277777777777778,
+          0.8611111111111112
+        ]
+      },
+      "span_divergence:511:0.0:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:511:0.15:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.75,
+        "ci95": [
+          0.25,
+          1.0
+        ]
+      },
+      "span_divergence:511:0.3:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.25,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "ancestral_span:64": {
+        "pairs": 36,
+        "recall1": 0.08333333333333333,
+        "recall10": 0.4166666666666667,
+        "ci95": [
+          0.16666666666666666,
+          0.6666666666666666
+        ]
+      },
+      "span_divergence:64:0.0:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:64:0.15:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.25,
+        "ci95": [
+          0.0,
+          0.75
+        ]
+      },
+      "span_divergence:64:0.3:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "span_divergence:1024:0.0:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:1024:0.15:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.25,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:1024:0.3:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.25,
+        "recall10": 0.75,
+        "ci95": [
+          0.25,
+          1.0
+        ]
+      },
+      "span_divergence:128:0.0:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.75,
+        "ci95": [
+          0.25,
+          1.0
+        ]
+      },
+      "span_divergence:128:0.15:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.25,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:128:0.3:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.25,
+        "recall10": 0.25,
+        "ci95": [
+          0.0,
+          0.75
+        ]
+      },
+      "span_divergence:255:0.0:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:255:0.15:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.25,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:255:0.3:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.5,
+        "ci95": [
+          0.0,
+          1.0
+        ]
+      },
+      "span_divergence:32:0.0:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.25,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:32:0.15:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "span_divergence:32:0.3:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "span_divergence:511:0.0:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:511:0.15:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.25,
+        "recall10": 0.75,
+        "ci95": [
+          0.25,
+          1.0
+        ]
+      },
+      "span_divergence:511:0.3:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.5,
+        "ci95": [
+          0.0,
+          1.0
+        ]
+      },
+      "span_divergence:64:0.0:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.25,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:64:0.15:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.5,
+        "ci95": [
+          0.0,
+          1.0
+        ]
+      },
+      "span_divergence:64:0.3:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "span_divergence:1024:0.0:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.75,
+        "ci95": [
+          0.25,
+          1.0
+        ]
+      },
+      "span_divergence:1024:0.15:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:1024:0.3:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "span_divergence:128:0.0:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:128:0.15:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.5,
+        "recall10": 0.5,
+        "ci95": [
+          0.0,
+          1.0
+        ]
+      },
+      "span_divergence:128:0.3:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "span_divergence:255:0.0:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:255:0.15:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.5,
+        "ci95": [
+          0.0,
+          1.0
+        ]
+      },
+      "span_divergence:255:0.3:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "span_divergence:32:0.0:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.25,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:32:0.15:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "span_divergence:32:0.3:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "span_divergence:511:0.0:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.75,
+        "ci95": [
+          0.25,
+          1.0
+        ]
+      },
+      "span_divergence:511:0.15:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.5,
+        "ci95": [
+          0.0,
+          1.0
+        ]
+      },
+      "span_divergence:511:0.3:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "span_divergence:64:0.0:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.5,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:64:0.15:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "span_divergence:64:0.3:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ]
+      }
+    },
+    "top10_candidate_kind_counts": {
+      "anchor": 190,
+      "planted_paralog": 1824,
+      "background": 146
+    }
+  },
+  "dev-w511-k9-d2-mask0": {
+    "species_pairs": {
+      "human-armadillo": {
+        "pairs": 72,
+        "recall10": 0.6805555555555556,
+        "ci95": [
+          0.5694444444444444,
+          0.7777777777777778
+        ]
+      },
+      "human-mouse": {
+        "pairs": 72,
+        "recall10": 0.7083333333333334,
+        "ci95": [
+          0.5972222222222222,
+          0.8055555555555556
+        ]
+      },
+      "mouse-armadillo": {
+        "pairs": 72,
+        "recall10": 0.4583333333333333,
+        "ci95": [
+          0.3472222222222222,
+          0.5694444444444444
+        ]
+      }
+    },
+    "query_context_strata": {
+      "gc:0.4-0.6": {
+        "pairs": 216,
+        "recall1": 0.10185185185185185,
+        "recall10": 0.6157407407407407,
+        "ci95": [
+          0.5277777777777778,
+          0.7037037037037037
+        ]
+      },
+      "repeat:<0.1": {
+        "pairs": 216,
+        "recall1": 0.10185185185185185,
+        "recall10": 0.6157407407407407,
+        "ci95": [
+          0.5277777777777778,
+          0.7037037037037037
+        ]
+      },
+      "complexity:>=1.0": {
+        "pairs": 216,
+        "recall1": 0.10185185185185185,
+        "recall10": 0.6157407407407407,
+        "ci95": [
+          0.5277777777777778,
+          0.7037037037037037
+        ]
+      },
+      "ancestral_span:1024": {
+        "pairs": 36,
+        "recall1": 0.1388888888888889,
+        "recall10": 0.8888888888888888,
+        "ci95": [
+          0.8055555555555556,
+          0.9722222222222222
+        ]
+      },
+      "divergence:0.0": {
+        "pairs": 72,
+        "recall1": 0.1527777777777778,
+        "recall10": 0.9583333333333334,
+        "ci95": [
+          0.9166666666666666,
+          1.0
+        ]
+      },
+      "indel_rate:0.03": {
+        "pairs": 108,
+        "recall1": 0.12037037037037036,
+        "recall10": 0.5925925925925926,
+        "ci95": [
+          0.4537037037037037,
+          0.7222222222222222
+        ]
+      },
+      "span_divergence:1024:0.0:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "indel_rate:0.0": {
+        "pairs": 108,
+        "recall1": 0.08333333333333333,
+        "recall10": 0.6388888888888888,
+        "ci95": [
+          0.5185185185185185,
+          0.75
+        ]
+      },
+      "divergence:0.15": {
+        "pairs": 72,
+        "recall1": 0.08333333333333333,
+        "recall10": 0.5833333333333334,
+        "ci95": [
+          0.4305555555555556,
+          0.7361111111111112
+        ]
+      },
+      "span_divergence:1024:0.15:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "divergence:0.3": {
+        "pairs": 72,
+        "recall1": 0.06944444444444445,
+        "recall10": 0.3055555555555556,
+        "ci95": [
+          0.19444444444444445,
+          0.4166666666666667
+        ]
+      },
+      "span_divergence:1024:0.3:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.25,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "ancestral_span:128": {
+        "pairs": 36,
+        "recall1": 0.027777777777777776,
+        "recall10": 0.5555555555555556,
+        "ci95": [
+          0.3611111111111111,
+          0.75
+        ]
+      },
+      "span_divergence:128:0.0:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.75,
+        "ci95": [
+          0.25,
+          1.0
+        ]
+      },
+      "span_divergence:128:0.15:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.75,
+        "ci95": [
+          0.25,
+          1.0
+        ]
+      },
+      "span_divergence:128:0.3:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "ancestral_span:255": {
+        "pairs": 36,
+        "recall1": 0.1388888888888889,
+        "recall10": 0.75,
+        "ci95": [
+          0.6111111111111112,
+          0.8888888888888888
+        ]
+      },
+      "span_divergence:255:0.0:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.25,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:255:0.15:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.25,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:255:0.3:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "ancestral_span:32": {
+        "pairs": 36,
+        "recall1": 0.05555555555555555,
+        "recall10": 0.3611111111111111,
+        "ci95": [
+          0.1104166666666667,
+          0.6111111111111112
+        ]
+      },
+      "span_divergence:32:0.0:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.25,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:32:0.15:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.25,
+        "ci95": [
+          0.0,
+          0.75
+        ]
+      },
+      "span_divergence:32:0.3:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "ancestral_span:511": {
+        "pairs": 36,
+        "recall1": 0.16666666666666666,
+        "recall10": 0.7222222222222222,
+        "ci95": [
+          0.5555555555555556,
+          0.8888888888888888
+        ]
+      },
+      "span_divergence:511:0.0:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.25,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:511:0.15:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.75,
+        "ci95": [
+          0.25,
+          1.0
+        ]
+      },
+      "span_divergence:511:0.3:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.25,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "ancestral_span:64": {
+        "pairs": 36,
+        "recall1": 0.08333333333333333,
+        "recall10": 0.4166666666666667,
+        "ci95": [
+          0.16666666666666666,
+          0.6666666666666666
+        ]
+      },
+      "span_divergence:64:0.0:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:64:0.15:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.25,
+        "ci95": [
+          0.0,
+          0.75
+        ]
+      },
+      "span_divergence:64:0.3:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "span_divergence:1024:0.0:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:1024:0.15:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.25,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:1024:0.3:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.25,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:128:0.0:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.75,
+        "ci95": [
+          0.25,
+          1.0
+        ]
+      },
+      "span_divergence:128:0.15:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.25,
+        "recall10": 0.75,
+        "ci95": [
+          0.25,
+          1.0
+        ]
+      },
+      "span_divergence:128:0.3:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.5,
+        "ci95": [
+          0.0,
+          1.0
+        ]
+      },
+      "span_divergence:255:0.0:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:255:0.15:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.25,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:255:0.3:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.5,
+        "recall10": 0.5,
+        "ci95": [
+          0.0,
+          1.0
+        ]
+      },
+      "span_divergence:32:0.0:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:32:0.15:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "span_divergence:32:0.3:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "span_divergence:511:0.0:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.25,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:511:0.15:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.25,
+        "recall10": 0.75,
+        "ci95": [
+          0.25,
+          1.0
+        ]
+      },
+      "span_divergence:511:0.3:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.5,
+        "ci95": [
+          0.0,
+          1.0
+        ]
+      },
+      "span_divergence:64:0.0:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.25,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:64:0.15:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.5,
+        "ci95": [
+          0.0,
+          1.0
+        ]
+      },
+      "span_divergence:64:0.3:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "span_divergence:1024:0.0:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.25,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:1024:0.15:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.25,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:1024:0.3:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "span_divergence:128:0.0:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:128:0.15:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.5,
+        "ci95": [
+          0.0,
+          1.0
+        ]
+      },
+      "span_divergence:128:0.3:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "span_divergence:255:0.0:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.75,
+        "ci95": [
+          0.25,
+          1.0
+        ]
+      },
+      "span_divergence:255:0.15:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.5,
+        "ci95": [
+          0.0,
+          1.0
+        ]
+      },
+      "span_divergence:255:0.3:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "span_divergence:32:0.0:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.25,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:32:0.15:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "span_divergence:32:0.3:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "span_divergence:511:0.0:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.5,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:511:0.15:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.5,
+        "ci95": [
+          0.0,
+          1.0
+        ]
+      },
+      "span_divergence:511:0.3:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "span_divergence:64:0.0:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.5,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:64:0.15:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "span_divergence:64:0.3:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ]
+      }
+    },
+    "top10_candidate_kind_counts": {
+      "planted_paralog": 1804,
+      "anchor": 207,
+      "background": 149
+    }
+  },
+  "dev-w64-k9-d2-mask0": {
+    "species_pairs": {
+      "human-armadillo": {
+        "pairs": 72,
+        "recall10": 0.5694444444444444,
+        "ci95": [
+          0.4583333333333333,
+          0.6805555555555556
+        ]
+      },
+      "human-mouse": {
+        "pairs": 72,
+        "recall10": 0.6666666666666666,
+        "ci95": [
+          0.5552083333333334,
+          0.7777777777777778
+        ]
+      },
+      "mouse-armadillo": {
+        "pairs": 72,
+        "recall10": 0.4027777777777778,
+        "ci95": [
+          0.2916666666666667,
+          0.5138888888888888
+        ]
+      }
+    },
+    "query_context_strata": {
+      "gc:0.4-0.6": {
+        "pairs": 216,
+        "recall1": 0.06944444444444445,
+        "recall10": 0.5462962962962963,
+        "ci95": [
+          0.4583333333333333,
+          0.6342592592592593
+        ]
+      },
+      "repeat:<0.1": {
+        "pairs": 216,
+        "recall1": 0.06944444444444445,
+        "recall10": 0.5462962962962963,
+        "ci95": [
+          0.4583333333333333,
+          0.6342592592592593
+        ]
+      },
+      "complexity:>=1.0": {
+        "pairs": 216,
+        "recall1": 0.06944444444444445,
+        "recall10": 0.5462962962962963,
+        "ci95": [
+          0.4583333333333333,
+          0.6342592592592593
+        ]
+      },
+      "ancestral_span:1024": {
+        "pairs": 36,
+        "recall1": 0.1111111111111111,
+        "recall10": 0.6944444444444444,
+        "ci95": [
+          0.5277777777777778,
+          0.8611111111111112
+        ]
+      },
+      "divergence:0.0": {
+        "pairs": 72,
+        "recall1": 0.08333333333333333,
+        "recall10": 0.8611111111111112,
+        "ci95": [
+          0.7777777777777778,
+          0.9444444444444444
+        ]
+      },
+      "indel_rate:0.03": {
+        "pairs": 108,
+        "recall1": 0.10185185185185185,
+        "recall10": 0.49074074074074076,
+        "ci95": [
+          0.3611111111111111,
+          0.6111111111111112
+        ]
+      },
+      "span_divergence:1024:0.0:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.25,
+        "recall10": 0.75,
+        "ci95": [
+          0.25,
+          1.0
+        ]
+      },
+      "indel_rate:0.0": {
+        "pairs": 108,
+        "recall1": 0.037037037037037035,
+        "recall10": 0.6018518518518519,
+        "ci95": [
+          0.4722222222222222,
+          0.7222222222222222
+        ]
+      },
+      "divergence:0.15": {
+        "pairs": 72,
+        "recall1": 0.06944444444444445,
+        "recall10": 0.5694444444444444,
+        "ci95": [
+          0.4166666666666667,
+          0.7222222222222222
+        ]
+      },
+      "span_divergence:1024:0.15:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "divergence:0.3": {
+        "pairs": 72,
+        "recall1": 0.05555555555555555,
+        "recall10": 0.20833333333333334,
+        "ci95": [
+          0.125,
+          0.2916666666666667
+        ]
+      },
+      "span_divergence:1024:0.3:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.25,
+        "recall10": 0.75,
+        "ci95": [
+          0.25,
+          1.0
+        ]
+      },
+      "ancestral_span:128": {
+        "pairs": 36,
+        "recall1": 0.05555555555555555,
+        "recall10": 0.5555555555555556,
+        "ci95": [
+          0.3333333333333333,
+          0.75
+        ]
+      },
+      "span_divergence:128:0.0:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.75,
+        "ci95": [
+          0.25,
+          1.0
+        ]
+      },
+      "span_divergence:128:0.15:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.75,
+        "ci95": [
+          0.25,
+          1.0
+        ]
+      },
+      "span_divergence:128:0.3:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.25,
+        "ci95": [
+          0.0,
+          0.75
+        ]
+      },
+      "ancestral_span:255": {
+        "pairs": 36,
+        "recall1": 0.05555555555555555,
+        "recall10": 0.7222222222222222,
+        "ci95": [
+          0.5555555555555556,
+          0.8888888888888888
+        ]
+      },
+      "span_divergence:255:0.0:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.75,
+        "ci95": [
+          0.25,
+          1.0
+        ]
+      },
+      "span_divergence:255:0.15:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:255:0.3:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.75,
+        "ci95": [
+          0.25,
+          1.0
+        ]
+      },
+      "ancestral_span:32": {
+        "pairs": 36,
+        "recall1": 0.08333333333333333,
+        "recall10": 0.3888888888888889,
+        "ci95": [
+          0.1388888888888889,
+          0.6666666666666666
+        ]
+      },
+      "span_divergence:32:0.0:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.5,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:32:0.15:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.25,
+        "ci95": [
+          0.0,
+          0.75
+        ]
+      },
+      "span_divergence:32:0.3:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.25,
+        "ci95": [
+          0.0,
+          0.75
+        ]
+      },
+      "ancestral_span:511": {
+        "pairs": 36,
+        "recall1": 0.05555555555555555,
+        "recall10": 0.5555555555555556,
+        "ci95": [
+          0.3888888888888889,
+          0.6951388888888851
+        ]
+      },
+      "span_divergence:511:0.0:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.75,
+        "ci95": [
+          0.25,
+          1.0
+        ]
+      },
+      "span_divergence:511:0.15:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.25,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:511:0.3:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.25,
+        "recall10": 0.75,
+        "ci95": [
+          0.25,
+          1.0
+        ]
+      },
+      "ancestral_span:64": {
+        "pairs": 36,
+        "recall1": 0.05555555555555555,
+        "recall10": 0.3611111111111111,
+        "ci95": [
+          0.1388888888888889,
+          0.6111111111111112
+        ]
+      },
+      "span_divergence:64:0.0:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.25,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:64:0.15:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.25,
+        "ci95": [
+          0.0,
+          0.75
+        ]
+      },
+      "span_divergence:64:0.3:human-mouse": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "span_divergence:1024:0.0:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:1024:0.15:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:1024:0.3:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.25,
+        "recall10": 0.25,
+        "ci95": [
+          0.0,
+          0.75
+        ]
+      },
+      "span_divergence:128:0.0:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.75,
+        "ci95": [
+          0.25,
+          1.0
+        ]
+      },
+      "span_divergence:128:0.15:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.5,
+        "recall10": 0.75,
+        "ci95": [
+          0.25,
+          1.0
+        ]
+      },
+      "span_divergence:128:0.3:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.25,
+        "ci95": [
+          0.0,
+          0.75
+        ]
+      },
+      "span_divergence:255:0.0:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:255:0.15:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.25,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:255:0.3:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.25,
+        "recall10": 0.5,
+        "ci95": [
+          0.0,
+          1.0
+        ]
+      },
+      "span_divergence:32:0.0:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.25,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:32:0.15:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "span_divergence:32:0.3:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "span_divergence:511:0.0:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:511:0.15:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.5,
+        "ci95": [
+          0.0,
+          1.0
+        ]
+      },
+      "span_divergence:511:0.3:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "span_divergence:64:0.0:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.25,
+        "recall10": 0.75,
+        "ci95": [
+          0.25,
+          1.0
+        ]
+      },
+      "span_divergence:64:0.15:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.5,
+        "ci95": [
+          0.0,
+          1.0
+        ]
+      },
+      "span_divergence:64:0.3:human-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "span_divergence:1024:0.0:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.75,
+        "ci95": [
+          0.25,
+          1.0
+        ]
+      },
+      "span_divergence:1024:0.15:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.25,
+        "recall10": 0.75,
+        "ci95": [
+          0.25,
+          1.0
+        ]
+      },
+      "span_divergence:1024:0.3:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "span_divergence:128:0.0:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:128:0.15:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.5,
+        "ci95": [
+          0.0,
+          1.0
+        ]
+      },
+      "span_divergence:128:0.3:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "span_divergence:255:0.0:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:255:0.15:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.5,
+        "ci95": [
+          0.0,
+          1.0
+        ]
+      },
+      "span_divergence:255:0.3:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "span_divergence:32:0.0:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ]
+      },
+      "span_divergence:32:0.15:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "span_divergence:32:0.3:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "span_divergence:511:0.0:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.5,
+        "ci95": [
+          0.0,
+          1.0
+        ]
+      },
+      "span_divergence:511:0.15:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.5,
+        "ci95": [
+          0.0,
+          1.0
+        ]
+      },
+      "span_divergence:511:0.3:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "span_divergence:64:0.0:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.75,
+        "ci95": [
+          0.25,
+          1.0
+        ]
+      },
+      "span_divergence:64:0.15:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ]
+      },
+      "span_divergence:64:0.3:mouse-armadillo": {
+        "pairs": 4,
+        "recall1": 0.0,
+        "recall10": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ]
+      }
+    },
+    "top10_candidate_kind_counts": {
+      "anchor": 180,
+      "planted_paralog": 1846,
+      "background": 134
+    }
+  }
+}
