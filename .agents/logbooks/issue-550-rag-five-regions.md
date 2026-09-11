@@ -789,3 +789,14 @@ The uploading shell wrapper is not running, and canonical publication remains pe
 The A10G worker stops on completion or failure and also has a verified 22:00 UTC (6 p.m. NYC) fallback shutdown.
 Shutdown now preserves the EBS disk so outputs survive the publication restriction; terminate the worker after retrieving and verifying those outputs.
 The existing $30 cumulative cap and final-checkpoint evaluation reservation remain in force, including temporary disk retention.
+
+## 2026-09-11 17:20 UTC — Automatic S3 delivery restored
+
+The standard Snakemake S3 destination is a required part of this evaluation.
+Execution review accepted the six-file completion step after the user clarified that requirement; no permission-mode change was needed.
+The reviewed helper reads the destination from the existing default profile and preserves the scoring already underway.
+It validates completion and input identities, checks cohort sizes and embeddings, conditionally writes the exact three score and three metric files, verifies server SHA-256 checksums, and inspects the standard Snakemake dry-run afterward.
+Four bounded tests cover partial-transfer retries, conflicting objects, missing outputs, and shutdown after failure; independent review found no remaining issues.
+The completion hook is installed and verified on the running service; it stops the instance afterward and retains EBS if recovery is needed.
+S3 delivery is now scheduled automatically and still awaits completion of scoring and metrics.
+The earlier platform-access question is obsolete.

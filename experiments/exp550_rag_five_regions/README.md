@@ -102,7 +102,9 @@ That option uses `--workflow-profile none`, keeps the score and metric outputs l
 Do not use the uploading shell wrapper for this mode.
 The September 11 worker uses this local mode and stops automatically when the systemd evaluation service exits; its verified deadline also stops it at 6 p.m. NYC time.
 EBS survives a stop, so retrieve and verify outputs before terminating the instance, and include temporary disk storage in the cumulative budget.
-Canonical S3 publication is a separate pending step while execution access remains blocked.
+Saving the outputs to the configured S3 paths is required for completion.
+The September 11 run now has `finish-local-a10g.py --stop-after` installed as its completion hook: it restores the six validated local outputs to the configured S3 paths, verifies server checksums, and stops the worker.
+This is recovery for the already-running local invocation; subsequent runs use the default S3 profile directly.
 The 10k score bundles include embeddings; the final checkpoint additionally requires all three frozen-probe metric targets.
 Retain the final evaluation reservation when choosing compute for this additional run.
 
