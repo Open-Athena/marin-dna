@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import gzip
 import json
+import resource
 import subprocess
 import time
 from collections import defaultdict
@@ -40,6 +41,7 @@ def main() -> None:
         )
         for s in ["human", "mouse", "armadillo"]
     }
+    feature_seconds = time.time() - started
     directory = args.root / f"linclust-w{args.width}-d{args.divisor}"
     directory.mkdir(parents=True, exist_ok=True)
     cluster_path = directory / "assignments.tsv"
@@ -120,6 +122,7 @@ def main() -> None:
                 )
             receipts.append({"command": command, "seconds": time.time() - start})
         resource_path.write_text(json.dumps(receipts, indent=2) + "\n")
+    load_started = time.time()
     clusters: dict[str, dict[str, list[int]]] = defaultdict(lambda: defaultdict(list))
     member_cluster = {}
     with cluster_path.open() as handle:
@@ -130,6 +133,7 @@ def main() -> None:
             member_cluster[member] = representative
             clusters[representative][species].append(int(index))
     assert len(member_cluster) == sum(len(w.features) for w in windows.values())
+    cluster_load_seconds = time.time() - load_started
     predictions = []
     for target_species, sources in [
         ("mouse", ["human"]),
@@ -197,6 +201,25 @@ def main() -> None:
         cluster_count=len(clusters),
         input_windows=len(member_cluster),
         clustering_stages=json.loads(resource_path.read_text()),
+        feature_seconds=feature_seconds,
+        cluster_load_seconds=cluster_load_seconds,
+        max_rss_kib=resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,
+        external_stage_max_rss_kib=[
+            int(line.split(":")[-1])
+            for path in sorted(directory.glob("stage*.time"))
+            for line in path.read_text().splitlines()
+            if "Maximum resident set size (kbytes):" in line
+        ],
+        cluster_database_disk_bytes=sum(
+            p.stat().st_size
+            for p in directory.iterdir()
+            if p.is_file()
+            and (
+                p.name.startswith("db")
+                or p.name.startswith("clu")
+                or p.name == "assignments.tsv"
+            )
+        ),
         wall_seconds=time.time() - started,
     )
     prefix = (
