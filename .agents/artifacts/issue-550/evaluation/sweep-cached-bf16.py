@@ -126,6 +126,7 @@ def main() -> None:
                     stdout=stream,
                     stderr=subprocess.STDOUT,
                     timeout=420,
+                    check=False,
                 )
             except subprocess.TimeoutExpired:
                 report["failed_batches"].append(
@@ -133,9 +134,18 @@ def main() -> None:
                 )
                 break
         if result.returncode:
+            error = log.read_text()
+            is_oom = "OutOfMemoryError" in error or "CUDA out of memory" in error
             report["failed_batches"].append(
-                {"batch": batch, "exit_code": result.returncode}
+                {
+                    "batch": batch,
+                    "exit_code": result.returncode,
+                    "out_of_memory": is_oom,
+                }
             )
+            args.output.write_text(json.dumps(report, indent=2) + "\n")
+            if not is_oom:
+                raise RuntimeError(f"Batch {batch} failed unexpectedly; see {log}")
             print(f"BATCH_TRIAL_FAILED {batch}; see {log}", flush=True)
             break
         measured = json.loads(path.read_text())
