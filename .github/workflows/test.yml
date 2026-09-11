@@ -160,8 +160,13 @@ jobs:
         shell: bash
         run: |
           log_path="$RUNNER_TEMP/snakemake-dry-run.log"
+          config_args=()
+          if [[ "${{ matrix.name }}" == "evals-v2" ]]; then
+            overlay=$(uv run --locked python -m marin_dna_evals.ci_dry_run config/config.yaml "$RUNNER_TEMP")
+            config_args=(--configfile "$overlay")
+          fi
           set +e
-          timeout 60s uv run --locked snakemake -n --quiet all --default-storage-provider none --cores 1 >"$log_path" 2>&1
+          timeout 60s uv run --locked snakemake -n --quiet all --default-storage-provider none --cores 1 "${config_args[@]}" >"$log_path" 2>&1
           status=$?
           set -e
           tail -n 80 "$log_path"

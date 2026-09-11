@@ -444,6 +444,9 @@ These are tested at `tests/evals/test_grouped_vep_metrics.py`,
 Models with `inference_backend: rag_combined` consume a pinned combined context harness from `vertebrate_projection_dataset`.
 Register each model's exact checkpoint, `window_size: 255`, `document_tokens: 10240`, the three datasets (`mendelian_traits`, `complex_traits`, `sge`), and `rag_harness: {uri: ..., sha256: ...}` before evaluation.
 Submit the exact model–dataset registration as a small PR.
+The offline CI dry-run uses `python -m marin_dna_evals.ci_dry_run config/config.yaml <temporary-directory>` to generate a temporary model overlay with empty local harness stubs.
+It retains every registered model, checkpoint, cohort, and checksum while validating the DAG without S3 credentials.
+Use that overlay only with `snakemake -n`; production uses the registered harness URI and verifies its checksum before inference.
 The backend accepts only the canonical development split and checks every source row, revision-derived identity, coordinate, allele, label, and namespaced group against the registered canonical dataset revisions before loading the model.
 
 Requesting any one of the model's three score files schedules one combined job that writes all three canonical outputs in `results/scores/{model}/{dataset}.parquet`.

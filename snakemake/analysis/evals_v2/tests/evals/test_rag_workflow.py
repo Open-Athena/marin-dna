@@ -1,15 +1,76 @@
 """Explicit model registration and one-job routing for the combined backend."""
 
 import copy
+import os
 import subprocess
 import sys
 from pathlib import Path
 
 import pytest
 import yaml
+from marin_dna_evals.ci_dry_run import prepare_overlay
 from marin_dna_evals.workflow_config import validate_rag_models
 
 PROJECT = Path(__file__).parents[2]
+
+
+def test_registered_models_dry_run_offline_without_changing_contracts(tmp_path):
+    source = PROJECT / "config/config.yaml"
+    original_text = source.read_text()
+    original = yaml.safe_load(original_text)
+    overlay = prepare_overlay(source, tmp_path)
+    rewritten = yaml.safe_load(overlay.read_text())
+    assert set(rewritten) == {"models"}
+    assert source.read_text() == original_text
+    assert len(rewritten["models"]) == len(original["models"])
+    rag_models = []
+    for before, after in zip(original["models"], rewritten["models"], strict=True):
+        restored = copy.deepcopy(after)
+        if before.get("inference_backend") == "rag_combined":
+            rag_models.append(before)
+            stub = Path(after["rag_harness"]["uri"])
+            assert stub.is_file() and stub.stat().st_size == 0
+            restored["rag_harness"]["uri"] = before["rag_harness"]["uri"]
+        assert restored == before
+    assert rag_models, "exercise the registered combined RAG path"
+    environment = {
+        key: value for key, value in os.environ.items() if not key.startswith("AWS_")
+    }
+    environment.update(
+        AWS_EC2_METADATA_DISABLED="true",
+        AWS_CONFIG_FILE=str(tmp_path / "absent-aws-config"),
+        AWS_SHARED_CREDENTIALS_FILE=str(tmp_path / "absent-aws-credentials"),
+    )
+    result = subprocess.run(
+        [
+            str(Path(sys.executable).with_name("snakemake")),
+            "all",
+            "--snakefile",
+            str(PROJECT / "workflow/Snakefile"),
+            "--directory",
+            str(PROJECT),
+            "--workflow-profile",
+            "none",
+            "--default-storage-provider",
+            "none",
+            "--configfile",
+            str(overlay),
+            "--cores",
+            "1",
+            "--dry-run",
+        ],
+        env=environment,
+        text=True,
+        capture_output=True,
+        timeout=90,
+        check=False,
+    )
+    output = result.stdout + result.stderr
+    assert result.returncode == 0, output
+    assert output.count("rule compute_rag_scores:") == len(rag_models)
+    for model in rag_models:
+        for dataset in model["datasets"]:
+            assert f"results/scores/{model['name']}/{dataset}.parquet" in output
 
 
 def model_config():
