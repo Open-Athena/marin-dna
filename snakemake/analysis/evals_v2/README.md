@@ -462,11 +462,13 @@ The existing metric and grouped-probe rules consume those files unchanged.
 Source benchmark row order and metadata are restored separately for each benchmark after joint inference.
 This backend uses the standard Hugging Face prediction loop, global bf16 and compilation settings, and the model's batch-size and CPU-offload settings.
 
-Each fixed-shape input has up to 40 available species windows, a single BOS, atomic `[SEQ]` separators, and right padding to 10,240 positions.
+Each fixed-shape input has up to 40 available species windows, a single BOS, atomic `[SEQ]` separators, and left padding to 10,240 positions.
 Human remains last in REF, ALT, forward, and RC inputs; RC acts within each species segment without reordering segments.
 Only the human center allele changes between REF and ALT.
-The variable per-row human position is gathered within a common compiled shape without length bucketing.
-Causal attention makes later padding invisible to real tokens, and all score and pooling reductions exclude padding and retrieval tokens.
+The human variant is always at token index 10,112, without length bucketing.
+The standard `compute_variant_score_bundle` scorer computes the shared prefix once and reuses its KV cache for the REF and ALT suffixes.
+An attention mask excludes left padding, while explicit position IDs preserve the unpadded document's positions in both cached passes.
+All score and pooling reductions exclude padding and retrieval tokens.
 LLR and downstream JSD use the existing four-nucleotide scoring convention over the variant and remaining human bases.
 The human window must therefore be ACGT; ambiguous human windows fail before inference, while genuine Ns in retrieved windows remain intact.
 Final hidden states are mean-pooled over all 255 human bases, accumulated in fp32, averaged across strands, and stored as the standard `emb_ref` and `emb_alt` float16 vectors.

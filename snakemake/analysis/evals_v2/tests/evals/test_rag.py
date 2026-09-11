@@ -17,6 +17,7 @@ from marin_dna_evals.rag import (
     compute_rag_bundle,
     score_rag_dataset,
     transform_rag,
+    transform_rag_cached,
     validate_harness,
 )
 from transformers import Qwen3Config, Qwen3ForCausalLM
@@ -195,6 +196,76 @@ def test_padded_variable_positions_match_prefix_kernel_and_human_pool():
             torch.testing.assert_close(
                 kernel(model, changed, alt, start), actual, atol=2e-5, rtol=2e-4
             )
+
+
+def test_left_padded_cached_scores_reuse_prefix_and_preserve_outputs(monkeypatch):
+    monkeypatch.setattr("marin_dna_evals.rag.MODEL_TOKENS", 512)
+    _, _, rows = fixture()
+    rows = [next(row for row in rows if len(row["species_order"]) == n) for n in (1, 2)]
+    model = tiny_model()
+    nuc = torch.tensor([4, 5, 6, 7])
+    for strand in ("fwd", "rc"):
+        cached = [
+            transform_rag_cached(row, tokenizer=Tokenizer(), strand=strand)
+            for row in rows
+        ]
+        ids = torch.tensor(np.stack([row["input_ids"] for row in cached]))
+        mask = torch.tensor(np.stack([row["attention_mask"] for row in cached]))
+        alt = torch.tensor([row["alt_token_id"] for row in cached])
+        assert mask.sum(1).tolist() == [256, 512]
+        assert ids[:, 384].tolist() == ([7, 7] if strand == "fwd" else [4, 4])
+        calls = []
+
+        def capture(_model, args, kwargs, calls=calls):
+            calls.append(
+                (
+                    tuple(args[0].shape),
+                    kwargs.get("use_cache"),
+                    kwargs.get("past_key_values") is not None,
+                )
+            )
+
+        hook = model.register_forward_pre_hook(capture, with_kwargs=True)
+        with torch.inference_mode():
+            actual = compute_variant_score_bundle(
+                model,
+                ids,
+                alt,
+                var_pos=384,
+                nuc_token_ids=nuc,
+                attention_mask=mask,
+                return_embeddings=True,
+                pool_lo=257,
+                pool_hi=512,
+            )
+        hook.remove()
+        assert calls == [((2, 384), True, False), ((4, 128), False, True)]
+        transformed = [
+            transform_rag(row, tokenizer=Tokenizer(), strand=strand) for row in rows
+        ]
+        with torch.inference_mode():
+            reference = compute_rag_bundle(
+                model,
+                torch.tensor(np.stack([row["input_ids"] for row in transformed])),
+                alt,
+                torch.tensor([row["human_start"] for row in transformed]),
+                nuc_token_ids=nuc,
+                return_embeddings=True,
+            )
+            torch.testing.assert_close(actual, reference, atol=2e-5, rtol=2e-4)
+            changed = ids.masked_fill(mask == 0, 6)
+            masked = compute_variant_score_bundle(
+                model,
+                changed,
+                alt,
+                var_pos=384,
+                nuc_token_ids=nuc,
+                attention_mask=mask,
+                return_embeddings=True,
+                pool_lo=257,
+                pool_hi=512,
+            )
+            torch.testing.assert_close(masked, actual, atol=2e-5, rtol=2e-4)
 
 
 def test_joint_inference_loads_once_and_matches_separate_benchmark_processing(
