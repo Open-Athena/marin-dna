@@ -1,0 +1,159 @@
+{
+  "fixture_schema_version": 2,
+  "contexts_sha256": "ce25b2812841bc0c09cfb7ebec47a2d08168c120422a45e9827b4f292121e90b",
+  "primary": {
+    "method": "exact",
+    "width": 255,
+    "k": 9,
+    "divisor": 2,
+    "mask": false,
+    "candidate_budget": 10
+  },
+  "allowed_settings": [
+    [
+      255,
+      9,
+      1,
+      false
+    ],
+    [
+      255,
+      9,
+      2,
+      false
+    ],
+    [
+      255,
+      9,
+      4,
+      false
+    ],
+    [
+      255,
+      9,
+      2,
+      true
+    ],
+    [
+      1024,
+      13,
+      1,
+      false
+    ],
+    [
+      1024,
+      13,
+      2,
+      false
+    ],
+    [
+      1024,
+      13,
+      4,
+      false
+    ],
+    [
+      1024,
+      13,
+      2,
+      true
+    ],
+    [
+      511,
+      9,
+      2,
+      false
+    ],
+    [
+      1024,
+      17,
+      2,
+      false
+    ],
+    [
+      1024,
+      21,
+      2,
+      false
+    ],
+    [
+      4096,
+      9,
+      2,
+      false
+    ],
+    [
+      4096,
+      13,
+      2,
+      false
+    ]
+  ],
+  "allowed_sketches": [
+    [
+      255,
+      9,
+      2,
+      false,
+      512,
+      "scan",
+      2
+    ],
+    [
+      255,
+      9,
+      2,
+      false,
+      512,
+      "lsh",
+      2
+    ],
+    [
+      1024,
+      13,
+      2,
+      false,
+      512,
+      "scan",
+      2
+    ],
+    [
+      1024,
+      13,
+      2,
+      false,
+      512,
+      "lsh",
+      1
+    ],
+    [
+      1024,
+      13,
+      2,
+      false,
+      512,
+      "lsh",
+      2
+    ]
+  ],
+  "linclust": [
+    [
+      255,
+      9,
+      2
+    ],
+    [
+      1024,
+      13,
+      2
+    ]
+  ],
+  "scale_union": "Reciprocal-rank fusion (constant 60) of exact W255/k9 and W1024/k13 half-stride top-100 lists, then one C=1/10/100 budget.",
+  "verification": "Exact W255/k9 and W1024/k13 half-stride top-100 candidates; best-Jaccard window pair; global edit distance <= floor(0.30W), either strand; no backfill.",
+  "uncertainty": "95% percentile bootstrap, 2000 split-group resamples, seed 568; pair-weighted recall, query work counted once.",
+  "role_of_secondary_arms": "Frozen descriptive controls; no held-out retuning or choosing a new winner from them.",
+  "resource_scope": "Same fixed target universe on one c7i.4xlarge; report hot query time, cold stage sums, stage work and index bytes separately. No genome-scale extrapolation from hot time.",
+  "decision": "No LSH setting passing the prespecified development recall/decoy gate improves the measured recall-query-time frontier against exact full-set controls; all also add cold preparation cost. Stop the indexed selector path if this limiting-stage result survives the frozen held-out checks. Retain a separate statement for exhaustive MinHash scanning, whose highest-recall W255 arm has a small warm-time tradeoff but no cold-cost gain.",
+  "selection_reason": "W255/k9/half-stride maximizes development recall among the coarse unmasked representations. W1024/k13 provides a faster contrast. Keep all geometry/masking/whole-context and fast exact controls listed above fixed. Use 512 hashes to test the strongest sampled sketch, row-2 LSH for the best high-recall selective index at W255, and row-1/row-2 LSH at W1024 to separate index recall from selectivity. W255 row-1 LSH is omitted on heldout because it exactly matches the scan rankings on development by construction and takes 350 seconds versus 11.74 seconds for scanning.",
+  "frozen_utc": "2026-09-11T22:10:34.032411+00:00"
+}

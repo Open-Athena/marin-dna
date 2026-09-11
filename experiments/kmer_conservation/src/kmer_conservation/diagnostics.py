@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import gzip
 import json
+import resource
 import time
 from pathlib import Path
 
@@ -70,11 +71,13 @@ def verify(
 ) -> dict:
     with gzip.open(root / "data/contexts.jsonl.gz", "rt") as handle:
         records = [json.loads(line) for line in handle]
+    preparation_started = time.time()
     windows = {
         s: make_windows([r for r in records if r["species"] == s], width, k, divisor)
         for s in ["human", "mouse", "armadillo"]
     }
     started = time.time()
+    preparation_seconds = started - preparation_started
     work = 0
     for row in predictions:
         source, target = windows[row["source"]], windows[row["target"]]
@@ -127,7 +130,9 @@ def verify(
         "n": sum(len(r["ranks"]) for r in predictions),
         "n_queries": len(predictions),
         "profiled_budget": 100,
+        "build_windows_seconds": preparation_seconds,
         "seconds": time.time() - started,
+        "max_rss_kib": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,
         "alignment_calls": work,
         "threshold": "global edit distance <= floor(0.30 W), best of both strands, no backfill",
     }

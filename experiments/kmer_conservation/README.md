@@ -71,3 +71,22 @@ The initial metadata and figures from the first screen are superseded.
 Final comparisons use this version-two fixture; see its manifest and audit.
 Synthetic duplicate controls use `python -m kmer_conservation.synthetic --root /data/issue568/v2 --duplicates 10`, with ten independently mutated tract copies per target species and locus.
 These are planted paralog-like competitors, not annotated biological paralogs.
+
+## Reporting and audit
+
+`python -m kmer_conservation.report --root ROOT --out OUT --figures` produces pair-weighted recall tables, species-pair and query-context strata, candidate-kind counts, and 95% percentile bootstrap intervals from 2,000 resamples of homology-linked split groups.
+The context strata average input-context GC and repeat fractions within each physical query locus.
+The matching complexity measure is three-mer richness, a coarse proxy that can saturate in 4,096 bp contexts and can exceed one when ambiguous three-mers are present; it is not sequence entropy or a repeat-family annotation.
+Synthetic divergence is the substitution probability on each target branch; mouse/armadillo divergence can therefore exceed the human/target divergence at the same grid value.
+Injected paralog-like copies are competing potential homologs, not validated false matches.
+
+Hot query time includes candidate recovery, scoring, and locus ranking.
+Exact and sketch cold-stage sums add feature preparation, uncached sketch construction where relevant, and target-index construction to hot query time; cache reads/writes and prediction serialization are not included in those component sums.
+The recorded run wall time includes those operations but excludes any earlier cached sketch or cluster construction.
+For Linclust, the component sum omits unprofiled FASTA export, so the report leaves its cold-stage field empty and separately supplies measured stages and run wall time.
+Python peak RSS and external MMseqs2 peak RSS are separate measurements, not a simultaneous process-tree peak.
+Exact index bytes include sparse postings, vocabulary, and set lengths; sketch index bytes include signatures and, for LSH, bucket arrays.
+Linclust database bytes are disk storage and must not be compared as if they were an in-memory index size.
+
+`uv run --locked python validate_artifacts.py --root ROOT` checks consistent query/truth universes, unique candidate-locus budgets, stored ranks, pair denominators, and recomputed recall across all result files.
+`archive_results.py` uploads a fresh immutable S3 prefix, verifies every object's bytes by round-trip SHA-256, and preserves superseded initial metrics under an explicitly invalidated namespace.

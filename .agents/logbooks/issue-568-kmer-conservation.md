@@ -124,3 +124,31 @@ The experiment locks the actual installed version and must not apply ordinary ba
 - Independent review also corrected union cost accounting: carry both constituent retrieval costs, feature/index preparation, and raw postings separately from list-fusion work.
   Verifier resource totals explicitly cover C=100, with no claim that these are C=1 or C=10 costs.
 - Next: rerun all affected development comparisons on version two, choose from that corrected matrix, then freeze and score held-out data.
+
+### 2026-09-11 22:10 UTC — KMER-CONS-002 development result and held-out freeze
+
+- Corrected development study: 274 known physical locus pairs from 266 queries in 87 split groups.
+  The 20-setting full-set screen and 8 geometry/masking/whole-context controls are complete on unchanged version-two inputs.
+- Highest coarse unmasked recall: W255/k9/half-stride, 266/274 at C=10 (97.08%), 14.16 seconds query time, 27.42 seconds measured cold stages, 221.36 MB target indexes.
+  W1024/k13 gives 256/274 (93.43%) in 1.46 seconds query time and 15.03 seconds cold stages.
+- All 24 sketch/index arms and two matched Linclust arms completed.
+  Every LSH arm passing the predeclared 80% recall / 10% injected-decoy gate is beaten by a full-set exact setting at equal or higher recall in both hot query time and measured cold stages.
+  This is the basis for stopping advancement of the tested indexed selector path, subject to frozen held-out checks.
+- Keep exhaustive scans distinct: W255 H512 scan reaches 96.35% at 11.74 seconds query time, a small warm-time tradeoff between exact settings, but its feature/sketch preparation exceeds the full exact run and it scans all target windows.
+  W255 H512 LSH with two rows per band reaches 94.53% in 13.61 seconds; one row preserves scan recall but costs 350.10 seconds.
+  W1024 H512 scan reaches 90.88% in 1.10 seconds; row-one LSH preserves that recall at 7.00 seconds, and row-two LSH falls to 56.93%.
+- Full-to-half stride improves W255/k9 recall from 95.26% to 97.08%; quarter stride gives no additional development recovery while raising query time to 40.50 seconds.
+  Masked W1024/k13 reaches 94.89% with faster retrieval but higher shuffled-decoy contamination; retain masking as a specificity control.
+  The frozen two-scale union reaches 96.35%, below the single best scale, while paying both retrieval costs.
+- Strict full-window verification reduces C=10 recall to 32.48% at W255 and 11.31% at W1024.
+  Each C=100 profile makes 53,200 strand-specific alignment calls, takes 9.13 or 7.31 seconds after feature preparation, and does not backfill candidates.
+  This is a particular global-edit-distance diagnostic, not an alignment ceiling.
+- Source validation: 26 tests pass; the complete prediction-file audit verifies common query/truth universes, unique physical candidates, stored ranks, denominators, and recall.
+  Independent review corrected Python-versus-external RSS reporting and disclosed the unprofiled Linclust FASTA export rather than presenting a partial stage sum as complete cold cost.
+- `config/frozen_selection.json` declares the primary exact representation, 13 exact comparison/control arms, five sketch/index arms, two Linclust baselines, union, verifier, and grouped bootstrap before any held-out read.
+  `run_heldout.py` refuses an existing held-out result directory and records the published selection commit, configuration digest, exact commands, and completion times.
+  Secondary arms are frozen descriptive checks, not a new held-out selection opportunity.
+- Development tables and figures are in `.agents/artifacts/issue-568-kmer-conservation/dev/`.
+  `run_methods.sh` and `run_diagnostics.sh` record the exact method and diagnostic commands.
+- Inference boundary: stop the tested LSH selector path if the limiting-stage result persists; do not infer conservation enrichment from the homology-enriched retrieval universe.
+  Independently sampled backgrounds lack a fair set of known partners for a genome-wide selector test.

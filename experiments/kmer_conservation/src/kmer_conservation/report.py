@@ -122,11 +122,23 @@ def main() -> None:
             "preparation_seconds": preparation,
             "index_seconds": index_seconds,
             "query_seconds": result["query_seconds"],
+            "run_wall_seconds": result.get("wall_seconds"),
             "target_index_bytes": index_bytes,
             "cold_stage_seconds": preparation + index_seconds + result["query_seconds"]
+            if preparation is not None and method != "linclust"
+            else None,
+            "measured_stage_sum_seconds": preparation
+            + index_seconds
+            + result["query_seconds"]
             if preparation is not None
             else None,
-            "max_rss_kib": result.get("max_rss_kib"),
+            "python_peak_rss_kib": result.get("max_rss_kib"),
+            "external_peak_rss_kib": max(
+                result.get("external_stage_max_rss_kib", [0]), default=0
+            )
+            if method == "linclust"
+            else None,
+            "cluster_database_disk_bytes": result.get("cluster_database_disk_bytes"),
             "raw_windows": result.get("raw_windows"),
             "candidate_loci_mean": float(np.mean([r["candidate_loci"] for r in rows])),
             "candidate_loci_p95": float(
@@ -218,6 +230,58 @@ def main() -> None:
         writer.writerows(table)
     (args.out / "strata.json").write_text(json.dumps(details, indent=2) + "\n")
     (args.out / "metrics.json").write_text(json.dumps(table, indent=2) + "\n")
+    paired = {}
+    for split in sorted({r["split"] for r in table}):
+        for width, k in [(255, 9), (1024, 13)]:
+            baseline_name = f"{split}-w{width}-k{k}-d2-mask0"
+            baseline_path = (
+                args.root / "results" / (baseline_name + ".predictions.jsonl.gz")
+            )
+            if not baseline_path.exists():
+                continue
+            baseline = read_rows(baseline_path)
+            for record in [
+                r for r in table if r["split"] == split and r["name"] != baseline_name
+            ]:
+                rows = read_rows(
+                    args.root / "results" / (record["name"] + ".predictions.jsonl.gz")
+                )
+                paired[f"{record['name']} minus {baseline_name}"] = paired_difference(
+                    rows, baseline
+                )
+    (args.out / "paired_differences.json").write_text(
+        json.dumps(paired, indent=2) + "\n"
+    )
+    dominance = []
+    for row in [r for r in table if r["method"] in ["lsh", "scan"]]:
+        exact = [
+            r
+            for r in table
+            if r["method"] == "exact"
+            and r["split"] == row["split"]
+            and r["recall10"] >= row["recall10"]
+        ]
+        dominance.append(
+            {
+                "name": row["name"],
+                "faster_exact_at_equal_or_higher_recall": [
+                    r["name"]
+                    for r in exact
+                    if r["query_seconds"] <= row["query_seconds"]
+                ],
+                "lower_cold_cost_exact_at_equal_or_higher_recall": [
+                    r["name"]
+                    for r in exact
+                    if r["cold_stage_seconds"] <= row["cold_stage_seconds"]
+                ],
+                "smaller_exact_index_at_equal_or_higher_recall": [
+                    r["name"]
+                    for r in exact
+                    if r["target_index_bytes"] <= row["target_index_bytes"]
+                ],
+            }
+        )
+    (args.out / "dominance.json").write_text(json.dumps(dominance, indent=2) + "\n")
     if args.figures:
         import matplotlib.pyplot as plt
 

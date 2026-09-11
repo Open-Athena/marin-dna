@@ -1,0 +1,119 @@
+{
+  "by_context_kind": {
+    "anchor": {
+      "contexts": 768,
+      "gc": {
+        "min": 0.290771484375,
+        "mean": 0.4279782896511474,
+        "median": 0.4150390625,
+        "max": 0.7173123486682809
+      },
+      "repeat": {
+        "min": 0.0,
+        "mean": 0.27231629689534503,
+        "median": 0.2529296875,
+        "max": 0.737060546875
+      },
+      "complexity": {
+        "min": 0.96875,
+        "mean": 1.0047607421875,
+        "median": 1.0,
+        "max": 1.140625
+      },
+      "ambiguous_bases": 21417
+    },
+    "background": {
+      "contexts": 3000,
+      "gc": {
+        "min": 0.271484375,
+        "mean": 0.41147640628321797,
+        "median": 0.40234375,
+        "max": 0.677978515625
+      },
+      "repeat": {
+        "min": 0.0,
+        "mean": 0.557855224609375,
+        "median": 0.52587890625,
+        "max": 1.0
+      },
+      "complexity": {
+        "min": 0.90625,
+        "mean": 1.000953125,
+        "median": 1.0,
+        "max": 1.09375
+      },
+      "ambiguous_bases": 9245
+    },
+    "matched_background": {
+      "contexts": 768,
+      "gc": {
+        "min": 0.292236328125,
+        "mean": 0.42868737766161447,
+        "median": 0.413330078125,
+        "max": 0.72265625
+      },
+      "repeat": {
+        "min": 0.0,
+        "mean": 0.2811851501464844,
+        "median": 0.2601318359375,
+        "max": 0.731689453125
+      },
+      "complexity": {
+        "min": 0.953125,
+        "mean": 1.0029296875,
+        "median": 1.0,
+        "max": 1.109375
+      },
+      "ambiguous_bases": 3782
+    },
+    "repeat_challenge": {
+      "contexts": 192,
+      "gc": {
+        "min": 0.318115234375,
+        "mean": 0.39066441853841144,
+        "median": 0.38623046875,
+        "max": 0.653076171875
+      },
+      "repeat": {
+        "min": 0.9990234375,
+        "mean": 0.9999732971191406,
+        "median": 1.0,
+        "max": 1.0
+      },
+      "complexity": {
+        "min": 0.859375,
+        "mean": 0.9962565104166666,
+        "median": 1.0,
+        "max": 1.0
+      },
+      "ambiguous_bases": 0
+    },
+    "shuffled_decoy": {
+      "contexts": 768,
+      "gc": {
+        "min": 0.290771484375,
+        "mean": 0.4279782896511474,
+        "median": 0.4150390625,
+        "max": 0.7173123486682809
+      },
+      "repeat": {
+        "min": 0.0,
+        "mean": 0.27231629689534503,
+        "median": 0.2529296875,
+        "max": 0.737060546875
+      },
+      "complexity": {
+        "min": 0.96875,
+        "mean": 1.0047607421875,
+        "median": 1.0,
+        "max": 1.140625
+      },
+      "ambiguous_bases": 21417
+    }
+  },
+  "unique_genomic_bp": {
+    "human": 6120576,
+    "mouse": 6113501,
+    "armadillo": 6121960
+  }
+}
