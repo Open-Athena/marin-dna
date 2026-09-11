@@ -72,3 +72,36 @@ The experiment locks the actual installed version and must not apply ordinary ba
 - Gate fixed before inspecting outcomes: at least 80% development recall at C=10 and at most 10% injected-decoy fraction among returned top-ten candidates.
   This is an exploratory operational criterion, not a universal detection threshold.
 - Next action: validate the regenerated controls, measure exact full-set scores, and audit the protocol before the held-out read.
+
+### 2026-09-11 21:28 UTC — KMER-CONS-001 exact-set screen and audited fixture
+
+- Producing snapshot: `65f6f36b` for the fixture, full-set screen, and synthetic controls.
+- The first extraction failed on redundant manual soft-mask handling; py2bit 1.0.1 already preserves lowercase with `storeMasked=True`.
+  The corrected extraction completed in 73 seconds at about 2.5 GiB peak RSS.
+- The first split audit exposed shared hash domains between selecting additional anchors and assigning components to splits: 140/152 components fell in held-out data.
+  No retrieval metrics had been generated.
+  A separate `split:` hash domain fixed this; the final fixture has 87 development and 65 held-out components.
+  A regression test covers sampling/split independence.
+- Every one of the 768 extracted center-255 sequences equals its source projection sequence or reverse complement.
+  The original 128-anchor FASTA SHA-256 is `30f823f5b2943c520d3b72d7bf754151a30f8ce4d6fb429647ba288eeebce996`.
+  The original truth TSV SHA-256 is `868fd4a9bd67e61363c4f4897063558b5c1a30d992d6eafd88e46a720ffc4676`.
+- Fixed inputs: 768 anchor contexts, 3,000 random genomic contexts, 768 composition/repeat/complexity-matched genomic contexts, 192 repeat-rich challenges, and 768 injected shuffled decoys.
+  All contexts are 4,096 bp.
+  Merging homologs and overlapping contexts turns 256 anchor identities into 152 locus components.
+- Command: `/usr/bin/time -v uv run --locked kmer-screen --root /data/issue568 --split dev`, from the independent experiment project, with `OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 POLARS_MAX_THREADS=2`.
+- Result: all 20 width/k settings completed in 6m21s, with per-setting peaks below 1.2 GiB.
+  Exact W255/k9/half-stride recovered 256/261 development locus pairs at C=10 (98.08%); W1024/k13 recovered 248/261 (95.02%).
+  Their query-scoring times were 13.25 and 1.38 seconds, respectively.
+- Independent review fixed per-arm RSS accounting (one process per setting) and the missing pre-truncation unique-candidate-locus count before the screen.
+- Decision: advance these two representations into separate 32/128/512-permutation MinHash scans and LSH with 1/2/4 rows per band.
+  Record cold construction plus query cost, hot query cost, storage, and raw candidate work separately.
+  A footprint reduction alone must not be described as a demonstrated runtime improvement.
+- Follow-up command: `bash run_followups.sh` runs the 72-planted-locus screen and development-only full/half/quarter strides, masking, and whole-context scoring.
+- Baseline/diagnostic implementation: `7913f09b`; 25 tests pass.
+  `bash run_methods.sh` executes matched Linclust 18-8cc5c and the separate sketch/index matrix.
+  `python -m kmer_conservation.diagnostics --root /data/issue568 --split dev --mode union` combines the two representations with reciprocal rank fusion and one final candidate budget.
+  `--mode verify --width 255 --k 9` and `--width 1024 --k 13` apply a separate full-window edit-distance gate with no post-verification backfill.
+- Scientific limit: the target background is independently sampled and generally does not contain known orthologs of the query background.
+  It can measure known-locus retrieval and collisions, but would confound a selector-enrichment test if injected homology availability were treated as an unbiased genome-wide universe.
+  No selector or evolutionary-constraint claim follows from these recall values.
+- AWS's streaming public regional price list confirms `$0.7140000000/Hrs`, effective 2026-09-01, for Linux/shared/on-demand `c7i.4xlarge` in Ohio.
