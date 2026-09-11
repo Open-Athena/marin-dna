@@ -1,0 +1,63 @@
+{
+  "model": "dna-exp550-rag46m-five-regions-v1-step-20000",
+  "consumer_commit": "c488618290e9b645350a54b675e4f599ecce7e3b",
+  "source": "gs://marin-eu-west4/MarinDNA/exp550_rag_five_regions/checkpoints/dna-exp550-rag46m-five-regions-v1/2026.09.10.9/hf/step-20000",
+  "destination": "s3://oa-bolinas/snakemake/analysis/evals_v2/results/checkpoints/dna-exp550-rag46m-five-regions-v1-step-20000/",
+  "remote_task": "/gonzalo/dna-exp550-rag46m-five-regions-v1-20260911-europe-memory/0",
+  "started_at": "2026-09-11T20:15:21.370604+00:00",
+  "applied": true,
+  "exit_status": 0,
+  "source_objects": {
+    "config.json": {
+      "name": "marin-eu-west4/MarinDNA/exp550_rag_five_regions/checkpoints/dna-exp550-rag46m-five-regions-v1/2026.09.10.9/hf/step-20000/config.json",
+      "generation": "1789145489517839",
+      "size": 1429,
+      "md5_hash": "HnYMvWUzjZBiXxGYiAGtbw==",
+      "crc32c_hash": "WrQ7eQ=="
+    },
+    "model.safetensors": {
+      "name": "marin-eu-west4/MarinDNA/exp550_rag_five_regions/checkpoints/dna-exp550-rag46m-five-regions-v1/2026.09.10.9/hf/step-20000/model.safetensors",
+      "generation": "1789145489377400",
+      "size": 183596040,
+      "md5_hash": "W9eqObvzDV3speMUAeVk5A==",
+      "crc32c_hash": "JLB77A=="
+    },
+    "tokenizer.json": {
+      "name": "marin-eu-west4/MarinDNA/exp550_rag_five_regions/checkpoints/dna-exp550-rag46m-five-regions-v1/2026.09.10.9/hf/step-20000/tokenizer.json",
+      "generation": "1789145489513872",
+      "size": 1888,
+      "md5_hash": "Dziw+JVEuZ7Ry5mjh9TGiA==",
+      "crc32c_hash": "+/Js0g=="
+    },
+    "tokenizer_config.json": {
+      "name": "marin-eu-west4/MarinDNA/exp550_rag_five_regions/checkpoints/dna-exp550-rag46m-five-regions-v1/2026.09.10.9/hf/step-20000/tokenizer_config.json",
+      "generation": "1789145489508635",
+      "size": 362,
+      "md5_hash": "by8ex0nYWfBseI5EgBAv0Q==",
+      "crc32c_hash": "pJDPIA=="
+    }
+  },
+  "verified_objects": {
+    "config.json": {
+      "size": 1429,
+      "md5": "HnYMvWUzjZBiXxGYiAGtbw==",
+      "sha256": "579a2a42cbff9570de2d17f55e3a1697573d2dfe0b6155ccf91a3b27aecb8384"
+    },
+    "model.safetensors": {
+      "size": 183596040,
+      "md5": "W9eqObvzDV3speMUAeVk5A==",
+      "sha256": "ca9c876ecc53913299908d6fa06f4d84a21cf001162ed28bbe75609e53d5ea89"
+    },
+    "tokenizer.json": {
+      "size": 1888,
+      "md5": "Dziw+JVEuZ7Ry5mjh9TGiA==",
+      "sha256": "7a516e3c9d1c426a62001209d77a39a0316686ecc4901e718d30ac99078d2159"
+    },
+    "tokenizer_config.json": {
+      "size": 362,
+      "md5": "by8ex0nYWfBseI5EgBAv0Q==",
+      "sha256": "7cd1efa0feefad0ab43fd51e59008c246af02d05a48b895a7034eb386fc47bb6"
+    }
+  },
+  "finished_at": "2026-09-11T20:15:51.830169+00:00"
+}
