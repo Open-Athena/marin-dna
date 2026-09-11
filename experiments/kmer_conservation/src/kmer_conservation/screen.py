@@ -14,7 +14,15 @@ from pathlib import Path
 
 import numpy as np
 
-from kmer_conservation.core import exact_index, exact_scores, make_windows, rank_loci
+from kmer_conservation.core import (
+    exact_index,
+    exact_scores,
+    make_windows,
+    rank_loci,
+    rank_truth,
+    recall,
+    truth_loci,
+)
 from kmer_conservation.fixture import sha256
 
 
@@ -58,9 +66,6 @@ def run_setting(
             "postings": int(matrix.nnz),
             "maximum_posting": int(np.diff(matrix.indptr).max()),
         }
-        target_components = {
-            r["component"] for r in by_species[target_species] if r["kind"] == "anchor"
-        }
         for source_species in sources:
             source = windows[source_species]
             queries: dict[str, list[int]] = defaultdict(list)
@@ -69,7 +74,6 @@ def run_setting(
                 if row["kind"] == "anchor" and row["split"] == split:
                     queries[row["component"]].append(wi)
             for number, (component, indices) in enumerate(sorted(queries.items())):
-                assert component in target_components
                 features = [source.features[i] for i in indices]
                 start = time.time()
                 scores, positive_pairs, posting_work = exact_scores(
@@ -78,11 +82,8 @@ def run_setting(
                 all_ranked = rank_loci(scores, target, limit=len(target.records))
                 ranked = all_ranked[:100]
                 elapsed = time.time() - start
-                ranks = [
-                    i + 1
-                    for i, hit in enumerate(ranked)
-                    if hit["component"] == component
-                ]
+                truth = truth_loci(source.records, target.records, component)
+                ranks = rank_truth(ranked, truth)
                 query_rows = [
                     r
                     for r in source.records
@@ -93,7 +94,10 @@ def run_setting(
                         "query": component,
                         "source": source_species,
                         "target": target_species,
-                        "rank": ranks[0] if ranks else None,
+                        "ranks": ranks,
+                        "split_component": query_rows[0].get(
+                            "split_component", component
+                        ),
                         "seconds": elapsed,
                         "raw_positive_window_pairs": positive_pairs,
                         "posting_work": posting_work,
@@ -126,7 +130,8 @@ def run_setting(
         "divisor": divisor,
         "mask": mask,
         "split": split,
-        "n": len(predictions),
+        "n": sum(len(p["ranks"]) for p in predictions),
+        "n_queries": len(predictions),
         "build_windows_seconds": build_seconds,
         "wall_seconds": time.time() - started,
         "max_rss_kib": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,
@@ -134,11 +139,7 @@ def run_setting(
         "raw_windows": sum(len(w.features) for w in windows.values()),
     }
     for budget in [1, 10, 100]:
-        summary[f"recall_at_{budget}"] = float(
-            np.mean(
-                [p["rank"] is not None and p["rank"] <= budget for p in predictions]
-            )
-        )
+        summary[f"recall_at_{budget}"] = recall(predictions, budget)
         selected = [hit for p in predictions for hit in p["hits"][:budget]]
         summary[f"injected_decoy_fraction_at_{budget}"] = sum(
             h["kind"] == "shuffled_decoy" for h in selected

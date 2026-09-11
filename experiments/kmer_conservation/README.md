@@ -10,6 +10,9 @@ Keep those controls and add 128 deterministically sampled anchors from the same 
 Extract 4,096 bp genomic contexts using the original assemblies and projected centers; reject out-of-bounds extractions but retain ambiguous and repeat-rich flanks.
 Merge overlapping contexts into locus components, including overlaps in any species, before development/held-out assignment.
 Keep all homologs in the same split.
+These homology-linked components serve only to isolate splits.
+Candidate budgets and queries use separate physical loci, formed only by overlapping intervals on the same chromosome in the same species.
+One query can have multiple known target loci; score each known locus pair, spend the candidate budget once per query, and charge query work once.
 The fixed target universe also contains 1,000 nonoverlapping genomic background contexts per species, composition/complexity-matched genomic challenges, and injected shuffled controls.
 Real-genome background hits are unresolved, including repeat/paralog challenges; shuffled controls are measured separately as injected decoys.
 
@@ -61,3 +64,10 @@ uv run --locked kmer-screen --root /data/issue568 --split dev
 
 The `prior` path must contain the pinned #521 source tree extracted from the commit above.
 See the logbook for exact producing commits and commands.
+
+The completed fixture audit identified disjoint genomic intervals within six homology-linked split groups.
+The initial metadata and figures from the first screen are superseded.
+`python -m kmer_conservation.relabel_fixture --root /data/issue568 --output /data/issue568/v2` corrects locus identities while asserting that every sequence, genomic interval, identifier, and development/held-out assignment stays identical.
+Final comparisons use this version-two fixture; see its manifest and audit.
+Synthetic duplicate controls use `python -m kmer_conservation.synthetic --root /data/issue568/v2 --duplicates 10`, with ten independently mutated tract copies per target species and locus.
+These are planted paralog-like competitors, not annotated biological paralogs.

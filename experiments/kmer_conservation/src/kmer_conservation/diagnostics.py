@@ -11,7 +11,7 @@ from pathlib import Path
 import edlib
 import numpy as np
 
-from kmer_conservation.core import make_windows
+from kmer_conservation.core import make_windows, rank_truth
 from kmer_conservation.fixture import stable_hash
 from kmer_conservation.sketch import summarize
 
@@ -29,6 +29,7 @@ def union_predictions(inputs: list[list[dict]]) -> list[dict]:
     assert all(set(m) == set(maps[0]) for m in maps)
     output = []
     for key in sorted(maps[0]):
+        started = time.time()
         scores, hits = {}, {}
         for rows in maps:
             for rank, hit in enumerate(rows[key]["hits"], 1):
@@ -37,15 +38,26 @@ def union_predictions(inputs: list[list[dict]]) -> list[dict]:
                 hits[component] = hit
         ordered = sorted(hits, key=lambda x: (-scores[x], stable_hash(x)))[:100]
         ranked = [{**hits[c], "score": scores[c]} for c in ordered]
-        ranks = [i + 1 for i, h in enumerate(ranked) if h["component"] == key[0]]
+        truth = set(maps[0][key]["ranks"])
+        assert all(set(m[key]["ranks"]) == truth for m in maps)
+        ranks = rank_truth(ranked, truth)
         output.append(
             {
                 "query": key[0],
                 "source": key[1],
                 "target": key[2],
-                "rank": ranks[0] if ranks else None,
-                "seconds": 0,
+                "ranks": ranks,
+                "split_component": maps[0][key].get("split_component", key[0]),
+                "seconds": sum(m[key].get("seconds", 0) for m in maps)
+                + time.time()
+                - started,
                 "work": sum(len(m[key]["hits"]) for m in maps),
+                "upstream_positive_window_pairs": sum(
+                    m[key].get("raw_positive_window_pairs", 0) for m in maps
+                ),
+                "upstream_posting_work": sum(
+                    m[key].get("posting_work", 0) for m in maps
+                ),
                 "candidate_loci": len(hits),
                 "hits": ranked,
             }
@@ -112,22 +124,23 @@ def verify(
         "width": width,
         "k": k,
         "divisor": divisor,
-        "n": len(predictions),
+        "n": sum(len(r["ranks"]) for r in predictions),
+        "n_queries": len(predictions),
+        "profiled_budget": 100,
         "seconds": time.time() - started,
         "alignment_calls": work,
         "threshold": "global edit distance <= floor(0.30 W), best of both strands, no backfill",
     }
     for budget in [1, 10, 100]:
-        result[f"recall_at_{budget}"] = float(
-            np.mean(
-                [
-                    any(
-                        h["component"] == r["query"] and h["verified"]
-                        for h in r["hits"][:budget]
-                    )
-                    for r in predictions
-                ]
+        result[f"recall_at_{budget}"] = (
+            sum(
+                len(
+                    set(r["ranks"])
+                    & {h["component"] for h in r["hits"][:budget] if h["verified"]}
+                )
+                for r in predictions
             )
+            / result["n"]
         )
         result[f"verified_candidates_at_{budget}"] = sum(
             h["verified"] for r in predictions for h in r["hits"][:budget]
@@ -157,6 +170,30 @@ def main() -> None:
         rows = union_predictions([read_predictions(p) for p in inputs])
         result = summarize(rows)
         result["inputs"] = [str(p) for p in inputs]
+        stages = [
+            json.loads(
+                Path(
+                    str(p).replace(".predictions.jsonl.gz", ".summary.json")
+                ).read_text()
+            )
+            for p in inputs
+        ]
+        result["build_windows_seconds"] = sum(
+            s["build_windows_seconds"] for s in stages
+        )
+        result["index_seconds"] = sum(
+            r["index_seconds"] for s in stages for r in s["resources"].values()
+        )
+        result["index_bytes"] = sum(
+            r["index_bytes"] for s in stages for r in s["resources"].values()
+        )
+        result["upstream_positive_window_pairs"] = sum(
+            r["upstream_positive_window_pairs"] for r in rows
+        )
+        result["upstream_posting_work"] = sum(r["upstream_posting_work"] for r in rows)
+        result["work_unit"] = (
+            "top-100 list entries merged; upstream work reported separately"
+        )
         prefix = directory / f"{args.split}-union-255k9-1024k13"
     else:
         rows = read_predictions(

@@ -12,7 +12,7 @@ from pathlib import Path
 
 import numpy as np
 
-from kmer_conservation.core import make_windows
+from kmer_conservation.core import make_windows, truth_loci
 from kmer_conservation.sketch import prediction, summarize
 
 
@@ -179,6 +179,10 @@ def main() -> None:
                     target,
                     0,
                     len(candidates) * len(indices),
+                    truth_loci(source.records, target.records, component),
+                    source.records[source.owners[indices[0]]].get(
+                        "split_component", component
+                    ),
                 )
                 row["seconds"] = time.time() - start
                 row["linclust_candidate_windows"] = len(candidates)

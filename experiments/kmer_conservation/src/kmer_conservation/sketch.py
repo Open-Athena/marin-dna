@@ -14,7 +14,14 @@ from pathlib import Path
 import numpy as np
 from datasketch import MinHash
 
-from kmer_conservation.core import Windows, make_windows, rank_loci
+from kmer_conservation.core import (
+    Windows,
+    make_windows,
+    rank_loci,
+    rank_truth,
+    recall,
+    truth_loci,
+)
 from kmer_conservation.fixture import sha256
 
 
@@ -139,15 +146,18 @@ def prediction(
     windows: Windows,
     seconds: float,
     work: int,
+    truth: set[str],
+    split_component: str,
 ) -> dict:
     all_hits = rank_loci(scores, windows, limit=len(windows.records))
     hits = all_hits[:100]
-    ranks = [i + 1 for i, hit in enumerate(hits) if hit["component"] == component]
+    ranks = rank_truth(hits, truth)
     return {
         "query": component,
         "source": source,
         "target": target,
-        "rank": ranks[0] if ranks else None,
+        "ranks": ranks,
+        "split_component": split_component,
         "seconds": seconds,
         "work": work,
         "candidate_loci": len(all_hits),
@@ -158,14 +168,13 @@ def prediction(
 
 def summarize(rows: list[dict]) -> dict:
     summary = {
-        "n": len(rows),
+        "n": sum(len(r["ranks"]) for r in rows),
+        "n_queries": len(rows),
         "query_seconds": sum(r["seconds"] for r in rows),
         "work": sum(r["work"] for r in rows),
     }
     for budget in [1, 10, 100]:
-        summary[f"recall_at_{budget}"] = float(
-            np.mean([r["rank"] is not None and r["rank"] <= budget for r in rows])
-        )
+        summary[f"recall_at_{budget}"] = recall(rows, budget)
         hits = [h for r in rows for h in r["hits"][:budget]]
         summary[f"injected_decoy_fraction_at_{budget}"] = sum(
             h["kind"] == "shuffled_decoy" for h in hits
@@ -309,6 +318,10 @@ def main() -> None:
                     target,
                     elapsed,
                     work,
+                    truth_loci(source.records, target.records, component),
+                    source.records[source.owners[ids[0]]].get(
+                        "split_component", component
+                    ),
                 )
                 result["seconds"] = time.time() - start
                 result["evaluated_window_pairs"] = unique_pairs

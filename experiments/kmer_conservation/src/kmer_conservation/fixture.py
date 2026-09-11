@@ -64,12 +64,27 @@ def assign_components(records: list[dict], seed: int, heldout: float) -> None:
                 union(row["group"], other["group"])
             active.append(row)
     for row in records:
-        row["component"] = find(row["group"])
+        row["split_component"] = find(row["group"])
         row["split"] = (
             "heldout"
-            if stable_hash(f"split:{seed}:{row['component']}") / 2**64 < heldout
+            if stable_hash(f"split:{seed}:{row['split_component']}") / 2**64 < heldout
             else "dev"
         )
+    # Candidate budgets count connected intervals in one genome. Homology links
+    # establish split isolation but must never merge disjoint target loci.
+    for (species, chrom), rows in intervals.items():
+        groups: list[list[dict]] = []
+        right = -1
+        for row in sorted(rows, key=lambda x: x["start"]):
+            if not groups or row["start"] >= right:
+                groups.append([])
+            groups[-1].append(row)
+            right = max(right, row["end"])
+        for group in groups:
+            start = min(r["start"] for r in group)
+            end = max(r["end"] for r in group)
+            for row in group:
+                row["component"] = f"locus:{species}:{chrom}:{start}:{end}"
 
 
 def main() -> None:

@@ -1,20 +1,22 @@
 import gzip
 import json
+import sys
 from collections import Counter
 from pathlib import Path
 
 import polars as pl
 
-root = Path("/data/issue568/data")
+root = Path(sys.argv[1]) if len(sys.argv) > 1 else Path("/data/issue568/data")
 with gzip.open(root / "contexts.jsonl.gz", "rt") as handle:
     rows = [json.loads(line) for line in handle]
 anchors = [r for r in rows if r["kind"] == "anchor"]
-report = {"splits": dict(Counter((r["split"], r["component"]) for r in anchors))}
 report = {
     "component_splits": dict(
         Counter(
             split
-            for split, component in {(r["split"], r["component"]) for r in anchors}
+            for split, component in {
+                (r["split"], r["split_component"]) for r in anchors
+            }
         )
     ),
     "record_kinds": dict(Counter(r["kind"] for r in rows)),
@@ -37,9 +39,18 @@ for label in ["human", "mouse", "armadillo"]:
         exact += seq in [expected, rc]
     report["central255_matches"][label] = [exact, len(sub)]
 assert all(a == b for a, b in report["central255_matches"].values()), report
-assert not {r["component"] for r in anchors if r["split"] == "dev"} & {
-    r["component"] for r in anchors if r["split"] == "heldout"
+assert not {r["split_component"] for r in anchors if r["split"] == "dev"} & {
+    r["split_component"] for r in anchors if r["split"] == "heldout"
 }
+for component in {r["component"] for r in anchors}:
+    sub = sorted(
+        [r for r in anchors if r["component"] == component], key=lambda r: r["start"]
+    )
+    assert len({(r["species"], r["chrom"]) for r in sub}) == 1
+    right = sub[0]["end"]
+    for row in sub[1:]:
+        assert row["start"] < right
+        right = max(right, row["end"])
 assert (
     0.25
     <= report["component_splits"]["heldout"] / sum(report["component_splits"].values())

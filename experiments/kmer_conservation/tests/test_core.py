@@ -8,6 +8,9 @@ from kmer_conservation.core import (
     exact_scores,
     make_windows,
     rank_loci,
+    rank_truth,
+    recall,
+    truth_loci,
     window_starts,
 )
 from kmer_conservation.fixture import assign_components, stable_hash
@@ -90,9 +93,20 @@ def test_overlap_in_either_species_unions_homologs_before_split():
         row("A" * 10, "c", 19),
     ]
     assign_components(records, 568, 0.4)
-    assert records[0]["component"] == records[3]["component"]
+    assert records[0]["split_component"] == records[3]["split_component"]
+    assert records[0]["component"] == records[1]["component"]
+    assert records[2]["component"] != records[3]["component"]
     assert records[4]["component"] != records[0]["component"]
     assert len({r["split"] for r in records[:4]}) == 1
+    targets = truth_loci(records[:2], records[2:4], records[0]["component"])
+    assert targets == {records[2]["component"], records[3]["component"]}
+    hits = [
+        {"component": records[2]["component"]},
+        {"component": records[3]["component"]},
+    ]
+    prediction = {"ranks": rank_truth(hits, targets)}
+    assert recall([prediction], 1) == 0.5
+    assert recall([prediction], 2) == 1.0
 
 
 def test_split_hash_is_independent_of_anchor_sampling():

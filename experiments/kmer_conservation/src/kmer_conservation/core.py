@@ -12,6 +12,29 @@ from kmer_conservation.fixture import stable_hash
 INVALID = np.uint64(2**64 - 1)
 
 
+def truth_loci(source: list[dict], target: list[dict], component: str) -> set[str]:
+    """Known physical target loci; used only after unrestricted candidate scoring."""
+    groups = {
+        r["group"]
+        for r in source
+        if r["kind"] == "anchor" and r["component"] == component
+    }
+    return {
+        r["component"] for r in target if r["kind"] == "anchor" and r["group"] in groups
+    }
+
+
+def rank_truth(hits: list[dict], truth: set[str]) -> dict[str, int | None]:
+    ranks = {h["component"]: i + 1 for i, h in enumerate(hits)}
+    assert truth
+    return {name: ranks.get(name) for name in sorted(truth)}
+
+
+def recall(rows: list[dict], budget: int) -> float:
+    ranks = [rank for r in rows for rank in r["ranks"].values()]
+    return sum(rank is not None and rank <= budget for rank in ranks) / len(ranks)
+
+
 def canonical_codes(sequence: str, k: int) -> np.ndarray:
     """One lossless 2-bit canonical code per start, sentinel at ambiguous k-mers."""
     if not 1 <= k <= 31:
@@ -84,7 +107,7 @@ def make_windows(
     )
 
 
-def exact_index(windows: Windows) -> tuple[sparse.csr_matrix, np.ndarray, np.ndarray]:
+def exact_index(windows: Windows) -> tuple[sparse.csc_matrix, np.ndarray, np.ndarray]:
     """Sparse binary feature matrix; transpose is the exact inverted posting index."""
     lengths = np.array([len(values) for values in windows.features], dtype=np.int64)
     flat = np.concatenate(windows.features)

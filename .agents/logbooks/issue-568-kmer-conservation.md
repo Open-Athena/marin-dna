@@ -105,3 +105,22 @@ The experiment locks the actual installed version and must not apply ordinary ba
   It can measure known-locus retrieval and collisions, but would confound a selector-enrichment test if injected homology availability were treated as an unbiased genome-wide universe.
   No selector or evolutionary-constraint claim follows from these recall values.
 - AWS's streaming public regional price list confirms `$0.7140000000/Hrs`, effective 2026-09-01, for Linux/shared/on-demand `c7i.4xlarge` in Ohio.
+
+### 2026-09-11 21:41 UTC — physical-locus audit supersedes preliminary group metrics
+
+- A further audit found six homology-linked split groups with disjoint genomic intervals in at least one species (13 group/species combinations).
+  Collapsing them for candidate budgets can combine separate genomic loci.
+  The initial figures above and in the issue comments are superseded for the issue's physical-locus metric.
+- Stopped the running MinHash comparison before any held-out query was scored.
+- Correction: retain homology-linked components for split isolation; construct query and candidate loci from within-species, same-chromosome interval overlap only.
+  Evaluate all known source-locus/target-locus pairs using original anchor identities, and count query work once even when it has several known targets.
+  Candidate retrieval itself remains unrestricted across the full target-species universe.
+- Version two preserves every sequence, coordinate interval, record ID, input order, and development/held-out assignment; an assertion checks this during relabeling.
+  Its compressed contexts SHA-256 is `ce25b2812841bc0c09cfb7ebec47a2d08168c120422a45e9827b4f292121e90b`.
+  It contains 157 human, 156 mouse, and 160 armadillo physical anchor loci while retaining 152 split groups (87 development / 65 held-out).
+  All 768 center-sequence checks still pass; every physical anchor locus is now a connected genomic interval in one species.
+- Tests now cover a source locus with two disjoint homologous targets: recall at C=1 must be 1/2, not 1, and recall at C=2 must be 1.
+  The 25-test suite passes.
+- Independent review also corrected union cost accounting: carry both constituent retrieval costs, feature/index preparation, and raw postings separately from list-fusion work.
+  Verifier resource totals explicitly cover C=100, with no claim that these are C=1 or C=10 costs.
+- Next: rerun all affected development comparisons on version two, choose from that corrected matrix, then freeze and score held-out data.
