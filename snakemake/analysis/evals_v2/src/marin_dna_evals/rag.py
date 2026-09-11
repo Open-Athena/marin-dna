@@ -26,7 +26,10 @@ from torch import Tensor
 from marin_dna_evals.hf_compat import load_hf_causal_lm_and_tokenizer
 from marin_dna_evals.inference import fwd_rc_average_f16
 from marin_dna_evals.model.runner import run_inference
-from marin_dna_evals.model.scoring import _token_id_to_nuc_idx
+from marin_dna_evals.model.scoring import (
+    _token_id_to_nuc_idx,
+    compute_variant_score_bundle,
+)
 
 BENCHMARKS = frozenset({"mendelian_traits", "complex_traits", "sge"})
 DEVELOPMENT_CHROMS = {str(number) for number in range(1, 23, 2)} | {"X"}
@@ -159,6 +162,26 @@ def transform_rag(
     }
 
 
+def transform_rag_cached(
+    row: Mapping[str, Any], *, tokenizer: Any, strand: str
+) -> dict[str, Any]:
+    """Left-pad to keep the human window and variant at fixed token positions."""
+    transformed = transform_rag(row, tokenizer=tokenizer, strand=strand)
+    length = transformed["human_start"] + WINDOW_BP
+    padding = MODEL_TOKENS - length
+    return {
+        "input_ids": np.pad(
+            transformed["input_ids"][:length],
+            (padding, 0),
+            constant_values=tokenizer.pad_token_id,
+        ),
+        "attention_mask": np.concatenate(
+            (np.zeros(padding, dtype=np.int64), np.ones(length, dtype=np.int64))
+        ),
+        "alt_token_id": transformed["alt_token_id"],
+    }
+
+
 def compute_rag_bundle(
     model: Any,
     input_ids: Tensor,
@@ -236,7 +259,7 @@ def score_rag_dataset(
     inference_kwargs: Mapping[str, Any],
     return_embeddings: bool = True,
 ) -> dict[str, np.ndarray]:
-    """Use the established Trainer loop for both strands on the same loaded model."""
+    """Use the standard cached VEP scorer for both strands and human embeddings."""
     nuc_ids = [tokenizer.encode(base, add_special_tokens=False) for base in "ACGT"]
     special_ids = [
         tokenizer.bos_token_id,
@@ -260,11 +283,14 @@ def score_rag_dataset(
                 tokenizer,
                 dataset,
                 compute_fn=partial(
-                    compute_rag_bundle,
+                    compute_variant_score_bundle,
+                    var_pos=MODEL_TOKENS - 128,
                     nuc_token_ids=torch.tensor([ids[0] for ids in nuc_ids]),
                     return_embeddings=return_embeddings,
+                    pool_lo=MODEL_TOKENS - WINDOW_BP,
+                    pool_hi=MODEL_TOKENS,
                 ),
-                data_transform_fn=partial(transform_rag, strand=strand),
+                data_transform_fn=partial(transform_rag_cached, strand=strand),
                 data_transform_on_the_fly=True,
                 inference_kwargs=dict(inference_kwargs),
             )
