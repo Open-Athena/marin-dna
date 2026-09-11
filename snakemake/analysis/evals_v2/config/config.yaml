@@ -74,6 +74,19 @@ datasets:
 # `return_embeddings`, `torch_compile`, and `bf16` are global inference settings
 # and are rejected on model entries.
 models:
+  # Issue 550: first 10,000-update checkpoint, requested for development VEP.
+  - name: dna-exp550-rag46m-five-regions-v1-step-10000
+    gcs_path: gs://marin-eu-west4/MarinDNA/exp550_rag_five_regions/checkpoints/dna-exp550-rag46m-five-regions-v1/2026.09.10.9/hf/step-10000
+    inference_backend: rag_combined
+    window_size: 255
+    document_tokens: 10240
+    batch_size: 2
+    eval_accumulation_steps: 8
+    datasets: [mendelian_traits, complex_traits, sge]
+    rag_harness:
+      uri: s3://oa-bolinas/snakemake/vertebrate_projection_dataset/results/rag-five-regions-v1/6b1593c274a886d20f5c0ddf3712916d446f5fed/10ba63bc375ba912909b82cda68143df4677431124fc8e15f6ac42850ce0fca6/full/rag/evaluation/combined_development.parquet
+      sha256: 6631d35f9ae0afc754c623a2e3960682e8a834a28001906279745882f99cb73b
+
   # Issue 550: final 100,000-update checkpoint; evaluation waits for its export.
   - name: dna-exp550-rag46m-five-regions-v1-step-100000
     gcs_path: gs://marin-eu-west4/MarinDNA/exp550_rag_five_regions/checkpoints/dna-exp550-rag46m-five-regions-v1/2026.09.10.9/hf/step-100000
@@ -1399,6 +1412,8 @@ probe:
     # Explicit per-model `datasets` (not derived): probing a legacy cell still
     # requires its existing score parquet to contain emb_ref/emb_alt. Add cells
     # here after confirming that schema or explicitly re-scoring the target.
+    - name: dna-exp550-rag46m-five-regions-v1-step-10000
+      datasets: [mendelian_traits, complex_traits, sge]
     - name: dna-exp550-rag46m-five-regions-v1-step-100000
       datasets: [mendelian_traits, complex_traits, sge]
     - name: mix-v0.9-p1B-i24-exp135-m5.1-step-59158
