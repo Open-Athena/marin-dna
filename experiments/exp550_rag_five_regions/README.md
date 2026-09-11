@@ -82,38 +82,27 @@ The full run's completion time must be based on measured pilot throughput.
 The maintained `snakemake/analysis/evals_v2` project owns combined RAG scoring, canonical benchmark metrics, and frozen probes.
 Register the exact final checkpoint and combined-harness SHA-256 in its model registry and submit the registration PR before biological inference.
 The registration must include Mendelian traits, complex traits, and SGE development cohorts and the corresponding probe cells.
-Use the experiment runtime overlay `config/rag_issue550/fp32.yaml` from that pipeline's root.
-It selects batch 2, two loader workers, compiled fp32, and an explicit TF32 disable, and records the precision decision in Snakemake provenance.
-The [synthetic GPU evidence](https://github.com/Open-Athena/marin-dna/tree/1e4e59db/.agents/artifacts/issue-550/gpu) records the failed reduced-precision candidates and the passing strict-fp32 check.
-Rerun a bounded synthetic parity check with the final checkpoint before its biological inference, since its weights differ from the pilot.
-Build only the registered final model's three metric and three probe-metric targets; those targets share one combined score computation.
-Retain the canonical `results/scores`, `results/metrics`, and `results/probe_metrics` output identities and the pipeline's existing probe and metric contracts.
-The user additionally requested VEP at the first 10,000-update checkpoint on September 11.
-Retain the final evaluation reservation when choosing compute for that additional run; any expansion of the cumulative paid cap requires the recorded budget decision.
+Use EC2 A10G with BF16 and compilation, as explicitly requested on September 11.
+The combined RAG adapter uses the existing `evals_v2` cached scoring kernel: one prefix forward, then one batched REF/ALT suffix forward.
+Inputs are left-padded to 10,240 tokens with an attention mask and unpadded position IDs, placing every human variant at token 10,112.
+Use ordinary batches without length grouping; pool the final 255 human bases for REF/ALT embeddings and retain FWD/RC averaging.
+The earlier strict-FP32 pilot and H100 run are historical evidence; their numerical tolerance gate does not override this BF16 choice.
+The H100 evaluation and its transfer watchers were stopped before restarting on A10G.
 
-The first checkpoint also has a verified shared-H100 runtime in `.agents/artifacts/issue-550/evaluation/step-10000-h100-parity.json`.
-Its shared runner uses the same registered development cells and locked evaluator, stages checksum-verified inputs locally, and writes the three score bundles before computing their metrics.
-It retains completed files in the organization's CoreWeave staging bucket until their bytes are verified in the canonical evals_v2 S3 locations.
-These temporary staging paths are transport intermediates; canonical publication remains an explicit recorded completion step.
-
-The bounded completion watcher reads compact Iris status and logs every fifteen minutes and exits after nine hours.
-Run it from the permanent branch's repository root with the actual inference job ID and exact consumer commit:
-
-```bash
-uv run --locked --script .agents/artifacts/issue-550/evaluation/publish-shared-results.py \
-  --stage-only --job "$job_id" --consumer-commit "$consumer_commit" \
-  --receipt /tmp/issue550-10k-completion.json
-```
-
-`--stage-only` makes no AWS calls or job submissions; it only records a completed, validated staging receipt locally.
-When execution access permits the already-authorized canonical transfer, omitting that flag submits one twenty-minute CPU job after completion, with no GPU allocation.
-The transfer uses one-hour object-scoped PUT URLs, conditional creation, and server-enforced SHA-256 checks, and then verifies the canonical objects.
-Existing conflicting files stop the transfer, and failed transfers preserve the staging outputs.
-The publisher's exact source commit is frozen when the watcher starts; its eleven bounded mock tests run through `test-publish-shared-results.py` with the same `uv run --locked --script` invocation.
+Measure the actual checkpoint with `.agents/artifacts/issue-550/evaluation/sweep-cached-bf16.py` on the GPU worker.
+The synthetic sweep uses the maintained scorer, includes tokenization, loading, both strands and embeddings, and chooses the fastest measured stable batch with GPU memory headroom.
+Use the selected batch as a per-model execution override and retain a bounded prediction-offload cadence.
+For the 10k checkpoint, `run-10k-a10g.py` verifies the staged checkpoint bytes, creates that overlay, checks the runtime against the worker deadline, and dry-runs the three canonical metric targets.
+Run it without `--execute` first and inspect the plan.
+The companion `run-10k-a10g.sh` executes it, preserves logs and recovery outputs in S3, and terminates the worker on completion or failure.
+These wrappers have the September 11 worker paths and deadline pinned; review and update them before reuse on another worker.
+The existing Snakemake S3 profile publishes the score bundles and metrics directly to their canonical paths.
+The 10k score bundles include embeddings; the final checkpoint additionally requires all three frozen-probe metric targets.
+Retain the final evaluation reservation when choosing compute for this additional run.
 
 The registered models are `dna-exp550-rag46m-five-regions-v1-step-10000` and `dna-exp550-rag46m-five-regions-v1-step-100000` in [PR #565](https://github.com/Open-Athena/marin-dna/pull/565).
 The active source is the europe-west4 version-9 export; check the tracking issue before using it after a recovery.
-The permanent branch includes the combined backend, tokenizer compatibility, strict-fp32 controls, and registration together; none of their PRs needs to be merged to reproduce this experiment.
+The permanent branch includes the combined cached backend, tokenizer compatibility, execution controls, and registration together; none of their PRs needs to be merged to reproduce this experiment.
 
 After the final export exists, stage the registered checkpoint on the shared VM before starting paid GPU time.
 The lightweight experiment helper uses normal GCS and S3 credential providers, pins GCS generations, validates model geometry and byte checksums, and writes the canonical S3 checkpoint directory with conditional puts.
@@ -135,25 +124,23 @@ Its small contract tests run with `uv run --locked --script .agents/artifacts/is
 Require a successful staging exit and a receipt with `exit_status: 0` and `applied: true` before starting the GPU worker or copying the checkpoint.
 S3 prefix existence and `.snakemake_timestamp` alone are insufficient: Snakemake can recognize a directory while a failed upload has left only some of its files.
 Retry a failed stage through the same helper so all retained objects are revalidated.
-On the GPU worker, use the same consumer commit and copy the completed S3 checkpoint into the explicit storage cache before the synthetic recheck.
+On the GPU worker, use the same consumer commit and copy the completed S3 checkpoint into the explicit storage cache before the synthetic batch sweep.
 This uses the GPU worker's normal S3 access; GCP credentials stay on the staging host.
 Run from `snakemake/analysis/evals_v2`:
 
 ```bash
 model=dna-exp550-rag46m-five-regions-v1-step-100000
-checkpoint_uri=gs://marin-eu-west4/MarinDNA/exp550_rag_five_regions/checkpoints/dna-exp550-rag46m-five-regions-v1/2026.09.10.9/hf/step-100000
 storage_prefix=/opt/issue550/storage
 checkpoint_local="$storage_prefix/s3/oa-bolinas/snakemake/analysis/evals_v2/results/checkpoints/$model"
 uv sync --locked --group genome-s3
 aws s3 sync "s3://oa-bolinas/snakemake/analysis/evals_v2/results/checkpoints/$model/" "$checkpoint_local/" --only-show-errors
-uv run --locked --group genome-s3 python ../../../.agents/artifacts/issue-550/evaluation/recheck-final-checkpoint.py \
-  --model "$model" --checkpoint "$checkpoint_local" --checkpoint-uri "$checkpoint_uri" \
-  --output /opt/issue550/final-checkpoint-parity.json
+uv run --locked --group genome-s3 python ../../../.agents/artifacts/issue-550/evaluation/sweep-cached-bf16.py \
+  --checkpoint "$checkpoint_local" --output /opt/issue550/final-batch-sweep.json
 ```
 
-The recheck retains the pilot's fixed numerical tolerances and writes its actual consumer commit, checkpoint URI, runtime, LLR/JSD and embedding errors, and measured throughput.
-It processes synthetic sequences only and exits unsuccessfully if parity fails.
-Proceed to biological inference only after that command succeeds and the measured remaining runtime fits the cumulative budget and worker shutdown deadline.
+Inspect the measured throughput, finite outputs, and memory headroom before proceeding.
+Set the selected model's batch size and `eval_accumulation_steps: 8` in an execution overlay, retaining global BF16, compilation, RC, and embeddings.
+The estimated runtime must fit the cumulative budget and worker shutdown deadline, including metric computation and uploads.
 The following target list includes all three zero-shot and frozen-probe metric outputs without widening the model registry:
 
 ```bash
@@ -161,6 +148,6 @@ targets=()
 for dataset in mendelian_traits complex_traits sge; do
   targets+=("results/metrics/$model/$dataset.parquet" "results/probe_metrics/$model/$dataset.parquet")
 done
-uv run --locked --group genome-s3 snakemake -n "${targets[@]}" --cores 2 --configfile config/rag_issue550/fp32.yaml --local-storage-prefix "$storage_prefix"
-uv run --locked --group genome-s3 snakemake "${targets[@]}" --cores 2 --configfile config/rag_issue550/fp32.yaml --local-storage-prefix "$storage_prefix"
+uv run --locked --group genome-s3 snakemake -n "${targets[@]}" --cores 2 --configfiles config/config.yaml /opt/issue550/a10g-bf16.yaml --local-storage-prefix "$storage_prefix"
+uv run --locked --group genome-s3 snakemake "${targets[@]}" --cores 2 --configfiles config/config.yaml /opt/issue550/a10g-bf16.yaml --local-storage-prefix "$storage_prefix"
 ```

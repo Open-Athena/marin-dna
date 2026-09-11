@@ -106,7 +106,7 @@ def main() -> None:
         "failed_batches": [],
         "completed": False,
     }
-    for batch in (2, 4, 8, 16, 32, 64):
+    for batch in (2, 4, 8, 12, 16, 32, 64):
         path = args.output.with_name(f"batch-{batch}.json")
         log = args.output.with_name(f"batch-{batch}.log")
         print(f"BATCH_TRIAL_START {batch}", flush=True)

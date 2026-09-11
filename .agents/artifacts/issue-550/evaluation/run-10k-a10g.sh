@@ -12,9 +12,14 @@ finish() {
   # Standard Snakemake publishes each finished rule's outputs to canonical S3.
   # Preserve any local results after a failure in a separate recovery prefix.
   for attempt in 1 2 3; do
-    if aws s3 sync /opt/issue550/storage/s3/oa-bolinas/snakemake/analysis/evals_v2/results/ "$artifact_prefix/recovery-results/" --exclude '*' --include '*.parquet' --only-show-errors &&
-       aws s3 sync /opt/issue550/batch-sweep/ "$artifact_prefix/batch-sweep/" --only-show-errors &&
-       aws s3 sync /opt/issue550/ "$artifact_prefix/runtime/" --exclude '*' --include '*.log' --include 'a10g-*.json' --include 'a10g-*.yaml' --include 'a10g-exit-status.txt' --only-show-errors; then
+    upload_failed=0
+    results=/opt/issue550/storage/s3/oa-bolinas/snakemake/analysis/evals_v2/results
+    if [[ -d "$results" ]]; then
+      aws s3 sync "$results/" "$artifact_prefix/recovery-results/" --exclude '*' --include '*.parquet' --only-show-errors || upload_failed=1
+    fi
+    aws s3 sync /opt/issue550/batch-sweep/ "$artifact_prefix/batch-sweep/" --only-show-errors || upload_failed=1
+    aws s3 sync /opt/issue550/ "$artifact_prefix/runtime/" --exclude '*' --include '*.log' --include 'a10g-*.json' --include 'a10g-*.yaml' --include 'a10g-exit-status.txt' --only-show-errors || upload_failed=1
+    if [[ "$upload_failed" == 0 ]]; then
       break
     fi
     sleep 10

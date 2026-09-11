@@ -42,6 +42,7 @@ def main() -> None:
             "pyproject.toml",
             "uv.lock",
         ],
+        cwd=ROOT,
         check=True,
     )
     batch = sweep["selected_batch"]
