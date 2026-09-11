@@ -1,0 +1,29 @@
+{
+  "synthetic_only": true,
+  "source_commit": "71476282bd6f0ce0b5cdb34d288a99fc96759d29",
+  "selection_basis": "Full A10G BF16 batch sweep at 10k; fresh batch-8 timing and finite-output check at 20k",
+  "measurements": [
+    {
+      "batch": 8,
+      "bf16": true,
+      "compiled": true,
+      "prefix_cache": true,
+      "left_padded_tokens": 10240,
+      "embeddings": true,
+      "variants_per_trial": 128,
+      "seconds": [
+        22.41406289400004,
+        22.418326304999994
+      ],
+      "variants_per_second": 5.71015742354659,
+      "peak_allocated_bytes": 13487697920,
+      "device_total_bytes": 23686938624,
+      "device": "NVIDIA A10G",
+      "torch": "2.13.0+cu130",
+      "finite_outputs": true
+    }
+  ],
+  "selected_batch": 8,
+  "projected_51623_variant_hours": 2.511265654969595,
+  "completed": true
+}

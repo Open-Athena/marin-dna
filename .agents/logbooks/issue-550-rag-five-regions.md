@@ -841,3 +841,32 @@ Its preparation read all four generation-pinned objects, validated the model geo
 The 20k weight SHA-256 is ca9c876ecc53913299908d6fa06f4d84a21cf001162ed28bbe75609e53d5ea89.
 S3 delivery uses five-minute, object-specific conditional PUT capabilities requiring both source MD5 and computed SHA-256; the coordinator never receives long-lived AWS credentials, and capabilities are not printed or persisted.
 The transfer is not complete until canonical S3 heads confirm all four sizes and server SHA-256 checksums and the completion marker is written last.
+
+## 2026-09-11 20:29 UTC (4:29 p.m. NYC) — 20k VEP running on A10G
+
+Remote staging completed successfully at 20:15:51 UTC with all four canonical S3 objects verified and the directory marker written last.
+The published receipt is `.agents/artifacts/issue-550/evaluation/step-20000-staged.json`.
+Independent review verified the GCS generation handling, SigV4 checksum and conditional-write headers, retry behavior, and capability redaction.
+
+The EC2 A10G worker launched in us-east-2 at 20:16:33 UTC as g5.xlarge, with stop-on-OS-shutdown behavior.
+Its live instance, volume, and connection details remain in private operational notes.
+The fallback shutdown is verified for 2026-09-12 00:16:08 UTC (8:16 p.m. NYC on September 11).
+Cloud-init had not completed when SSH first became available; the same absolute deadline was explicitly installed and verified before biological scoring.
+
+All 441 locked evals_v2 tests passed with five skips in 62.91 seconds on the worker.
+Fresh synthetic batch-8 timing measured 5.710157 variants/second with BF16, compilation, prefix caching, both strands, and embeddings, matching the completed 10k run.
+Both timed trials had finite outputs; peak GPU allocation was 13.49 GB.
+The batch was selected from the completed 10k sweep and checked again at 20k, rather than claiming a second full sweep.
+The new timing projects 2.5113 hours of scoring for the 51,623 development variants.
+
+The inspected normal S3-backed dry-run contains one combined RAG score job and three metric jobs, with no probe or held-out evaluation jobs.
+Biological scoring started at 20:24:10 UTC from f9518b9fa2efa6d556338742e3c9577d6ba2a7d0.
+The scorer and locked dependencies are unchanged from the tested and benchmarked 71476282 snapshot; the later commit adds completion-record recovery only.
+At 20:27 UTC, scoring was advancing at approximately 1.45 batches/second on its first strand, with 100% GPU utilization and 14,847 MiB GPU memory in use.
+The expected completion is approximately 7 p.m. NYC, including the second strand and metrics.
+
+The worker prints a compact output receipt before automatic stopping, including six local file SHA-256 hashes and independently checked canonical S3 sizes.
+That receipt distinguishes S3 size verification from server SHA verification.
+A one-minute log-recovery grace is allowed only while it fits before the hard deadline.
+The event-driven watcher retains logs and receipts on this host, checks the recovered receipt and the worker identity, then requests termination only after successful completion and retrieval.
+If recovery fails, the verified automatic stop preserves EBS for diagnosis.

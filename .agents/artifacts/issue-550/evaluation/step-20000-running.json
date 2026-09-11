@@ -1,0 +1,26 @@
+{
+  "source_commit": "71476282bd6f0ce0b5cdb34d288a99fc96759d29",
+  "shutdown_epoch": 1789172191,
+  "shutdown_nyc": "2026-09-11T20:16:31-04:00",
+  "model": "dna-exp550-rag46m-five-regions-v1-step-20000",
+  "region": "us-east-2",
+  "instance_type": "g5.xlarge",
+  "launch_time": "2026-09-11T20:16:33+00:00",
+  "scoring_source_commit": "f9518b9fa2efa6d556338742e3c9577d6ba2a7d0",
+  "scoring_started_at": "2026-09-11T20:24:10.827025+00:00",
+  "verified_scheduled_shutdown": "2026-09-12T00:16:08+00:00",
+  "os_shutdown_behavior": "stop",
+  "tests": {
+    "passed": 441,
+    "skipped": 5,
+    "seconds": 62.91
+  },
+  "dry_run_jobs": {
+    "compute_rag_scores": 1,
+    "compute_metrics": 3
+  },
+  "estimated_scoring_hours": 2.511265654969595,
+  "output_storage": "standard_snakemake_s3",
+  "completed": false,
+  "connection_details": "Retained in private operational notes."
+}
