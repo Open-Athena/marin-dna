@@ -1,0 +1,52 @@
+{
+  "model": "dna-exp550-rag46m-five-regions-v1-step-10000",
+  "source_commit": "6ed056bc1f2ec935262466509b630c04882bdc91",
+  "split": "train",
+  "cohort_sizes": {
+    "mendelian_traits": 16140,
+    "complex_traits": 11630,
+    "sge": 23853
+  },
+  "batch": 8,
+  "bf16": true,
+  "torch_compile": true,
+  "prefix_cache": true,
+  "left_padded_tokens": 10240,
+  "human_variant_position": 10112,
+  "embeddings": true,
+  "started_at_unix": 1789145146.618968,
+  "checkpoint_sha256": "a4fd7d562c61aade4f86d7a3349c5894d3a18c93357d797b6a1e3cd8171d3dad",
+  "harness_sha256": "6631d35f9ae0afc754c623a2e3960682e8a834a28001906279745882f99cb73b",
+  "completed": true,
+  "publication": "local_only",
+  "exit_status": 0,
+  "finished_at_unix": 1789154418.6717832,
+  "canonical_s3_verified": true,
+  "canonical_prefix": "s3://oa-bolinas/snakemake/analysis/evals_v2/",
+  "files": {
+    "results/scores/dna-exp550-rag46m-five-regions-v1-step-10000/mendelian_traits.parquet": {
+      "bytes": 42038173,
+      "sha256": "09d6a9849d51adcdc252c612181ab2fec38b703a12fbd58cd6e0d7c438ae6654"
+    },
+    "results/scores/dna-exp550-rag46m-five-regions-v1-step-10000/complex_traits.parquet": {
+      "bytes": 30639812,
+      "sha256": "d69ba709c0a180b83920bdb92b222a382cd62e7aced1bae586ca148399ca9ec0"
+    },
+    "results/scores/dna-exp550-rag46m-five-regions-v1-step-10000/sge.parquet": {
+      "bytes": 51901277,
+      "sha256": "11b3893b8ce42af51b03d3f1e4ab0df44593281581cea7faa61d4ae00d2d0451"
+    },
+    "results/metrics/dna-exp550-rag46m-five-regions-v1-step-10000/mendelian_traits.parquet": {
+      "bytes": 16329,
+      "sha256": "ac3257326c505ee4673ba57a591259821cf7f9da804778defb04c769f1d0b15b"
+    },
+    "results/metrics/dna-exp550-rag46m-five-regions-v1-step-10000/complex_traits.parquet": {
+      "bytes": 15839,
+      "sha256": "8a14a0bc0dace46dbe112dc7cce9b0eb47a96e264250919850580fd97f0a1045"
+    },
+    "results/metrics/dna-exp550-rag46m-five-regions-v1-step-10000/sge.parquet": {
+      "bytes": 11329,
+      "sha256": "d81dbb5c8337e078596abc481c4ab89be38ef982a018f7bb0bb6699e4f70bb49"
+    }
+  }
+}

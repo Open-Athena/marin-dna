@@ -1,0 +1,35 @@
+{
+  "model": "dna-exp550-rag46m-five-regions-v1-step-10000",
+  "split": "train",
+  "metric": "macro AUPRC",
+  "baseline_model": "exp402-rag-h640-p46m-b2m-step-29999",
+  "comparisons": {
+    "mendelian_traits": {
+      "score_type": "minus_llr_avg",
+      "value": 0.3861171456076352,
+      "se": 0.015354553182729458,
+      "baseline_value": 0.39545527208900033,
+      "baseline_se": 0.01569702593819649,
+      "difference": -0.009338126481365117,
+      "support_matches_baseline": true
+    },
+    "complex_traits": {
+      "score_type": "abs_llr_avg",
+      "value": 0.1870544186127323,
+      "se": 0.01443549351471908,
+      "baseline_value": 0.18404207564958042,
+      "baseline_se": 0.014906471158705107,
+      "difference": 0.0030123429631518928,
+      "support_matches_baseline": true
+    },
+    "sge": {
+      "score_type": "minus_llr_avg",
+      "value": 0.42526616043985926,
+      "se": 0.011328688084100738,
+      "baseline_value": 0.4767275271080021,
+      "baseline_se": 0.011537539978311525,
+      "difference": -0.05146136666814283,
+      "support_matches_baseline": true
+    }
+  }
+}

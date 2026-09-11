@@ -800,3 +800,26 @@ Four bounded tests cover partial-transfer retries, conflicting objects, missing 
 The completion hook is installed and verified on the running service; it stops the instance afterward and retains EBS if recovery is needed.
 S3 delivery is now scheduled automatically and still awaits completion of scoring and metrics.
 The earlier platform-access question is obsolete.
+
+## 2026-09-11 19:20 UTC (3:20 p.m. NYC) — First-checkpoint VEP complete
+
+The 10k checkpoint completed all 51,623 development variants with REF/ALT embeddings, both strands, standard shared-prefix caching, BF16, compilation, and batch 8 on A10G.
+The three score and three metric files were saved to the canonical evals_v2 S3 paths at 19:20:20–21 UTC.
+All six object sizes and server SHA-256 checksums were independently rechecked from the shared host.
+The standard S3-backed Snakemake dry-run reported that all requested files are present and up to date.
+The completed receipt is `.agents/artifacts/issue-550/evaluation/step-10000-completed.json`; the compact result comparison is `step-10000-development-summary.json` in the same directory.
+The local scoring and metric invocation took 9,272 seconds, including setup and output creation.
+
+Development macro AUPRC (estimate ± bootstrap SE) is 0.386117 ± 0.015355 for Mendelian, 0.187054 ± 0.014435 for Complex Traits, and 0.425266 ± 0.011329 for SGE.
+These use the existing FWD/RC-averaged LLR protocols: negative LLR for Mendelian and SGE, absolute LLR for Complex Traits.
+The mixed-region model uses each benchmark's maintained support and macro-average contract, including mature-miRNA exclusion where applicable.
+Support counts match the audited historical 46M final checkpoint exactly.
+That baseline scored 0.395455 ± 0.015697, 0.184042 ± 0.014906, and 0.476728 ± 0.011538, respectively.
+The early checkpoint's point estimates are slightly lower on Mendelian, slightly higher on Complex Traits, and lower on SGE.
+This comparison is descriptive and uses different training horizons; it is not a paired significance test or a final-checkpoint conclusion.
+Frozen probes remain scheduled for the final checkpoint; the 10k score files retain their embeddings.
+
+The A10G stopped automatically after successful saving and verification.
+It was briefly restarted solely to recover the completion log, receipts, configuration, and metric summary, then termination was requested after all durable outputs were verified.
+The H100 allocation remains released.
+At 19:42 UTC, free-TPU training reached approximately 26,400/100,000 updates with about 32 compute hours remaining.
