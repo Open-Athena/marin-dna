@@ -750,3 +750,13 @@ Execution review still blocks canonical result transfer despite the existing tas
 A read-only watcher mode records completion locally without AWS calls or further job submissions; eleven bounded contract tests and Ruff checks pass.
 Detailed operational recovery and transfer records remain in private task context while the concise scientific issue update is public.
 Training and VEP continue, and the resulting files remain in durable shared storage.
+
+## 2026-09-11 15:04 UTC — Result transfer accepted after provenance verification
+
+Anonymous checks confirmed that the exact three registered benchmark revisions are public and ungated.
+The scoring implementation combines those canonical benchmark rows with model scores and embeddings.
+The existing workflow output destination and public-access protections were reconfirmed.
+Execution review accepted the completion transfer after receiving this additional payload-provenance evidence; no permissions-mode change was needed.
+The bounded completion-and-transfer watcher is active, replacing the read-only watcher.
+Canonical publication is scheduled after evaluation completion and still requires its final checksum-verification receipt.
+Training reached approximately 15,900 updates at 15:02 UTC, and first-checkpoint VEP remains running.
