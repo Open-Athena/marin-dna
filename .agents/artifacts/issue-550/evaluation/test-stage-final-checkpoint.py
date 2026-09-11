@@ -92,9 +92,17 @@ class TransportTests(unittest.TestCase):
             staging.interrupt_transport()
         kill.assert_called_once_with(staging.os.getpid(), staging.signal.SIGINT)
 
-    def run_stage(self, client, *, payloads=None, corrupt_download=False, apply=True):
+    def run_stage(
+        self,
+        client,
+        *,
+        payloads=None,
+        corrupt_download=False,
+        apply=True,
+        source_root=SOURCE,
+    ):
         payloads = payloads or PAYLOADS
-        registry = {"models": [{"name": staging.MODEL, "gcs_path": SOURCE}]}
+        registry = {"models": [{"name": staging.MODEL, "gcs_path": source_root}]}
 
         def fake_gcloud(arguments, output=None):
             if arguments[0] == "objects":
@@ -174,6 +182,28 @@ class TransportTests(unittest.TestCase):
         report = self.run_stage(client, apply=False)
         self.assertFalse(report["applied"])
         self.assertEqual(client.objects, {})
+
+    def test_first_checkpoint_uses_its_own_canonical_prefix(self):
+        model = staging.MODELS[0]
+        prefix = f"snakemake/analysis/evals_v2/results/checkpoints/{model}/"
+        with (
+            patch.object(staging, "MODEL", model),
+            patch.object(staging, "PREFIX", prefix),
+        ):
+            report = self.run_stage(
+                FakeS3(), source_root=SOURCE.replace("step-100000", "step-10000")
+            )
+        self.assertEqual(report["model"], model)
+        self.assertEqual(report["destination"], f"s3://oa-bolinas/{prefix}")
+        self.assertTrue(report["applied"])
+
+    def test_checkpoint_step_mismatch_prevents_writes(self):
+        client = FakeS3()
+        with self.assertRaisesRegex(RuntimeError, "requested GCS export"):
+            self.run_stage(
+                client, source_root=SOURCE.replace("step-100000", "step-10000")
+            )
+        self.assertEqual(client.writes, [])
 
     def test_failed_guard_records_status_and_timing(self):
         with tempfile.TemporaryDirectory() as temporary:

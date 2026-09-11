@@ -33,7 +33,10 @@ from botocore.config import Config
 from botocore.exceptions import ClientError
 
 ROOT = Path(__file__).resolve().parents[4]
-MODEL = "dna-exp550-rag46m-five-regions-v1-step-100000"
+MODELS = tuple(
+    f"dna-exp550-rag46m-five-regions-v1-step-{step}" for step in (10000, 100000)
+)
+MODEL = MODELS[-1]
 BUCKET = "oa-bolinas"
 PREFIX = f"snakemake/analysis/evals_v2/results/checkpoints/{MODEL}/"
 FILES = ("config.json", "model.safetensors", "tokenizer.json", "tokenizer_config.json")
@@ -186,10 +189,11 @@ def stage(*, apply: bool) -> dict:
     )
     (model,) = [entry for entry in registry["models"] if entry["name"] == MODEL]
     source_root = model["gcs_path"].rstrip("/")
+    step = MODEL.rsplit("-", 1)[1]
     if not source_root.startswith("gs://marin-") or not source_root.endswith(
-        "/hf/step-100000"
+        f"/hf/step-{step}"
     ):
-        raise RuntimeError("The registry does not select the final GCS export")
+        raise RuntimeError("The registry does not select the requested GCS export")
     source = {}
     for name in FILES:
         source[name] = gcloud(
@@ -269,10 +273,14 @@ def stage(*, apply: bool) -> dict:
 
 
 def main() -> None:
+    global MODEL, PREFIX
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--model", choices=MODELS, default=MODELS[-1])
     parser.add_argument("--apply", action="store_true")
     parser.add_argument("--receipt", type=Path, required=True)
     args = parser.parse_args()
+    MODEL = args.model
+    PREFIX = f"snakemake/analysis/evals_v2/results/checkpoints/{MODEL}/"
     started = datetime.now(UTC).isoformat()
     start_clock = time.monotonic()
     report = {"model": MODEL, "applied": False, "exit_status": 1}

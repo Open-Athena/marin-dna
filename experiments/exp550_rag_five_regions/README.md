@@ -88,9 +88,10 @@ The [synthetic GPU evidence](https://github.com/Open-Athena/marin-dna/tree/1e4e5
 Rerun a bounded synthetic parity check with the final checkpoint before its biological inference, since its weights differ from the pilot.
 Build only the registered final model's three metric and three probe-metric targets; those targets share one combined score computation.
 Retain the canonical `results/scores`, `results/metrics`, and `results/probe_metrics` output identities and the pipeline's existing probe and metric contracts.
-Use the remaining cumulative budget only after this final-checkpoint evaluation completes.
+The user additionally requested VEP at the first 10,000-update checkpoint on September 11.
+Retain the final evaluation reservation when choosing compute for that additional run; any expansion of the cumulative paid cap requires the recorded budget decision.
 
-The registered model is `dna-exp550-rag46m-five-regions-v1-step-100000` in [PR #565](https://github.com/Open-Athena/marin-dna/pull/565).
+The registered models are `dna-exp550-rag46m-five-regions-v1-step-10000` and `dna-exp550-rag46m-five-regions-v1-step-100000` in [PR #565](https://github.com/Open-Athena/marin-dna/pull/565).
 The active source is the europe-west4 version-9 export; check the tracking issue before using it after a recovery.
 The permanent branch includes the combined backend, tokenizer compatibility, strict-fp32 controls, and registration together; none of their PRs needs to be merged to reproduce this experiment.
 
@@ -101,12 +102,14 @@ Existing S3 objects must match; it never replaces a different checkpoint.
 Run these commands from the repository root and inspect the plan before applying it:
 
 ```bash
+model=dna-exp550-rag46m-five-regions-v1-step-100000
 uv run --locked --script .agents/artifacts/issue-550/evaluation/stage-final-checkpoint.py \
-  --receipt /tmp/issue550-final-checkpoint-plan.json
+  --model "$model" --receipt /tmp/issue550-final-checkpoint-plan.json
 uv run --locked --script .agents/artifacts/issue-550/evaluation/stage-final-checkpoint.py \
-  --apply --receipt /tmp/issue550-final-checkpoint-stage.json
+  --model "$model" --apply --receipt /tmp/issue550-final-checkpoint-stage.json
 ```
 
+For the requested first checkpoint, select `dna-exp550-rag46m-five-regions-v1-step-10000` throughout, use its registered `hf/step-10000` URI, and give the receipts distinct filenames.
 The helper avoids the evaluation workflow's up-front ML imports, which exceed this shared VM's 500 MiB working-set limit.
 Its small contract tests run with `uv run --locked --script .agents/artifacts/issue-550/evaluation/test-stage-final-checkpoint.py` and perform no cloud writes.
 Require a successful staging exit and a receipt with `exit_status: 0` and `applied: true` before starting the GPU worker or copying the checkpoint.
@@ -124,7 +127,7 @@ checkpoint_local="$storage_prefix/s3/oa-bolinas/snakemake/analysis/evals_v2/resu
 uv sync --locked --group genome-s3
 aws s3 sync "s3://oa-bolinas/snakemake/analysis/evals_v2/results/checkpoints/$model/" "$checkpoint_local/" --only-show-errors
 uv run --locked --group genome-s3 python ../../../.agents/artifacts/issue-550/evaluation/recheck-final-checkpoint.py \
-  --checkpoint "$checkpoint_local" --checkpoint-uri "$checkpoint_uri" \
+  --model "$model" --checkpoint "$checkpoint_local" --checkpoint-uri "$checkpoint_uri" \
   --output /opt/issue550/final-checkpoint-parity.json
 ```
 

@@ -20,18 +20,22 @@ from marin_dna_evals.rag import score_rag_dataset
 
 def main() -> None:
     parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--model",
+        choices=[
+            "dna-exp550-rag46m-five-regions-v1-step-10000",
+            "dna-exp550-rag46m-five-regions-v1-step-100000",
+        ],
+        default="dna-exp550-rag46m-five-regions-v1-step-100000",
+    )
     parser.add_argument("--checkpoint", required=True)
     parser.add_argument("--output", required=True)
     parser.add_argument("--checkpoint-uri", required=True)
     args = parser.parse_args()
     registry = yaml.safe_load(Path("config/config.yaml").read_text())
-    model = next(
-        entry
-        for entry in registry["models"]
-        if entry["name"] == "dna-exp550-rag46m-five-regions-v1-step-100000"
-    )
+    model = next(entry for entry in registry["models"] if entry["name"] == args.model)
     if args.checkpoint_uri != model["gcs_path"]:
-        raise ValueError("checkpoint URI differs from the final model registration")
+        raise ValueError("checkpoint URI differs from the requested model registration")
     output = Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)
     torch.set_num_threads(2)
@@ -76,6 +80,7 @@ def main() -> None:
             ["git", "rev-parse", "HEAD"], text=True
         ).strip(),
         "checkpoint": args.checkpoint_uri,
+        "registered_model": args.model,
         "local_checkpoint": str(Path(args.checkpoint).resolve()),
         "training_source_commit": "ddff6e1fa59dcc7dc386fe08c954cdec69224a2e",
         "runtime": {
