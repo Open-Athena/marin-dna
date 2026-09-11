@@ -1,0 +1,149 @@
+pipeline_version: v1
+selection_path: config/assembly_canary3.tsv
+
+window:
+  length: 511
+  stride: 128
+  max_repeat_fraction: 0.5
+
+manifest:
+  taxon: mammalia
+  datasets_version: 18.36.0
+  query_reference_only: true
+  source_bucket: oa-bolinas
+  source_prefix: snakemake/training_dataset/dataset_creation/results/genome
+
+staging:
+  destination_bucket: oa-bolinas
+  destination_prefix: snakemake/analysis/linclust_conservation/inputs/genomes
+
+smoke:
+  seed: 521
+  candidates_per_assembly: 2000
+  batch_size: 250000
+  max_alignment_edges: 100000
+
+phylop:
+  url: https://hgdownload.soe.ucsc.edu/goldenPath/hg38/phyloP447way/hg38.phyloP447way.bw
+  threshold: 2.2162
+
+mmseqs:
+  candidate_release: 18.8cc5c
+  order_seeds: [0, 1, 2]
+  min_sequence_identity: 0.5
+  coverage: 0.8
+  coverage_mode: 0
+  evalue: 0.001
+  kmers_per_sequence: 20
+  spaced_kmer_mode: 0
+  mask_lower_case: 1
+  low_complexity_masking: 1
+  cluster_mode: 0
+  alignment_kmer_length: 11
+  alignment_split_memory_limit: 4G
+
+homology_fixture:
+  max_anchors: 128
+  candidate_anchors: 1024
+  sequence_mode: center-expanded
+  selection_window_length: 255
+  sources:
+    - label: human
+      species: Homo sapiens
+      assembly: hg38
+      uri: s3://oa-bolinas/staging/vertebrate_projection_dataset/v1/06549d8f7f3ba76151b9c54a5e52d3e3f4402a2d/full/sequences/human_reference.parquet
+      etag: ed35649b61c39215f25b183f941b94f7-10
+      size_bytes: 81423428
+      genome_uri: s3://oa-bolinas/staging/vertebrate_projection_dataset/v1/06549d8f7f3ba76151b9c54a5e52d3e3f4402a2d/full/reference/hg38.2bit
+      genome_etag: 9436b7f9bf626c7b69a10208f6fbb0d2-100
+      genome_size_bytes: 835393456
+    - label: mouse
+      species: Mus musculus
+      assembly: GCF_000001635.26
+      uri: s3://oa-bolinas/staging/vertebrate_projection_dataset/v1/06549d8f7f3ba76151b9c54a5e52d3e3f4402a2d/full/sequences/hal/Mus_musculus.parquet
+      etag: 736d7b520b21362c5a1fc4cdf00f06eb-10
+      size_bytes: 79942737
+      genome_uri: s3://oa-bolinas/staging/vertebrate_projection_dataset/v1/06549d8f7f3ba76151b9c54a5e52d3e3f4402a2d/full/hal/genomes/Mus_musculus.2bit
+      genome_etag: 6f309ae37bbcbc11916d0519e79de73a-93
+      genome_size_bytes: 772419769
+    - label: armadillo
+      species: Dasypus novemcinctus
+      assembly: GCF_000208655.1
+      uri: s3://oa-bolinas/staging/vertebrate_projection_dataset/v1/06549d8f7f3ba76151b9c54a5e52d3e3f4402a2d/full/sequences/hal/Dasypus_novemcinctus.parquet
+      etag: e5fab8d96ea494d36efae82884387b32-10
+      size_bytes: 78728906
+      genome_uri: s3://oa-bolinas/staging/vertebrate_projection_dataset/v1/06549d8f7f3ba76151b9c54a5e52d3e3f4402a2d/full/hal/genomes/Dasypus_novemcinctus.2bit
+      genome_etag: b069f26c207bf5e0bba34c4dd8ce954b-120
+      genome_size_bytes: 1000605773
+
+tuning:
+  variants:
+    baseline:
+      coverage: 0.8
+      min_sequence_identity: 0.5
+      kmers_per_sequence: 20
+      kmer_per_sequence_scale: 0.2
+      spaced_kmer_mode: 0
+    best_255_recipe:
+      coverage: 0.7
+      min_sequence_identity: 0.4
+      kmers_per_sequence: 20
+      kmer_per_sequence_scale: 0.5
+      spaced_kmer_mode: 1
+    dense_spaced:
+      coverage: 0.7
+      min_sequence_identity: 0.4
+      kmers_per_sequence: 20
+      kmer_per_sequence_scale: 1.0
+      spaced_kmer_mode: 1
+
+exhaustive_graph:
+  variants:
+    kmer_s75_setcover:
+      prefilter_mode: 0
+      sensitivity: 7.5
+      cluster_mode: 0
+      min_sequence_identity: 0.5
+      coverage: 0.8
+      max_sequences: 384
+      spaced_kmer_mode: 1
+      mask_lower_case: 1
+      low_complexity_masking: 1
+      split_memory_limit: 12G
+      timeout: 10m
+    nofilter_setcover:
+      prefilter_mode: 2
+      sensitivity: 7.5
+      cluster_mode: 0
+      min_sequence_identity: 0.5
+      coverage: 0.8
+      max_sequences: 384
+      spaced_kmer_mode: 1
+      mask_lower_case: 1
+      low_complexity_masking: 1
+      split_memory_limit: 12G
+      timeout: 10m
+    nofilter_relaxed:
+      prefilter_mode: 2
+      sensitivity: 7.5
+      cluster_mode: 0
+      min_sequence_identity: 0.4
+      coverage: 0.7
+      max_sequences: 384
+      spaced_kmer_mode: 1
+      mask_lower_case: 1
+      low_complexity_masking: 1
+      split_memory_limit: 12G
+      timeout: 10m
+    nofilter_evalue_only:
+      prefilter_mode: 2
+      sensitivity: 7.5
+      cluster_mode: 0
+      min_sequence_identity: 0.0
+      coverage: 0.0
+      max_sequences: 384
+      spaced_kmer_mode: 1
+      mask_lower_case: 1
+      low_complexity_masking: 1
+      split_memory_limit: 12G
+      timeout: 10m

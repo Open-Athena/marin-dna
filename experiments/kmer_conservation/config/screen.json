@@ -1,0 +1,13 @@
+{
+  "seed": 568,
+  "window_lengths": [64, 128, 255, 511, 1024],
+  "kmer_lengths": [9, 13, 17, 21],
+  "stride_divisor": 2,
+  "context_length": 4096,
+  "backgrounds_per_species": 1000,
+  "additional_anchors": 128,
+  "candidate_budgets": [1, 10, 100],
+  "heldout_fraction": 0.4,
+  "representation_gate": {"development_recall_at_10": 0.8, "development_injected_decoy_fraction_at_10_max": 0.1},
+  "interpretation": "Exploratory retrieval; unannotated genomic hits are unresolved. No conservation or training-benefit claim from projected centers."
+}
