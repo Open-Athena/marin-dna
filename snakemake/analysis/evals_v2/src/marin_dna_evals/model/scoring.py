@@ -156,6 +156,7 @@ def compute_variant_score_bundle(
     *,
     var_pos: int,
     nuc_token_ids: Int[Tensor, " 4"],
+    attention_mask: Int[Tensor, "B L"] | None = None,
     return_embeddings: bool = False,
     pool_lo: int | None = None,
     pool_hi: int | None = None,
@@ -202,6 +203,9 @@ def compute_variant_score_bundle(
         var_pos: Token-level variant position (Python int, constant within batch).
         nuc_token_ids: Length-4 tensor of token IDs for A/C/G/T in
             ``NUCLEOTIDES`` order.
+        attention_mask: Optional mask for left-padded documents. Masked prefix
+            tokens are excluded from attention, and real tokens retain their
+            unpadded position IDs across the cached prefix and allele suffixes.
         return_embeddings: If True, also emit the entire-window mean-pooled
             last-layer hidden states for ref and alt — captured from the **same
             two** (prefix, suffix) forwards (no extra pass) via a forward hook on
@@ -250,6 +254,20 @@ def compute_variant_score_bundle(
     suffixes = torch.stack([ref_suffix, alt_suffix], dim=1)  # [B, 2, L-p]
     suffixes_flat = rearrange(suffixes, "B V L -> (B V) L").contiguous()
 
+    prefix_kwargs = {}
+    suffix_kwargs = {}
+    if attention_mask is not None:
+        assert attention_mask.shape == input_ids.shape
+        position_ids = (attention_mask.long().cumsum(-1) - 1).clamp_min(0)
+        prefix_kwargs = {
+            "attention_mask": attention_mask[:, :p].contiguous(),
+            "position_ids": position_ids[:, :p].contiguous(),
+        }
+        suffix_kwargs = {
+            "attention_mask": attention_mask.repeat_interleave(2, dim=0),
+            "position_ids": position_ids[:, p:].repeat_interleave(2, dim=0),
+        }
+
     # 1-2. Prefix + suffix forwards. When pooling embeddings, capture each
     #      forward's last_hidden_state via a forward hook on the base model.
     #      output_hidden_states=True would instead materialize EVERY layer's
@@ -272,11 +290,13 @@ def compute_variant_score_bundle(
     try:
         # Prefix forward — only need logits at the last prefix position (predicts
         # the variant token); skip the lm_head for the rest.
-        prefix_out = model(prefix, use_cache=True, logits_to_keep=1)
+        prefix_out = model(prefix, use_cache=True, logits_to_keep=1, **prefix_kwargs)
         prefix_last_logits = prefix_out.logits[:, -1]  # [B, V]
         past_kv = _repeat_interleave_kv_cache(prefix_out.past_key_values, 2)
         # Suffix forward with cached prefix.
-        suffix_out = model(suffixes_flat, past_key_values=past_kv, use_cache=False)
+        suffix_out = model(
+            suffixes_flat, past_key_values=past_kv, use_cache=False, **suffix_kwargs
+        )
     finally:
         if hook is not None:
             hook.remove()
