@@ -184,3 +184,27 @@ The experiment locks the actual installed version and must not apply ordinary ba
 - Decision: stop before selector enrichment under the issue's failed-index gate.
   Promote the valid homology-retrieval and limiting-stage findings, with explicit limits on conservation inference, complexity controls, and scale.
   No genome-scale run or training was launched.
+
+### 2026-09-11 22:33 UTC — archive, independent review, and resource closeout
+
+- Complete archive: `s3://oa-bolinas/issues/568/v2/74e51fdfa6f387d7e5191e3f05bd6d22f29bd770/`.
+  All 356 files (93,113,339 bytes) were uploaded and verified by round-trip SHA-256, including the regenerated fixture, per-locus predictions, synthetic controls, resource logs, and the task-only code snapshot.
+  `manifest.json` SHA-256: `774efe24e2d15562eb5a12191ad3fbad19e2f9baded73e9708adbc9510485d2a`.
+  Its local copy is `.agents/artifacts/issue-568-kmer-conservation/archive_manifest.json`.
+- Automatic approval review initially rejected a full-repository transfer and an unverified S3 destination.
+  The documentation check used only the four changed documents/figures and the check configuration.
+  S3 ownership was then verified through ListBuckets and an expected-owner HeadBucket check for AWS account `836683583872`; all four public-access blocks were enabled.
+  The repository's prescribed issue-owned path in that verified private bucket was subsequently approved.
+  No unrelated repository source or credentials were transferred.
+- Interpretation PR: https://github.com/Open-Athena/marin-dna/pull/569.
+  Independent review of the published diff at `4b6a77cc761ef5413508b7ccbdfff07c364ed781` found no actionable issues after checking numeric tables, synthetic diagnostics, frozen selection, figures, and inferential scope.
+  Pinned pre-commit checks, document-relative links, SVG parsing, and all PR checks pass.
+  The PR is ready for human review; it has not been merged.
+- Instance `i-060389732f44b3395` was terminated by request at `2026-09-11T22:30:23Z`; terminated state was confirmed by `22:32:28Z`.
+  Volume `vol-02428034ffbccf9ed` was deleted; DescribeVolumes returned `InvalidVolume.NotFound`.
+- Compute estimate: $1.10928 through the termination request, or a conservative $1.13407 through the later terminated-state observation at the verified $0.714/hour rate.
+  Retaining the original less-than-$0.20 disk/IPv4 planning allowance bounds the total estimate below $1.34, well within the user-authorized $30.
+  The actual invoice was not retrieved; see `closeout.json` and the archived AWS price receipt.
+- Final disposition: interpretation PR open.
+  Keep issue #568 open until that PR merges under the knowledge-base gate.
+  The bounded experiment is complete; no selector enrichment, genome-scale indexing, or training was performed after the failed index gate.
