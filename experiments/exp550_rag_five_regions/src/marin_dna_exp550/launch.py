@@ -279,9 +279,7 @@ def build_training(
         raise ValueError("this launch requires a verified free TPU region")
     if tpu_variant not in {"v6e-8", "v6e-4"}:
         raise ValueError("supported TPU variants are v6e-8 and v6e-4")
-    expected_prefix = (
-        f"gs://{region_buckets[region]}/MarinDNA/exp550_rag_five_regions"
-    )
+    expected_prefix = f"gs://{region_buckets[region]}/MarinDNA/exp550_rag_five_regions"
     if os.environ.get("MARIN_PREFIX") != expected_prefix:
         raise ValueError(f"MARIN_PREFIX must be {expected_prefix}")
     run_id = "dna-exp550-rag46m-five-regions-v1" + (
@@ -307,7 +305,7 @@ def build_training(
         tpu_variant,
         regions=[region],
         cpu=16,
-        ram="48g",
+        ram="48g" if pilot else "256g",
         disk="80g",
         preemptible=True,
     )

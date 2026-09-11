@@ -55,6 +55,9 @@ It defaults to `us-east1`; `--region us-east5` selects the verified capacity fal
 The European fallback uses `--region europe-west4` and `MARIN_PREFIX=gs://marin-eu-west4/MarinDNA/exp550_rag_five_regions`; the bucket name differs from the canonical GCP region.
 Its synthetic pilots append `-europe-west4` to the run identity to preserve the earlier US pilot's W&B history.
 It requests 80 GiB of local scratch within the pool's 100 GiB per-VM limit; tokenized caches and checkpoints are written to GCS.
+Production reserves 256 GiB of host RAM after the original 48 GiB container exhausted its limit during training; synthetic pilots retain 48 GiB.
+The experiment adapter limits training-loader buffering and fetch lookahead to eight batches each while retaining upstream batching, shuffling, and resume order.
+Resume the same production output version to reuse its tokenized data and let the native loader select the newest complete checkpoint, excluding partial checkpoints without metadata.
 The host allocation reserves 48 GiB RAM and 16 CPU cores; tokenization streams through two workers with batches of 128 documents.
 Use `--tpu-variant v6e-4` when eight-chip capacity is unavailable, after validating a synthetic pilot on four chips.
 It preserves the model, optimizer, 200-document effective batch, and schedule; four chips with microbatch 5 accumulate ten microbatches per update.

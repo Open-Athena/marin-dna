@@ -140,3 +140,28 @@ def test_four_chip_fallback_preserves_recipe_and_separates_pilot(monkeypatch):
         launch.build_training(
             {}, pilot=True, per_device=5, region="us-east1", tpu_variant="v6e-16"
         )
+
+
+def test_production_memory_reservation_preserves_training_recipe(monkeypatch):
+    monkeypatch.setenv(
+        "MARIN_PREFIX", "gs://marin-eu-west4/MarinDNA/exp550_rag_five_regions"
+    )
+    monkeypatch.setattr(launch, "resolve_version", lambda *_: "2026.09.10.9")
+    step = launch.build_training({}, pilot=False, per_device=5, region="europe-west4")
+    request = step.build_config(
+        SimpleNamespace(
+            output_path="gs://marin-eu-west4/MarinDNA/exp550_rag_five_regions/checkpoints/dna-exp550-rag46m-five-regions-v1/2026.09.10.9",
+            runtime_arg=lambda key: step.runtime_args[key],
+        )
+    )
+    assert request.pod.resources == ResourceConfig.with_tpu(
+        "v6e-8",
+        regions=["europe-west4"],
+        cpu=16,
+        ram="256g",
+        disk="80g",
+        preemptible=True,
+    )
+    assert request.pod.train_config.trainer.train_batch_size == 200
+    assert request.pod.train_config.trainer.num_train_steps == 100000
+    assert request.pod.train_config.trainer.per_device_parallelism == 5

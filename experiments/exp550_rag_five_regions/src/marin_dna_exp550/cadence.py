@@ -9,7 +9,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+from haliax import Axis
 from levanter.adaptor import AdaptorConfig, AdaptorExportConfig, NoAdaptorConfig
+from levanter.data.dataset import AsyncDataset
+from levanter.data.loader import DataLoader
 from levanter.trainer import StepInfo, TrainerHooks
 
 MILESTONE_CALLBACKS = {
@@ -17,6 +20,21 @@ MILESTONE_CALLBACKS = {
     ("levanter.compat.hf_checkpoints", "save_hf_checkpoint_callback.<locals>.cb"),
     ("levanter.eval", "cb_tagged_lm_evaluate.<locals>.eval_callback"),
 }
+
+
+def bound_training_loader(trainer: Any) -> None:
+    """Bound lookahead without changing the original loader's batch or shuffle."""
+    original = trainer.data_loader
+
+    def create(
+        dataset: AsyncDataset[Any], batch: Axis | int | None = None
+    ) -> DataLoader[Any]:
+        loader = original(dataset, batch)
+        loader.max_buffered_batches = 8
+        loader.fetch_batch_size = 8
+        return loader
+
+    trainer.data_loader = create
 
 
 def callback_identity(callback: Any) -> tuple[str, str]:
@@ -74,3 +92,5 @@ class CompletedUpdateAdaptor(NoAdaptorConfig):
             trainer=trainer, converter=converter, tokenizer=tokenizer, export=export
         )
         trainer.hooks = CompletedUpdateHooks.from_existing(trainer.hooks)
+        # Upstream constructs the training loader after installing export hooks.
+        bound_training_loader(trainer)

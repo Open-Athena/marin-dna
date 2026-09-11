@@ -2,7 +2,11 @@ from types import SimpleNamespace
 
 import pytest
 from levanter.trainer import StepInfo, TrainerHooks
-from marin_dna_exp550.cadence import MILESTONE_CALLBACKS, CompletedUpdateHooks
+from marin_dna_exp550.cadence import (
+    MILESTONE_CALLBACKS,
+    CompletedUpdateHooks,
+    bound_training_loader,
+)
 
 
 def test_completed_update_milestones_preserve_state_and_other_metrics():
@@ -36,3 +40,20 @@ def test_completed_update_milestones_preserve_state_and_other_metrics():
 def test_fail_closed_when_pinned_callback_registration_changes():
     with pytest.raises(ValueError, match="callbacks changed"):
         CompletedUpdateHooks.from_existing(TrainerHooks())
+
+
+def test_loader_bounds_preserve_original_dataset_batch_and_loader():
+    dataset, batch = object(), object()
+    loader = SimpleNamespace(max_buffered_batches=128, fetch_batch_size=32)
+    calls = []
+
+    def original(data, requested_batch):
+        calls.append((data, requested_batch))
+        return loader
+
+    trainer = SimpleNamespace(data_loader=original)
+    bound_training_loader(trainer)
+    assert trainer.data_loader(dataset, batch) is loader
+    assert calls == [(dataset, batch)]
+    assert loader.max_buffered_batches == 8
+    assert loader.fetch_batch_size == 8
