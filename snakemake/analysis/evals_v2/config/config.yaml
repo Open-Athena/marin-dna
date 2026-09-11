@@ -80,7 +80,20 @@ models:
     inference_backend: rag_combined
     window_size: 255
     document_tokens: 10240
-    batch_size: 2
+    batch_size: 8
+    eval_accumulation_steps: 8
+    datasets: [mendelian_traits, complex_traits, sge]
+    rag_harness:
+      uri: s3://oa-bolinas/snakemake/vertebrate_projection_dataset/results/rag-five-regions-v1/6b1593c274a886d20f5c0ddf3712916d446f5fed/10ba63bc375ba912909b82cda68143df4677431124fc8e15f6ac42850ce0fca6/full/rag/evaluation/combined_development.parquet
+      sha256: 6631d35f9ae0afc754c623a2e3960682e8a834a28001906279745882f99cb73b
+
+  # Issue 550: 20,000-update checkpoint, requested for development VEP.
+  - name: dna-exp550-rag46m-five-regions-v1-step-20000
+    gcs_path: gs://marin-eu-west4/MarinDNA/exp550_rag_five_regions/checkpoints/dna-exp550-rag46m-five-regions-v1/2026.09.10.9/hf/step-20000
+    inference_backend: rag_combined
+    window_size: 255
+    document_tokens: 10240
+    batch_size: 8
     eval_accumulation_steps: 8
     datasets: [mendelian_traits, complex_traits, sge]
     rag_harness:
@@ -93,7 +106,7 @@ models:
     inference_backend: rag_combined
     window_size: 255
     document_tokens: 10240
-    batch_size: 2
+    batch_size: 8
     eval_accumulation_steps: 8
     datasets: [mendelian_traits, complex_traits, sge]
     rag_harness:
@@ -1413,6 +1426,8 @@ probe:
     # requires its existing score parquet to contain emb_ref/emb_alt. Add cells
     # here after confirming that schema or explicitly re-scoring the target.
     - name: dna-exp550-rag46m-five-regions-v1-step-10000
+      datasets: [mendelian_traits, complex_traits, sge]
+    - name: dna-exp550-rag46m-five-regions-v1-step-20000
       datasets: [mendelian_traits, complex_traits, sge]
     - name: dna-exp550-rag46m-five-regions-v1-step-100000
       datasets: [mendelian_traits, complex_traits, sge]
