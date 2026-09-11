@@ -91,6 +91,26 @@ Retain the canonical `results/scores`, `results/metrics`, and `results/probe_met
 The user additionally requested VEP at the first 10,000-update checkpoint on September 11.
 Retain the final evaluation reservation when choosing compute for that additional run; any expansion of the cumulative paid cap requires the recorded budget decision.
 
+The first checkpoint also has a verified shared-H100 runtime in `.agents/artifacts/issue-550/evaluation/step-10000-h100-parity.json`.
+Its shared runner uses the same registered development cells and locked evaluator, stages checksum-verified inputs locally, and writes the three score bundles before computing their metrics.
+It retains completed files in the organization's CoreWeave staging bucket until their bytes are verified in the canonical evals_v2 S3 locations.
+These temporary staging paths are transport intermediates; canonical publication remains an explicit recorded completion step.
+
+The bounded completion watcher reads compact Iris status and logs every fifteen minutes and exits after nine hours.
+Run it from the permanent branch's repository root with the actual inference job ID and exact consumer commit:
+
+```bash
+uv run --locked --script .agents/artifacts/issue-550/evaluation/publish-shared-results.py \
+  --stage-only --job "$job_id" --consumer-commit "$consumer_commit" \
+  --receipt /tmp/issue550-10k-completion.json
+```
+
+`--stage-only` makes no AWS calls or job submissions; it only records a completed, validated staging receipt locally.
+When execution access permits the already-authorized canonical transfer, omitting that flag submits one twenty-minute CPU job after completion, with no GPU allocation.
+The transfer uses one-hour object-scoped PUT URLs, conditional creation, and server-enforced SHA-256 checks, and then verifies the canonical objects.
+Existing conflicting files stop the transfer, and failed transfers preserve the staging outputs.
+The publisher's exact source commit is frozen when the watcher starts; its eleven bounded mock tests run through `test-publish-shared-results.py` with the same `uv run --locked --script` invocation.
+
 The registered models are `dna-exp550-rag46m-five-regions-v1-step-10000` and `dna-exp550-rag46m-five-regions-v1-step-100000` in [PR #565](https://github.com/Open-Athena/marin-dna/pull/565).
 The active source is the europe-west4 version-9 export; check the tracking issue before using it after a recovery.
 The permanent branch includes the combined backend, tokenizer compatibility, strict-fp32 controls, and registration together; none of their PRs needs to be merged to reproduce this experiment.

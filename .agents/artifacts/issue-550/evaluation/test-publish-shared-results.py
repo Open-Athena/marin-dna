@@ -41,6 +41,30 @@ def fixture() -> dict:
 
 
 class Contracts(unittest.TestCase):
+    def test_stage_only_never_accesses_aws_or_submits_a_job(self):
+        with (
+            tempfile.TemporaryDirectory() as folder,
+            patch.object(
+                module.subprocess,
+                "check_output",
+                side_effect=["a" * 40, Path(module.__file__).read_bytes()],
+            ),
+            patch.object(module, "completed_receipt", return_value=fixture()),
+            patch.object(module.boto3, "client") as service,
+            patch.object(module, "submit_private") as submit,
+        ):
+            receipt = Path(folder) / "receipt.json"
+            module.watch(
+                "/gonzalo/dna-exp550-10k-vep-h100-test",
+                "a" * 40,
+                receipt,
+                stage_only=True,
+            )
+            service.assert_not_called()
+            submit.assert_not_called()
+            self.assertTrue(receipt.exists())
+            self.assertNotIn("canonical_published", json.loads(receipt.read_text()))
+
     def test_exact_completed_receipt(self):
         module.validate_receipt(fixture(), "a" * 40)
 

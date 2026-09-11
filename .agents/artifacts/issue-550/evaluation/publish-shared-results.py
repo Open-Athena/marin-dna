@@ -204,7 +204,9 @@ def submit_private(command: list[str], root: Path) -> subprocess.CompletedProces
     return result
 
 
-def watch(job: str, commit: str, receipt_path: Path) -> None:
+def watch(
+    job: str, commit: str, receipt_path: Path, *, stage_only: bool = False
+) -> None:
     source_prefix(commit)
     if not job.startswith("/gonzalo/dna-exp550-10k-vep-h100-") or not re.fullmatch(
         r"/[a-z0-9/-]+", job
@@ -246,6 +248,9 @@ def watch(job: str, commit: str, receipt_path: Path) -> None:
     else:
         raise TimeoutError("Evaluation watch reached its nine-hour deadline")
     receipt_path.write_text(json.dumps(receipt, indent=2) + "\n")
+    if stage_only:
+        print("VEP_COMPLETE_STAGED " + str(receipt_path), flush=True)
+        return
     aws = boto3.client(
         "s3",
         region_name="us-east-2",
@@ -358,13 +363,16 @@ uv run --locked --script /app/.agents/artifacts/issue-550/evaluation/publish-sha
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--worker", action="store_true")
+    parser.add_argument("--stage-only", action="store_true")
     parser.add_argument("--consumer-commit", required=True)
     parser.add_argument("--job")
     parser.add_argument("--receipt", type=Path)
     args = parser.parse_args()
     if args.worker:
+        if args.stage_only:
+            parser.error("--stage-only applies only to the read-only watcher")
         worker(args.consumer_commit)
     else:
         if args.job is None or args.receipt is None:
             parser.error("watch mode requires --job and --receipt")
-        watch(args.job, args.consumer_commit, args.receipt)
+        watch(args.job, args.consumer_commit, args.receipt, stage_only=args.stage_only)

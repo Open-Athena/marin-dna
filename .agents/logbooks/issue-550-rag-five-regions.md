@@ -733,3 +733,20 @@ Automatic approval review initially rejected that retry on checkpoint-egress gro
 No new user consent was requested for that resolved restriction, and no reusable AWS credentials were copied.
 The second attempt exposed a missing Python.h in the image's system Python before scoring; the next attempt uses a separate uv-managed Python 3.13 environment with the same locked dependencies.
 All these synthetic checks use one H100, a 30-minute timeout, and zero automatic retries; biological VEP has not yet run.
+
+## 2026-09-11 13:49 UTC — First-checkpoint VEP running on shared H100
+
+The actual 10k checkpoint passed all predefined strict-fp32 eager/repeat/compiler gates on an H100.
+Measured throughput was 3.2789 variants per second, projecting 4.37 hours for the 51,623 development variants before metrics.
+The already-published parity receipt records the numerical checks and runtime.
+A storage-addressing preflight failure was corrected and independently reviewed; the replacement passed input checks, durable-storage checks, and the maintained Snakemake dry-run before starting combined inference at 13:33 UTC.
+It computes the three development score bundles with embeddings and zero-shot metrics; final-checkpoint frozen probes remain in the original scope.
+Predictions are saved durably before the metrics phase.
+Production training separately reached approximately 13,000 updates at 13:44 UTC, with roughly 38–39 compute hours remaining.
+The shared GPU route preserves the existing paid cap.
+
+The completion-transfer helper passed independent review after fixes for submission-error redaction and two completion races.
+Execution review still blocks canonical result transfer despite the existing task authorization, so an owner-controlled permissions-mode change is pending.
+A read-only watcher mode records completion locally without AWS calls or further job submissions; eleven bounded contract tests and Ruff checks pass.
+Detailed operational recovery and transfer records remain in private task context while the concise scientific issue update is public.
+Training and VEP continue, and the resulting files remain in durable shared storage.
