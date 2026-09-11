@@ -38,7 +38,7 @@ The workflow placed every retained tile in one database and lacked distributed s
 This argues against further tuning of unordered short-window clustering for this purpose, while leaving targeted local alignment and methods with positional, syntenic, or anchor evidence as distinct directions.
 
 The [local k-mer follow-up](../experiments/568-kmer-conservation.md) recovered 97.1% of held-out mammalian homology pairs at ten unique candidate loci using complete k-mer sets, showing that local sequence similarity survives even when the earlier clustering recipe misses it.
-The tested MinHash/LSH settings did not improve the recall–runtime frontier over exact indexes, denser tiling and a two-scale union did not raise aggregate held-out recall, and strict full-window verification discarded most recovered pairs.
+The tested MinHash/LSH settings did not improve the recall–runtime frontier over exact indexes, quarter-window stride at W255/k9 and a two-scale union did not raise aggregate held-out recall over the selected half-stride representation, and strict full-window verification discarded most recovered pairs.
 This separates useful homology retrieval from a viable conservation selector: the study stopped before enrichment or training, and its homology-enriched candidate universe could not support an unbiased conservation-enrichment claim.
 
 The leading hypothesis is that increasing the density of constrained or correctly annotated sequence improves functional-VEP sample efficiency at fixed compute.
@@ -96,8 +96,6 @@ It should retain a background arm so gains on functional VEP can be weighed agai
   All four loss-ranked half-token objectives harmed Mendelian missense-plus-splicing AUPRC, while pure final-checkpoint teacher KL beat uniform CE at step 200 within the paired evaluation records; one seed, privileged later-lineage supervision, and unmatched per-step compute limit the inference.
 - [Anchor-free clustering of mammalian genome windows](../experiments/521-linclust-conservation.md) tested Linclust, exhaustive alignment controls, longer windows, hash ensembles, denser seeds, DECIPHER, and a source-aware seed graph against projected homology.
   The tested symmetric short-window recipes missed too many known pairs or admitted too many genomic decoys, and the single-database workflow failed at the exact 20-genome scale without a distributed path to all animals or eukaryotes, so this path was stopped without a phyloP selector or training run.
-
-
 - [Local k-mer retrieval of mammalian homologs](../experiments/568-kmer-conservation.md) found strong complete-set similarity on a bounded human/mouse/armadillo fixture, recovering 97.1% of held-out pairs at ten unique candidate loci.
   Sampled MinHash/LSH settings failed to improve the recall–runtime frontier over exact indexes, and projected homology, weak complexity controls, and independently sampled backgrounds did not establish conservation enrichment or training value.
 
