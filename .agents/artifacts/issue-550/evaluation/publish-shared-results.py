@@ -166,6 +166,44 @@ def task_state(job: str) -> str:
     )["task"]["state"]
 
 
+def completed_receipt(job: str, commit: str) -> dict | None:
+    logs = iris_command(
+        "job",
+        "logs",
+        job,
+        "--substring",
+        "VEP_DEVELOPMENT_COMPLETE",
+        "--max-lines",
+        "5",
+    )
+    matches = [
+        line.split("VEP_DEVELOPMENT_COMPLETE ", 1)[1]
+        for line in logs.splitlines()
+        if "VEP_DEVELOPMENT_COMPLETE " in line
+    ]
+    if not matches:
+        return None
+    receipt = json.loads(matches[-1])
+    validate_receipt(receipt, commit)
+    return receipt
+
+
+def submit_private(command: list[str], root: Path) -> subprocess.CompletedProcess:
+    try:
+        result = subprocess.run(
+            command, cwd=root, capture_output=True, text=True, timeout=120
+        )
+    except (subprocess.TimeoutExpired, OSError):
+        raise RuntimeError(
+            "Publication submission failed or timed out; inspect job status before retrying"
+        ) from None
+    if result.returncode:
+        raise RuntimeError(
+            "Publication job submission failed; completed outputs remain in CoreWeave"
+        )
+    return result
+
+
 def watch(job: str, commit: str, receipt_path: Path) -> None:
     source_prefix(commit)
     if not job.startswith("/gonzalo/dna-exp550-10k-vep-h100-") or not re.fullmatch(
@@ -190,29 +228,17 @@ def watch(job: str, commit: str, receipt_path: Path) -> None:
         raise ValueError("Publisher must run from its committed source")
     deadline = time.monotonic() + 9 * 3600
     while time.monotonic() < deadline:
-        logs = iris_command(
-            "job",
-            "logs",
-            job,
-            "--substring",
-            "VEP_DEVELOPMENT_COMPLETE",
-            "--max-lines",
-            "5",
-        )
-        matches = [
-            line.split("VEP_DEVELOPMENT_COMPLETE ", 1)[1]
-            for line in logs.splitlines()
-            if "VEP_DEVELOPMENT_COMPLETE " in line
-        ]
-        if matches:
-            receipt = json.loads(matches[-1])
-            validate_receipt(receipt, commit)
+        receipt = completed_receipt(job, commit)
+        if receipt is not None:
             break
         if task_state(job) in {
             "TASK_STATE_FAILED",
             "TASK_STATE_KILLED",
             "TASK_STATE_SUCCEEDED",
         }:
+            receipt = completed_receipt(job, commit)
+            if receipt is not None:
+                break
             raise RuntimeError(
                 "Evaluation ended without a completed six-object receipt; inspect retained Iris logs"
             )
@@ -291,13 +317,7 @@ uv run --locked --script /app/.agents/artifacts/issue-550/evaluation/publish-sha
             script,
         ]
         # Never expose secret-bearing command arguments through an exception.
-        submitted = subprocess.run(
-            command, cwd=root, capture_output=True, text=True, timeout=120
-        )
-        if submitted.returncode:
-            raise RuntimeError(
-                "Publication job submission failed; completed outputs remain in CoreWeave"
-            )
+        submitted = submit_private(command, root)
         publish_job = next(
             line
             for line in submitted.stdout.splitlines()
@@ -316,6 +336,11 @@ uv run --locked --script /app/.agents/artifacts/issue-550/evaluation/publish-sha
                 "TASK_STATE_KILLED",
                 "TASK_STATE_SUCCEEDED",
             }:
+                if all(
+                    existing_matches(aws, path, item)
+                    for path, item in receipt["files"].items()
+                ):
+                    break
                 raise RuntimeError(
                     "Publication job ended before all canonical objects verified"
                 )

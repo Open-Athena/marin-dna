@@ -6,9 +6,13 @@
 
 import copy
 import importlib.util
+import json
+import subprocess
+import tempfile
+import traceback
 import unittest
 from pathlib import Path
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 from botocore.exceptions import ClientError
 
@@ -119,6 +123,72 @@ class Contracts(unittest.TestCase):
             module.existing_matches(
                 client, "example", {"bytes": 100, "sha256": "b" * 64}
             )
+
+    def test_submission_exceptions_hide_private_arguments(self):
+        private_argv = ["iris", "signed-url-value-for-test"]
+        for error in [subprocess.TimeoutExpired(private_argv, 120), OSError("failure")]:
+            with self.subTest(error=type(error).__name__):
+                with patch.object(module.subprocess, "run", side_effect=error):
+                    try:
+                        module.submit_private(private_argv, Path("/tmp"))
+                    except RuntimeError:
+                        self.assertNotIn(private_argv[-1], traceback.format_exc())
+                    else:
+                        self.fail("Submission exception was not handled")
+
+    def test_receipt_arriving_at_termination_is_rechecked(self):
+        with (
+            tempfile.TemporaryDirectory() as folder,
+            patch.object(
+                module.subprocess,
+                "check_output",
+                side_effect=["a" * 40, Path(module.__file__).read_bytes()],
+            ),
+            patch.object(
+                module, "completed_receipt", side_effect=[None, fixture()]
+            ) as read,
+            patch.object(module, "task_state", return_value="TASK_STATE_SUCCEEDED"),
+            patch.object(module.boto3, "client"),
+            patch.object(module, "existing_matches", return_value=True),
+            patch.object(
+                module.time, "sleep", side_effect=AssertionError("Unexpected sleep")
+            ),
+        ):
+            receipt = Path(folder) / "receipt.json"
+            module.watch("/gonzalo/dna-exp550-10k-vep-h100-test", "a" * 40, receipt)
+            self.assertEqual(read.call_count, 2)
+            self.assertTrue(json.loads(receipt.read_text())["canonical_published"])
+
+    def test_objects_arriving_at_termination_are_rechecked(self):
+        with (
+            tempfile.TemporaryDirectory() as folder,
+            patch.object(
+                module.subprocess,
+                "check_output",
+                side_effect=["a" * 40, Path(module.__file__).read_bytes()],
+            ),
+            patch.object(module, "completed_receipt", return_value=fixture()),
+            patch.object(module, "task_state", return_value="TASK_STATE_SUCCEEDED"),
+            patch.object(module.boto3, "client") as service,
+            patch.object(
+                module, "existing_matches", side_effect=[False] * 7 + [True] * 6
+            ) as check,
+            patch.object(
+                module,
+                "submit_private",
+                return_value=subprocess.CompletedProcess(
+                    [], 0, "/gonzalo/dna-exp550-10k-publish-test\n"
+                ),
+            ),
+            patch.object(
+                module.time, "sleep", side_effect=AssertionError("Unexpected sleep")
+            ),
+        ):
+            service.return_value.generate_presigned_url.return_value = "private-url"
+            receipt = Path(folder) / "receipt.json"
+            module.watch("/gonzalo/dna-exp550-10k-vep-h100-test", "a" * 40, receipt)
+            self.assertEqual(check.call_count, 13)
+            self.assertTrue(json.loads(receipt.read_text())["canonical_published"])
 
 
 if __name__ == "__main__":
