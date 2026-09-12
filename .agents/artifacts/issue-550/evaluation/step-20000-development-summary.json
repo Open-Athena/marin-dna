@@ -1,0 +1,42 @@
+{
+  "model": "dna-exp550-rag46m-five-regions-v1-step-20000",
+  "split": "train",
+  "metric": "macro AUPRC",
+  "previous_checkpoint_model": "dna-exp550-rag46m-five-regions-v1-step-10000",
+  "baseline_model": "exp402-rag-h640-p46m-b2m-step-29999",
+  "comparisons": {
+    "mendelian_traits": {
+      "score_type": "minus_llr_avg",
+      "value": 0.35266859365764536,
+      "se": 0.014500077064148595,
+      "previous_checkpoint_value": 0.3861171456076352,
+      "previous_checkpoint_se": 0.015354553182729458,
+      "difference_from_10k": -0.03344855194998986,
+      "baseline_value": 0.39545527208900033,
+      "baseline_se": 0.01569702593819649,
+      "support_matches_baseline": true
+    },
+    "complex_traits": {
+      "score_type": "abs_llr_avg",
+      "value": 0.15583214971613274,
+      "se": 0.010717134107984848,
+      "previous_checkpoint_value": 0.1870544186127323,
+      "previous_checkpoint_se": 0.01443549351471908,
+      "difference_from_10k": -0.03122226889659957,
+      "baseline_value": 0.18404207564958042,
+      "baseline_se": 0.014906471158705107,
+      "support_matches_baseline": true
+    },
+    "sge": {
+      "score_type": "minus_llr_avg",
+      "value": 0.43154565772122916,
+      "se": 0.011175229797979953,
+      "previous_checkpoint_value": 0.42526616043985926,
+      "previous_checkpoint_se": 0.011328688084100738,
+      "difference_from_10k": 0.006279497281369895,
+      "baseline_value": 0.4767275271080021,
+      "baseline_se": 0.011537539978311525,
+      "support_matches_baseline": true
+    }
+  }
+}

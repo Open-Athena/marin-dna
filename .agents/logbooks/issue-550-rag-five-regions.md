@@ -870,3 +870,30 @@ That receipt distinguishes S3 size verification from server SHA verification.
 A one-minute log-recovery grace is allowed only while it fits before the hard deadline.
 The event-driven watcher retains logs and receipts on this host, checks the recovered receipt and the worker identity, then requests termination only after successful completion and retrieval.
 If recovery fails, the verified automatic stop preserves EBS for diagnosis.
+
+## 2026-09-12 01:14 UTC (9:14 p.m. NYC, September 11) — 20k results verified
+
+The 20k evaluation finished at 22:58:49 UTC on September 11 (6:58 p.m. NYC), after 9,278 seconds of standard S3-backed scoring and metrics.
+All 51,623 development variants and REF/ALT embeddings completed, using the same harness, cohorts, cached BF16 scorer, batch 8, full padding, and strand averaging as 10k.
+All six canonical score and metric files were independently streamed back from S3 and matched the recorded byte lengths and SHA-256 hashes.
+The bounded verification held the shared-node heavy-work lock and resource guard, took 2.79 seconds, and peaked at 58.4 MB RSS.
+
+| Development macro AUPRC | 10k | 20k | Difference |
+| --- | ---: | ---: | ---: |
+| Mendelian | 0.386117 ± 0.015355 | 0.352669 ± 0.014500 | -0.033449 |
+| Complex Traits | 0.187054 ± 0.014435 | 0.155832 ± 0.010717 | -0.031222 |
+| SGE | 0.425266 ± 0.011329 | 0.431546 ± 0.011175 | +0.006279 |
+
+Uncertainty is bootstrap standard error, using the maintained negative-LLR protocol for Mendelian/SGE and absolute-LLR protocol for Complex Traits.
+These are development results for the broad mixed-region model, with the maintained mature-miRNA exclusions and macro-support gates.
+The exact macro support matches the historical cohort audit: Mendelian eight subsets and 16,100 rows; Complex Traits six subsets and 11,270 rows; SGE eight qualifying accessions and 3,501 positive observations under its pipeline contract.
+The 20k point estimates are lower on both trait benchmarks and slightly higher on SGE than at 10k.
+This is a descriptive checkpoint comparison, not a paired significance test or a conclusion about the final checkpoint.
+The completed receipt and comparison are `step-20000-completed.json` and `step-20000-development-summary.json` under `.agents/artifacts/issue-550/evaluation/`.
+
+The live log stream retained the complete scoring log and final scientific receipt before the worker stopped automatically.
+The additional SCP recovery failed because the scheduled shutdown refused new SSH logins, so the watcher correctly withheld automatic termination.
+Future recovery must copy ancillary setup logs before scheduling shutdown or transfer the final records over the already-established connection; a one-minute shutdown grace does not guarantee new-login access.
+No restart was needed: the streamed log and receipt plus independently verified S3 outputs contained the required evidence.
+The stopped worker was terminated at 01:14 UTC after verification; the EC2 termination response reported the terminated state.
+The 20k compute ran for about 2 hours 43 minutes, within its four-hour allowance, and the final VEP/probe reservation remains intact.
