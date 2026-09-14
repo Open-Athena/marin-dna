@@ -1,4 +1,4 @@
-"""Shared pytest fixtures for tests."""
+"""Shared pytest fixtures for the root project's tests."""
 
 from pathlib import Path
 
