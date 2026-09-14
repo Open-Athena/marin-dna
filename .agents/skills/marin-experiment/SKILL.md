@@ -57,13 +57,16 @@ Watch the first minutes of a new script, dependency set, or compute configuratio
 
 Use event-driven status tools or coarse polling that respects shared-node safety. Do not rely on submission success as evidence that the coordinator or workers started.
 
-## Emit the experiment record (`.experiment.json`)
+## Emit The Experiment Record
 
-Every experiment writes an experiment-level provenance record on success — the `dna-exp<N>` counterpart of marin's per-step `.artifact.json` ([`ArtifactRecord`](https://github.com/marin-community/marin/blob/0554ce869c6dee2a3a7c00bc9caa9e2994ac435d/lib/marin/src/marin/execution/artifact.py#L149)): one `.experiment.json` tying the experiment's identity (name + tracking issue), pinned inputs, arms/wandb run ids, and checkpoint output paths together, so the experiment is catalogable and reproducible from storage alone rather than only via wandb + the issue thread.
+On success, write one experiment-level provenance record: `<prefix>/experiments/dna-exp<N>/.experiment.json`.
+It is the experiment-grain counterpart of Marin's per-step [`ArtifactRecord`](https://github.com/marin-community/marin/blob/0554ce869c6dee2a3a7c00bc9caa9e2994ac435d/lib/marin/src/marin/execution/artifact.py#L149) (`.artifact.json`): it ties the experiment's identity (name and tracking issue), pinned inputs, arms and W&B run ids, and checkpoint output paths together, so the experiment is catalogable and reproducible from storage alone.
+Write it beside, not inside, the run directories so it never collides with Marin's own `.artifact.json` at step output paths.
 
-The writer lives in the library — `marin_dna.experiment_record` (`ExperimentRecord`, `ExperimentDep`, `ExperimentRun`, `write_experiment_record`) — and validates the conventions loudly at construction: `name` must be `dna-exp<N>` with `<N>` equal to the tracking-issue number, every dep revision a full 40-hex sha (branch names are not pins), and every `run_id` must carry `dna-exp<N>` (the wandb filter convention).
+The writer is `marin_dna.experiment_record` (`ExperimentRecord`, `ExperimentDep`, `ExperimentRun`, `write_experiment_record`).
+It validates the conventions at construction and again on read: `name` must be `dna-exp<N>` with `<N>` equal to the tracking-issue number, every dep revision must be a full 40-hex sha (branch names are not pins), and every `run_id` must carry `dna-exp<N>` so W&B runs filter by experiment.
 
-In `launch.py`, after the runner returns (it raises on failure, so this only runs on success):
+In the launch module, after the runner returns (it raises on failure, so this only runs on success):
 
 ```python
 from rigging.filesystem import marin_prefix, prefix_join
@@ -74,7 +77,7 @@ from marin_dna.experiment_record import (
 
 def main() -> None:
     steps = {arm: build_arm(arm) for arm in selected_arms()}
-    StepRunner().run([lower(step) for step in steps.values()])  # or experiment_main(...)
+    run_steps(steps.values())  # whatever runner the selected Marin release uses
     record = ExperimentRecord(
         name=NAME,  # "dna-exp<N>"
         issue=f"https://github.com/Open-Athena/marin-dna/issues/{N}",
@@ -95,10 +98,8 @@ def main() -> None:
     write_experiment_record(record, prefix_join(marin_prefix(), f"experiments/{NAME}"))
 ```
 
-- **Record prefix convention:** `<marin_prefix>/experiments/dna-exp<N>/.experiment.json` — one record per experiment, beside (not inside) the run dirs, so it never collides with marin's own `.artifact.json` at step output paths.
-- `step.path()` resolves the same output path the run wrote (new-API `ArtifactStep`; same idiom as `scripts/canary/validate_canary_metrics.py`, which passes `prefix="mirror://"` for region-agnostic reads). **Unverified on a live launch:** confirm `marin_prefix()`/`.path()` defaults agree with where your runs actually wrote the first time you use this.
-- `gs://` writes need `gcsfs` where `launch.py` runs — present in the experiment env via marin.
-- The weekly canary deliberately has **no `marin_dna` dep** (transformers conflict — see its docstring), so it does not emit a record; real experiments depend on `marin_dna` anyway (e.g. `DNALmDatasetFormat`) and must.
+- `step.path()` resolves the output path a step wrote under the current lazy-artifact API. Verify the resolved paths against where the runs actually wrote the first time you use this with a new Marin release.
+- Remote-store writes need the matching fsspec backend (for example `gcsfs` for `gs://`) importable where the launch module runs; the Marin experiment environment provides it.
 
 ## Diagnose By Symptom
 
