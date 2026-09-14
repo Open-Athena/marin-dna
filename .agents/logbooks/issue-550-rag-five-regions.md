@@ -975,3 +975,17 @@ It requested termination at 17:57:27 UTC after verification; a fresh EC2 read co
 Compute from launch to termination request was approximately 3.09 A10G hours, about $3.11 before disk charges, well within the sixteen-hour reservation and original cumulative cap.
 The final published launch receipts also passed independent review with no findings.
 Evaluation is complete; the broader experiment still needs its final research interpretation and knowledge-base disposition before issue closure.
+
+## 2026-09-14 18:35 UTC — Final performance by subset
+
+The requested final-checkpoint subset report is in `step-100000-subsets.md`, with exact values, support counts, and source hashes in `step-100000-subsets.json`.
+All six small metric Parquets were downloaded from canonical S3 and matched the final receipt's SHA-256 hashes before selection.
+The bounded PyArrow reader peaked at approximately 61 MB RSS under the shared-node lock and guard.
+The report follows the broad-model subset ordering, excludes mature miRNA, and omits Complex Traits splicing and synonymous because they have 19 and 17 positive match groups.
+The SGE probe metric intentionally omits pooled Both because separately fitted subset classifiers are not comparable across subsets.
+Matched-data zero-shot and probe columns retain their distinct aggregation contracts.
+
+Inspection found that the stored zero-shot metric frame still includes mature-miRNA groups, despite the evaluation policy's earlier exclusion requirement.
+The reported eligible-subset macro is unaffected: the four mature-miRNA groups are below the 30-positive support gate, and every displayed subset and macro support count was checked.
+Issue #574 records the mainline filtering inconsistency; no existing S3 outputs were rewritten.
+An independent review of the final macro receipt, comparison, and completion logbook found no numeric or interpretation issues.
