@@ -8,6 +8,7 @@ schedule_tz: America/New_York
 # scrub-docs-code-parity
 
 Use this skill on scheduled scrub turns for docs/code parity in `Open-Athena/marin-dna`.
+Its scheduler is the `.github/workflows/scrub-docs-code-parity.yml` workflow; a manual `workflow_dispatch` of that workflow is also a scheduler invocation, though it does not replace or reset the daily cadence.
 
 ## Focus
 
@@ -22,7 +23,7 @@ Use this skill on scheduled scrub turns for docs/code parity in `Open-Athena/mar
 - If implementation is clearly wrong relative to documented intent, update code and docs together.
 - Keep scope small and land one useful parity improvement per run when possible.
 - Do not edit a vendored skill (one listed under `unchanged` or `adapted` in a vendor manifest).
-  Record the needed correction with `file-issue` for the next vendor refresh instead.
+  Record the needed correction with `file-issue` for the next vendor refresh instead; the scrub turn is the explicit request to file, so file directly without waiting for interactive approval.
 - If no material drift is found, choose a no-op outcome and keep cadence near daily.
 
 ## Output

@@ -8,6 +8,7 @@ schedule_tz: America/New_York
 # scrub-reflection-self-improvement
 
 Use this skill on scheduled scrub turns to identify and land high-leverage improvements in `Open-Athena/marin-dna`.
+Its scheduler is the `.github/workflows/scrub-reflection-self-improvement.yml` workflow; a manual `workflow_dispatch` of that workflow is also a scheduler invocation, though it does not replace or reset the daily cadence.
 
 ## Focus
 
@@ -41,7 +42,7 @@ When possible, prefer improvements that remove recurring operator time (for exam
 - When an improvement changes recurring workflow guidance, codify it in durable repo instructions: `AGENTS.md` for cross-cutting agent behavior, or `.agents/skills/` for repeatable task workflows.
   Follow the skill conventions in `AGENTS.md`.
 - Do not edit a vendored skill (one listed under `unchanged` or `adapted` in a vendor manifest).
-  Record the needed correction with `file-issue` for the next vendor refresh instead.
+  Record the needed correction with `file-issue` for the next vendor refresh instead; the scrub turn is the explicit request to file, so file directly without waiting for interactive approval.
 - If no justified improvement exists now, choose a no-op outcome.
 - Prefer direct implementation over opening new issues when the change is fully in-repo and low-risk.
 
