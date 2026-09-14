@@ -456,6 +456,7 @@ version = "0.0.1"
 source = { editable = "../../" }
 dependencies = [
     { name = "biopython" },
+    { name = "fsspec" },
     { name = "numpy" },
     { name = "polars" },
     { name = "polars-bio" },
@@ -466,6 +467,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "biopython", specifier = ">=1.85" },
+    { name = "fsspec" },
     { name = "numpy" },
     { name = "polars" },
     { name = "polars-bio", specifier = ">=0.33.0,<0.34.0" },
