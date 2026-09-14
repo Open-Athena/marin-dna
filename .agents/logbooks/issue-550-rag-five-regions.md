@@ -989,3 +989,20 @@ Inspection found that the stored zero-shot metric frame still includes mature-mi
 The reported eligible-subset macro is unaffected: the four mature-miRNA groups are below the 30-positive support gate, and every displayed subset and macro support count was checked.
 Issue #574 records the mainline filtering inconsistency; no existing S3 outputs were rewritten.
 An independent review of the final macro receipt, comparison, and completion logbook found no numeric or interpretation issues.
+
+## 2026-09-14 18:44 UTC — Final RAG versus GPN-Star
+
+The user requested a GPN-Star comparison following the subset report.
+The three canonical GPN-Star metric Parquets were read from `s3://oa-bolinas/snakemake/gpn_star_eval/results/metrics/`.
+The archived pipeline source at 00a4e3530310a2c42b85702800bdc71428c829f6 confirms identical development dataset revisions and benchmark metric contracts.
+Every displayed support count matches RAG for V, M, and P.
+The bounded reader peaked at approximately 62 MB RSS; no inference, metric recomputation, or paid compute was needed.
+
+Final RAG macro AUPRC is 0.4407 Mendelian, 0.1578 Complex Traits, and 0.5093 SGE.
+The corresponding GPN-Star M values are 0.5380, 0.2781, and 0.5157.
+GPN-Star V is strongest on SGE at 0.5585, so the near-M point estimate does not eliminate the GPN-Star family gap.
+RAG exceeds all three GPN-Star variants on the displayed Mendelian synonymous and SGE splicing point estimates.
+All six eligible Complex Traits subsets trail all three GPN-Star variants; the larger Mendelian deficits are distal, ncRNA, and promoter.
+The comparison uses GPN-Star's standard calibrated LLR and RAG's registered LLR, and makes no paired significance or equivalence claim.
+No matched GPN-Star frozen-probe result is available in the registered baseline.
+The full values, bootstrap SEs, differences, source hashes, and support checks are in `step-100000-vs-gpnstar.json` and the companion Markdown report.

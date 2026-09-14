@@ -1,0 +1,926 @@
+{
+  "model": "dna-exp550-rag46m-five-regions-v1-step-100000",
+  "split": "train",
+  "gpnstar_score": "Registered calibrated LLR; signed for Mendelian/SGE and absolute for Complex Traits",
+  "source_pipeline_commit": "00a4e3530310a2c42b85702800bdc71428c829f6",
+  "metric": "AUPRC",
+  "scope": "Broad models; official development cohorts; mature miRNA excluded; only supported subsets",
+  "source_files": {
+    "mendelian_traits": {
+      "uri": "s3://oa-bolinas/snakemake/gpn_star_eval/results/metrics/mendelian_traits.parquet",
+      "bytes": 7856,
+      "sha256": "33245a5f2bec824bc61b3ef25819998158c11c4163cecea0c84612b1f7120254"
+    },
+    "complex_traits": {
+      "uri": "s3://oa-bolinas/snakemake/gpn_star_eval/results/metrics/complex_traits.parquet",
+      "bytes": 7585,
+      "sha256": "079b48cc9160ebf6c26d4d1462c9fd201112d637b473b4dcd09495975195699c"
+    },
+    "sge": {
+      "uri": "s3://oa-bolinas/snakemake/gpn_star_eval/results/metrics/sge.parquet",
+      "bytes": 14287,
+      "sha256": "bdca784922260f780ddd90c179e992f248ada533343fa2ac9f0f119bcbd98b9d"
+    }
+  },
+  "datasets": {
+    "mendelian_traits": [
+      {
+        "subset": "_macro_avg_",
+        "label": "Macro average",
+        "our_zero_shot": {
+          "score_type": "minus_llr_avg",
+          "subset": "_macro_avg_",
+          "value": 0.44073301423421496,
+          "se": 0.014756952150823552,
+          "n_groups": 8,
+          "n_rows": 16100,
+          "group_smd_value": null,
+          "group_smd_se": null,
+          "group_smd_ci_low": null,
+          "group_smd_ci_high": null,
+          "group_smd_confidence_level": null,
+          "group_smd_available": false,
+          "group_smd_unavailable_reason": "group_smd_not_defined_for_macro_average",
+          "group_smd_uncertainty_method": null,
+          "group_smd_n_bootstrap": 1000,
+          "group_smd_n_bootstrap_valid": 0,
+          "model": "dna-exp550-rag46m-five-regions-v1-step-100000",
+          "dataset": "mendelian_traits",
+          "split": "train"
+        },
+        "gpnstar": {
+          "GPN-Star-V": {
+            "value": 0.5002883568430614,
+            "se": 0.015643621712371977,
+            "our_minus_gpnstar": -0.05955534260884643,
+            "score_type": "minus_llr_calibrated"
+          },
+          "GPN-Star-M": {
+            "value": 0.5379810805782158,
+            "se": 0.014919904107904986,
+            "our_minus_gpnstar": -0.09724806634400085,
+            "score_type": "minus_llr_calibrated"
+          },
+          "GPN-Star-P": {
+            "value": 0.44470869988945994,
+            "se": 0.01455280828135776,
+            "our_minus_gpnstar": -0.003975685655244976,
+            "score_type": "minus_llr_calibrated"
+          }
+        }
+      },
+      {
+        "subset": "missense_variant",
+        "label": "Missense",
+        "our_zero_shot": {
+          "score_type": "minus_llr_avg",
+          "subset": "missense_variant",
+          "value": 0.6011223553614773,
+          "se": 0.019264382087700968,
+          "n_groups": 580,
+          "n_rows": 5800,
+          "group_smd_value": 1.88787774439169,
+          "group_smd_se": 0.0682771031698029,
+          "group_smd_ci_low": 1.7608986388592045,
+          "group_smd_ci_high": 2.030786457377174,
+          "group_smd_confidence_level": 0.95,
+          "group_smd_available": true,
+          "group_smd_unavailable_reason": null,
+          "group_smd_uncertainty_method": "joint_match_group_bootstrap_percentile",
+          "group_smd_n_bootstrap": 1000,
+          "group_smd_n_bootstrap_valid": 1000,
+          "model": "dna-exp550-rag46m-five-regions-v1-step-100000",
+          "dataset": "mendelian_traits",
+          "split": "train"
+        },
+        "gpnstar": {
+          "GPN-Star-V": {
+            "value": 0.6808882427536014,
+            "se": 0.01683617908367969,
+            "our_minus_gpnstar": -0.07976588739212409,
+            "score_type": "minus_llr_calibrated"
+          },
+          "GPN-Star-M": {
+            "value": 0.6307756835057544,
+            "se": 0.01807731357017182,
+            "our_minus_gpnstar": -0.029653328144277125,
+            "score_type": "minus_llr_calibrated"
+          },
+          "GPN-Star-P": {
+            "value": 0.5132615618373509,
+            "se": 0.019671677836763792,
+            "our_minus_gpnstar": 0.08786079352412635,
+            "score_type": "minus_llr_calibrated"
+          }
+        }
+      },
+      {
+        "subset": "splicing",
+        "label": "Splicing",
+        "our_zero_shot": {
+          "score_type": "minus_llr_avg",
+          "subset": "splicing",
+          "value": 0.5963928588728175,
+          "se": 0.02827960714834159,
+          "n_groups": 319,
+          "n_rows": 3190,
+          "group_smd_value": 1.5445085683365731,
+          "group_smd_se": 0.0877613820603345,
+          "group_smd_ci_low": 1.3800680465662034,
+          "group_smd_ci_high": 1.721786521283396,
+          "group_smd_confidence_level": 0.95,
+          "group_smd_available": true,
+          "group_smd_unavailable_reason": null,
+          "group_smd_uncertainty_method": "joint_match_group_bootstrap_percentile",
+          "group_smd_n_bootstrap": 1000,
+          "group_smd_n_bootstrap_valid": 1000,
+          "model": "dna-exp550-rag46m-five-regions-v1-step-100000",
+          "dataset": "mendelian_traits",
+          "split": "train"
+        },
+        "gpnstar": {
+          "GPN-Star-V": {
+            "value": 0.5288894656226829,
+            "se": 0.025821874242685786,
+            "our_minus_gpnstar": 0.06750339325013455,
+            "score_type": "minus_llr_calibrated"
+          },
+          "GPN-Star-M": {
+            "value": 0.626489422627245,
+            "se": 0.023641955173517214,
+            "our_minus_gpnstar": -0.030096563754427597,
+            "score_type": "minus_llr_calibrated"
+          },
+          "GPN-Star-P": {
+            "value": 0.5332103314335278,
+            "se": 0.025136873647161485,
+            "our_minus_gpnstar": 0.06318252743928965,
+            "score_type": "minus_llr_calibrated"
+          }
+        }
+      },
+      {
+        "subset": "5_prime_UTR_variant",
+        "label": "5\u2032 UTR",
+        "our_zero_shot": {
+          "score_type": "minus_llr_avg",
+          "subset": "5_prime_UTR_variant",
+          "value": 0.4403977859148695,
+          "se": 0.03364556907711643,
+          "n_groups": 210,
+          "n_rows": 2100,
+          "group_smd_value": 0.9840321092523264,
+          "group_smd_se": 0.09086454786335135,
+          "group_smd_ci_low": 0.8094839181307594,
+          "group_smd_ci_high": 1.1691472218648151,
+          "group_smd_confidence_level": 0.95,
+          "group_smd_available": true,
+          "group_smd_unavailable_reason": null,
+          "group_smd_uncertainty_method": "joint_match_group_bootstrap_percentile",
+          "group_smd_n_bootstrap": 1000,
+          "group_smd_n_bootstrap_valid": 1000,
+          "model": "dna-exp550-rag46m-five-regions-v1-step-100000",
+          "dataset": "mendelian_traits",
+          "split": "train"
+        },
+        "gpnstar": {
+          "GPN-Star-V": {
+            "value": 0.46007602410980986,
+            "se": 0.033836121663382214,
+            "our_minus_gpnstar": -0.019678238194940356,
+            "score_type": "minus_llr_calibrated"
+          },
+          "GPN-Star-M": {
+            "value": 0.4363912512969669,
+            "se": 0.0341156904589194,
+            "our_minus_gpnstar": 0.004006534617902624,
+            "score_type": "minus_llr_calibrated"
+          },
+          "GPN-Star-P": {
+            "value": 0.3542967431608492,
+            "se": 0.0312495472036318,
+            "our_minus_gpnstar": 0.08610104275402031,
+            "score_type": "minus_llr_calibrated"
+          }
+        }
+      },
+      {
+        "subset": "tss_proximal",
+        "label": "Promoter",
+        "our_zero_shot": {
+          "score_type": "minus_llr_avg",
+          "subset": "tss_proximal",
+          "value": 0.30793702931808586,
+          "se": 0.02779267633796512,
+          "n_groups": 205,
+          "n_rows": 2050,
+          "group_smd_value": 0.8900903401258352,
+          "group_smd_se": 0.08420953405585453,
+          "group_smd_ci_low": 0.7360195199242936,
+          "group_smd_ci_high": 1.075464343617365,
+          "group_smd_confidence_level": 0.95,
+          "group_smd_available": true,
+          "group_smd_unavailable_reason": null,
+          "group_smd_uncertainty_method": "joint_match_group_bootstrap_percentile",
+          "group_smd_n_bootstrap": 1000,
+          "group_smd_n_bootstrap_valid": 1000,
+          "model": "dna-exp550-rag46m-five-regions-v1-step-100000",
+          "dataset": "mendelian_traits",
+          "split": "train"
+        },
+        "gpnstar": {
+          "GPN-Star-V": {
+            "value": 0.466776181455534,
+            "se": 0.03197775224060321,
+            "our_minus_gpnstar": -0.15883915213744815,
+            "score_type": "minus_llr_calibrated"
+          },
+          "GPN-Star-M": {
+            "value": 0.49565608238157605,
+            "se": 0.03115364960842076,
+            "our_minus_gpnstar": -0.18771905306349018,
+            "score_type": "minus_llr_calibrated"
+          },
+          "GPN-Star-P": {
+            "value": 0.4004020791807506,
+            "se": 0.03110676160478863,
+            "our_minus_gpnstar": -0.09246504986266474,
+            "score_type": "minus_llr_calibrated"
+          }
+        }
+      },
+      {
+        "subset": "non_coding_transcript_exon_variant",
+        "label": "ncRNA",
+        "our_zero_shot": {
+          "score_type": "minus_llr_avg",
+          "subset": "non_coding_transcript_exon_variant",
+          "value": 0.44282932011832615,
+          "se": 0.048193321255092236,
+          "n_groups": 115,
+          "n_rows": 1150,
+          "group_smd_value": 1.2124331439692202,
+          "group_smd_se": 0.11518399099788494,
+          "group_smd_ci_low": 1.0209927230286784,
+          "group_smd_ci_high": 1.4616722227473713,
+          "group_smd_confidence_level": 0.95,
+          "group_smd_available": true,
+          "group_smd_unavailable_reason": null,
+          "group_smd_uncertainty_method": "joint_match_group_bootstrap_percentile",
+          "group_smd_n_bootstrap": 1000,
+          "group_smd_n_bootstrap_valid": 1000,
+          "model": "dna-exp550-rag46m-five-regions-v1-step-100000",
+          "dataset": "mendelian_traits",
+          "split": "train"
+        },
+        "gpnstar": {
+          "GPN-Star-V": {
+            "value": 0.5840622445622561,
+            "se": 0.04405594116681667,
+            "our_minus_gpnstar": -0.14123292444392993,
+            "score_type": "minus_llr_calibrated"
+          },
+          "GPN-Star-M": {
+            "value": 0.6574203022855274,
+            "se": 0.04011639592134732,
+            "our_minus_gpnstar": -0.21459098216720124,
+            "score_type": "minus_llr_calibrated"
+          },
+          "GPN-Star-P": {
+            "value": 0.5974455763039065,
+            "se": 0.04108325646342336,
+            "our_minus_gpnstar": -0.15461625618558034,
+            "score_type": "minus_llr_calibrated"
+          }
+        }
+      },
+      {
+        "subset": "3_prime_UTR_variant",
+        "label": "3\u2032 UTR",
+        "our_zero_shot": {
+          "score_type": "minus_llr_avg",
+          "subset": "3_prime_UTR_variant",
+          "value": 0.38871921435296236,
+          "se": 0.0504746370379733,
+          "n_groups": 77,
+          "n_rows": 770,
+          "group_smd_value": 0.8748075259775228,
+          "group_smd_se": 0.12552450077203403,
+          "group_smd_ci_low": 0.6454692576894793,
+          "group_smd_ci_high": 1.1370746521441124,
+          "group_smd_confidence_level": 0.95,
+          "group_smd_available": true,
+          "group_smd_unavailable_reason": null,
+          "group_smd_uncertainty_method": "joint_match_group_bootstrap_percentile",
+          "group_smd_n_bootstrap": 1000,
+          "group_smd_n_bootstrap_valid": 1000,
+          "model": "dna-exp550-rag46m-five-regions-v1-step-100000",
+          "dataset": "mendelian_traits",
+          "split": "train"
+        },
+        "gpnstar": {
+          "GPN-Star-V": {
+            "value": 0.40728243242486195,
+            "se": 0.050226097665876206,
+            "our_minus_gpnstar": -0.01856321807189959,
+            "score_type": "minus_llr_calibrated"
+          },
+          "GPN-Star-M": {
+            "value": 0.5011037125485357,
+            "se": 0.052731589389562905,
+            "our_minus_gpnstar": -0.11238449819557333,
+            "score_type": "minus_llr_calibrated"
+          },
+          "GPN-Star-P": {
+            "value": 0.38766653434692944,
+            "se": 0.048039929728981946,
+            "our_minus_gpnstar": 0.0010526800060329244,
+            "score_type": "minus_llr_calibrated"
+          }
+        }
+      },
+      {
+        "subset": "distal",
+        "label": "Distal",
+        "our_zero_shot": {
+          "score_type": "minus_llr_avg",
+          "subset": "distal",
+          "value": 0.24695965424938882,
+          "se": 0.04194976597611068,
+          "n_groups": 58,
+          "n_rows": 580,
+          "group_smd_value": 0.6611377676934863,
+          "group_smd_se": 0.1556419937907039,
+          "group_smd_ci_low": 0.38300056448215974,
+          "group_smd_ci_high": 1.0002435229263513,
+          "group_smd_confidence_level": 0.95,
+          "group_smd_available": true,
+          "group_smd_unavailable_reason": null,
+          "group_smd_uncertainty_method": "joint_match_group_bootstrap_percentile",
+          "group_smd_n_bootstrap": 1000,
+          "group_smd_n_bootstrap_valid": 1000,
+          "model": "dna-exp550-rag46m-five-regions-v1-step-100000",
+          "dataset": "mendelian_traits",
+          "split": "train"
+        },
+        "gpnstar": {
+          "GPN-Star-V": {
+            "value": 0.5062165135896816,
+            "se": 0.060827018303737095,
+            "our_minus_gpnstar": -0.25925685934029274,
+            "score_type": "minus_llr_calibrated"
+          },
+          "GPN-Star-M": {
+            "value": 0.4836507599312029,
+            "se": 0.05763741013887755,
+            "our_minus_gpnstar": -0.23669110568181406,
+            "score_type": "minus_llr_calibrated"
+          },
+          "GPN-Star-P": {
+            "value": 0.4909676777930274,
+            "se": 0.05495047170103469,
+            "our_minus_gpnstar": -0.2440080235436386,
+            "score_type": "minus_llr_calibrated"
+          }
+        }
+      },
+      {
+        "subset": "synonymous_variant",
+        "label": "Synonymous",
+        "our_zero_shot": {
+          "score_type": "minus_llr_avg",
+          "subset": "synonymous_variant",
+          "value": 0.5015058956857924,
+          "se": 0.06505190940034769,
+          "n_groups": 46,
+          "n_rows": 460,
+          "group_smd_value": 1.2071141921857604,
+          "group_smd_se": 0.2356163094952002,
+          "group_smd_ci_low": 0.8514547243156616,
+          "group_smd_ci_high": 1.77553298312826,
+          "group_smd_confidence_level": 0.95,
+          "group_smd_available": true,
+          "group_smd_unavailable_reason": null,
+          "group_smd_uncertainty_method": "joint_match_group_bootstrap_percentile",
+          "group_smd_n_bootstrap": 1000,
+          "group_smd_n_bootstrap_valid": 1000,
+          "model": "dna-exp550-rag46m-five-regions-v1-step-100000",
+          "dataset": "mendelian_traits",
+          "split": "train"
+        },
+        "gpnstar": {
+          "GPN-Star-V": {
+            "value": 0.36811575022606363,
+            "se": 0.06618962713465158,
+            "our_minus_gpnstar": 0.13339014545972877,
+            "score_type": "minus_llr_calibrated"
+          },
+          "GPN-Star-M": {
+            "value": 0.4723614300489178,
+            "se": 0.05928278123673191,
+            "our_minus_gpnstar": 0.029144465636874617,
+            "score_type": "minus_llr_calibrated"
+          },
+          "GPN-Star-P": {
+            "value": 0.28041909505933776,
+            "se": 0.059799375867361816,
+            "our_minus_gpnstar": 0.22108680062645464,
+            "score_type": "minus_llr_calibrated"
+          }
+        }
+      }
+    ],
+    "complex_traits": [
+      {
+        "subset": "_macro_avg_",
+        "label": "Macro average",
+        "our_zero_shot": {
+          "score_type": "abs_llr_avg",
+          "subset": "_macro_avg_",
+          "value": 0.15783394294107353,
+          "se": 0.01278591412287597,
+          "n_groups": 6,
+          "n_rows": 11270,
+          "group_smd_value": null,
+          "group_smd_se": null,
+          "group_smd_ci_low": null,
+          "group_smd_ci_high": null,
+          "group_smd_confidence_level": null,
+          "group_smd_available": false,
+          "group_smd_unavailable_reason": "group_smd_not_defined_for_macro_average",
+          "group_smd_uncertainty_method": null,
+          "group_smd_n_bootstrap": 1000,
+          "group_smd_n_bootstrap_valid": 0,
+          "model": "dna-exp550-rag46m-five-regions-v1-step-100000",
+          "dataset": "complex_traits",
+          "split": "train"
+        },
+        "gpnstar": {
+          "GPN-Star-V": {
+            "value": 0.2514663668434355,
+            "se": 0.019282288476752285,
+            "our_minus_gpnstar": -0.09363242390236196,
+            "score_type": "abs_llr_calibrated"
+          },
+          "GPN-Star-M": {
+            "value": 0.27811127497990823,
+            "se": 0.02041412006723624,
+            "our_minus_gpnstar": -0.1202773320388347,
+            "score_type": "abs_llr_calibrated"
+          },
+          "GPN-Star-P": {
+            "value": 0.2630525748569593,
+            "se": 0.018909043000380966,
+            "our_minus_gpnstar": -0.10521863191588579,
+            "score_type": "abs_llr_calibrated"
+          }
+        }
+      },
+      {
+        "subset": "distal",
+        "label": "Distal",
+        "our_zero_shot": {
+          "score_type": "abs_llr_avg",
+          "subset": "distal",
+          "value": 0.11993491411514715,
+          "se": 0.005466236431279256,
+          "n_groups": 616,
+          "n_rows": 6160,
+          "group_smd_value": 0.17417597184273498,
+          "group_smd_se": 0.037910619201041044,
+          "group_smd_ci_low": 0.10143250924718938,
+          "group_smd_ci_high": 0.24910552552795445,
+          "group_smd_confidence_level": 0.95,
+          "group_smd_available": true,
+          "group_smd_unavailable_reason": null,
+          "group_smd_uncertainty_method": "joint_match_group_bootstrap_percentile",
+          "group_smd_n_bootstrap": 1000,
+          "group_smd_n_bootstrap_valid": 1000,
+          "model": "dna-exp550-rag46m-five-regions-v1-step-100000",
+          "dataset": "complex_traits",
+          "split": "train"
+        },
+        "gpnstar": {
+          "GPN-Star-V": {
+            "value": 0.19121467382832566,
+            "se": 0.013825764967880318,
+            "our_minus_gpnstar": -0.07127975971317851,
+            "score_type": "abs_llr_calibrated"
+          },
+          "GPN-Star-M": {
+            "value": 0.2134615636461009,
+            "se": 0.014382503649954644,
+            "our_minus_gpnstar": -0.09352664953095374,
+            "score_type": "abs_llr_calibrated"
+          },
+          "GPN-Star-P": {
+            "value": 0.2044053848923275,
+            "se": 0.013998383518341562,
+            "our_minus_gpnstar": -0.08447047077718037,
+            "score_type": "abs_llr_calibrated"
+          }
+        }
+      },
+      {
+        "subset": "missense_variant",
+        "label": "Missense",
+        "our_zero_shot": {
+          "score_type": "abs_llr_avg",
+          "subset": "missense_variant",
+          "value": 0.1910319910200019,
+          "se": 0.015679237827426577,
+          "n_groups": 250,
+          "n_rows": 2500,
+          "group_smd_value": 0.6073384073959085,
+          "group_smd_se": 0.06947573868114974,
+          "group_smd_ci_low": 0.4758699324392763,
+          "group_smd_ci_high": 0.7435533377042961,
+          "group_smd_confidence_level": 0.95,
+          "group_smd_available": true,
+          "group_smd_unavailable_reason": null,
+          "group_smd_uncertainty_method": "joint_match_group_bootstrap_percentile",
+          "group_smd_n_bootstrap": 1000,
+          "group_smd_n_bootstrap_valid": 1000,
+          "model": "dna-exp550-rag46m-five-regions-v1-step-100000",
+          "dataset": "complex_traits",
+          "split": "train"
+        },
+        "gpnstar": {
+          "GPN-Star-V": {
+            "value": 0.2303978651797034,
+            "se": 0.018503581730152954,
+            "our_minus_gpnstar": -0.0393658741597015,
+            "score_type": "abs_llr_calibrated"
+          },
+          "GPN-Star-M": {
+            "value": 0.26672341725664284,
+            "se": 0.021787520114093704,
+            "our_minus_gpnstar": -0.07569142623664094,
+            "score_type": "abs_llr_calibrated"
+          },
+          "GPN-Star-P": {
+            "value": 0.23099616193921005,
+            "se": 0.01996893477496772,
+            "our_minus_gpnstar": -0.03996417091920815,
+            "score_type": "abs_llr_calibrated"
+          }
+        }
+      },
+      {
+        "subset": "tss_proximal",
+        "label": "Promoter",
+        "our_zero_shot": {
+          "score_type": "abs_llr_avg",
+          "subset": "tss_proximal",
+          "value": 0.13039748259706047,
+          "se": 0.013271130708211296,
+          "n_groups": 138,
+          "n_rows": 1380,
+          "group_smd_value": 0.19714432167353543,
+          "group_smd_se": 0.08657741272068122,
+          "group_smd_ci_low": 0.03450722743781145,
+          "group_smd_ci_high": 0.36547083502586825,
+          "group_smd_confidence_level": 0.95,
+          "group_smd_available": true,
+          "group_smd_unavailable_reason": null,
+          "group_smd_uncertainty_method": "joint_match_group_bootstrap_percentile",
+          "group_smd_n_bootstrap": 1000,
+          "group_smd_n_bootstrap_valid": 1000,
+          "model": "dna-exp550-rag46m-five-regions-v1-step-100000",
+          "dataset": "complex_traits",
+          "split": "train"
+        },
+        "gpnstar": {
+          "GPN-Star-V": {
+            "value": 0.3102320536139548,
+            "se": 0.037109634514213445,
+            "our_minus_gpnstar": -0.17983457101689432,
+            "score_type": "abs_llr_calibrated"
+          },
+          "GPN-Star-M": {
+            "value": 0.3057329796863344,
+            "se": 0.03792989081284111,
+            "our_minus_gpnstar": -0.17533549708927393,
+            "score_type": "abs_llr_calibrated"
+          },
+          "GPN-Star-P": {
+            "value": 0.3082285178971831,
+            "se": 0.038641853674360266,
+            "our_minus_gpnstar": -0.17783103530012262,
+            "score_type": "abs_llr_calibrated"
+          }
+        }
+      },
+      {
+        "subset": "3_prime_UTR_variant",
+        "label": "3\u2032 UTR",
+        "our_zero_shot": {
+          "score_type": "abs_llr_avg",
+          "subset": "3_prime_UTR_variant",
+          "value": 0.12258770850327957,
+          "se": 0.020493520691326424,
+          "n_groups": 49,
+          "n_rows": 490,
+          "group_smd_value": 0.1786456949013575,
+          "group_smd_se": 0.14336524045281598,
+          "group_smd_ci_low": -0.09700115705022208,
+          "group_smd_ci_high": 0.4642436202966597,
+          "group_smd_confidence_level": 0.95,
+          "group_smd_available": true,
+          "group_smd_unavailable_reason": null,
+          "group_smd_uncertainty_method": "joint_match_group_bootstrap_percentile",
+          "group_smd_n_bootstrap": 1000,
+          "group_smd_n_bootstrap_valid": 1000,
+          "model": "dna-exp550-rag46m-five-regions-v1-step-100000",
+          "dataset": "complex_traits",
+          "split": "train"
+        },
+        "gpnstar": {
+          "GPN-Star-V": {
+            "value": 0.19245916096882776,
+            "se": 0.04497853759319633,
+            "our_minus_gpnstar": -0.06987145246554818,
+            "score_type": "abs_llr_calibrated"
+          },
+          "GPN-Star-M": {
+            "value": 0.21036183709384448,
+            "se": 0.044316325310925955,
+            "our_minus_gpnstar": -0.08777412859056491,
+            "score_type": "abs_llr_calibrated"
+          },
+          "GPN-Star-P": {
+            "value": 0.17690849038654616,
+            "se": 0.03417083115420228,
+            "our_minus_gpnstar": -0.05432078188326658,
+            "score_type": "abs_llr_calibrated"
+          }
+        }
+      },
+      {
+        "subset": "non_coding_transcript_exon_variant",
+        "label": "ncRNA",
+        "our_zero_shot": {
+          "score_type": "abs_llr_avg",
+          "subset": "non_coding_transcript_exon_variant",
+          "value": 0.15413262033771694,
+          "se": 0.03310525031317966,
+          "n_groups": 37,
+          "n_rows": 370,
+          "group_smd_value": 0.3361246441544509,
+          "group_smd_se": 0.16494337208464172,
+          "group_smd_ci_low": 0.03786703930230924,
+          "group_smd_ci_high": 0.6923814282941919,
+          "group_smd_confidence_level": 0.95,
+          "group_smd_available": true,
+          "group_smd_unavailable_reason": null,
+          "group_smd_uncertainty_method": "joint_match_group_bootstrap_percentile",
+          "group_smd_n_bootstrap": 1000,
+          "group_smd_n_bootstrap_valid": 1000,
+          "model": "dna-exp550-rag46m-five-regions-v1-step-100000",
+          "dataset": "complex_traits",
+          "split": "train"
+        },
+        "gpnstar": {
+          "GPN-Star-V": {
+            "value": 0.27221326774475213,
+            "se": 0.06367182154580031,
+            "our_minus_gpnstar": -0.1180806474070352,
+            "score_type": "abs_llr_calibrated"
+          },
+          "GPN-Star-M": {
+            "value": 0.3243576065710515,
+            "se": 0.06576167309822185,
+            "our_minus_gpnstar": -0.17022498623333457,
+            "score_type": "abs_llr_calibrated"
+          },
+          "GPN-Star-P": {
+            "value": 0.291382669568299,
+            "se": 0.0700862201067632,
+            "our_minus_gpnstar": -0.13725004923058207,
+            "score_type": "abs_llr_calibrated"
+          }
+        }
+      },
+      {
+        "subset": "5_prime_UTR_variant",
+        "label": "5\u2032 UTR",
+        "our_zero_shot": {
+          "score_type": "abs_llr_avg",
+          "subset": "5_prime_UTR_variant",
+          "value": 0.22891894107323515,
+          "se": 0.06258979517462848,
+          "n_groups": 37,
+          "n_rows": 370,
+          "group_smd_value": 0.5445239947775651,
+          "group_smd_se": 0.16341111365400476,
+          "group_smd_ci_low": 0.24853636871212226,
+          "group_smd_ci_high": 0.8704577399366176,
+          "group_smd_confidence_level": 0.95,
+          "group_smd_available": true,
+          "group_smd_unavailable_reason": null,
+          "group_smd_uncertainty_method": "joint_match_group_bootstrap_percentile",
+          "group_smd_n_bootstrap": 1000,
+          "group_smd_n_bootstrap_valid": 1000,
+          "model": "dna-exp550-rag46m-five-regions-v1-step-100000",
+          "dataset": "complex_traits",
+          "split": "train"
+        },
+        "gpnstar": {
+          "GPN-Star-V": {
+            "value": 0.31228117972504915,
+            "se": 0.07346570880262537,
+            "our_minus_gpnstar": -0.083362238651814,
+            "score_type": "abs_llr_calibrated"
+          },
+          "GPN-Star-M": {
+            "value": 0.3480302456254754,
+            "se": 0.08120186779579079,
+            "our_minus_gpnstar": -0.11911130455224025,
+            "score_type": "abs_llr_calibrated"
+          },
+          "GPN-Star-P": {
+            "value": 0.36639422445819014,
+            "se": 0.06858745333996888,
+            "our_minus_gpnstar": -0.137475283384955,
+            "score_type": "abs_llr_calibrated"
+          }
+        }
+      }
+    ],
+    "sge": [
+      {
+        "subset": "_macro_avg_",
+        "label": "Macro average",
+        "our_zero_shot": {
+          "metric": "AUPRC",
+          "subset": "_macro_avg_",
+          "accession": "_macro_avg_",
+          "gene": "_macro_avg_",
+          "score_type": "minus_llr_avg",
+          "value": 0.5092835220819057,
+          "se": 0.011680340759952215,
+          "n": 8,
+          "n_pos": 3501,
+          "model": "dna-exp550-rag46m-five-regions-v1-step-100000",
+          "dataset": "sge",
+          "split": "train"
+        },
+        "gpnstar": {
+          "GPN-Star-V": {
+            "value": 0.5584886774986181,
+            "se": 0.011396000215491513,
+            "our_minus_gpnstar": -0.04920515541671233,
+            "score_type": "minus_llr_calibrated"
+          },
+          "GPN-Star-M": {
+            "value": 0.5157484825853924,
+            "se": 0.011541348320584156,
+            "our_minus_gpnstar": -0.006464960503486661,
+            "score_type": "minus_llr_calibrated"
+          },
+          "GPN-Star-P": {
+            "value": 0.4106311213306488,
+            "se": 0.011330879083296594,
+            "our_minus_gpnstar": 0.09865240075125697,
+            "score_type": "minus_llr_calibrated"
+          }
+        }
+      },
+      {
+        "subset": "missense_variant",
+        "label": "Missense",
+        "our_zero_shot": {
+          "metric": "AUPRC",
+          "subset": "missense_variant",
+          "accession": "_macro_avg_",
+          "gene": "_macro_avg_",
+          "score_type": "minus_llr_avg",
+          "value": 0.43320296243433065,
+          "se": 0.010744630118200895,
+          "n": 8,
+          "n_pos": 3007,
+          "model": "dna-exp550-rag46m-five-regions-v1-step-100000",
+          "dataset": "sge",
+          "split": "train"
+        },
+        "gpnstar": {
+          "GPN-Star-V": {
+            "value": 0.5262262372002575,
+            "se": 0.010388042757135934,
+            "our_minus_gpnstar": -0.09302327476592687,
+            "score_type": "minus_llr_calibrated"
+          },
+          "GPN-Star-M": {
+            "value": 0.44069556567424684,
+            "se": 0.010013012573034155,
+            "our_minus_gpnstar": -0.007492603239916185,
+            "score_type": "minus_llr_calibrated"
+          },
+          "GPN-Star-P": {
+            "value": 0.3415544284995662,
+            "se": 0.009267811039262035,
+            "our_minus_gpnstar": 0.09164853393476446,
+            "score_type": "minus_llr_calibrated"
+          }
+        }
+      },
+      {
+        "subset": "splicing",
+        "label": "Splicing",
+        "our_zero_shot": {
+          "metric": "AUPRC",
+          "subset": "splicing",
+          "accession": "_macro_avg_",
+          "gene": "_macro_avg_",
+          "score_type": "minus_llr_avg",
+          "value": 0.6210654642804185,
+          "se": 0.02245275125674477,
+          "n": 6,
+          "n_pos": 494,
+          "model": "dna-exp550-rag46m-five-regions-v1-step-100000",
+          "dataset": "sge",
+          "split": "train"
+        },
+        "gpnstar": {
+          "GPN-Star-V": {
+            "value": 0.5863947697030343,
+            "se": 0.022965620392103814,
+            "our_minus_gpnstar": 0.03467069457738425,
+            "score_type": "minus_llr_calibrated"
+          },
+          "GPN-Star-M": {
+            "value": 0.6162497052855774,
+            "se": 0.022856594620566162,
+            "our_minus_gpnstar": 0.004815758994841102,
+            "score_type": "minus_llr_calibrated"
+          },
+          "GPN-Star-P": {
+            "value": 0.522989858456688,
+            "se": 0.023833186846632628,
+            "our_minus_gpnstar": 0.09807560582373054,
+            "score_type": "minus_llr_calibrated"
+          }
+        }
+      },
+      {
+        "subset": "both",
+        "label": "Both (pooled)",
+        "our_zero_shot": {
+          "metric": "AUPRC",
+          "subset": "both",
+          "accession": "_macro_avg_",
+          "gene": "_macro_avg_",
+          "score_type": "minus_llr_avg",
+          "value": 0.4337836857356012,
+          "se": 0.009938925707870975,
+          "n": 8,
+          "n_pos": 3526,
+          "model": "dna-exp550-rag46m-five-regions-v1-step-100000",
+          "dataset": "sge",
+          "split": "train"
+        },
+        "gpnstar": {
+          "GPN-Star-V": {
+            "value": 0.5082792562159116,
+            "se": 0.009455985593983647,
+            "our_minus_gpnstar": -0.07449557048031041,
+            "score_type": "minus_llr_calibrated"
+          },
+          "GPN-Star-M": {
+            "value": 0.4273407317367155,
+            "se": 0.0091434800062642,
+            "our_minus_gpnstar": 0.006442953998885725,
+            "score_type": "minus_llr_calibrated"
+          },
+          "GPN-Star-P": {
+            "value": 0.3362707465500922,
+            "se": 0.008510832043609426,
+            "our_minus_gpnstar": 0.09751293918550902,
+            "score_type": "minus_llr_calibrated"
+          }
+        }
+      }
+    ]
+  },
+  "cohort_revision_check": {
+    "mendelian_traits": {
+      "hf_revision": "4aed58e50c5dea0b878a665007af2ef9e5108e9f",
+      "matches_final_evaluation": true,
+      "displayed_support_counts_match_all_three_gpnstar_models": true
+    },
+    "complex_traits": {
+      "hf_revision": "22f86a89c65cb8f3007ac3cc2739f40efefa4340",
+      "matches_final_evaluation": true,
+      "displayed_support_counts_match_all_three_gpnstar_models": true
+    },
+    "sge": {
+      "hf_revision": "225d3d1ea32a4af547891b13c33b5e92a5aae849",
+      "matches_final_evaluation": true,
+      "displayed_support_counts_match_all_three_gpnstar_models": true
+    }
+  },
+  "gpnstar_frozen_probes": "Not available in this registered baseline; this comparison uses zero-shot scores only.",
+  "uncertainty": "Values and bootstrap standard errors come from their producing pipelines; no paired difference test has been performed.",
+  "pipeline_config_sha256": "8eaf4019f41beeb5e84178aa525ce1aa98b8bf3e2db79a16d2511db2d55abcd3",
+  "verified_at_utc": "2026-09-14T18:44:05.332728+00:00"
+}
