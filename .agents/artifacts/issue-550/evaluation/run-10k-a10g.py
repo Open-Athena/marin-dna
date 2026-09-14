@@ -38,7 +38,7 @@ def main() -> None:
         "--model",
         choices=[
             f"dna-exp550-rag46m-five-regions-v1-step-{step}"
-            for step in (10000, 20000, 100000)
+            for step in (10000, 20000, 50000, 100000)
         ],
         default=MODEL,
     )

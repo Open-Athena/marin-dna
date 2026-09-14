@@ -1006,3 +1006,15 @@ All six eligible Complex Traits subsets trail all three GPN-Star variants; the l
 The comparison uses GPN-Star's standard calibrated LLR and RAG's registered LLR, and makes no paired significance or equivalence claim.
 No matched GPN-Star frozen-probe result is available in the registered baseline.
 The full values, bootstrap SEs, differences, source hashes, and support checks are in `step-100000-vs-gpnstar.json` and the companion Markdown report.
+
+## 2026-09-14 18:58 UTC — Halfway checkpoint evaluation requested
+
+The user requested evaluation at 50% of the 100,000-step schedule, selecting update 50,000.
+Its version-9 HF weight export exists at 183,596,040 bytes, and no canonical 50k metrics or active task EC2 workers are present.
+The existing task authority and cumulative $30 cap carry forward; no repeated permission is needed.
+The final checkpoint's completed worker used approximately 3.09 A10G hours, so the new ledger reserves 3.25 hours for that completed evaluation and eight hours for 50k.
+All earlier conservative allowances and a larger disk allowance remain included, totaling $24.9651 reserved.
+The existing scorer, fixed padding, prefix cache, BF16, batch 8, embeddings, and frozen-probe protocols remain unchanged.
+The registration is added to PR #565, and the existing preparation, collection, and recovery helpers gain explicit 50k selection with cross-checkpoint receipt and worker-name guards.
+One local contract-test attempt was deferred when the shared-node preflight lacked headroom; a later read showed recovery, allowing a guarded retry.
+The paid worker will run the full locked suite, fresh batch check, and inspected default-S3 dry-run before biological evaluation.

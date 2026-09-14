@@ -1,0 +1,19 @@
+{
+  "date": "2026-09-14",
+  "currency": "USD",
+  "cumulative_cap": 30.0,
+  "prior_conservative_allowance": 5.1496,
+  "completed_10k_allowance": 4.024,
+  "completed_20k_allowance": 4.024,
+  "completed_100k_observed_compute_hours_approx": 3.09,
+  "completed_100k_reserved_hours_upper_bound": 3.25,
+  "completed_100k_allowance": 3.2695,
+  "a10g_hourly_rate": 1.006,
+  "requested_50k_max_hours": 8,
+  "requested_50k_allowance": 8.048,
+  "cumulative_disk_allowance": 0.45,
+  "total_reserved": 24.9651,
+  "remaining_unreserved": 5.0349,
+  "authorization": "The user requested the 50%-of-steps checkpoint on 2026-09-14; existing task authorization covers development VEP, embeddings, probes, S3 output saving, and cleanup within the original cumulative $30 cap.",
+  "basis": "The final 100k VEP and probes completed in approximately three hours and its worker is terminated. Replace its unused sixteen-hour reservation with a conservative 3.25-hour completed allowance, preserve all earlier attempt/intermediate allowances, and reserve eight hours for the 50k evaluation. Stop immediately on completion or failure."
+}

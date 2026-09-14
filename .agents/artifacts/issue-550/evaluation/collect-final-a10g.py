@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 import hashlib
 import json
 from pathlib import Path
@@ -16,8 +17,18 @@ WORK = Path("/opt/issue550")
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--model",
+        choices=[
+            f"dna-exp550-rag46m-five-regions-v1-step-{step}" for step in (50000, 100000)
+        ],
+        default=MODEL,
+    )
+    model = parser.parse_args().model
+    step = model.rsplit("-", 1)[1]
     receipt = json.loads((WORK / "a10g-run-receipt.json").read_text())
-    assert receipt["model"] == MODEL and receipt["completed"] and receipt["with_probes"]
+    assert receipt["model"] == model and receipt["completed"] and receipt["with_probes"]
     assert receipt["exit_status"] == 0 and receipt["publication"] == "canonical_s3"
     assert receipt["split"] == "train" and receipt["cohort_sizes"] == COHORTS
     client = boto3.client("s3", region_name="us-east-2")
@@ -30,7 +41,7 @@ def main() -> None:
         ("probe_metrics", "parquet"),
     ):
         for cohort, count in COHORTS.items():
-            relative = f"results/{kind}/{MODEL}/{cohort}.{suffix}"
+            relative = f"results/{kind}/{model}/{cohort}.{suffix}"
             path = WORK / "storage/s3/oa-bolinas" / PREFIX / relative
             size = path.stat().st_size
             assert 0 < size <= 256 * 1024**2
@@ -80,7 +91,7 @@ def main() -> None:
         canonical_s3_content_sha256_verified=True,
         development_macro_auprc=metrics,
     )
-    (WORK / "step-100000-completed.json").write_text(
+    (WORK / f"step-{step}-completed.json").write_text(
         json.dumps(receipt, indent=2) + "\n"
     )
     print("DEVELOPMENT_VEP_OUTPUTS " + json.dumps(receipt), flush=True)

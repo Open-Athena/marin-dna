@@ -89,13 +89,16 @@ Use ordinary batches without length grouping; pool the final 255 human bases for
 The earlier strict-FP32 pilot and H100 run are historical evidence; their numerical tolerance gate does not override this BF16 choice.
 The H100 evaluation and its transfer watchers were stopped before restarting on A10G.
 
-Batch 8 was the fastest stable setting in the completed 10k A10G BF16 sweep and was confirmed at 20k.
+Batch 8 was the fastest stable setting in the completed 10k A10G BF16 sweep and was confirmed at 20k and 100k.
 Before another evaluation, check the actual weights with the same synthetic batch-8 benchmark and retain its finite-output, memory, and throughput receipt.
 `prepare-final-a10g.sh` installs the pinned environment, downloads the verified S3 checkpoint, runs all locked tests, and performs this check.
 The shared VM must not import or run the ML evaluation environment.
 
 The final runner uses the normal Snakemake S3 profile throughout.
 Run `run-10k-a10g.py --model dna-exp550-rag46m-five-regions-v1-step-100000 --with-probes --cores 4 --shutdown-epoch <deadline>` without `--execute` and inspect its plan before launching `run-final-a10g.sh` with the same deadline in `ISSUE550_SHUTDOWN_EPOCH`.
+For the requested halfway checkpoint, use model `dna-exp550-rag46m-five-regions-v1-step-50000` in the driver and set `ISSUE550_MODEL` to that same ID for both preparation and execution.
+Pass the same ID with `--model` to the watcher; its output receipt and worker-name guard then select 50k explicitly.
+The 50k worker has an eight-hour maximum within the original cumulative cap, following the completed final evaluation's approximately three-hour runtime.
 The six metric targets cover standard VEP and frozen probes for Mendelian, Complex Traits, and SGE.
 Zero-shot metric jobs take priority so those results can be inspected while the frozen probes finish.
 The existing probe hyperparameters and chromosome split remain unchanged; four worker cores control execution parallelism.
@@ -109,7 +112,7 @@ Keep live instance IDs, addresses, and SSH-key paths in private launch notes and
 The final evaluation retains the previously reserved 16-hour maximum within the original cumulative $30 cap and stops as soon as the work finishes.
 
 Historical 10k local-output recovery and the 20k extra-log-copy failure are recorded in the logbook; their old wrappers are not the current final-run procedure.
-The registered models are the 10k, 20k, and 100k variants of `dna-exp550-rag46m-five-regions-v1` in [PR #565](https://github.com/Open-Athena/marin-dna/pull/565).
+The registered models are the 10k, 20k, 50k, and 100k variants of `dna-exp550-rag46m-five-regions-v1` in [PR #565](https://github.com/Open-Athena/marin-dna/pull/565).
 The active source is the europe-west4 version-9 export; check the tracking issue before using it after a recovery.
 The permanent branch includes the combined cached backend, tokenizer compatibility, execution controls, and registration together; none of their PRs needs to be merged to reproduce this experiment.
 

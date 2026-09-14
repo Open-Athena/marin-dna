@@ -11,9 +11,9 @@ MODEL = "dna-exp550-rag46m-five-regions-v1-step-100000"
 COHORTS = ("mendelian_traits", "complex_traits", "sge")
 
 
-def validate_receipt(receipt: dict) -> None:
+def validate_receipt(receipt: dict, model: str = MODEL) -> None:
     expected = {
-        f"results/{kind}/{MODEL}/{cohort}.{suffix}"
+        f"results/{kind}/{model}/{cohort}.{suffix}"
         for kind, suffix in (
             ("scores", "parquet"),
             ("metrics", "parquet"),
@@ -23,7 +23,7 @@ def validate_receipt(receipt: dict) -> None:
         )
         for cohort in COHORTS
     }
-    assert receipt["model"] == MODEL and receipt["completed"] and receipt["with_probes"]
+    assert receipt["model"] == model and receipt["completed"] and receipt["with_probes"]
     assert receipt["exit_status"] == 0 and receipt["split"] == "train"
     assert receipt["canonical_s3_content_sha256_verified"]
     assert set(receipt["files"]) == expected
@@ -31,11 +31,19 @@ def validate_receipt(receipt: dict) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--model",
+        choices=[
+            f"dna-exp550-rag46m-five-regions-v1-step-{step}" for step in (50000, 100000)
+        ],
+        default=MODEL,
+    )
     parser.add_argument("--instance", required=True)
     parser.add_argument("--host", required=True)
     parser.add_argument("--ssh-key", required=True)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
+    step = int(args.model.rsplit("-", 1)[1])
     args.output.mkdir(parents=True, exist_ok=True)
     # Copy ancillary logs while new logins are permitted, before the run ends.
     names = (
@@ -89,8 +97,8 @@ def main() -> None:
                 log.write(line)
                 if "DEVELOPMENT_VEP_OUTPUTS " in line:
                     receipt = json.loads(line.split("DEVELOPMENT_VEP_OUTPUTS ", 1)[1])
-                    validate_receipt(receipt)
-                    (args.output / "step-100000-completed.json").write_text(
+                    validate_receipt(receipt, args.model)
+                    (args.output / f"step-{step}-completed.json").write_text(
                         json.dumps(receipt, indent=2) + "\n"
                     )
                 if line.strip() == "VEP_WORKER_EXIT 0":
@@ -124,7 +132,10 @@ def main() -> None:
     worker = response["Reservations"][0]["Instances"][0]
     tags = {tag["Key"]: tag["Value"] for tag in worker["Tags"]}
     assert worker["InstanceId"] == args.instance
-    assert tags["Name"] == "codex-issue550-vep100k-a10g-bf16" and tags["issue"] == "550"
+    assert (
+        tags["Name"] == f"codex-issue550-vep{step // 1000}k-a10g-bf16"
+        and tags["issue"] == "550"
+    )
     result = subprocess.check_output(
         [
             "aws",
