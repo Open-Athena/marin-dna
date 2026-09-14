@@ -105,7 +105,7 @@ def remote(code: str, payload: dict | list) -> dict:
             "--timeout",
             "300",
             "--",
-            "/tmp/issue550-stage-env/bin/python",
+            "/app/issue550-stage-env/bin/python",
             "-c",
             script,
         ],
