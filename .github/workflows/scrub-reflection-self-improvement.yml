@@ -1,44 +1,55 @@
 name: "Scrub - Reflection Self-Improvement"
 
 # Nightshift-style scheduled scrub, after marin's ops-nightshift-* pattern:
-# a cron-triggered Claude Code session that runs one turn of the
+# a cron-triggered Claude Code session runs one turn of the
 # scrub-reflection-self-improvement skill
 # (.agents/skills/scrub-reflection-self-improvement/SKILL.md) and publishes
-# any changes through the Repository Lifecycle delivery steps in AGENTS.md.
+# changes through the Repository Lifecycle delivery steps in AGENTS.md.
 #
 # The skill frontmatter declares 10:00 America/New_York. Actions cron is UTC
-# only, so 14:00 UTC matches 10:00 EDT and runs 09:00 EST in winter; keep the
-# frontmatter as the statement of intent if the two ever look different.
+# only, so 14:17 UTC is 10:17 EDT (09:17 EST in winter); the offset from
+# minute 0 dodges GitHub's documented top-of-hour delay window. The
+# frontmatter stays the statement of intent; tests/test_scrub_workflows.py
+# keeps the hour, the skill path, and the token-lifetime budget in sync.
 #
 # Setup (one-time, by a repo admin):
-#   1. Create a GitHub App for scheduled agents, install it on this repo with
-#      contents, pull requests, and issues read/write permissions.
-#   2. Add its id and private key as the SCRUB_APP_ID and
+#   1. Create a GitHub App for scheduled agents and install it on this repo
+#      with contents, pull requests, issues, and workflows read/write plus
+#      actions and checks read (the session watches its PR's CI with gh).
+#   2. Add the App id and private key as the SCRUB_APP_ID and
 #      SCRUB_APP_PRIVATE_KEY Actions secrets.
-#   The App token matters because branches pushed and PRs opened with the
-#   default GITHUB_TOKEN do not trigger the Quality/Test workflows, so scrub
-#   PRs would sit without their required checks.
+#   3. Set the SCRUBS_ENABLED Actions variable to "true"; until then the jobs
+#      skip instead of failing red twice a day.
+#   4. Scrub PRs are authored by the App's bot user, which fails
+#      claude-code-review.yml's author-association gate, so they receive no
+#      automatic review: add the App's bot login to that gate, or review them
+#      via an explicit `@claude` comment. Commits made in the session carry
+#      claude-code-action's default bot author rather than the App identity.
+#   The App token, not the default GITHUB_TOKEN, is what lets the scrub's
+#   branches and PRs trigger the Quality/Test workflows.
 
 on:
   schedule:
-    - cron: '0 14 * * *'
+    - cron: '17 14 * * *'
   workflow_dispatch: {}
 
+# One run at a time. GitHub keeps at most one further run queued per group and
+# silently replaces it; at this cadence a discarded duplicate is fine — the
+# next cron covers it.
 concurrency:
   group: scrub-reflection-self-improvement
   cancel-in-progress: false
 
-permissions:
-  contents: write
-  pull-requests: write
-  issues: write
-  id-token: write
-  actions: read
+# Every step runs on the App token; the default GITHUB_TOKEN keeps no scopes.
+permissions: {}
 
 jobs:
   scrub:
+    if: ${{ vars.SCRUBS_ENABLED == 'true' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    # Below the 1-hour lifetime of the App installation token minted at job
+    # start; a longer run would reach its delivery steps on a dead credential.
+    timeout-minutes: 55
     steps:
       - name: Generate app token
         id: app-token
@@ -47,21 +58,36 @@ jobs:
           app-id: ${{ secrets.SCRUB_APP_ID }}
           private-key: ${{ secrets.SCRUB_APP_PRIVATE_KEY }}
 
+      # Always scrub main, whatever ref a manual dispatch selected; recent
+      # history is enough for triaging the latest commits.
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          fetch-depth: 0
+          ref: main
+          fetch-depth: 50
           token: ${{ steps.app-token.outputs.token }}
 
+      # consult-agent wraps anthropics/claude-code-action and classifies a 429
+      # or weekly-limit exit as a skipped consultation (a warning), not a red
+      # check — the same wrapper claude-code-review.yml uses. allowed_bots
+      # covers the schedule actor becoming dependabot[bot] after its monthly
+      # SHA bumps touch this file.
       - name: Run the scrub
-        uses: anthropics/claude-code-action@6b082c41935b4c8a3b8b0ef85ba4ba4d9eeb8975 # v1
+        uses: marin-community/marin-style/actions/consult-agent@4b2fc2b0ec0bb9ad1304ef76936eb68e97f893cb # 2026-08-24
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           github_token: ${{ steps.app-token.outputs.token }}
-          additional_permissions: |
-            actions: read
+          allowed_bots: 'dependabot[bot]'
           prompt: |
-            This is the scheduled scrub turn for scrub-reflection-self-improvement,
-            and you are running from its scheduler.
-            Read .agents/skills/scrub-reflection-self-improvement/SKILL.md and run
-            one scrub turn exactly as it directs, following AGENTS.md throughout.
+            Trigger: ${{ github.event_name }}. A schedule trigger is the daily
+            scheduled scrub turn for scrub-reflection-self-improvement; a
+            workflow_dispatch trigger is a manual scheduler invocation and does
+            not replace or reset the daily cadence.
+            Read .agents/skills/scrub-reflection-self-improvement/SKILL.md and
+            run one scrub turn exactly as it directs, following AGENTS.md
+            throughout.
+            Append your end-of-run status to the file named by
+            "$GITHUB_STEP_SUMMARY" so it is visible on the run page.
+          claude_args: |
+            --max-turns 150
+            --allowedTools "Read,Glob,Grep,Edit,Write,TodoWrite,Bash(git:*),Bash(gh:*),Bash(uv:*),Bash(python3:*),Bash(ls:*),Bash(cat:*),Bash(head:*),Bash(tail:*),Bash(grep:*),Bash(find:*),Bash(sed:*),Bash(wc:*),Bash(mktemp:*),Bash(echo:*)"
