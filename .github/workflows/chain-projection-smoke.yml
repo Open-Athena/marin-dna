@@ -21,10 +21,10 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4
         with:
           version-file: snakemake/vertebrate_projection_dataset/pyproject.toml
-      - uses: mamba-org/setup-micromamba@add3a49764cedee8ee24e82dfde87f5bc2914462
+      - uses: mamba-org/setup-micromamba@f457c30a868e4760d3a6fcea5f25dc655b8edf39
         with:
           environment-file: snakemake/vertebrate_projection_dataset/workflow/envs/bioinformatics.yaml
           environment-name: chain-smoke
