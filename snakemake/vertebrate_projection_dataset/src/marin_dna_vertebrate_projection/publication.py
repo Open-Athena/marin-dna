@@ -122,11 +122,7 @@ def validate_artifacts(
     config = yaml.safe_load(Path(config_path).read_text())
     repo_prefix = f"{config['hf_owner']}/vertebrate-{config['pipeline_version']}"
     assert tier in {None, "smoke", "full"}
-    cohorts = (
-        ["all", "cds", "ccre_non_promoter", "background"]
-        if tier == "smoke"
-        else list(config["region_cohorts"])
-    )
+    cohorts = list(config["smoke_cohorts" if tier == "smoke" else "region_cohorts"])
     train_shards = int(
         config[
             "publication_smoke_train_shards"

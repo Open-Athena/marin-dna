@@ -97,9 +97,8 @@ def build_inspection_sample(
             selected_keys.add(key)
             selection_reasons[key] = "required_zrs_backend_clade"
 
-    for region_label in ["cds", "ccre_non_promoter"]:
+    for region_label in sorted({str(row["region_label"]) for row in records}):
         region_rows = [row for row in records if row["region_label"] == region_label]
-        assert region_rows, f"inspection requires recovered {region_label} rows"
         for row in sorted(region_rows, key=lambda candidate: _digest(seed, candidate))[
             :rows_per_region
         ]:
@@ -327,8 +326,8 @@ def render_inspection_report(
         f"{zrs_checklist}\n"
         "- [ ] Confirm reverse-strand rows are oriented to the human anchor.\n"
         "- [ ] Confirm fragmented mappings are biologically plausible and not duplicated.\n"
-        "- [ ] Cross-check selected MultiZ rows against the UCSC browser or staged raw MAF.\n"
-        "- [ ] Spot-check HAL source-assembly coordinates against the pinned alignment/genome.\n"
+        "- [ ] Cross-check selected chain mappings against their pinned source alignment or saved direct projections.\n"
+        "- [ ] Spot-check both-strand target windows against the pinned sequence archive.\n"
         "- [ ] Record reviewer, date, and any exclusions before upload.\n\n"
         "## Review sample\n\n"
         + "\n".join(table_lines)

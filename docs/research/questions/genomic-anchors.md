@@ -1,7 +1,7 @@
 # How should genomic anchors be selected and projected across species?
 
 > [!NOTE]
-> **TL;DR:** Center-1-bp projection is the default for new multispecies training datasets after higher recovery and broadly similar one-seed development AUPRC trajectories; anchor selection remains open because experiment #473 held anchors fixed.
+> **TL;DR:** Center-1-bp projection remains the default; current fixed-compute results favor uniform-grid CDS and UTR-region anchors, annotation-first ncRNA, and element-centered enhancers, with exposure and non-mammal backend differences limiting causal attribution.
 
 ## Question
 
@@ -22,6 +22,13 @@ Center-1 is the operational default for new projection datasets because its cont
 This choice does not establish statistical equivalence, and existing full-window rules and artifacts remain available for reproducibility and historical comparisons.
 Projection yield remains insufficient for future policy decisions, especially in regions without matched downstream training.
 Multiple landmarks and alternative fragment-selection policies remain open choices for other region classes.
+
+[Experiment #517](../experiments/517-region-specialist-anchors.md) supplies region-specific anchor evidence at 0.25B scale.
+Annotation-first specialists won six of eight matched Mendelian subsets, compared with eight for phyloP-selected uniform-grid specialists, but annotation-first ncRNA and centered enhancers had stronger home-subset performance.
+The current recommendation is therefore uniform 255-bp windows at 128-bp stride with established CDS, protein-coding TSS/5′-UTR, and 3′-UTR assignments; curated annotation-first ncRNA exons with context and long-interval tiling; and one exon-excluding window centered on each dELS/pELS enhancer.
+Evidence for the 3′-UTR preference is weaker, and promoter performance is approximately tied.
+Human-anchor geometry is distinct from the center-base projection operation.
+Different effective epochs and non-mammal alignment backends prevent an anchor-only interpretation; combining the best observed specialist inputs is not a test of a unified hybrid catalog.
 
 <details>
 <summary>Related work</summary>
@@ -63,6 +70,8 @@ Multiple landmarks and alternative fragment-selection policies remain open choic
   Projection produced useful data but lost distant species and did not dominate every evaluation, directly exposing the recovery-versus-construction tradeoff.
 - [Experiment #473](../experiments/473-center-seeded-projection.md) compared full-window and center-1 projection on fixed anchors with recovery, reverse-trace QC, matched-token training, paired Mendelian uncertainty, Complex traits, and SGE.
   Its corrected one-seed development trajectories are broadly similar, supporting center-1 as the simpler default while retaining full-window artifacts as historical controls.
+- [Region-specific anchors for vertebrate specialists](../experiments/517-region-specialist-anchors.md) compares annotation-first and conservation-selected uniform recipes at fixed compute and finds different preferred constructions across regions.
+  An order-level enhancer subset partly recovered Mendelian performance, while joint changes in species density, exposure, and some projection backends leave the causal mechanism unresolved.
 
 </details>
 
@@ -76,5 +85,7 @@ Multiple landmarks and alternative fragment-selection policies remain open choic
   CDS-centered and cCRE-enhancer-centered windows are useful contrasting initial probes, rather than the scope of the research question itself.
 - Which projection diagnostics are needed beyond overall yield, including unique versus multiple mappings, aligned coverage around center-seeded windows, and per-species, per-clade, and per-region recovery?
 - How should controlled training comparisons separate sequence quality and evolutionary breadth from dataset quantity, and which independent coding, regulatory, and genome-wide evaluations should determine success?
+- Do the region-specific defaults persist when projection backends and species cohorts are fixed and both fixed-token and exposure-matched comparisons are reported?
+  A complete specialist diagonal alone does not imply the highest attainable performance in each region.
 
 </details>

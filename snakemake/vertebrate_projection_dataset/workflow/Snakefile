@@ -3,12 +3,12 @@ configfile: "config/config.yaml"
 
 include: "rules/common.smk"
 include: "rules/anchors.smk"
-include: "rules/staging.smk"
 include: "rules/projection.smk"
 include: "rules/dataset.smk"
 
 
 rule all:
+    default_target: True
     input:
         PRODUCER_MANIFEST,
         COMBINED_SEQUENCES,
@@ -18,3 +18,13 @@ rule all:
         expand(f"{RESULTS}/datasets/{{region}}/train.parquet", region=COHORTS),
         expand(f"{RESULTS}/datasets/{{region}}/validation.parquet", region=COHORTS),
         expand(f"{HF_RESULTS}/{{region}}/README.md", region=COHORTS),
+
+
+rule all_projections:
+    """Coordinate-only target within the same maintained workflow."""
+    input:
+        PRODUCER_MANIFEST,
+        ASSET_PROVENANCE,
+        expand(f"{RESULTS}/chains/{{species}}/accepted.parquet", species=ACTIVE_SPECIES),
+        expand(f"{RESULTS}/chains/{{species}}/rejected.parquet", species=ACTIVE_SPECIES),
+        expand(f"{RESULTS}/chains/{{species}}/audit.json", species=ACTIVE_SPECIES),

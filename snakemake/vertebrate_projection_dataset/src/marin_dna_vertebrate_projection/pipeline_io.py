@@ -99,7 +99,17 @@ def read_anchor_catalog(path: str | Path) -> pl.DataFrame:
     frame = (
         pl.read_parquet(anchor_path)
         if anchor_path.suffix == ".parquet"
-        else pl.read_csv(anchor_path, separator="\t")
+        else pl.read_csv(
+            anchor_path,
+            separator="\t",
+            schema_overrides={
+                "query_name": pl.String,
+                "source_chrom": pl.String,
+                "source_start": pl.Int64,
+                "source_end": pl.Int64,
+                "region_label": pl.String,
+            },
+        )
     )
     required = {
         "query_name",
@@ -535,7 +545,8 @@ def write_inspection_files(
     # materialize every species for only those anchors. The existing pure
     # sampler makes the final row choices and computes complete clade counts.
     candidate_multiplier = 4
-    for region_label in ["cds", "ccre_non_promoter"]:
+    regions = sequences.select("region_label").unique().collect(engine="streaming")
+    for region_label in sorted(regions["region_label"].to_list()):
         candidates = (
             sequences.filter(pl.col("region_label") == region_label)
             .select("query_name", identity_hash.alias("_sample_hash"))
@@ -544,9 +555,6 @@ def write_inspection_files(
                 by="_sample_hash",
             )
             .collect(engine="streaming")
-        )
-        assert candidates.height > 0, (
-            f"inspection requires recovered {region_label} rows"
         )
         candidate_query_names.update(candidates["query_name"].to_list())
 
@@ -639,6 +647,7 @@ def write_dataset_card(
     region_label: str,
     species_scope: str,
     validation_seed: int,
+    provenance_path: str | Path,
 ) -> None:
     """Write the reviewable HF README required before any upload."""
     assert len(pipeline_commit) == 40, "dataset cards require a commit-pinned SHA"
@@ -673,14 +682,38 @@ def write_dataset_card(
         "https://github.com/Open-Athena/marin-dna/blob/"
         f"{pipeline_commit}/snakemake/vertebrate_projection_dataset/README.md"
     )
-    source_description = (
-        "the Zoonomia 447-mammal Cactus alignment"
-        if species_scope == "mammals_only"
-        else (
-            "the Zoonomia 447-mammal Cactus alignment and UCSC hg38 "
-            "MultiZ 100-way alignment"
-        )
+    provenance = json.loads(Path(provenance_path).read_text())
+    assert provenance["pipeline_commit"] == pipeline_commit
+    resolved_config = provenance["config"]
+    target_names = selected["alignment_name"].to_list()
+    chain_origins = sorted(
+        {provenance["chains"][name]["chain_origin"] for name in target_names}
     )
+    genome_origins = sorted(
+        {provenance["genomes"][name]["origin"] for name in ["hg38", *target_names]}
+    )
+    synthetic_warning = (
+        "These inputs include fabricated synthetic test assets, not biological "
+        "sequence evidence; do not use this fixture as a biological dataset."
+        if "synthetic-test-only" in chain_origins + genome_origins
+        else ""
+    )
+    if resolved_config.get("anchors"):
+        anchor_description = (
+            "Anchors come from an externally supplied, checksum-pinned catalog. "
+            "This workflow applies no additional phyloP eligibility filter to that catalog."
+        )
+    elif resolved_config["tier"] == "smoke":
+        anchor_description = (
+            "Anchors come from the pinned smoke catalog. "
+            "This workflow applies no phyloP eligibility filter to that catalog."
+        )
+    else:
+        anchor_description = (
+            "Anchor eligibility uses the pipeline's configured phyloP conservation filter "
+            f"(base-score threshold {resolved_config['phyloP_447m_threshold']}; "
+            f"minimum conserved-base fraction {resolved_config['min_proportion_conserved']})."
+        )
     text = f"""---
 tags:
 - biology
@@ -697,13 +730,21 @@ configs:
 
 # `{hf_repo}`
 
-Human-anchored 255 bp vertebrate sequences from {source_description}.
+Human-anchored 255 bp sequences projected through checksum-pinned chain files.
 This draft covers the `{region_label}` region cohort with `{species_scope}` species scope and preserves source FASTA/2bit letter case.
+{synthetic_warning}
+
+Recorded chain origins: {", ".join(chain_origins)}.
+Recorded genome origins: {", ".join(genome_origins)}.
 
 Non-human rows project only the central human nucleotide and extract the 255 bp target window centered on its unique mapped locus.
+All targets use UCSC liftOver and checksum-pinned, assembly-matched sequence archives.
+The historical `alignment_source` values identify cohort provenance; `ucsc_multiz100way` does not mean that a MAF was queried.
+The producing workflow's `metadata/assets.json` records the exact chain origins, genome sources, and input digests.
 
-Anchor eligibility uses the pipeline's pinned phyloP conservation filter.
-Sequence case is independent of that filter: lowercase bases preserve source repeat masking, uppercase bases preserve source non-repeat-masked sequence, and conservation scores never rewrite emitted characters or case.
+{anchor_description}
+Sequence case is independent of anchor selection and is copied verbatim from each archive.
+For repeat-masked biological inputs, lowercase bases preserve source repeat masking; conservation scores never rewrite emitted characters or case.
 
 Produced by the [commit-pinned vertebrate projection pipeline]({pipeline_url}).
 
@@ -718,7 +759,7 @@ The reverse complement of a selected validation row is excluded from training.
 
 The selected target manifest contains {selected.height:,} family-deduplicated projection targets; human reference rows are added separately once per anchor.
 
-| Projection backend | Clade | Selected species |
+| Historical cohort label | Clade | Selected species |
 |---|---|---:|
 {species_lines}
 

@@ -131,6 +131,41 @@ def test_inspection_rejects_invalid_sequence() -> None:
         raise AssertionError("invalid sequence should fail inspection prechecks")
 
 
+def test_single_region_catalog_has_an_inspection_sample(tmp_path: Path) -> None:
+    schema = {**ACCEPTED_SCHEMA, "sequence": pl.String}
+    rows = pl.DataFrame(
+        [
+            _row(
+                "ncrna_only",
+                "Homo sapiens",
+                "human_reference",
+                "mammals",
+                0,
+                region_label="ncrna_exon",
+            ),
+        ],
+        schema=schema,
+    )
+    sample = build_inspection_sample(rows)
+    assert sample["region_label"].to_list() == ["ncrna_exon"]
+    sequences, rejected = tmp_path / "sequences.parquet", tmp_path / "rejected.parquet"
+    rows.write_parquet(sequences)
+    pl.DataFrame(schema=REJECTION_SCHEMA).write_parquet(rejected)
+    write_inspection_files(
+        sequences,
+        [str(rejected)],
+        tmp_path / "sample.tsv",
+        tmp_path / "rejected.tsv",
+        tmp_path / "report.md",
+        seed=417,
+        rows_per_region=1,
+        fragmented_rows=0,
+        rejected_rows_per_reason=1,
+        require_zrs=False,
+    )
+    assert "ncrna_only" in (tmp_path / "sample.tsv").read_text()
+
+
 def test_streaming_inspection_materializes_only_sample_candidates(
     tmp_path: Path,
 ) -> None:

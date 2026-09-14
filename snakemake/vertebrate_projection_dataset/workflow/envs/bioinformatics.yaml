@@ -4,7 +4,7 @@ channels:
 dependencies:
   - awscli
   - bedtools
-  - ucsc-fatotwobit
-  - ucsc-twobitinfo
-  - ucsc-twobittofa
+  - ucsc-fatotwobit=482
+  - ucsc-twobitinfo=482
+  - ucsc-twobittofa=482
   - zstd

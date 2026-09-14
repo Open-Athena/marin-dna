@@ -17,7 +17,7 @@ MIN_PROPORTION = float(config["min_proportion_conserved"])
 
 rule human_undefined_regions:
     input:
-        f"{RESULTS}/reference/hg38.2bit",
+        local(f"{RESULTS}/reference/hg38.2bit"),
     output:
         f"{RESULTS}/anchors/undefined.ucsc.bed",
     conda:

@@ -87,7 +87,12 @@ def build_projection_qc_tables(
         kept = accepted_by_query.get(query_name, [])
         dropped = rejected_by_query.get(query_name, [])
         assert len(kept) + len(dropped) <= requested_total
-        no_mapping = requested_total - len(kept) - len(dropped)
+        no_mapping = (
+            requested_total
+            - len(kept)
+            - len(dropped)
+            + sum(row["rejection_reason"] == "unmapped" for row in dropped)
+        )
 
         kept_mammals = sum(row["clade"] == "mammals" for row in kept)
         kept_non_mammals = len(kept) - kept_mammals
@@ -125,6 +130,8 @@ def build_projection_qc_tables(
         existing_reason_counts: dict[str, int] = {}
         for row in dropped:
             reason = str(row["rejection_reason"])
+            if reason == "unmapped":
+                continue  # Included once in the canonical no_mapping count.
             existing_reason_counts[reason] = existing_reason_counts.get(reason, 0) + 1
         if no_mapping:
             existing_reason_counts["no_mapping"] = no_mapping
@@ -265,7 +272,9 @@ def write_projection_qc_tables_streaming(
         .alias("deepest_recovered_clade"),
     )
     rejected_totals = rejected.group_by("query_name").agg(
-        pl.len().alias("explicit_rejection_count")
+        (pl.col("rejection_reason") != "unmapped")
+        .sum()
+        .alias("explicit_rejection_count")
     )
     per_anchor = (
         anchors.select(required_anchors)
@@ -354,7 +363,8 @@ def write_projection_qc_tables_streaming(
 
     anchor_labels = anchors.select("query_name", "region_label").lazy()
     explicit_rejections = (
-        rejected.group_by("query_name", "rejection_reason")
+        rejected.filter(pl.col("rejection_reason") != "unmapped")
+        .group_by("query_name", "rejection_reason")
         .agg(pl.len().cast(pl.Int64).alias("count"))
         .join(anchor_labels, on="query_name", how="left")
         .select(
