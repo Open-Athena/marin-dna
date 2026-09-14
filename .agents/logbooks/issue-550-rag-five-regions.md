@@ -1083,3 +1083,12 @@ Compute from launch to termination request was approximately 3.154 A10G hours, a
 A conservative 3.25-hour completed allowance yields $20.4366 cumulative allowances within the original $30 cap, including all earlier attempts and staging reserves.
 The completion receipt, comparison, and reconciled budget are recorded under the evaluation artifacts.
 Training and the requested evaluations are complete; final research interpretation and knowledge-base disposition remain pending before issue closure.
+
+## 2026-09-14 — Knowledge-base interpretation authorized
+
+The user requested a knowledge-base pull request for the completed experiment.
+Existing authorization covers the documentation branch, evidence retrieval, publication, CI, and independent review; no new compute, question scope, priority change, or merge is requested.
+A fresh read of the finished production W&B run gives final aggregate validation loss 0.5454126000 and equal-region macro loss 0.5423138738 at 100,000 completed updates.
+The held-out set has 2,000 chr18 documents, 400 per region, with padding targets masked; the loss covers every available species segment and is not human-only.
+The comparison does not use this mixed-document loss to rank the differently constructed earlier prototype.
+The pending interpretation relates the experiment to the existing RAG and Complex Traits questions and keeps operational history and dense results in this issue and branch.

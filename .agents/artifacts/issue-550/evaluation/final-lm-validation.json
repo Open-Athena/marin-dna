@@ -1,0 +1,20 @@
+{
+  "run_url": "https://wandb.ai/gonzalobenegas/marin/runs/dna-exp550-rag46m-five-regions-v1",
+  "retrieved_at_utc": "2026-09-14T23:39:24.938756+00:00",
+  "run_state": "finished",
+  "completed_updates": 100000,
+  "logged_step": 100000,
+  "logged_global_step": 99999,
+  "aggregate_validation_loss": 0.5454126000404358,
+  "equal_region_macro_validation_loss": 0.5423138737678528,
+  "region_validation_losses": {
+    "cds": 0.5813834071159363,
+    "tss_utr5": 0.5875335335731506,
+    "utr3": 0.5532844662666321,
+    "ncrna": 0.5069602131843567,
+    "enhancer": 0.4824074506759643
+  },
+  "definition": "Standard causal next-token validation loss over all available species segments; padding targets have zero weight. This is not a human-only loss.",
+  "validation_split": "2,000 published chr18 documents, 400 per region; all chr18 human anchors excluded from training.",
+  "source": "Read-only W&B GraphQL summaryMetrics for the production run, checked against the committed training and loss-mask recipe."
+}
