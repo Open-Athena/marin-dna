@@ -1,0 +1,184 @@
+{
+  "model": "dna-exp550-rag46m-five-regions-v1-step-50000",
+  "source_commit": "b435fa352a150835cc7d22eaaf3640bb3aec85d6",
+  "split": "train",
+  "cohort_sizes": {
+    "mendelian_traits": 16140,
+    "complex_traits": 11630,
+    "sge": 23853
+  },
+  "batch": 8,
+  "bf16": true,
+  "torch_compile": true,
+  "prefix_cache": true,
+  "left_padded_tokens": 10240,
+  "human_variant_position": 10112,
+  "embeddings": true,
+  "with_probes": true,
+  "started_at_unix": 1789413834.5346317,
+  "checkpoint_sha256": "1d69aa2b03ddc83cc82f38711755d43f39c7085e933e85ead2ec0205470cef27",
+  "harness_sha256": "6631d35f9ae0afc754c623a2e3960682e8a834a28001906279745882f99cb73b",
+  "completed": true,
+  "publication": "canonical_s3",
+  "exit_status": 0,
+  "finished_at_unix": 1789424780.4512753,
+  "files": {
+    "results/scores/dna-exp550-rag46m-five-regions-v1-step-50000/mendelian_traits.parquet": {
+      "bytes": 42034175,
+      "sha256": "a02c0fda65620f27b73eefe83586c3e21c2de9ee9f2480f8e8f2d1edadf4ea5c"
+    },
+    "results/scores/dna-exp550-rag46m-five-regions-v1-step-50000/complex_traits.parquet": {
+      "bytes": 30637304,
+      "sha256": "61fae55cb885450064587562fb9abf623f5463cad03ae240a9b53674429bce71"
+    },
+    "results/scores/dna-exp550-rag46m-five-regions-v1-step-50000/sge.parquet": {
+      "bytes": 51656905,
+      "sha256": "69aeb65f9231c668faf6c5c796d9348583174efbeb7d38ce1d4ffd1d77947644"
+    },
+    "results/metrics/dna-exp550-rag46m-five-regions-v1-step-50000/mendelian_traits.parquet": {
+      "bytes": 16329,
+      "sha256": "f9970a859c25a67e4d1a969658390ecb4bbe29dff0b324464a4f1e00f7afd70d"
+    },
+    "results/metrics/dna-exp550-rag46m-five-regions-v1-step-50000/complex_traits.parquet": {
+      "bytes": 15839,
+      "sha256": "9df64eb33403e702f927b02d28d7d4f884aaf1bc2af8c5e419d247db3b5c4e5e"
+    },
+    "results/metrics/dna-exp550-rag46m-five-regions-v1-step-50000/sge.parquet": {
+      "bytes": 11329,
+      "sha256": "1f3e1ed362da2d5798b37f859fdf2179cf480f51b97c53c77624fa3b4bde5498"
+    },
+    "results/probe/dna-exp550-rag46m-five-regions-v1-step-50000/mendelian_traits.parquet": {
+      "bytes": 1571850,
+      "sha256": "e98a17bfc8374630a0d6e82df8a5c277bd4b6572d54e32e7ecf6d3dc28f6b7cc"
+    },
+    "results/probe/dna-exp550-rag46m-five-regions-v1-step-50000/complex_traits.parquet": {
+      "bytes": 1562992,
+      "sha256": "666bbb1b19b120f03704a66a5c294400f36146e8aa894a9bcbf7ffc106f42be8"
+    },
+    "results/probe/dna-exp550-rag46m-five-regions-v1-step-50000/sge.parquet": {
+      "bytes": 4538646,
+      "sha256": "d2a6966fa5609eb6c67dd545fea3baa9552384e4b8551b178073305db98e601a"
+    },
+    "results/probe/dna-exp550-rag46m-five-regions-v1-step-50000/mendelian_traits.joblib": {
+      "bytes": 293625,
+      "sha256": "512871c0fc441bc94db19422809d2f184927353f1ccc36584cd7685b1dc79cd3"
+    },
+    "results/probe/dna-exp550-rag46m-five-regions-v1-step-50000/complex_traits.joblib": {
+      "bytes": 220457,
+      "sha256": "cb1d7fc0fd7838f9fb3b5802d703bb8f48b6ad3a754365b55365f521e00dc0cf"
+    },
+    "results/probe/dna-exp550-rag46m-five-regions-v1-step-50000/sge.joblib": {
+      "bytes": 74106,
+      "sha256": "c8dc8b3ab0adf5344431c4ff71ec604bea77c5955f26e9df7448b5d5c38a89c6"
+    },
+    "results/probe_metrics/dna-exp550-rag46m-five-regions-v1-step-50000/mendelian_traits.parquet": {
+      "bytes": 6842,
+      "sha256": "c5bbe40f6f0f21794fb263bc2714caf69edb1bcb35a8c8b66799f8100b3d246f"
+    },
+    "results/probe_metrics/dna-exp550-rag46m-five-regions-v1-step-50000/complex_traits.parquet": {
+      "bytes": 6726,
+      "sha256": "7de9c238bd4f4eba5a6e91227dadf7d90c0f61adf7bd4a64ab7d73954ad3a5e5"
+    },
+    "results/probe_metrics/dna-exp550-rag46m-five-regions-v1-step-50000/sge.parquet": {
+      "bytes": 8479,
+      "sha256": "4f9255ec24454e35b03e43fb690a86ea4283567f951a767b915ee1d2e29873c3"
+    }
+  },
+  "canonical_s3_content_sha256_verified": true,
+  "development_macro_auprc": {
+    "metrics/mendelian_traits": {
+      "score_type": "minus_llr_avg",
+      "subset": "_macro_avg_",
+      "value": 0.4036761015700323,
+      "se": 0.01580979918751686,
+      "n_groups": 8,
+      "n_rows": 16100,
+      "group_smd_value": null,
+      "group_smd_se": null,
+      "group_smd_ci_low": null,
+      "group_smd_ci_high": null,
+      "group_smd_confidence_level": null,
+      "group_smd_available": false,
+      "group_smd_unavailable_reason": "group_smd_not_defined_for_macro_average",
+      "group_smd_uncertainty_method": null,
+      "group_smd_n_bootstrap": 1000,
+      "group_smd_n_bootstrap_valid": 0,
+      "model": "dna-exp550-rag46m-five-regions-v1-step-50000",
+      "dataset": "mendelian_traits",
+      "split": "train"
+    },
+    "metrics/complex_traits": {
+      "score_type": "abs_llr_avg",
+      "subset": "_macro_avg_",
+      "value": 0.1637496639369095,
+      "se": 0.012605270112091109,
+      "n_groups": 6,
+      "n_rows": 11270,
+      "group_smd_value": null,
+      "group_smd_se": null,
+      "group_smd_ci_low": null,
+      "group_smd_ci_high": null,
+      "group_smd_confidence_level": null,
+      "group_smd_available": false,
+      "group_smd_unavailable_reason": "group_smd_not_defined_for_macro_average",
+      "group_smd_uncertainty_method": null,
+      "group_smd_n_bootstrap": 1000,
+      "group_smd_n_bootstrap_valid": 0,
+      "model": "dna-exp550-rag46m-five-regions-v1-step-50000",
+      "dataset": "complex_traits",
+      "split": "train"
+    },
+    "metrics/sge": {
+      "metric": "AUPRC",
+      "subset": "_macro_avg_",
+      "accession": "_macro_avg_",
+      "gene": "_macro_avg_",
+      "score_type": "minus_llr_avg",
+      "value": 0.4757639702063273,
+      "se": 0.011355308995311265,
+      "n": 8,
+      "n_pos": 3501,
+      "model": "dna-exp550-rag46m-five-regions-v1-step-50000",
+      "dataset": "sge",
+      "split": "train"
+    },
+    "probe_metrics/mendelian_traits": {
+      "score_type": "probe_score",
+      "subset": "_macro_avg_",
+      "value": 0.5202179116288694,
+      "se": 0.023585673654473765,
+      "n": 16100,
+      "n_pos": 1610,
+      "n_chrom": 12,
+      "model": "dna-exp550-rag46m-five-regions-v1-step-50000",
+      "dataset": "mendelian_traits",
+      "split": "train"
+    },
+    "probe_metrics/complex_traits": {
+      "score_type": "probe_score",
+      "subset": "_macro_avg_",
+      "value": 0.29292078521156034,
+      "se": 0.023753895361811193,
+      "n": 11270,
+      "n_pos": 1127,
+      "n_chrom": 12,
+      "model": "dna-exp550-rag46m-five-regions-v1-step-50000",
+      "dataset": "complex_traits",
+      "split": "train"
+    },
+    "probe_metrics/sge": {
+      "metric": "AUPRC",
+      "subset": "_macro_avg_",
+      "accession": "_macro_avg_",
+      "gene": "_macro_avg_",
+      "score_type": "probe_score",
+      "value": 0.4628948125931362,
+      "se": 0.01125142430965168,
+      "n": 8,
+      "n_pos": 3501,
+      "model": "dna-exp550-rag46m-five-regions-v1-step-50000",
+      "dataset": "sge",
+      "split": "train"
+    }
+  }
+}

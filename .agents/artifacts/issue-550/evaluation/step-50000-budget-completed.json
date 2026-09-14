@@ -1,0 +1,18 @@
+{
+  "currency": "USD",
+  "cumulative_cap": 30.0,
+  "prior_conservative_allowance": 5.1496,
+  "completed_10k_allowance": 4.024,
+  "completed_20k_allowance": 4.024,
+  "completed_100k_allowance": 3.2695,
+  "completed_50k_compute_hours_approx": 3.153650481104851,
+  "completed_50k_compute_usd_approx": 3.17257238399148,
+  "completed_50k_reserved_hours_upper_bound": 3.25,
+  "completed_50k_allowance": 3.2695,
+  "cumulative_disk_allowance": 0.45,
+  "remote_staging_allowance": 0.25,
+  "active_task_paid_workers": 0,
+  "basis": "Reconcile the completed 50k worker to a conservative 3.25-hour allowance, preserving all earlier allowances and the remote staging reserve. This is a budget ledger, not an invoice.",
+  "total_allowance": 20.4366,
+  "remaining_unallocated": 9.563400000000001
+}

@@ -1058,3 +1058,28 @@ Its AWS read preflight passed in service context, ancillary logs were copied aga
 The implementation and receipt checks are unchanged; no inference was restarted and no new paid resource was launched.
 The unit configuration and active state were checked without rebooting the shared host a second time.
 The private unit must be disabled after completion; the existing worker-owned stop traps and hard deadline continue to protect paid runtime if the coordinator is unavailable.
+
+## 2026-09-14 23:30 UTC — Halfway evaluation complete and worker terminated
+
+The 50k zero-shot development metrics finished at 21:57:43 UTC (5:57 p.m. NYC), and all frozen probes finished at 22:26:20 UTC (6:26 p.m. NYC).
+Total workflow runtime was 10,945.9 seconds, approximately 3 hours 2 minutes.
+The restored persistent watcher retained the complete log and receipt and requested termination at approximately 22:26:25 UTC.
+A fresh EC2 query confirmed the worker is terminated, and the completed local recovery service was disabled.
+No evaluation work was lost to the coordinator reboot.
+
+| Macro AUPRC | 50k zero-shot | Final zero-shot | 50k frozen probe | Final frozen probe |
+| --- | ---: | ---: | ---: | ---: |
+| Mendelian | 0.4037 ± 0.0158 | 0.4407 ± 0.0148 | 0.5202 ± 0.0236 | 0.5502 ± 0.0282 |
+| Complex Traits | 0.1637 ± 0.0126 | 0.1578 ± 0.0128 | 0.2929 ± 0.0238 | 0.3131 ± 0.0197 |
+| SGE | 0.4758 ± 0.0114 | 0.5093 ± 0.0117 | 0.4629 ± 0.0113 | 0.5026 ± 0.0110 |
+
+Both checkpoints use the same broad-model development cohorts, eligible support, scoring, and probing contracts.
+The final zero-shot point estimates are higher on Mendelian and SGE, while 50k is higher by 0.0059 on Complex Traits.
+All three final probe point estimates exceed 50k; matched-data zero-shot and probe values retain their distinct aggregation contracts and should be compared within protocol.
+No paired significance test was performed.
+All 15 canonical S3 file contents passed the worker's SHA-256 verification, and the completion receipt was checked for the exact expected outputs, checkpoint hash, model identity, and support equality with 100k.
+The known raw matched-metric filtering inconsistency in #574 remains outside these reported eligible-subset macros.
+Compute from launch to termination request was approximately 3.154 A10G hours, about $3.17 before disk charges.
+A conservative 3.25-hour completed allowance yields $20.4366 cumulative allowances within the original $30 cap, including all earlier attempts and staging reserves.
+The completion receipt, comparison, and reconciled budget are recorded under the evaluation artifacts.
+Training and the requested evaluations are complete; final research interpretation and knowledge-base disposition remain pending before issue closure.

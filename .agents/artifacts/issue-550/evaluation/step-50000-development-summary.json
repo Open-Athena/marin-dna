@@ -1,0 +1,112 @@
+{
+  "model": "dna-exp550-rag46m-five-regions-v1-step-50000",
+  "comparison_model": "dna-exp550-rag46m-five-regions-v1-step-100000",
+  "split": "train",
+  "split_description": "Odd autosomes and chromosome X development cohorts",
+  "metric": "macro AUPRC",
+  "training_region_scope": "broad mixed genomic regions",
+  "exclusions": "Mature miRNA and benchmark-specific low-support cells omitted from reported macros; stored matched metrics retain the known issue #574 inconsistency outside reported macros.",
+  "uncertainty": "Estimate and bootstrap standard error under each producing protocol. Matched-data zero-shot pools variants within subsets and uses match-group bootstrap; probes aggregate per-chromosome AUPRC with chromosome-cluster bootstrap. SGE follows the maintained accession/subset contract. No paired difference significance test was performed.",
+  "comparisons": {
+    "mendelian_traits": {
+      "metrics": {
+        "value": 0.4036761015700323,
+        "se": 0.01580979918751686,
+        "score_type": "minus_llr_avg",
+        "final_100k_value": 0.44073301423421496,
+        "final_100k_se": 0.014756952150823552,
+        "difference_50k_minus_100k": -0.03705691266418265,
+        "support_matches_100k": true,
+        "support": {
+          "n_groups": 8,
+          "n_rows": 16100
+        }
+      },
+      "probe_metrics": {
+        "value": 0.5202179116288694,
+        "se": 0.023585673654473765,
+        "score_type": "probe_score",
+        "final_100k_value": 0.5502123428270052,
+        "final_100k_se": 0.028216472867602076,
+        "difference_50k_minus_100k": -0.029994431198135718,
+        "support_matches_100k": true,
+        "support": {
+          "n": 16100,
+          "n_pos": 1610,
+          "n_chrom": 12
+        }
+      }
+    },
+    "complex_traits": {
+      "metrics": {
+        "value": 0.1637496639369095,
+        "se": 0.012605270112091109,
+        "score_type": "abs_llr_avg",
+        "final_100k_value": 0.15783394294107353,
+        "final_100k_se": 0.01278591412287597,
+        "difference_50k_minus_100k": 0.005915720995835982,
+        "support_matches_100k": true,
+        "support": {
+          "n_groups": 6,
+          "n_rows": 11270
+        }
+      },
+      "probe_metrics": {
+        "value": 0.29292078521156034,
+        "se": 0.023753895361811193,
+        "score_type": "probe_score",
+        "final_100k_value": 0.31307688279894447,
+        "final_100k_se": 0.01972211158467352,
+        "difference_50k_minus_100k": -0.020156097587384125,
+        "support_matches_100k": true,
+        "support": {
+          "n": 11270,
+          "n_pos": 1127,
+          "n_chrom": 12
+        }
+      }
+    },
+    "sge": {
+      "metrics": {
+        "value": 0.4757639702063273,
+        "se": 0.011355308995311265,
+        "score_type": "minus_llr_avg",
+        "final_100k_value": 0.5092835220819057,
+        "final_100k_se": 0.011680340759952215,
+        "difference_50k_minus_100k": -0.033519551875578424,
+        "support_matches_100k": true,
+        "support": {
+          "n": 8,
+          "n_pos": 3501
+        }
+      },
+      "probe_metrics": {
+        "value": 0.4628948125931362,
+        "se": 0.01125142430965168,
+        "score_type": "probe_score",
+        "final_100k_value": 0.5026366211657991,
+        "final_100k_se": 0.010990118696737805,
+        "difference_50k_minus_100k": -0.03974180857266291,
+        "support_matches_100k": true,
+        "support": {
+          "n": 8,
+          "n_pos": 3501
+        }
+      }
+    }
+  },
+  "completed_at_utc": "2026-09-14T22:26:20.451275+00:00",
+  "zero_shot_metrics_completed_at_utc": "2026-09-14T21:57:43+00:00",
+  "runtime_seconds": 10945.916643619537,
+  "all_15_canonical_s3_files_content_verified": true,
+  "worker_terminated": true,
+  "worker_termination_verified_at_utc": "2026-09-14T23:30:11.803756+00:00",
+  "worker_compute_hours_approx": 3.153650481104851,
+  "worker_compute_usd_approx": 3.17257238399148,
+  "termination_request_file_mtime_utc": "2026-09-14T22:26:25.141732+00:00",
+  "local_recovery_service_disabled": true,
+  "provenance": {
+    "source_commit": "b435fa352a150835cc7d22eaaf3640bb3aec85d6",
+    "canonical_s3_prefix": "s3://oa-bolinas/snakemake/analysis/evals_v2/results/"
+  }
+}
