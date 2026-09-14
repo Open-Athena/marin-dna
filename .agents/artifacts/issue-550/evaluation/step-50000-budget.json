@@ -12,8 +12,10 @@
   "requested_50k_max_hours": 8,
   "requested_50k_allowance": 8.048,
   "cumulative_disk_allowance": 0.45,
-  "total_reserved": 24.9651,
-  "remaining_unreserved": 5.0349,
+  "total_reserved": 25.2151,
+  "remaining_unreserved": 4.7849,
   "authorization": "The user requested the 50%-of-steps checkpoint on 2026-09-14; existing task authorization covers development VEP, embeddings, probes, S3 output saving, and cleanup within the original cumulative $30 cap.",
-  "basis": "The final 100k VEP and probes completed in approximately three hours and its worker is terminated. Replace its unused sixteen-hour reservation with a conservative 3.25-hour completed allowance, preserve all earlier attempt/intermediate allowances, and reserve eight hours for the 50k evaluation. Stop immediately on completion or failure."
+  "basis": "The final 100k VEP and probes completed in approximately three hours and its worker is terminated. Replace its unused sixteen-hour reservation with a conservative 3.25-hour completed allowance, preserve all earlier attempt/intermediate allowances, and reserve eight hours for the 50k evaluation. Stop immediately on completion or failure.",
+  "remote_staging_allowance": 0.25,
+  "remote_staging_basis": "Reserve an additional $0.25 for a bounded 1-CPU, 2-GiB, 900-second Iris staging task and transfer overhead after the shared VM failed its required headroom check; no accelerator requested and zero retries."
 }

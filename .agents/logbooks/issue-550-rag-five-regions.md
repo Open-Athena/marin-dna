@@ -1018,3 +1018,16 @@ The existing scorer, fixed padding, prefix cache, BF16, batch 8, embeddings, and
 The registration is added to PR #565, and the existing preparation, collection, and recovery helpers gain explicit 50k selection with cross-checkpoint receipt and worker-name guards.
 One local contract-test attempt was deferred when the shared-node preflight lacked headroom; a later read showed recovery, allowing a guarded retry.
 The paid worker will run the full locked suite, fresh batch check, and inspected default-S3 dry-run before biological evaluation.
+
+## 2026-09-14 19:16 UTC — Halfway checkpoint staged remotely
+
+The shared VM remained below the required 2.5-GiB available-memory threshold, so the guarded local transfer refused to run.
+A one-CPU, two-GiB Iris task with a 900-second timeout and zero retries staged the four checkpoint files instead; no GPU was needed for transport.
+The remote environment used Python 3.12.14, uv 0.11.31, gcsfs 2025.9.0, and requests 2.32.5.
+Native Python dependencies must live under `/app` on this worker because `/tmp` is mounted without executable library mappings.
+Normal remote GCS credentials read generation-pinned objects, and five-minute object-scoped conditional S3 PUT capabilities transferred the verified bytes without copying long-lived credentials.
+Source MD5, byte lengths, and S3-enforced SHA-256 checks verified all four objects before creating the cache marker.
+The weight SHA-256 is `1d69aa2b03ddc83cc82f38711755d43f39c7085e933e85ead2ec0205470cef27`.
+The staging task was then released; its completion is checked before leaving setup.
+The budget retains an additional $0.25 staging allowance, bringing conservative cumulative reservations to $25.2151 within the original $30 cap.
+Independent review found no staging correctness or credential-handling findings.
