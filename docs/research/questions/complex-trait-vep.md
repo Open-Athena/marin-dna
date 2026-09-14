@@ -1,7 +1,7 @@
 # Why do MarinDNA models lag on complex-trait VEP?
 
 > [!NOTE]
-> **TL;DR:** MarinDNA's complex-trait VEP gap is real but has not been causally attributed; training-footprint undercoverage is the best-supported hypothesis, while shallower evolutionary timescales and retrieval remain plausible, and confidence is low on which intervention will close the gap.
+> **TL;DR:** MarinDNA's complex-trait VEP gap has not been causally attributed; training-footprint undercoverage is the best-supported hypothesis, tested fixed-ortholog RAG recipes still leave a substantial zero-shot deficit, and matched footprint, timescale, and retrieval controls are needed to identify an effective intervention.
 
 ## Question
 
@@ -23,6 +23,11 @@ No fixed-compute experiment has shown that adding weakly conserved sequence clos
 Scoring contributes but does not appear sufficient.
 Richer embedding or downstream-effect scores and ensembling improve complex-trait readouts, while tested supervised probes and LoRA variants did not break the frozen-representation ceiling.
 Shallower evolutionary timescales and alignment-conditioned retrieval remain plausible, but current comparisons confound them with data, architecture, calibration, and objective.
+
+The [five-region RAG experiment](../experiments/550-five-region-rag.md) left a substantial Complex Traits zero-shot gap despite broader vertebrate context and longer training.
+Its final macro AUPRC was 0.1578 versus 0.2781 for GPN-Star M, and every eligible Complex Traits subset remained lower.
+Frozen-probe point estimates improved over the earlier RAG prototype, but zero-shot performance did not improve monotonically with training.
+This limits what the tested RAG recipe has achieved; its combined changes do not identify the causal contribution of retrieval or rule out a better retrieval-conditioned design.
 
 Confidence is moderate that conservation-focused coverage is one contributor and low on the intervention that will close the gap.
 The decisive next evidence is a fixed-compute footprint ablation, followed by matched timescale and retrieval controls if undercoverage does not explain enough of the deficit.
@@ -53,6 +58,8 @@ The decisive next evidence is a fixed-compute footprint ablation, followed by ma
   Neither broke the complex-trait frozen-embedding ceiling, supporting a data or representation bottleneck under the tested setup.
 - [#213](https://github.com/Open-Athena/marin-dna/issues/213) measured evaluation-positive coverage by the conservation-filtered training footprint.
   Coverage was 83.9% for Mendelian positives, 42.6% for complex-trait positives, and about 22% for distal complex positives, providing the strongest direct evidence for distribution mismatch.
+- [#550: Five-region RAG with order-level vertebrate representatives](../experiments/550-five-region-rag.md) improved several small-reader endpoints while retaining a Complex Traits zero-shot deficit against GPN-Star on every eligible subset.
+  Species coverage, document construction, and training exposure changed together, so the result does not isolate why the gap remains.
 
 </details>
 
