@@ -1031,3 +1031,18 @@ The weight SHA-256 is `1d69aa2b03ddc83cc82f38711755d43f39c7085e933e85ead2ec02054
 The staging task was then released; its completion is checked before leaving setup.
 The budget retains an additional $0.25 staging allowance, bringing conservative cumulative reservations to $25.2151 within the original $30 cap.
 Independent review found no staging correctness or credential-handling findings.
+
+## 2026-09-14 19:24 UTC (3:24 p.m. NYC) — Halfway VEP and frozen probes running
+
+The 50k A10G worker launched at 19:17:12 UTC and began biological scoring at 19:24:00 UTC.
+Its hard OS shutdown is September 15 at 03:17 UTC (September 14 at 11:17 p.m. NYC), and its preparation and execution wrappers stop on failure.
+Private launch context retains the exact worker identity, address, source commit, and deadline; public receipts omit live connection identifiers.
+The source is b435fa352a150835cc7d22eaaf3640bb3aec85d6.
+All 441 locked evals_v2 tests passed with five skips in 62.32 seconds.
+The fresh batch-8 synthetic check measured 5.705089 variants per second with finite outputs and 13.49 GB peak allocated GPU memory, matching final-checkpoint throughput.
+The inspected default-S3 plan contains exactly one combined scorer, three zero-shot metric jobs, three frozen-probe jobs, and three probe-metric jobs, all for step 50,000.
+The model, cohort, padding, prefix cache, precision, embeddings, and support contracts match the final evaluation.
+The event-driven recovery service copied all ancillary logs before execution and is retaining the live scoring log; its memory footprint is approximately 20 MB.
+Successful verification of all 15 canonical output contents and the streamed completion receipt triggers worker termination.
+The CPU staging task is independently confirmed succeeded with exit zero after approximately six minutes and has been released.
+Expected zero-shot results are around 6 p.m. NYC, with frozen probes around 6:30 p.m.; these estimates follow the completed final-checkpoint timing.

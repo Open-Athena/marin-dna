@@ -136,6 +136,15 @@ Its small contract tests run with `uv run --locked --script .agents/artifacts/is
 Require a successful staging exit and a receipt with `exit_status: 0` and `applied: true` before starting the GPU worker or copying the checkpoint.
 S3 prefix existence and `.snakemake_timestamp` alone are insufficient: Snakemake can recognize a directory while a failed upload has left only some of its files.
 Retry a failed stage through the same helper so all retained objects are revalidated.
+
+If the shared VM fails its memory guard, stage remotely before launching the GPU.
+The halfway evaluation used `stage-50k-remote.py` with a one-CPU, two-GiB Iris task, zero retries, and a 900-second timeout.
+The task used Python 3.12.14, uv 0.11.31, gcsfs 2025.9.0, and requests 2.32.5 under `/app/issue550-stage-env`; `/tmp` does not permit native-library executable mappings on that worker image.
+The helper's task ID records that specific completed staging task and must be replaced with a new bounded task within the existing approved scope and cumulative budget if staging is repeated.
+It reads GCS through the worker's normal provider and uses five-minute object-specific conditional S3 uploads that require the source MD5 and computed SHA-256.
+Checkpoint bytes stay remote, and the shared VM handles only small metadata and RPC messages.
+Require its successful receipt before releasing the staging task and starting paid GPU time.
+
 On the GPU worker, use the same consumer commit and copy the completed S3 checkpoint into the explicit storage cache before the synthetic batch sweep.
 This uses the GPU worker's normal S3 access; GCP credentials stay on the staging host.
 Run from `snakemake/analysis/evals_v2`:
