@@ -1046,3 +1046,15 @@ The event-driven recovery service copied all ancillary logs before execution and
 Successful verification of all 15 canonical output contents and the streamed completion receipt triggers worker termination.
 The CPU staging task is independently confirmed succeeded with exit zero after approximately six minutes and has been released.
 Expected zero-shot results are around 6 p.m. NYC, with frozen probes around 6:30 p.m.; these estimates follow the completed final-checkpoint timing.
+
+## 2026-09-14 21:50 UTC (5:50 p.m. NYC) — Log watcher restored after host reboot
+
+The shared exe VM rebooted at 21:44:31 UTC; the independent A10G evaluation continued uninterrupted.
+At the recovery check it was approximately 93% through the second scoring pass, with 97% GPU utilization and its original 03:17 UTC worker shutdown still scheduled.
+The transient local systemd recovery unit disappeared across the reboot, leaving no loaded unit fragment.
+The existing local log was preserved, and replaying the complete remote log recovered the stream gap.
+The watcher now runs as a verified, enabled persistent user service with the already-enabled lingering user manager, five-minute failure retries limited to three starts per hour, and a condition that suppresses starts after a termination receipt exists.
+Its AWS read preflight passed in service context, ancillary logs were copied again, and the resumed stream is advancing.
+The implementation and receipt checks are unchanged; no inference was restarted and no new paid resource was launched.
+The unit configuration and active state were checked without rebooting the shared host a second time.
+The private unit must be disabled after completion; the existing worker-owned stop traps and hard deadline continue to protect paid runtime if the coordinator is unavailable.

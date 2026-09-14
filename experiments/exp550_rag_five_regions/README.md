@@ -109,6 +109,10 @@ It opens no fresh SSH connection after completion, avoiding the shutdown login r
 Only after complete output verification and log capture does it request termination of the identified task worker.
 The worker also stops on success or failure and has a separately verified hard deadline, preserving EBS if recovery fails.
 Keep live instance IDs, addresses, and SSH-key paths in private launch notes and pass them as watcher arguments.
+Run unattended local recovery with an enabled persistent user service and verify that the user manager starts at boot; a transient `systemd-run` unit disappears on host reboot.
+The 50k run recovered from this at 21:50 UTC on September 14 by preserving the local log, replaying the remote stream, and enabling a persistent unit with bounded five-minute retries.
+Verify AWS access in that service's environment, suppress restart once a termination receipt exists, and disable the unit after completion.
+Retain the worker's independent stop traps and hard deadline because host-side recovery can still be unavailable.
 The final evaluation retains the previously reserved 16-hour maximum within the original cumulative $30 cap and stops as soon as the work finishes.
 
 Historical 10k local-output recovery and the 20k extra-log-copy failure are recorded in the logbook; their old wrappers are not the current final-run procedure.
