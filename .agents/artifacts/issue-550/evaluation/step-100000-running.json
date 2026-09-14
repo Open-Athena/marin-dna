@@ -1,0 +1,52 @@
+{
+  "model": "dna-exp550-rag46m-five-regions-v1-step-100000",
+  "source_commit": "510af59da70b815edb3fafbb7bcbea85b4b2eaa0",
+  "split": "train",
+  "cohort_sizes": {
+    "mendelian_traits": 16140,
+    "complex_traits": 11630,
+    "sge": 23853
+  },
+  "batch": 8,
+  "bf16": true,
+  "torch_compile": true,
+  "prefix_cache": true,
+  "left_padded_tokens": 10240,
+  "human_variant_position": 10112,
+  "embeddings": true,
+  "with_probes": true,
+  "started_at_unix": 1789397912.649424,
+  "checkpoint_sha256": "3ea293fc9be79fc46254da229693630009232fd050276b997356d84e3c28e172",
+  "harness_sha256": "6631d35f9ae0afc754c623a2e3960682e8a834a28001906279745882f99cb73b",
+  "completed": false,
+  "publication": "canonical_s3",
+  "observed_at_utc": "2026-09-14T15:00:14.429474+00:00",
+  "worker_type": "g5.xlarge",
+  "gpu": "NVIDIA A10G",
+  "region": "us-east-2",
+  "shutdown_deadline_utc": "2026-09-15T06:51:51+00:00",
+  "locked_tests": {
+    "passed": 441,
+    "skipped": 5,
+    "seconds": 63.77
+  },
+  "inspected_jobs": {
+    "compute_rag_scores": 1,
+    "compute_metrics": 3,
+    "compute_probe": 3,
+    "compute_probe_metrics": 3
+  },
+  "expected_final_output_count": 15,
+  "log_recovery": {
+    "ancillary_logs_copied_before_completion": true,
+    "existing_log_stream_active": true,
+    "terminate_only_after_verified_final_receipt": true
+  },
+  "final_training": {
+    "coordinator_state": "succeeded",
+    "exit_status": 0,
+    "tasks_completed": 1,
+    "tasks_total": 1,
+    "updates": 100000
+  }
+}

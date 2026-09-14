@@ -924,3 +924,28 @@ The collector verifies all 15 canonical score, metric, probe-prediction, classif
 The corrected watcher copies ancillary logs before shutdown and reads the final receipt over its existing connection, removing the new-login dependency that failed at 20k.
 Five bounded mocked tests cover final target selection, legacy intermediate targets, incomplete receipts, recovery ordering, and withholding termination without completion.
 All five pass; the worker will additionally run the full locked evals_v2 suite and an inspected production dry-run before biological evaluation.
+
+## 2026-09-14 15:00 UTC (11 a.m. NYC) — Final VEP and frozen probes running
+
+The final A10G worker launched at 14:52:03 UTC using the existing sixteen-hour reservation.
+Its NVIDIA A10G and hard OS shutdown for September 15 at 06:51:51 UTC (2:51 a.m. NYC) were independently verified before execution.
+Private launch notes retain the exact instance, address, and deadline; the public receipt contains no live connection identifiers.
+The setup used source 510af59da70b815edb3fafbb7bcbea85b4b2eaa0, passed 441 locked evals_v2 tests with five skips in 63.77 seconds, and verified the staged final checkpoint.
+
+A fresh synthetic batch-8 check measured 5.701705 variants per second, including both strands, REF/ALT scores, tokenization, and embeddings after compilation warmup.
+Both timed trials had finite outputs, and peak allocated GPU memory was 13.49 GB.
+This matches the earlier batch sweep and projects 2.515 hours of scoring for 51,623 variants.
+The records are `step-100000-batch-check.json` and `step-100000-running.json` under the evaluation artifacts.
+
+The inspected default-S3 Snakemake dry-run contains exactly ten jobs: one combined scorer, three zero-shot metric jobs, three frozen-probe jobs, and three probe-metric jobs.
+The final driver began at 14:58:32 UTC, and the combined biological scoring rule started at 14:58:38 UTC (10:58 a.m. NYC).
+Scoring uses the registered development split, BF16, compilation, batch 8, shared-prefix caching, full left-padding, and embeddings.
+The loader prepared both HF split caches, while the combined inference input contains only the 51,623 authorized development rows.
+The zero-shot outputs are expected around 1:35 p.m. NYC; frozen-probe runtime will be measured when scoring finishes.
+The sixteen-hour deadline is a spending safeguard, not a predicted completion time.
+
+The local event-driven recovery service copied setup logs and the inspected dry-run before completion, and its live scoring log is advancing.
+Service-context EC2 access passed a read-only check.
+The worker stops on completion or failure; successful verification of all 15 S3 file contents and the streamed final receipt triggers termination.
+A fresh controller read also confirmed that the recovered training coordinator succeeded with exit status zero and one of one tasks complete.
+No additional training or evaluation worker was launched.
