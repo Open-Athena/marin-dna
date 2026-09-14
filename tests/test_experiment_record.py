@@ -25,7 +25,12 @@ def make_record(**overrides) -> ExperimentRecord:
         "created_at": "2026-08-11T12:00:00+00:00",
         "config": {"train_batch_size": 8192, "train_steps": 5000, "seed": 0},
         "deps": [
-            ExperimentDep("hf-dataset", "marin-dna/vertebrate-v1-cds", DATASET_SHA),
+            ExperimentDep(
+                "hf-dataset",
+                "marin-dna/vertebrate-v1-cds",
+                DATASET_SHA,
+                arm="combined_vertebrates",
+            ),
             ExperimentDep("git", "https://github.com/Open-Athena/marin-dna", CODE_SHA),
         ],
         "runs": [
@@ -136,6 +141,30 @@ def test_run_id_prefix_collision_rejected():
             issue="https://github.com/Open-Athena/marin-dna/issues/41",
             runs=[run],
         )
+
+
+def test_dep_arm_must_match_a_declared_run_arm():
+    dep = ExperimentDep(
+        "hf-dataset", "marin-dna/vertebrate-v1-cds", DATASET_SHA, arm="reptiles_only"
+    )
+    with pytest.raises(AssertionError, match="which no run declares"):
+        make_record(deps=[dep])
+
+
+def test_empty_dep_arm_rejected():
+    with pytest.raises(AssertionError, match="non-empty arm name"):
+        ExperimentDep("hf-dataset", "marin-dna/vertebrate-v1-cds", DATASET_SHA, arm="")
+
+
+def test_record_without_dep_arm_key_still_reads(tmp_path):
+    """Records written before ExperimentDep.arm existed parse with arm=None."""
+    write_experiment_record(make_record(), str(tmp_path))
+    record_file = tmp_path / RECORD_FILENAME
+    payload = json.loads(record_file.read_text())
+    for dep in payload["deps"]:
+        del dep["arm"]
+    record_file.write_text(json.dumps(payload))
+    assert all(dep.arm is None for dep in read_experiment_record(str(tmp_path)).deps)
 
 
 def test_bad_dep_kind_rejected():

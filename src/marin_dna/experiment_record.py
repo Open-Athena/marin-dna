@@ -52,12 +52,16 @@ class ExperimentDep:
     """One pinned input: a HF dataset/model or a git repo, at an immutable revision.
 
     ``revision`` must be a full 40-hex sha — branch names, tags, and abbreviated shas
-    are not pins.
+    are not pins. ``arm`` names the run arm that consumed this input; ``None`` means
+    every run consumed it. Without the association, a record whose arms pin different
+    input revisions would list the pins but not say which run used which — ambiguous,
+    so not reproducible from storage alone.
     """
 
     kind: DepKind
     id: str
     revision: str
+    arm: str | None = None
 
     def __post_init__(self) -> None:
         assert self.kind in _DEP_KINDS, (
@@ -66,6 +70,9 @@ class ExperimentDep:
         assert self.id, "dep id must be non-empty"
         assert _FULL_SHA.fullmatch(self.revision), (
             f"dep {self.id!r} revision {self.revision!r} is not a full 40-hex sha"
+        )
+        assert self.arm is None or self.arm, (
+            f"dep {self.id!r} arm must be None (shared) or a non-empty arm name"
         )
 
 
@@ -93,8 +100,9 @@ class ExperimentRecord:
 
     ``config`` holds the experiment-level knobs shared across arms (model geometry,
     optimizer, batch/step horizon — whatever the launch pins as constants); per-arm
-    variation belongs in ``runs`` and per-arm deps. ``provenance`` is free-form string
-    metadata about the launch itself (experiment branch commit, marin pin, launcher).
+    variation belongs in ``runs`` and in deps tagged with their consuming ``arm``.
+    ``provenance`` is free-form string metadata about the launch itself (experiment
+    branch commit, marin pin, launcher).
     """
 
     name: str
@@ -133,6 +141,11 @@ class ExperimentRecord:
             assert re.search(rf"{re.escape(self.name)}(?![0-9])", run.run_id), (
                 f"run_id {run.run_id!r} does not carry {self.name!r} — wandb runs must"
                 " filter by experiment (see AGENTS.md: wandb run names)"
+            )
+        run_arms = {run.arm for run in self.runs}
+        for dep in self.deps:
+            assert dep.arm is None or dep.arm in run_arms, (
+                f"dep {dep.id!r} names arm {dep.arm!r}, which no run declares"
             )
         for key, value in self.provenance.items():
             assert isinstance(value, str), (

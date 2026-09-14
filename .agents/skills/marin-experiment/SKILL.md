@@ -69,6 +69,8 @@ It validates the conventions at construction and again on read: `name` must be `
 In the launch module, after the runner returns (it raises on failure, so this only runs on success):
 
 ```python
+import os
+
 from rigging.filesystem import marin_prefix, prefix_join
 from marin_dna.experiment_record import (
     ExperimentDep, ExperimentRecord, ExperimentRun,
@@ -84,8 +86,11 @@ def main() -> None:
         created_at=utc_now_iso(),
         config=CONFIG,  # the launch's pinned constants: model geometry, optimizer, batch, steps, seed
         deps=[
-            # one per pinned input, per arm where they differ
-            ExperimentDep("hf-dataset", DATASET_REPOS[arm], DATASET_REVISIONS[arm]),
+            # arm-specific pins carry arm=; deps every run consumed leave it None
+            *(
+                ExperimentDep("hf-dataset", DATASET_REPOS[arm], DATASET_REVISIONS[arm], arm=arm)
+                for arm in steps
+            ),
             ExperimentDep("git", "https://github.com/Open-Athena/marin-dna", MARIN_DNA_REVISION),
         ],
         runs=[
@@ -98,7 +103,8 @@ def main() -> None:
     write_experiment_record(record, prefix_join(marin_prefix(), f"experiments/{NAME}"))
 ```
 
-- `step.path()` resolves the output path a step wrote under the current lazy-artifact API. Verify the resolved paths against where the runs actually wrote the first time you use this with a new Marin release.
+- `step.path()` resolves the output path a step wrote under the current lazy-artifact API.
+  Verify the resolved paths against where the runs actually wrote the first time you use this with a new Marin release.
 - Remote-store writes need the matching fsspec backend (for example `gcsfs` for `gs://`) importable where the launch module runs; the Marin experiment environment provides it.
 
 ## Diagnose By Symptom
