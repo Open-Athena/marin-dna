@@ -33,7 +33,7 @@ Before non-trivial work, check for a matching skill and follow it.
 - Treat the frontmatter `description` as the routing contract: one line stating what the skill does and when to select it.
   Direct-task skills say when to use them; skills a task must not pull in on its own say `only when explicitly requested`; scheduled scrubs say `only from its scheduler or an explicit request`; skills that other skills invoke say `delegated by another selected workflow`.
 - Declare `schedule_cron` (five-field cron) and `schedule_tz` (IANA zone) together on a skill whose cadence this repository defines.
-  The fields document intent; the scheduler itself runs outside the repository.
+  The fields document intent; each scrub names its Actions workflow scheduler, while other scheduled skills run from external schedulers.
 - Keep a skill's entry point compact.
   Put detail it needs only sometimes in `references/` files it loads on demand, and put runnable helpers in `scripts/` gated by the root pytest suite.
 - `uv run --locked python infra/check_skill_metadata.py` validates every skill: YAML frontmatter, `name` equal to the directory and unique, a single-line description, paired schedule fields, a string `allowed-tools`, every repository path or well-known root file (`AGENTS.md`, `README.md`, `pyproject.toml`, …) in code spans, fenced blocks, or relative links, and drift traps for retired paths and skill names.

@@ -54,6 +54,7 @@
         "Publish through the delivery steps in AGENTS.md instead of the unavailable commit skill; follow the AGENTS.md skill conventions and record vendored-skill corrections with file-issue instead of editing vendor directories.",
         "Use the routing-contract description from upstream #8494 (later than the pinned commit).",
         "Schedule daily at 10:00 America/New_York as a five-field cron expression; upstream uses a six-field form.",
+        "Run from the in-repo Actions workflow named in the skill instead of Marin's external scrub harness.",
         "Report status in prose instead of the HARNESS_SCRUB_LOOP footer and needs_followup_at protocol.",
         "Keep each sentence on its own source line."
       ]
@@ -65,6 +66,7 @@
         "Publish through the delivery steps in AGENTS.md instead of the unavailable commit skill; record vendored-skill corrections with file-issue instead of editing vendor directories.",
         "Use the routing-contract description from upstream #8494 (later than the pinned commit).",
         "Schedule daily at 00:00 America/New_York as a five-field cron expression; upstream uses a six-field form.",
+        "Run from the in-repo Actions workflow named in the skill instead of Marin's external scrub harness.",
         "Report status in prose instead of the HARNESS_SCRUB_LOOP footer and needs_followup_at protocol.",
         "Keep each sentence on its own source line."
       ]

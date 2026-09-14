@@ -8,6 +8,7 @@ schedule_tz: America/New_York
 # scrub-reflection-self-improvement
 
 Use this skill on scheduled scrub turns to identify and land high-leverage improvements in `Open-Athena/marin-dna`.
+Its scheduler is the `.github/workflows/scrub-reflection-self-improvement.yml` workflow; treat a manual `workflow_dispatch` of that workflow as the scheduler too.
 
 ## Focus
 

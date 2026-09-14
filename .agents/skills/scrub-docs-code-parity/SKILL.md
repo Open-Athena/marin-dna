@@ -8,6 +8,7 @@ schedule_tz: America/New_York
 # scrub-docs-code-parity
 
 Use this skill on scheduled scrub turns for docs/code parity in `Open-Athena/marin-dna`.
+Its scheduler is the `.github/workflows/scrub-docs-code-parity.yml` workflow; treat a manual `workflow_dispatch` of that workflow as the scheduler too.
 
 ## Focus
 

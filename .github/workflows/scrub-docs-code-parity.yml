@@ -1,0 +1,67 @@
+name: "Scrub - Docs Code Parity"
+
+# Nightshift-style scheduled scrub, after marin's ops-nightshift-* pattern:
+# a cron-triggered Claude Code session that runs one turn of the
+# scrub-docs-code-parity skill
+# (.agents/skills/scrub-docs-code-parity/SKILL.md) and publishes any changes
+# through the Repository Lifecycle delivery steps in AGENTS.md.
+#
+# The skill frontmatter declares 00:00 America/New_York. Actions cron is UTC
+# only, so 04:00 UTC matches 00:00 EDT and runs 23:00 EST in winter; keep the
+# frontmatter as the statement of intent if the two ever look different.
+#
+# Setup (one-time, by a repo admin):
+#   1. Create a GitHub App for scheduled agents, install it on this repo with
+#      contents, pull requests, and issues read/write permissions.
+#   2. Add its id and private key as the SCRUB_APP_ID and
+#      SCRUB_APP_PRIVATE_KEY Actions secrets.
+#   The App token matters because branches pushed and PRs opened with the
+#   default GITHUB_TOKEN do not trigger the Quality/Test workflows, so scrub
+#   PRs would sit without their required checks.
+
+on:
+  schedule:
+    - cron: '0 4 * * *'
+  workflow_dispatch: {}
+
+concurrency:
+  group: scrub-docs-code-parity
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  id-token: write
+  actions: read
+
+jobs:
+  scrub:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Generate app token
+        id: app-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3
+        with:
+          app-id: ${{ secrets.SCRUB_APP_ID }}
+          private-key: ${{ secrets.SCRUB_APP_PRIVATE_KEY }}
+
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          token: ${{ steps.app-token.outputs.token }}
+
+      - name: Run the scrub
+        uses: anthropics/claude-code-action@6b082c41935b4c8a3b8b0ef85ba4ba4d9eeb8975 # v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          github_token: ${{ steps.app-token.outputs.token }}
+          additional_permissions: |
+            actions: read
+          prompt: |
+            This is the scheduled scrub turn for scrub-docs-code-parity, and you
+            are running from its scheduler.
+            Read .agents/skills/scrub-docs-code-parity/SKILL.md and run one scrub
+            turn exactly as it directs, following AGENTS.md throughout.
