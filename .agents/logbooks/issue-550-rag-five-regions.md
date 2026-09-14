@@ -949,3 +949,29 @@ Service-context EC2 access passed a read-only check.
 The worker stops on completion or failure; successful verification of all 15 S3 file contents and the streamed final receipt triggers termination.
 A fresh controller read also confirmed that the recovered training coordinator succeeded with exit status zero and one of one tasks complete.
 No additional training or evaluation worker was launched.
+
+## 2026-09-14 18:26 UTC — Final VEP and frozen probes complete
+
+The final checkpoint completed zero-shot development metrics at 17:32:32 UTC (1:32 p.m. NYC) and all frozen-probe targets at 17:57:22 UTC (1:57 p.m. NYC).
+Total workflow time was 10,729.6 seconds, approximately 2 hours 59 minutes.
+The final collector streamed all 15 canonical S3 objects and verified their byte lengths and SHA-256 hashes against local outputs.
+The completion receipt and machine-readable comparison are `step-100000-completed.json` and `step-100000-development-summary.json` under the evaluation artifacts.
+
+| Development macro AUPRC | Final zero-shot | Historical zero-shot | Final frozen probe | Historical frozen probe |
+| --- | ---: | ---: | ---: | ---: |
+| Mendelian | 0.4407 ± 0.0148 | 0.3955 ± 0.0157 | 0.5502 ± 0.0282 | 0.4088 ± 0.0290 |
+| Complex Traits | 0.1578 ± 0.0128 | 0.1840 ± 0.0149 | 0.3131 ± 0.0197 | 0.2976 ± 0.0235 |
+| SGE | 0.5093 ± 0.0117 | 0.4767 ± 0.0115 | 0.5026 ± 0.0110 | 0.4185 ± 0.0095 |
+
+These are broad-model development macro estimates with the maintained mature-miRNA exclusions and benchmark-specific support gates.
+Raw cohorts and every macro support count match the pinned historical audit.
+The zero-shot point estimates improve over the historical final baseline by 0.0453 on Mendelian and 0.0326 on SGE, while Complex Traits falls by 0.0262.
+Frozen-probe point estimates improve by 0.1414, 0.0154, and 0.0841, respectively.
+The comparison tests the combined recipe and longer training exposure; it does not isolate individual interventions or establish paired statistical significance.
+Matched-data probe metrics use per-chromosome AUPRC and chromosome-cluster uncertainty, so their values must not be interpreted as a direct gain over the differently aggregated zero-shot metric.
+
+The corrected log recovery retained the ancillary logs and final receipt over the existing connection.
+It requested termination at 17:57:27 UTC after verification; a fresh EC2 read confirmed the worker is terminated.
+Compute from launch to termination request was approximately 3.09 A10G hours, about $3.11 before disk charges, well within the sixteen-hour reservation and original cumulative cap.
+The final published launch receipts also passed independent review with no findings.
+Evaluation is complete; the broader experiment still needs its final research interpretation and knowledge-base disposition before issue closure.

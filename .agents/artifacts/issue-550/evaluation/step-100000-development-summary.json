@@ -1,0 +1,122 @@
+{
+  "model": "dna-exp550-rag46m-five-regions-v1-step-100000",
+  "baseline_model": "exp402-rag-h640-p46m-b2m-step-29999",
+  "split": "train",
+  "split_description": "Odd autosomes and chromosome X development cohorts",
+  "metric": "macro AUPRC",
+  "training_region_scope": "broad mixed genomic regions",
+  "exclusions": "Maintained mature-miRNA exclusion and benchmark-specific support gates",
+  "uncertainty": "Reported values are estimate and standard error under each producing pipeline protocol. Matched-data zero-shot uses match-group cluster bootstrap; matched-data probes use per-chromosome AUPRC and chromosome-cluster bootstrap. SGE uses the maintained accession/subset macro contract. These are not paired difference tests.",
+  "comparisons": {
+    "mendelian_traits": {
+      "metrics": {
+        "value": 0.44073301423421496,
+        "se": 0.014756952150823552,
+        "score_type": "minus_llr_avg",
+        "baseline_value": 0.39545527208900033,
+        "baseline_se": 0.01569702593819649,
+        "difference_from_baseline": 0.04527774214521463,
+        "support_matches_baseline": true,
+        "support": {
+          "n_groups": 8,
+          "n_rows": 16100
+        },
+        "step_10000_value": 0.3861171456076352,
+        "step_20000_value": 0.35266859365764536,
+        "difference_from_10000": 0.054615868626579744,
+        "difference_from_20000": 0.0880644205765696
+      },
+      "probe_metrics": {
+        "value": 0.5502123428270052,
+        "se": 0.028216472867602076,
+        "score_type": "probe_score",
+        "baseline_value": 0.40881580498015263,
+        "baseline_se": 0.029020613541456106,
+        "difference_from_baseline": 0.14139653784685252,
+        "support_matches_baseline": true,
+        "support": {
+          "n": 16100,
+          "n_pos": 1610,
+          "n_chrom": 12
+        }
+      }
+    },
+    "complex_traits": {
+      "metrics": {
+        "value": 0.15783394294107353,
+        "se": 0.01278591412287597,
+        "score_type": "abs_llr_avg",
+        "baseline_value": 0.18404207564958042,
+        "baseline_se": 0.014906471158705107,
+        "difference_from_baseline": -0.026208132708506887,
+        "support_matches_baseline": true,
+        "support": {
+          "n_groups": 6,
+          "n_rows": 11270
+        },
+        "step_10000_value": 0.1870544186127323,
+        "step_20000_value": 0.15583214971613274,
+        "difference_from_10000": -0.02922047567165878,
+        "difference_from_20000": 0.00200179322494079
+      },
+      "probe_metrics": {
+        "value": 0.31307688279894447,
+        "se": 0.01972211158467352,
+        "score_type": "probe_score",
+        "baseline_value": 0.29764346379000395,
+        "baseline_se": 0.023528963852934015,
+        "difference_from_baseline": 0.015433419008940519,
+        "support_matches_baseline": true,
+        "support": {
+          "n": 11270,
+          "n_pos": 1127,
+          "n_chrom": 12
+        }
+      }
+    },
+    "sge": {
+      "metrics": {
+        "value": 0.5092835220819057,
+        "se": 0.011680340759952215,
+        "score_type": "minus_llr_avg",
+        "baseline_value": 0.4767275271080021,
+        "baseline_se": 0.011537539978311525,
+        "difference_from_baseline": 0.03255599497390366,
+        "support_matches_baseline": true,
+        "support": {
+          "n": 8,
+          "n_pos": 3501
+        },
+        "step_10000_value": 0.42526616043985926,
+        "step_20000_value": 0.43154565772122916,
+        "difference_from_10000": 0.08401736164204648,
+        "difference_from_20000": 0.07773786436067659
+      },
+      "probe_metrics": {
+        "value": 0.5026366211657991,
+        "se": 0.010990118696737805,
+        "score_type": "probe_score",
+        "baseline_value": 0.4184973336653522,
+        "baseline_se": 0.009529733668216132,
+        "difference_from_baseline": 0.08413928750044691,
+        "support_matches_baseline": true,
+        "support": {
+          "n": 8,
+          "n_pos": 3501
+        }
+      }
+    }
+  },
+  "completed_at_utc": "2026-09-14T17:57:22.261705+00:00",
+  "runtime_seconds": 10729.61228132248,
+  "zero_shot_metrics_completed_at_utc": "2026-09-14T17:32:32+00:00",
+  "all_15_canonical_s3_files_content_verified": true,
+  "worker_terminated": true,
+  "worker_compute_hours_approx": 3.09,
+  "worker_compute_usd_approx": 3.10854,
+  "provenance": {
+    "source_commit": "510af59da70b815edb3fafbb7bcbea85b4b2eaa0",
+    "baseline_audit": ".agents/artifacts/issue-550/baseline/exp402-exact-development-cohort-audit.json",
+    "canonical_s3_prefix": "s3://oa-bolinas/snakemake/analysis/evals_v2/results/"
+  }
+}
