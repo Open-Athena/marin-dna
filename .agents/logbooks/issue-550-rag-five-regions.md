@@ -897,3 +897,30 @@ Future recovery must copy ancillary setup logs before scheduling shutdown or tra
 No restart was needed: the streamed log and receipt plus independently verified S3 outputs contained the required evidence.
 The stopped worker was terminated at 01:14 UTC after verification; the EC2 termination response reported the terminated state.
 The 20k compute ran for about 2 hours 43 minutes, within its four-hour allowance, and the final VEP/probe reservation remains intact.
+
+## 2026-09-14 14:47 UTC (10:47 a.m. NYC) — Final evaluation prepared
+
+The user requested evaluation of the final checkpoint.
+The training coordinator reports success with exit status zero, and all four version-9 step-100000 HF export files exist.
+The final model is already registered for the three development benchmark and frozen-probe cells in PR #565, whose CI and independent review pass.
+The existing task authorization covers this evaluation, normal credential use, canonical S3 saving, recovery, and cleanup within the original cumulative $30 cap.
+The session retains its managed workspace restrictions and automatic approval review; settled task authority is unchanged.
+
+The guarded transfer staged all four generation-pinned files and verified their canonical S3 bytes before paid compute.
+The final weight SHA-256 is 3ea293fc9be79fc46254da229693630009232fd050276b997356d84e3c28e172.
+The staging receipt is `.agents/artifacts/issue-550/evaluation/step-100000-staged.json`.
+Current task-owned EC2 inventory contains no pending, running, stopping, or stopped worker.
+
+AWS's official public regional price feed confirms $1.006 per Linux g5.xlarge hour in Ohio, effective September 1.
+The pricing API is unavailable to the current role; its public bulk-price feed supplied the same rate without requiring additional permissions.
+The existing final reservation is 16 hours ($16.096), and total conservative reservations remain $29.5936 including prior attempts, both intermediate evaluations, and disk allowance.
+The final worker will stop immediately when work finishes or fails and also have an independently verified sixteen-hour hard deadline.
+Live connection details and cleanup resource identifiers remain in private operational notes.
+
+The final consumer reuses the maintained cached BF16 scorer and standard frozen-probe implementation.
+Batch 8 receives a fresh synthetic check, and four worker cores permit the registered probe parallelism.
+Six canonical metric targets cover VEP and frozen probes; zero-shot metrics have scheduling priority.
+The collector verifies all 15 canonical score, metric, probe-prediction, classifier, and probe-metric objects by SHA-256 before emitting the completion receipt.
+The corrected watcher copies ancillary logs before shutdown and reads the final receipt over its existing connection, removing the new-login dependency that failed at 20k.
+Five bounded mocked tests cover final target selection, legacy intermediate targets, incomplete receipts, recovery ordering, and withholding termination without completion.
+All five pass; the worker will additionally run the full locked evals_v2 suite and an inspected production dry-run before biological evaluation.

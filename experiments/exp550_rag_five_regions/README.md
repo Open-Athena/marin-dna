@@ -89,26 +89,27 @@ Use ordinary batches without length grouping; pool the final 255 human bases for
 The earlier strict-FP32 pilot and H100 run are historical evidence; their numerical tolerance gate does not override this BF16 choice.
 The H100 evaluation and its transfer watchers were stopped before restarting on A10G.
 
-Measure the actual checkpoint with `.agents/artifacts/issue-550/evaluation/sweep-cached-bf16.py` on the GPU worker.
-The synthetic sweep uses the maintained scorer, includes tokenization, loading, both strands and embeddings, and chooses the fastest measured stable batch with GPU memory headroom.
-Use the selected batch as a per-model execution override and retain a bounded prediction-offload cadence.
-For the 10k checkpoint, `run-10k-a10g.py` verifies the staged checkpoint bytes, creates that overlay, checks the runtime against the worker deadline, and dry-runs the three canonical metric targets.
-Run it without `--execute` first and inspect the plan.
-The companion `run-10k-a10g.sh` executes it, preserves logs and recovery outputs in S3, and terminates the worker on completion or failure.
-These wrappers have the September 11 worker paths and deadline pinned; review and update them before reuse on another worker.
-The existing Snakemake S3 profile publishes the score bundles and metrics directly to their canonical paths.
-If execution review blocks S3 publication, invoke the Python driver directly with `--local-only` for planning and add `--execute` after inspecting its dry-run.
-That option uses `--workflow-profile none`, keeps the score and metric outputs local, and retains the explicit S3 harness input as a read.
-Do not use the uploading shell wrapper for this mode.
-The September 11 worker uses this local mode and stops automatically when the systemd evaluation service exits; its verified deadline also stops it at 6 p.m. NYC time.
-EBS survives a stop, so retrieve and verify outputs before terminating the instance, and include temporary disk storage in the cumulative budget.
-Saving the outputs to the configured S3 paths is required for completion.
-The September 11 run now has `finish-local-a10g.py --stop-after` installed as its completion hook: it restores the six validated local outputs to the configured S3 paths, verifies server checksums, and stops the worker.
-This is recovery for the already-running local invocation; subsequent runs use the default S3 profile directly.
-The 10k score bundles include embeddings; the final checkpoint additionally requires all three frozen-probe metric targets.
-Retain the final evaluation reservation when choosing compute for this additional run.
+Batch 8 was the fastest stable setting in the completed 10k A10G BF16 sweep and was confirmed at 20k.
+Before another evaluation, check the actual weights with the same synthetic batch-8 benchmark and retain its finite-output, memory, and throughput receipt.
+`prepare-final-a10g.sh` installs the pinned environment, downloads the verified S3 checkpoint, runs all locked tests, and performs this check.
+The shared VM must not import or run the ML evaluation environment.
 
-The registered models are `dna-exp550-rag46m-five-regions-v1-step-10000` and `dna-exp550-rag46m-five-regions-v1-step-100000` in [PR #565](https://github.com/Open-Athena/marin-dna/pull/565).
+The final runner uses the normal Snakemake S3 profile throughout.
+Run `run-10k-a10g.py --model dna-exp550-rag46m-five-regions-v1-step-100000 --with-probes --cores 4 --shutdown-epoch <deadline>` without `--execute` and inspect its plan before launching `run-final-a10g.sh` with the same deadline in `ISSUE550_SHUTDOWN_EPOCH`.
+The six metric targets cover standard VEP and frozen probes for Mendelian, Complex Traits, and SGE.
+Zero-shot metric jobs take priority so those results can be inspected while the frozen probes finish.
+The existing probe hyperparameters and chromosome split remain unchanged; four worker cores control execution parallelism.
+
+`collect-final-a10g.py` verifies the complete set of 15 score, metric, probe-prediction, classifier, and probe-metric objects against S3, then emits a compact scientific receipt.
+`watch-final-a10g.py` copies setup logs while new logins are allowed and receives the final receipt through its existing log stream.
+It opens no fresh SSH connection after completion, avoiding the shutdown login restriction encountered at 20k.
+Only after complete output verification and log capture does it request termination of the identified task worker.
+The worker also stops on success or failure and has a separately verified hard deadline, preserving EBS if recovery fails.
+Keep live instance IDs, addresses, and SSH-key paths in private launch notes and pass them as watcher arguments.
+The final evaluation retains the previously reserved 16-hour maximum within the original cumulative $30 cap and stops as soon as the work finishes.
+
+Historical 10k local-output recovery and the 20k extra-log-copy failure are recorded in the logbook; their old wrappers are not the current final-run procedure.
+The registered models are the 10k, 20k, and 100k variants of `dna-exp550-rag46m-five-regions-v1` in [PR #565](https://github.com/Open-Athena/marin-dna/pull/565).
 The active source is the europe-west4 version-9 export; check the tracking issue before using it after a recovery.
 The permanent branch includes the combined cached backend, tokenizer compatibility, execution controls, and registration together; none of their PRs needs to be merged to reproduce this experiment.
 

@@ -22,6 +22,15 @@ WORK = Path("/opt/issue550")
 STORAGE = WORK / "storage"
 
 
+def evaluation_targets(model: str, *, include_probes: bool) -> list[str]:
+    kinds = ("metrics", "probe_metrics") if include_probes else ("metrics",)
+    return [
+        f"results/{kind}/{model}/{cohort}.parquet"
+        for kind in kinds
+        for cohort in COHORTS
+    ]
+
+
 def main() -> None:
     global MODEL
     parser = argparse.ArgumentParser()
@@ -36,6 +45,8 @@ def main() -> None:
     parser.add_argument("--shutdown-epoch", type=int, default=1789164043)
     parser.add_argument("--execute", action="store_true")
     parser.add_argument("--local-only", action="store_true")
+    parser.add_argument("--with-probes", action="store_true")
+    parser.add_argument("--cores", type=int, choices=(2, 4), default=2)
     args = parser.parse_args()
     MODEL = args.model
     os.chdir(PROJECT)
@@ -64,6 +75,8 @@ def main() -> None:
     # Include 20% inference margin and 30 minutes for metric jobs and uploads.
     # The completed 10k run took only 2.5% longer than its inference estimate.
     estimated_seconds = sweep["projected_51623_variant_hours"] * 3600 * 1.2 + 1800
+    if args.with_probes:
+        estimated_seconds += 4 * 3600
     assert time.time() + estimated_seconds < args.shutdown_epoch, (
         "Runtime exceeds the worker shutdown deadline"
     )
@@ -71,6 +84,9 @@ def main() -> None:
     assert config["split"] == "train"
     registered = next(m for m in config["models"] if m["name"] == MODEL)
     assert set(registered["datasets"]) == set(COHORTS)
+    if args.with_probes:
+        probe_model = next(m for m in config["probe"]["models"] if m["name"] == MODEL)
+        assert set(probe_model["datasets"]) == set(COHORTS)
     registered["batch_size"] = batch
     registered["eval_accumulation_steps"] = 8
     inference = config["inference"]
@@ -113,7 +129,7 @@ def main() -> None:
         "-m",
         "snakemake",
         "--cores",
-        "2",
+        str(args.cores),
         "--rerun-incomplete",
         "--keep-storage-local-copies",
         "--local-storage-prefix",
@@ -124,7 +140,9 @@ def main() -> None:
     ]
     if args.local_only:
         command[3:3] = ["--workflow-profile", "none"]
-    targets = [f"results/metrics/{MODEL}/{name}.parquet" for name in COHORTS]
+    if args.with_probes:
+        command += ["--prioritize", "compute_metrics"]
+    targets = evaluation_targets(MODEL, include_probes=args.with_probes)
     subprocess.run(command + ["--dry-run", "--"] + targets, check=True)
     if not args.execute:
         return
@@ -142,6 +160,7 @@ def main() -> None:
         "left_padded_tokens": 10240,
         "human_variant_position": 10112,
         "embeddings": True,
+        "with_probes": args.with_probes,
         "started_at_unix": time.time(),
         "checkpoint_sha256": stage["verified_objects"]["model.safetensors"]["sha256"],
         "harness_sha256": registered["rag_harness"]["sha256"],
