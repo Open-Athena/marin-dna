@@ -1092,3 +1092,21 @@ A fresh read of the finished production W&B run gives final aggregate validation
 The held-out set has 2,000 chr18 documents, 400 per region, with padding targets masked; the loss covers every available species segment and is not human-only.
 The comparison does not use this mixed-document loss to rank the differently constructed earlier prototype.
 The pending interpretation relates the experiment to the existing RAG and Complex Traits questions and keeps operational history and dense results in this issue and branch.
+
+## 2026-09-14 23:50 UTC — Knowledge-base interpretation ready for review
+
+[PR #576](https://github.com/Open-Athena/marin-dna/pull/576) proposes one experiment interpretation and updates the existing RAG and Complex Traits question pages.
+The published documentation head is 8ecd8e3b2e0ad6336f1c8708766ddcbe05f8f18d.
+The page leads its evidence with chr18 language-model validation loss, then reports the historical, halfway, final, and GPN-Star development comparisons.
+It distinguishes complete-recipe point estimates from causal attribution and preserves the existing question scopes, priorities, external work, and attributed expert judgment.
+
+All 18 table cells match the saved metric receipts; validation values and the six-subset GPN-Star comparison were also checked against their artifacts.
+Relative links resolve, experiment/question links are reciprocal, and the README index is unchanged.
+The scoped pre-commit run passed with approximately 73.4 MiB peak RSS under the shared-node guard.
+Published-head CI passed the repository quality checks, documentation-only test selection, and dashboard build.
+An independent reviewer found no actionable scientific, evidence, scope, attribution, or knowledge-base convention findings on the published diff.
+The pull request is ready for human review and remains unmerged.
+
+The coordinating issue body now links the proposal, includes the durable final validation record, and records disposition `interpretation PR open`.
+The published body was re-fetched and matched the intended update exactly.
+No comments were posted, no new compute was launched, and issue #550 remains open pending interpretation merge.
