@@ -1140,3 +1140,17 @@ Scoped pre-commit passed under the shared-node guard with approximately 39 MiB p
 Independent review found no issues with evidence, attribution, scope, or links; the final dashboard build, repository quality checks, and documentation-only test selection passed.
 PR and issue bodies reflect the final scope and were re-fetched to verify their exact published text.
 The interpretation remains ready for human review with disposition `interpretation PR open`; the issue remains open pending merge.
+
+## 2026-09-15 19:08 UTC — Interpretation merged; experiment complete
+
+The user explicitly authorized merging PR #576.
+A fresh preflight confirmed the reviewed head b4d540754121b44c4ba6c21bd8643971b5c5843b was mergeable with successful quality, test-selection, and dashboard checks.
+The PR was squash-merged as 45a125eed9cd25dd11ce8449649a202a552af1ad at 2026-09-15 19:07:09 UTC.
+The merged experiment page and RAG question match the reviewed files; the Complex Traits question remains byte-identical to the PR base.
+
+The empirical goal is complete: published datasets, 100,000 training updates, development evaluations at 10k/20k/50k/100k, final and halfway frozen probes, preserved outputs, and released paid workers.
+The accepted interpretation records recipe-level improvements on Mendelian and SGE and a remaining Complex Traits zero-shot deficit, with no isolated causal or paired significance claim.
+Human was the only primate, so adding non-human primate context is the main follow-up and its expected Complex Traits benefit remains untested.
+The coordinating issue is being sealed with disposition `interpretation page merged` and commit-pinned experiment and RAG-question links.
+The final outcome is recorded in the issue body, consistent with the user's preference for body updates.
+The permanent experiment branch retains the complete evidence; reusable implementation PRs retain their separate merge lifecycle.
