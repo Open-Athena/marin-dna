@@ -1154,3 +1154,12 @@ Human was the only primate, so adding non-human primate context is the main foll
 The coordinating issue is being sealed with disposition `interpretation page merged` and commit-pinned experiment and RAG-question links.
 The final outcome is recorded in the issue body, consistent with the user's preference for body updates.
 The permanent experiment branch retains the complete evidence; reusable implementation PRs retain their separate merge lifecycle.
+
+## 2026-09-15 — Remaining PRs triaged by ownership and context
+
+The user questioned promoting experiment-specific code to main and explicitly noted that A10G preference and persistent approvals can be handled later without this session.
+Inspection supports retaining the recipe-bound #552 producer, #554 adapter, and #565 registrations on the permanent experiment branch; closing those PRs is proposed, not yet authorized or performed.
+The #559 compatibility fix is a separate mainline candidate; #562 combines a narrow general Trainer fix with a broader fp32 fallback policy that can be reconsidered separately.
+The #556 approvals and #567 hardware guidance are standalone deferred work.
+The remaining-work triage artifact preserves the rationale, published head commits, dependency chain, and critical RAG producer/scorer contracts for a future session.
+No PR status changed and no new experiment was launched.
