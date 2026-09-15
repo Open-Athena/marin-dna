@@ -1403,6 +1403,8 @@ probe:
     # here after confirming that schema or explicitly re-scoring the target.
     - name: mix-v0.9-p1B-i24-exp135-m5.1-step-59158
       datasets: [mendelian_traits]
+    - name: exp535-4b-uniform-five-region-step-255573
+      datasets: [mendelian_traits]
 
 
 # ---------------------------------------------------------------------------
