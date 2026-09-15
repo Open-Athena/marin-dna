@@ -55,6 +55,12 @@ author:
 - Constraints:
 - Coordinating issue/PR:
 
+## Authorization And Execution Access
+- Approval source/date, scope, and limits (without private conversation text):
+- Cumulative budget, spent/committed amount, and remaining amount:
+- Effective permission profile/sandbox, approval policy/reviewer, and unresolved restrictions:
+- Active resource IDs, shutdown times, durable outputs, and recovery commands:
+
 ## Baseline
 - Date:
 - Code refs:
@@ -85,6 +91,10 @@ For research series, add a short experiment ID prefix such as `MOE-HC` and use
 IDs like `MOE-HC-001` in logbook entries, W&B run names, and issue comments.
 
 The author should ordinarily be the user who asked you to make the logbook. If there is no GitHub issue, omit it.
+
+For authorization and execution-access fields, use [Task Authorization](../../../AGENTS.md#task-authorization) and the [unattended handoff record](../../../docs/operations/unattended-codex.md#initial-preflight-and-resumption).
+Keep references to original private approval messages in private task context, and carry them through handoffs without publishing the conversation.
+Update the current budget and resource state when they change, with append-only entries preserving the prior decisions.
 
 ### Write Rules
 
