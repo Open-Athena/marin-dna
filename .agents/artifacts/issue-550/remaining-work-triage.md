@@ -1,14 +1,16 @@
 # Remaining-work triage after experiment #550
 
-Proposed dispositions following the user's request to triage experiment-specific versus mainline work.
-No PR closure, merge, or scope change is performed by this record.
+The user approved these dispositions on September 15, 2026.
+PRs #552, #554, and #565 are closed without merging; their branches and published snapshots are retained.
+The superseded mainline-promotion issues #551 and #553 are closed as not planned.
+PRs #559, #562, #556, and #567 remain open with deferral notes for a later maintenance pass.
 Experiment #550 is complete and its interpretation merged through #576.
 
-| PR | Proposed disposition | Rationale | Context needed |
+| PR | Disposition | Rationale | Context needed |
 | --- | --- | --- | --- |
-| [#552](https://github.com/Open-Athena/marin-dna/pull/552) | Keep experimental; recommend closing the PR without merging. | The producer hard-codes 255-base windows, 40 species, 10,240 tokens, the five regions, and chr18 validation. Reuse it on the next RAG experiment branch; promote a stable producer only after its contract settles. | Recipe and data-construction context matter; preserved below. |
-| [#554](https://github.com/Open-Athena/marin-dna/pull/554) | Keep the RAG adapter experimental; recommend closing the PR without merging. | The consumer fixes the same geometry, human-last layout, and three development cohorts. Optional attention-mask support in the shared cached scorer is a separable reusable candidate; it does not require adopting the full adapter. | Scoring and embedding contracts matter; preserved below. |
-| [#565](https://github.com/Open-Athena/marin-dna/pull/565) | Keep the registrations experimental; recommend closing the PR without merging. | Pins only the four #550 checkpoints and combined harness; also brings RAG-specific offline CI scaffolding. It depends on #554 and #559. It does not add dashboard/models.yaml entries. | Checkpoint pins and completed result receipts are already durable. |
+| [#552](https://github.com/Open-Athena/marin-dna/pull/552) | Closed without merging; retained on the experiment branch. | The producer hard-codes 255-base windows, 40 species, 10,240 tokens, the five regions, and chr18 validation. Reuse it on the next RAG experiment branch; promote a stable producer only after its contract settles. | Recipe and data-construction context matter; preserved below. |
+| [#554](https://github.com/Open-Athena/marin-dna/pull/554) | Closed without merging; RAG adapter retained on the experiment branch. | The consumer fixes the same geometry, human-last layout, and three development cohorts. Optional attention-mask support in the shared cached scorer is a separable reusable candidate; it does not require adopting the full adapter. | Scoring and embedding contracts matter; preserved below. |
+| [#565](https://github.com/Open-Athena/marin-dna/pull/565) | Closed without merging; registrations retained on the experiment branch. | Pins only the four #550 checkpoints and combined harness; also brings RAG-specific offline CI scaffolding. It depends on #554 and #559. It does not add dashboard/models.yaml entries. | Checkpoint pins and completed result receipts are already durable. |
 | [#559](https://github.com/Open-Athena/marin-dna/pull/559) | Keep as a standalone mainline candidate; defer to another session. | Small Transformers export compatibility fix with isolated regression tests. Its utility is independent of the RAG recipe. | Low: issue #558 and tests reproduce the failure. |
 | [#562](https://github.com/Open-Athena/marin-dna/pull/562) | Defer; separate the narrow Trainer fix from the fp32 workflow policy before deciding what to merge. | Reapplying explicit TF32 flags after Trainer construction fixes a general behavior. The remaining diff introduces an optional fp32 fallback and provenance policy that the completed A10G BF16 evaluation does not need. | Low to moderate: issue #561, regression tests, and numeric pilot evidence are recorded. |
 | [#556](https://github.com/Open-Athena/marin-dna/pull/556) | Keep as standalone guidance; defer to another session. | Authorization persistence and execution-access preflight apply across tasks. The user explicitly identifies this as work that does not require the present session. | Low: the PR and runbook contain the behavior, limits, and checks. |

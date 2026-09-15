@@ -1163,3 +1163,13 @@ The #559 compatibility fix is a separate mainline candidate; #562 combines a nar
 The #556 approvals and #567 hardware guidance are standalone deferred work.
 The remaining-work triage artifact preserves the rationale, published head commits, dependency chain, and critical RAG producer/scorer contracts for a future session.
 No PR status changed and no new experiment was launched.
+
+## 2026-09-15 19:31 UTC — Approved triage applied
+
+The user agreed to the proposed PR triage, authorizing closure of #552, #554, and #565 without merging and deferral of #559, #562, #556, and #567.
+The three experimental PRs are closed unmerged, with their source branches and immutable head snapshots retained.
+The corresponding mainline-promotion issues #551 and #553 are closed as not planned; their bodies explain that the working implementation remains on the permanent experiment branch.
+The four deferred PR bodies record their independent maintenance scope; #562 explicitly separates the narrow Trainer precision fix from the broader fp32 fallback policy for later review.
+Fresh API reads confirm all states and exact body contents, and remote ref reads confirm the experiment and three closed-PR branches still exist.
+No additional code was merged or rewritten, and no experiment was launched.
+The triage artifact now records approved dispositions rather than proposals.
