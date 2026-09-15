@@ -1,11 +1,15 @@
 """Contracts for global inference semantics and checkpoint execution sizing."""
 
+import hashlib
+import json
+import re
 from pathlib import Path
 
 import pytest
 import yaml
 from marin_dna_evals.workflow_config import (
     GLOBAL_INFERENCE_SWITCHES,
+    inference_precision_params,
     resolve_model_batch_size,
     resolve_model_eval_accumulation_steps,
     validate_inference_config,
@@ -93,3 +97,69 @@ def test_invalid_checkpoint_execution_value_is_rejected(
             inference,
             [{"name": "model", field: value}],
         )
+
+
+def test_documented_fp32_fallback_is_accepted() -> None:
+    inference = dict(_config()["inference"])
+    inference.update(
+        bf16=False, tf32=False, precision_reason="Synthetic bf16 parity failed."
+    )
+    validate_inference_config(inference, [])
+
+
+@pytest.mark.parametrize(
+    "fields",
+    [
+        {"bf16": False},
+        {"bf16": False, "tf32": False},
+        {"bf16": False, "tf32": False, "precision_reason": " "},
+        {"bf16": False, "tf32": True, "precision_reason": "Parity failure"},
+        {"bf16": "false"},
+        {"bf16": True, "tf32": "false"},
+    ],
+)
+def test_incomplete_or_malformed_precision_fallback_is_rejected(fields) -> None:
+    inference = dict(_config()["inference"])
+    inference.update(fields)
+    with pytest.raises(ValueError, match="bf16|tf32|fp32"):
+        validate_inference_config(inference, [])
+
+
+@pytest.mark.parametrize("field", ["tf32", "precision_reason"])
+def test_precision_policy_cannot_be_overridden_by_checkpoint(field) -> None:
+    with pytest.raises(ValueError, match="cannot override"):
+        validate_inference_config(
+            _config()["inference"], [{"name": "model", field: False}]
+        )
+
+
+def test_default_precision_preserves_existing_snakemake_parameter_identity() -> None:
+    assert inference_precision_params(_config()["inference"]) == {}
+
+
+def test_explicit_precision_override_enters_snakemake_provenance() -> None:
+    settings = dict(_config()["inference"])
+    settings.update(bf16=False, tf32=False, precision_reason="Recorded parity failure")
+    assert inference_precision_params(settings) == {
+        "precision": {
+            "bf16": False,
+            "tf32": False,
+            "precision_reason": "Recorded parity failure",
+        }
+    }
+
+
+def test_existing_scoring_run_source_is_unchanged() -> None:
+    # Snakemake hashes run_func_src verbatim: even default-equivalent edits
+    # invalidate existing artifacts via the independent code rerun trigger.
+    fixture = json.loads(
+        (PROJECT_ROOT / "tests/fixtures/legacy_scoring_run_hashes.json").read_text()
+    )
+    for filename, expected in fixture["run_blocks"].items():
+        text = (PROJECT_ROOT / "workflow/rules" / filename).read_text()
+        blocks = re.findall(
+            r"^    run:\n(.*?)(?=^rule |\Z)", text, re.MULTILINE | re.DOTALL
+        )
+        assert [
+            hashlib.sha256(block.encode()).hexdigest() for block in blocks
+        ] == expected

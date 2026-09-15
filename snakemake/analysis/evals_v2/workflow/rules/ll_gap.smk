@@ -25,6 +25,7 @@ rule compute_ll_gap:
         region="|".join(LL_GAP_DATASETS),
     threads: config["inference"]["num_workers"]
     params:
+        **inference_precision_params(config["inference"]),
         # Output-affecting fields (snakemake `params` rerun trigger); batch_size
         # is execution-only and read inside `run:`.
         window_size=lambda wc: get_model_config(wc.model)["window_size"],

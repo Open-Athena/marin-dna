@@ -50,6 +50,7 @@ def compute_variant_scores(
     return_embeddings: bool = False,
     eval_accumulation_steps: int | None = None,
     bf16: bool = True,
+    tf32: bool | None = None,
 ) -> pd.DataFrame:
     """Compute variant scores from a CLM: per-strand LLR + next-token JSD.
 
@@ -84,6 +85,8 @@ def compute_variant_scores(
             embedding run can otherwise accumulate on-GPU and OOM. ``None``
             (default) leaves behaviour unchanged.
         bf16: Whether to run evaluation forwards in bfloat16.
+        tf32: Explicit CUDA matmul precision. None preserves the bf16 default
+            and disables TF32 when bf16=False requests fp32 inference.
 
     Returns:
         DataFrame with per-strand score atoms. Rows align with input
@@ -122,6 +125,8 @@ def compute_variant_scores(
         "dataloader_num_workers": num_workers,
         "remove_unused_columns": False,
     }
+    if tf32 is not None or not bf16:
+        inference_kwargs["tf32"] = tf32 if tf32 is not None else False
     if eval_accumulation_steps is not None:
         inference_kwargs["eval_accumulation_steps"] = eval_accumulation_steps
 

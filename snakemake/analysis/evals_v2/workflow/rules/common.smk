@@ -22,6 +22,7 @@ from marin_dna_evals.metrics import (
 )
 from marin_dna_evals.variant_probe import PAIR_COMBOS, run_subset_probes
 from marin_dna_evals.workflow_config import (
+    inference_precision_params,
     resolve_model_batch_size,
     resolve_model_eval_accumulation_steps,
     validate_inference_config,
