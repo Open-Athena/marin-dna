@@ -1110,3 +1110,16 @@ The pull request is ready for human review and remains unmerged.
 The coordinating issue body now links the proposal, includes the durable final validation record, and records disposition `interpretation PR open`.
 The published body was re-fetched and matched the intended update exactly.
 No comments were posted, no new compute was launched, and issue #550 remains open pending interpretation merge.
+
+## 2026-09-15 14:39 UTC — Interpretation review comments addressed
+
+The user requested revisions in response to PR #576 feedback.
+Published head 79f60f2fc361ad29561adcf38f0e21ecf46d6d9d clarifies that metric differences use unrounded estimates and gives the complete Complex Traits 10k/20k/50k/100k zero-shot trajectory.
+The saved Mendelian inputs give 0.44073301423421496 minus 0.39545527208900033 = 0.04527774214521463, which rounds to the original 0.0453.
+Complex Traits estimates are 0.1871, 0.1558, 0.1637, and 0.1578; the previously omitted 20k value makes the rise before 50k explicit.
+The RAG question page now describes the 20k-to-50k rise and subsequent fall directly.
+Both review threads have evidence-linked replies and are resolved.
+An independent reviewer verified the focused published diff and found no issues.
+The scoped pre-commit check passed under the shared-node guard at approximately 42.3 MiB peak RSS; published-head quality, documentation-only test selection, and dashboard CI passed.
+The coordinating issue body now pins the revised interpretation page and was re-fetched to confirm the exact update.
+Disposition remains `interpretation PR open`; no merge, issue closure, or new computation was requested or performed.
