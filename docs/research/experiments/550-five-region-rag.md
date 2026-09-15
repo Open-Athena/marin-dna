@@ -35,7 +35,7 @@ Both approaches obtained ortholog windows from precomputed genomic alignments.
 
 Evaluation used the same 51,623 development variants as the historical comparison: 16,140 Mendelian, 11,630 Complex Traits, and 23,853 SGE rows on odd autosomes and chromosome X.
 Reported macros exclude mature miRNA and benchmark-specific low-support cells; eligible support matched across checkpoints and the historical baseline.
-Values are macro AUPRC ± bootstrap standard error.
+Values are macro AUPRC ± bootstrap standard error; differences use unrounded estimates.
 
 | Benchmark | Protocol | Earlier 46M, final | New 46M, 50k | New 46M, 100k |
 | --- | --- | ---: | ---: | ---: |
@@ -50,7 +50,8 @@ Zero-shot scoring averaged forward and reverse-complement likelihood ratios, usi
 Frozen probes used human-token allele embeddings and the existing chromosome-held-out fitting protocol.
 Matched-data zero-shot metrics pool variants within consequence subsets, while probes aggregate per-chromosome AUPRC with chromosome-cluster uncertainty; compare checkpoints within a protocol, not the difference between these two readouts.
 
-The 10k and 20k evaluations also show that Complex Traits did not improve monotonically: its highest observed zero-shot macro was 0.1871 at 10k, compared with 0.1578 at 100k.
+Complex Traits zero-shot macro AUPRC fell from 0.1871 at 10k to 0.1558 at 20k, rose to 0.1637 at 50k, then fell to 0.1578 at 100k.
+Its highest observed point estimate was at 10k.
 At 100k, GPN-Star M remained higher on Mendelian and Complex Traits at 0.5380 and 0.2781, respectively.
 The new model's SGE point estimate approached GPN-Star M's 0.5157, but GPN-Star V was higher at 0.5585.
 These baseline comparisons used matching development dataset revisions and eligible support with each model's registered scoring protocol.

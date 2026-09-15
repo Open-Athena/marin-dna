@@ -19,7 +19,7 @@ The [five-region RAG experiment](../experiments/550-five-region-rag.md) broadene
 Compared with the earlier 46M prototype, final zero-shot macro AUPRC increased from 0.3955 to 0.4407 on Mendelian and from 0.4767 to 0.5093 on SGE, while Complex Traits fell from 0.1840 to 0.1578.
 Frozen-probe point estimates increased on all three benchmarks.
 The combined recipe therefore extends the small-reader result, but does not isolate the effects of broader species coverage, ordering, taxonomic deduplication, or longer training.
-Within the new lineage, the final checkpoint exceeded 50k on Mendelian, SGE, and all three frozen probes, while Complex Traits zero-shot remained non-monotonic across the evaluated checkpoints.
+Within the new lineage, the final checkpoint exceeded 50k on Mendelian, SGE, and all three frozen probes, while Complex Traits zero-shot rose from 20k to 50k before falling again at 100k.
 GPN-Star retained the strongest zero-shot macro point estimate on each benchmark.
 
 External results make the hypothesis plausible.
