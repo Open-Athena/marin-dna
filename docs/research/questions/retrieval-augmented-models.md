@@ -1,7 +1,7 @@
 # Can autoregressive RAG gLMs be accurate and practical?
 
 > [!NOTE]
-> **TL;DR:** Small fixed-ortholog RAG readers exploit retrieved context; a broader-context, longer-trained 46M recipe improved Mendelian, SGE, and frozen-probe point estimates over the earlier 46M prototype but did not close the Complex Traits zero-shot gap; causal retrieval gains and genome-scale serving practicality remain unquantified, and online retrieval and indel accuracy remain untested.
+> **TL;DR:** Small fixed-ortholog RAG readers exploit retrieved context; the broader 46M recipe improved several endpoints but left the Complex Traits zero-shot gap; adding the missing non-human primate context is the main follow-up to that recipe, especially for Complex Traits, while its benefit and genome-scale serving practicality remain untested.
 
 ## Question
 
@@ -22,7 +22,11 @@ The combined recipe therefore extends the small-reader result, but does not isol
 Within the new lineage, the final checkpoint exceeded 50k on Mendelian, SGE, and all three frozen probes, while Complex Traits zero-shot rose from 20k to 50k before falling again at 100k.
 GPN-Star retained the strongest zero-shot macro point estimate on each benchmark.
 
-External results make the hypothesis plausible.
+Human was the sole primate in the order-level panel, so human VEP had no non-human primate orthologs in context.
+Gonzalo Benegas identifies adding that context as the most important follow-up to this recipe and expects it to matter especially for Complex Traits.
+This is a hypothesis about the missing context; the experiment has not measured its effect.
+
+External results support the broader hypothesis that retrieved homologs can improve reader accuracy.
 Alignment-based genomic models show that ortholog context is highly informative; autoregressive protein models improve substitutions and indels with unaligned homologs; a DNA enhancer model generates conditioned on homolog sets; and learned protein retrievers can serve approximate-neighbor context quickly.
 These setups differ from genome-wide DNA retrieval in corpus scale, repeats, ambiguous orthology, and query coordinates.
 
@@ -33,7 +37,7 @@ A DNA model may benefit from a few informative orthologs while degrading when lo
 
 Confidence is high that a reader can exploit curated ortholog context.
 The accuracy contribution of individual recipe choices remains uncertain because the completed comparisons use few model sizes, one seed per size and recipe, and no matched no-retrieval arm.
-The informative next accuracy tests separate species coverage, document order, optimization exposure, and reader size while retaining the benchmark-specific readouts.
+Further accuracy tests can separate broader species coverage, document order, optimization exposure, and reader size.
 Online retrieval and index-cost work must establish whether the approach is practical beyond fixed reference-genome lookups; indel accuracy is still untested.
 
 <details>
@@ -70,13 +74,14 @@ Online retrieval and index-cost work must establish whether the approach is prac
   No otherwise-matched single-sequence training arm was run.
   Online retrieval, an isolated order ablation, and indel evaluation remain untested.
 - [#550: Five-region RAG with order-level vertebrate representatives](../experiments/550-five-region-rag.md) combined broader species context, revised document construction, and longer training in one 46M reader.
-  It improved Mendelian, SGE, and frozen-probe point estimates over the earlier 46M prototype but left the Complex Traits zero-shot gap unresolved; the experiment cannot assign those changes to a single intervention.
+  It improved Mendelian, SGE, and frozen-probe point estimates but left the Complex Traits zero-shot gap unresolved; the combined changes cannot isolate an intervention, and human predictions lacked non-human primate context.
 
 </details>
 
 <details>
 <summary>Possible directions</summary>
 
+- As the main follow-up to #550, include non-human primate orthologs during training and human VEP, testing their contribution with controls for context length and training exposure, especially on Complex Traits.
 - Separate the broader-context recipe into matched species-coverage, ordering, missing-window, and training-exposure arms with repeated seeds; test readers above 104M parameters as a distinct axis.
 - Add matched no-retrieval, wrong-context, and order-ablation arms to estimate the incremental benefit and distinguish orthology from extra tokens.
 - Evaluate SNVs and indels across retrieval depth, evolutionary distance, region, repeat content, and reader size.

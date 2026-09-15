@@ -1,7 +1,7 @@
 # Five-region RAG with order-level vertebrate representatives
 
 > [!NOTE]
-> **TL;DR:** The broader-context, longer-trained 46M RAG recipe improved Mendelian and SGE zero-shot point estimates and all three frozen probes over the earlier 46M prototype, but reduced Complex Traits zero-shot AUPRC and still trailed the strongest GPN-Star arm on each benchmark; the combined changes do not isolate a species-coverage, ordering, or training-duration effect.
+> **TL;DR:** The broader-context, longer-trained 46M RAG recipe improved Mendelian and SGE zero-shot point estimates and all three frozen probes over the earlier 46M prototype, but Complex Traits zero-shot AUPRC fell; human was the only primate, so human VEP had no non-human primate context.
 
 ## Findings
 
@@ -58,6 +58,8 @@ These baseline comparisons used matching development dataset revisions and eligi
 
 ## Limitations
 
+- Human was the sole primate in the order-level panel, so human predictions had no non-human primate orthologs in context.
+  The experiment does not test whether close primate context improves human VEP, especially on Complex Traits.
 - One training seed and no matched ablation separate species breadth, taxonomic deduplication, segment order, missing-window handling, training footprint, or optimization exposure.
   The 50k-to-100k comparison follows one scheduled training trajectory and is not a fixed-compute duration ablation.
 - Reported differences are point estimates with marginal standard errors; no paired significance test or replicated scaling law was established.

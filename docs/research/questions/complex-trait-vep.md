@@ -1,7 +1,7 @@
 # Why do MarinDNA models lag on complex-trait VEP?
 
 > [!NOTE]
-> **TL;DR:** MarinDNA's complex-trait VEP gap has not been causally attributed; training-footprint undercoverage is the best-supported hypothesis, tested fixed-ortholog RAG recipes still leave a substantial zero-shot deficit, and matched footprint, timescale, and retrieval controls are needed to identify an effective intervention.
+> **TL;DR:** Training-footprint undercoverage remains the best-supported hypothesis for MarinDNA's complex-trait gap; the five-region RAG result is additionally limited by missing non-human primate context, whose addition is the main follow-up to that recipe and has not yet been tested.
 
 ## Question
 
@@ -27,10 +27,13 @@ Shallower evolutionary timescales and alignment-conditioned retrieval remain pla
 The [five-region RAG experiment](../experiments/550-five-region-rag.md) left a substantial Complex Traits zero-shot gap despite broader vertebrate context and longer training.
 Its final macro AUPRC was 0.1578 versus 0.2781 for GPN-Star M, and every eligible Complex Traits subset remained lower.
 Frozen-probe point estimates improved over the earlier RAG prototype, but zero-shot performance did not improve monotonically with training.
-This limits what the tested RAG recipe has achieved; its combined changes do not identify the causal contribution of retrieval or rule out a better retrieval-conditioned design.
+Human was the only primate in the panel, leaving human predictions without non-human primate context.
+Gonzalo Benegas identifies adding that context as the main follow-up to the recipe and expects it to be especially important for Complex Traits.
+The expected gain remains untested; the present deficit does not establish how RAG would perform with close primate context.
 
 Confidence is moderate that conservation-focused coverage is one contributor and low on the intervention that will close the gap.
-The decisive next evidence is a fixed-compute footprint ablation, followed by matched timescale and retrieval controls if undercoverage does not explain enough of the deficit.
+For the five-region RAG recipe, the immediate follow-up is a matched test of non-human primate context.
+A fixed-compute footprint ablation remains needed to test the broader undercoverage hypothesis, alongside matched timescale and retrieval controls.
 
 <details>
 <summary>Related work</summary>
@@ -59,13 +62,14 @@ The decisive next evidence is a fixed-compute footprint ablation, followed by ma
 - [#213](https://github.com/Open-Athena/marin-dna/issues/213) measured evaluation-positive coverage by the conservation-filtered training footprint.
   Coverage was 83.9% for Mendelian positives, 42.6% for complex-trait positives, and about 22% for distal complex positives, providing the strongest direct evidence for distribution mismatch.
 - [#550: Five-region RAG with order-level vertebrate representatives](../experiments/550-five-region-rag.md) improved several small-reader endpoints while retaining a Complex Traits zero-shot deficit against GPN-Star on every eligible subset.
-  Species coverage, document construction, and training exposure changed together, so the result does not isolate why the gap remains.
+  Human was the sole primate, so the result does not test close primate context; species coverage, document construction, and training exposure also changed together.
 
 </details>
 
 <details>
 <summary>Possible directions</summary>
 
+- Prioritize adding non-human primate orthologs to the five-region RAG recipe during training and human VEP; control context length and training exposure to test their contribution to Complex Traits performance.
 - Stratify current MarinDNA and GPN-Star predictions by kept-window membership, conserved fraction, consequence, and fine-mapping confidence.
 - At fixed architecture, tokens, genome mixture, and window size, compare the current footprint with weaker-conservation and background arms; measure complex-trait gains and Mendelian tradeoffs.
 - If coverage does not explain the gap, compare primate, mammal, and deeper-vertebrate training at fixed unique human loci and token exposure.
