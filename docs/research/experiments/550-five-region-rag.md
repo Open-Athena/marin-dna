@@ -71,7 +71,6 @@ These baseline comparisons used matching development dataset revisions and eligi
 ## Related questions
 
 - [Can autoregressive RAG gLMs be accurate and practical?](../questions/retrieval-augmented-models.md)
-- [Why do MarinDNA models lag on complex-trait VEP?](../questions/complex-trait-vep.md)
 
 ## Research record
 
