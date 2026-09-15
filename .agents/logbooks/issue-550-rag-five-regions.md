@@ -1123,3 +1123,20 @@ An independent reviewer verified the focused published diff and found no issues.
 The scoped pre-commit check passed under the shared-node guard at approximately 42.3 MiB peak RSS; published-head quality, documentation-only test selection, and dashboard CI passed.
 The coordinating issue body now pins the revised interpretation page and was re-fetched to confirm the exact update.
 Disposition remains `interpretation PR open`; no merge, issue closure, or new computation was requested or performed.
+
+## 2026-09-15 14:56 UTC — Missing primate context elevated; Complex Traits synthesis deferred
+
+Gonzalo identified the absence of non-human primate context during human prediction as a major limitation and adding it as the most important follow-up to this recipe, especially for Complex Traits.
+The pinned producer manifest contains 39 non-human representatives and zero rows in Primates; human is added separately and is the only primate.
+PR #576 now highlights this limitation in the experiment interpretation and makes adding non-human primate orthologs the main follow-up in the RAG question, with the expected benefit attributed as a hypothesis.
+
+Gonzalo then directed that the Complex Traits research question remain unchanged until a model with primate context has been trained.
+The page was restored byte-for-byte to the PR base, and its experiment backlink was removed to preserve reciprocal navigation.
+Final published head b4d540754121b44c4ba6c21bd8643971b5c5843b changes exactly the experiment page and RAG question.
+The original question scopes and root priority index remain unchanged.
+No new training or evaluation was launched.
+
+Scoped pre-commit passed under the shared-node guard with approximately 39 MiB peak RSS on the final revision.
+Independent review found no issues with evidence, attribution, scope, or links; the final dashboard build, repository quality checks, and documentation-only test selection passed.
+PR and issue bodies reflect the final scope and were re-fetched to verify their exact published text.
+The interpretation remains ready for human review with disposition `interpretation PR open`; the issue remains open pending merge.
