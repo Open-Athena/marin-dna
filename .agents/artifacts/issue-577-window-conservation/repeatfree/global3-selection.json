@@ -1,0 +1,42 @@
+{
+  "input_rows": 96574572,
+  "fraction": 0.05,
+  "maximum_repeat_fraction": 0.2,
+  "score": "any_copy4",
+  "species": {
+    "1": {
+      "eligible_windows": 12697202,
+      "selected_windows": 634860,
+      "threshold": 0.030303,
+      "ties_needed": 789,
+      "threshold_ties": 2582,
+      "distinct_scores": 529,
+      "hash_cutoff": 5251569397495549676,
+      "equal_hash_needed": 1,
+      "stretches": 406906
+    },
+    "2": {
+      "eligible_windows": 8796377,
+      "selected_windows": 439818,
+      "threshold": 0.0,
+      "ties_needed": 149944,
+      "threshold_ties": 8506503,
+      "distinct_scores": 502,
+      "hash_cutoff": 323654024655908621,
+      "equal_hash_needed": 1,
+      "stretches": 359309
+    },
+    "3": {
+      "eligible_windows": 8037059,
+      "selected_windows": 401852,
+      "threshold": 0.0384615,
+      "ties_needed": 1488,
+      "threshold_ties": 8498,
+      "distinct_scores": 519,
+      "hash_cutoff": 3064685524595704741,
+      "equal_hash_needed": 1,
+      "stretches": 297988
+    }
+  },
+  "tie_rule": "SHA256(577:chrom:start) first 64 bits, then input order for exact hash collisions; budgets independent per species."
+}

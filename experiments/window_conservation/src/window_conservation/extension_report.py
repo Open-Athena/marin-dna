@@ -165,32 +165,67 @@ def main() -> None:
     biology_path = report / "biology-chr4.json"
     if biology_path.exists():
         biology = json.loads(biology_path.read_text())
-        features = ["CDS", "exon", "TSS_plus_minus_1kb", "cCRE_dELS", "cCRE_pELS"]
-        fig, ax = plt.subplots(figsize=(6, 5), layout="constrained")
-        for offset, choice, label in [
-            (-0.12, "baseline", "Three-species baseline"),
-            (0.12, "primary", "Selected method"),
-        ]:
-            lookup = {
-                r["feature"]: r
-                for r in biology["feature_overlap"]
-                if r["choice"] == choice and r["budget"] == 0.05
-            }
-            y = [
-                lookup.get(name, {}).get("coverage_enrichment", np.nan)
-                for name in features
-            ]
-            ax.plot(y, np.arange(len(features)) + offset, "o", label=label)
-        ax.set_yticks(
-            range(len(features)),
-            labels=["CDS", "Exon", "TSS ±1 kb", "Distal cCRE", "Proximal cCRE"],
-        )
-        ax.axvline(1, color="0.5", linestyle="--")
-        ax.set_xlabel("Annotation coverage enrichment")
-        ax.set_xlim(left=0)
-        ax.set_box_aspect(1)
-        ax.legend(title="Selection", loc="lower center", bbox_to_anchor=(0.5, 1.01))
+        features = ["CDS", "cCRE_PLS", "cCRE_pELS", "cCRE_dELS"]
+        fig, axes = plt.subplots(1, 2, figsize=(10, 4.8), layout="constrained")
+        for feature, label in zip(
+            features, ["CDS", "PLS", "pELS", "dELS"], strict=True
+        ):
+            rows = sorted(
+                [
+                    r
+                    for r in biology["feature_overlap"]
+                    if r["choice"] == "primary" and r["feature"] == feature
+                ],
+                key=lambda r: r["budget"],
+            )
+            assert len(rows) == 4, f"Missing functional feature/budget: {feature}"
+            x = [100 * r["budget"] for r in rows]
+            axes[0].plot(x, [r["coverage_enrichment"] for r in rows], "o-", label=label)
+            axes[1].plot(
+                x,
+                [100 * r["eligible_feature_base_recall"] for r in rows],
+                "o-",
+                label=label,
+            )
+        axes[0].axhline(1, color="0.5", linestyle="--")
+        axes[0].set_ylabel("Annotation coverage enrichment")
+        axes[1].set_ylabel("Eligible annotated bases recovered (%)")
+        for ax in axes:
+            ax.set_xticks([1, 5, 10, 20])
+            ax.set_xlabel("Eligible windows selected (%)")
+            ax.set_ylim(bottom=0)
+            ax.set_box_aspect(1)
+        axes[0].legend(title="Functional annotation")
         save(fig, report / "biology")
+
+    budget_path = report / "budget-followup.json"
+    if budget_path.exists():
+        budgets = json.loads(budget_path.read_text())
+        fig, axes = plt.subplots(1, 2, figsize=(10, 4.8), layout="constrained")
+        for choice, label in [
+            ("baseline", "Three-species baseline"),
+            ("primary", "Six-species primary"),
+        ]:
+            rows = budgets[choice]
+            x = [100 * r["budget"] for r in rows]
+            axes[0].plot(
+                x,
+                [100 * r["selected_annotated_fraction"] for r in rows],
+                "o-",
+                label=label,
+            )
+            axes[1].plot(
+                x, [100 * r["annotated_base_recall"] for r in rows], "o-", label=label
+            )
+        axes[0].set_ylabel("Conserved bases among selected bases (%)")
+        axes[1].set_ylabel("Eligible conserved bases recovered (%)")
+        for ax in axes:
+            ax.set_xticks([1, 5, 10, 20])
+            ax.set_xlabel("Eligible windows selected (%)")
+            ax.set_ylim(bottom=0)
+            ax.set_box_aspect(1)
+        axes[0].legend()
+        save(fig, report / "budget-response")
 
     spatial = json.loads((args.root / "extension/report/spatial.json").read_text())
     fig, ax = plt.subplots(figsize=(6, 5), layout="constrained")

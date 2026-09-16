@@ -144,7 +144,7 @@ def main() -> None:
         ids = (values["start"] // 100).astype(np.int64)
         eligible = np.zeros(length // 100, dtype=bool)
         eligible[ids] = True
-        for budget in [0.01, 0.05]:
+        for budget in [0.01, 0.05, 0.10, 0.20]:
             selected_ids = select_indices(
                 values[choice["score"]], values["tie"], int(len(ids) * budget)
             )
@@ -167,6 +167,7 @@ def main() -> None:
                         "selected_overlap_bases": chosen,
                         "eligible_fraction": pop / (100 * eligible.sum()),
                         "selected_fraction": chosen / (100 * selected.sum()),
+                        "eligible_feature_base_recall": chosen / pop if pop else None,
                     }
                     result["coverage_enrichment"] = (
                         result["selected_fraction"] / result["eligible_fraction"]

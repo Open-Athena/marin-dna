@@ -103,7 +103,8 @@ For the any-species scores at fixed 100 bp width, the finite set of numerator/de
 Species must appear contiguously in the score stream; within a species, intervals must be in genomic order for merging.
 Output is a BED6+2 file per species plus the selection receipt.
 
-`biology.py` describes fixed selections using the existing pipeline GTF/cCRE assets and checksum-pinned UCSC RepeatMasker annotations.
+`biology.py` describes fixed selections using the existing pipeline GTF/cCRE assets, including CDS, PLS, pELS, and dELS.
+Repeat-family diagnostics are skipped under the user's repeat-exclusion policy.
 Annotation types may overlap; reported fractions are not an exclusive partition.
 GTF coordinates convert from 1-based closed, and bare primary chromosome names explicitly map to the corresponding hg38 `chr` names at the boundary.
 `spatial.py` tests planted tract length, substitution, indels, bin offset, duplicated targets, and shuffled negative controls without using them to retune the real-data selector.
@@ -149,4 +150,11 @@ uv run --locked python -m window_conservation.extension_evaluate --root /data/is
 uv run --locked python -m window_conservation.query_profiles --root /data/issue577 --experiment-dir repeatfree --exclude-lowercase --maximum-repeat 0.2
 uv run --locked python -m window_conservation.full_global --root /data/issue577 --experiment-dir repeatfree --exclude-lowercase --maximum-repeat 0.2
 uv run --locked python -m window_conservation.biology --root /data/issue577 --experiment-dir repeatfree --split extension
+uv run --locked python -m window_conservation.budget_followup --root /data/issue577 --experiment-dir repeatfree
 ```
+
+The user-requested budget follow-up reports 1%, 5%, 10%, and 20% selections for the frozen primary and baseline.
+The 20% cutoff was added after validation and is descriptive; the original protocol, choices, and validation JSON remain unchanged.
+Repeated 1%, 5%, and 10% metrics must exactly match the original validation, and every emitted BED is checked for its exact budget and genomic bounds.
+Functional overlaps report CDS and each cCRE category separately at all four cutoffs, with enrichment against eligible bases and recall of eligible annotated bases.
+The functional plots show the frozen primary; both primary and baseline remain available in the JSON/CSV tables.

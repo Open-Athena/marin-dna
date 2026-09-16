@@ -361,3 +361,28 @@ The scope and queue above are living summaries; the entry log below preserves th
   Panel composition and selected scoring rule change with size, so this is not an isolated causal effect of species count.
 - At the 1% budget, primary density is 67.94084% and recall 11.64865%; at 10%, density is 27.41277% and recall 47.00233%.
   Full-genome masked scoring/selection is now running; gene/cCRE diagnostics and final audits follow sequentially.
+
+### 2026-09-16 — masked global completion and user-requested budget/functional follow-up
+
+- Full masked three-genome run: 96,574,572 complete intervals from 9,659,766,308 bases, with 817,751,291 distinct sampled words in 32 partitions.
+  Counting/scoring took 1,184.205 s at 1,487,784 KiB peak RSS; exact per-species 5% selection took 227.447 s at 19,988 KiB.
+  Combined compute is 23.5275 minutes at 1.41886 GiB maximum RSS; the enclosing driver including query parity took 1,439.238 s.
+  All 4,391,709 corresponding chr1/chr4 query rows are identical to the independent query-index scores.
+- Temporary component sizes: word records 13,793,002,544 bytes, partial-score records 185,965,856 bytes, interval metadata 4,622,152,392 bytes; output score table 5,821,931,414 bytes.
+  These are component totals, not a measured simultaneous disk peak.
+  Fixed budgets can exhaust evidence: mouse selects 149,944 zero-score ties among 439,818 selected intervals; nonhuman accuracy is not validated.
+- The user requested 10% and 20% cutoffs and explicit CDS/PLS/dELS diagnostics after the original validation.
+  Added a separate descriptive budget-followup output, preserving the frozen protocol, choices, and original validation JSON.
+  All repeated 1%/5%/10% metrics match the original validation exactly; every emitted BED passes exact-budget and coordinate/merging checks.
+- Primary conserved-base density/recall at 10% are 27.4128%/47.0023%, and at 20% are 15.4245%/52.8940%.
+  Only 68,795 of 799,540 eligible intervals (8.6043%) have a positive primary score.
+  The 10% and 20% selections include 11,159 and 91,113 zero-score ties (14.0% and 57.0% of selections), so expanded coverage is not evidence of ranking sensitivity within these ties.
+- At 5%, annotation enrichment is CDS 10.1869x, PLS 3.68005x, pELS 2.09930x, and dELS 2.01591x.
+  Eligible annotation-base recall for CDS/PLS/dELS is 50.9346%/18.4002%/10.0796% at 5%, 64.7994%/27.0868%/17.2129% at 10%, and 68.7323%/35.3428%/26.4208% at 20%.
+  These are overlapping annotation-base categories within eligible windows, not element-level recall; categories were never used to tune the scores.
+- Updated source passes all 38 locked tests in 12.16 s and ruff checks/formatting on the worker.
+  Supplemental budget, biology, report, and audit stages completed in 8.793/18.965/1.455/1.472 s.
+  All 20 masked resource receipts passed, alongside the reused 60-run synthetic resource matrix and 15 frozen validation cells.
+  Rendered panel, resource, functional, and budget figures were inspected for clipping, labels, scales, and consistency.
+- Worker remains available until its existing 23:20:12 UTC deadline; conservative cumulative EC2/EBS/IPv4 estimate through that deadline remains below $8 of the authorized $30.
+  No additional machine or production run was launched.
