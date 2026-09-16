@@ -11,15 +11,28 @@ from pathlib import Path
 
 def measured(command: list[str], prefix: Path) -> None:
     started = time.time()
-    with prefix.with_suffix(".stdout").open("w") as out, prefix.with_suffix(".stderr").open("w") as err:
+    with (
+        prefix.with_suffix(".stdout").open("w") as out,
+        prefix.with_suffix(".stderr").open("w") as err,
+    ):
         result = subprocess.run(
             ["/usr/bin/time", "-v", "-o", str(prefix.with_suffix(".time")), *command],
-            stdout=out, stderr=err, check=False,
+            stdout=out,
+            stderr=err,
+            check=False,
         )
-    prefix.with_suffix(".receipt.json").write_text(json.dumps(
-        {"command": command, "start_epoch": started, "end_epoch": time.time(), "returncode": result.returncode},
-        indent=2,
-    ) + "\n")
+    prefix.with_suffix(".receipt.json").write_text(
+        json.dumps(
+            {
+                "command": command,
+                "start_epoch": started,
+                "end_epoch": time.time(),
+                "returncode": result.returncode,
+            },
+            indent=2,
+        )
+        + "\n"
+    )
     if result.returncode:
         raise RuntimeError(f"failed: {command}; see {prefix}.stderr")
     print(prefix.name, "complete", round(time.time() - started, 3), flush=True)
@@ -38,10 +51,25 @@ def main() -> None:
     exe = str(Path("prevalence").resolve())
     for k in args.k:
         index = root / "indexes" / f"k{k}.bin"
-        measured([exe, "build", str(k), "6", str(root / "data/genomes.list"), str(index)], logs / f"k{k}-build")
+        measured(
+            [exe, "build", str(k), "6", str(root / "data/genomes.list"), str(index)],
+            logs / f"k{k}-build",
+        )
         output = root / "scores" / f"k{k}"
-        measured([exe, "score-list", str(k), "6", "3", "4096", str(index),
-                  str(root / "data/genomes.list"), str(output)], logs / f"k{k}-score")
+        measured(
+            [
+                exe,
+                "score-list",
+                str(k),
+                "6",
+                "3",
+                "4096",
+                str(index),
+                str(root / "data/genomes.list"),
+                str(output),
+            ],
+            logs / f"k{k}-score",
+        )
         for species in ["human", "mouse", "armadillo"]:
             (output / f"{species}.tsv").rename(root / "scores" / f"k{k}-{species}.tsv")
 

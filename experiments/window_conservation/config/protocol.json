@@ -1,9 +1,13 @@
 {
   "issue": 577,
   "seed": 577,
-  "k": [17, 21, 25],
-  "hash_sample_bits": 6,
-  "window_bases": 4096,
+  "k": [
+    17,
+    21,
+    25
+  ],
+  "hash_sample_bits": 2,
+  "window_bases": 100,
   "conservation_track": "phyloP_447m",
   "conservation_threshold": 2.2162,
   "conserved_window_fraction": 0.2,
@@ -15,12 +19,37 @@
   "heldout_chromosome": "chr2",
   "minimum_valid_fraction": 0.95,
   "primary_selected_fraction": 0.05,
-  "secondary_selected_fractions": [0.01, 0.1],
-  "scores": ["any", "both", "breadth", "any_copy4", "both_copy4", "breadth_copy4"],
+  "secondary_selected_fractions": [
+    0.01,
+    0.1
+  ],
+  "scores": [
+    "any",
+    "both",
+    "breadth",
+    "any_copy4",
+    "both_copy4",
+    "breadth_copy4"
+  ],
   "maximum_copies_filter": 4,
   "bootstrap_block_bases": 1048576,
-  "bootstrap_replicates": 1000,
-  "matched_control_strata": {"gc_bin_width": 0.05, "repeat_bin_width": 0.1, "entropy_bin_width": 0.1},
-  "advance_gate": {"random_enrichment": 2.0, "matched_enrichment": 1.25, "matched_bootstrap_lower": 1.0},
-  "selection_rule": "Highest chr1 matched enrichment at 5%; ties resolved by random enrichment, then ascending k and score name."
+  "bootstrap_replicates": 200,
+  "matched_control_strata": {
+    "gc_bin_width": 0.05,
+    "repeat_bin_width": 0.1,
+    "entropy_bin_width": 0.1
+  },
+  "advance_gate": {
+    "random_enrichment": 2.0,
+    "matched_enrichment": 1.25,
+    "matched_bootstrap_lower": 1.0
+  },
+  "selection_rule": "Highest chr1 matched enrichment at 5%; ties resolved by random enrichment, then ascending k and score name.",
+  "revision": "local-100bp",
+  "query_scope": [
+    "chr1",
+    "chr2"
+  ],
+  "query_restricted_index": true,
+  "scope_change": "User clarified 100 bp conserved stretches after only 4 kb chr1 development metrics were inspected; chr2 labels remain uninspected. The 4 kb selection is superseded."
 }

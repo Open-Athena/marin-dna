@@ -73,11 +73,20 @@ template<class Header, class Base> void fasta(const std::string &path, Header he
         }
     }
 }
-void build(int k, int bits, const std::string &list, const std::string &output, uint64_t limit) {
+void build(int k, int bits, const std::string &list, const std::string &output, uint64_t limit,
+           const std::string &query = "") {
     std::ifstream paths(list);
     if (!paths) throw std::runtime_error("missing species list");
     std::unordered_map<uint64_t,Counts> counts;
     counts.reserve(1000000);
+    // A query restriction changes only the keys retained, never their species/copy counts.
+    if (!query.empty()) {
+        Rolling rolling(k);
+        fasta(query, [&](const std::string &) { rolling.clear(); }, [&](char c) {
+            uint64_t key;
+            if (rolling.push(c,key) && !(key & ((1ULL<<bits)-1))) counts.try_emplace(key);
+        });
+    }
     uint64_t bases = 0, selected = 0, valid = 0;
     uint32_t species = 0;
     std::string path;
@@ -93,6 +102,7 @@ void build(int k, int bits, const std::string &list, const std::string &output, 
             ++valid;
             if (key & ((1ULL<<bits)-1)) return;
             ++selected;
+            if (!query.empty() && counts.find(key) == counts.end()) return;
             auto &v = counts[key];
             if (v.last != species) {
                 v.last = species;
@@ -183,6 +193,7 @@ int main(int argc,char **argv) {
         std::string mode=argv[1]; int k=std::stoi(argv[2]),bits=std::stoi(argv[3]);
         if (k<1 || k>31 || bits<0 || bits>20) throw std::runtime_error("invalid k or sampling");
         if (mode=="build" && (argc==6 || argc==7)) build(k,bits,argv[4],argv[5],argc==7 ? std::stoull(argv[6]) : 0);
+        else if (mode=="build-query" && argc==7) build(k,bits,argv[4],argv[5],0,argv[6]);
         else if ((mode=="score" || mode=="score-list") && (argc==9 || argc==10)) {
             int species=std::stoi(argv[4]),width=std::stoi(argv[5]);
             if (species<1 || species>65535 || width<k) throw std::runtime_error("invalid score geometry");

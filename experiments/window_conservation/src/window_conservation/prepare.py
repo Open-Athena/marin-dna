@@ -10,6 +10,8 @@ from pathlib import Path
 import boto3
 import py2bit
 import yaml
+from boto3.s3.transfer import TransferConfig
+
 
 def sha256(path: Path) -> str:
     digest = hashlib.sha256()
@@ -33,15 +35,19 @@ def main() -> None:
         receipt = json.loads((data / "manifest.json").read_text())
         assert len(receipt["sources"]) == 3
     paths = []
-    for source in ([] if args.labels_only else cfg["homology_fixture"]["sources"]):
+    for source in [] if args.labels_only else cfg["homology_fixture"]["sources"]:
         name = source["label"]
         path = data / f"{name}.2bit"
         bucket, key = source["genome_uri"].removeprefix("s3://").split("/", 1)
-        head = client.head_object(Bucket=bucket, Key=key, ExpectedBucketOwner="836683583872")
+        head = client.head_object(
+            Bucket=bucket, Key=key, ExpectedBucketOwner="836683583872"
+        )
         assert head["ETag"].strip('"') == source["genome_etag"]
         assert head["ContentLength"] == source["genome_size_bytes"]
         if not path.exists():
-            client.download_file(bucket, key, str(path))
+            client.download_file(
+                bucket, key, str(path), Config=TransferConfig(use_threads=False)
+            )
         assert path.stat().st_size == source["genome_size_bytes"]
         genome = py2bit.open(str(path), True)
         chroms = genome.chroms()
@@ -57,10 +63,17 @@ def main() -> None:
                     handle.write(sequence + "\n")
         genome.close()
         receipt["sources"].append(
-            {"species": name, "assembly": source["assembly"], "uri": source["genome_uri"],
-             "etag": head["ETag"], "bytes": path.stat().st_size, "sha256": sha256(path),
-             "fasta_sha256": sha256(fasta), "chromosomes": chroms,
-             "bases": sum(chroms.values())}
+            {
+                "species": name,
+                "assembly": source["assembly"],
+                "uri": source["genome_uri"],
+                "etag": head["ETag"],
+                "bytes": path.stat().st_size,
+                "sha256": sha256(path),
+                "fasta_sha256": sha256(fasta),
+                "chromosomes": chroms,
+                "bases": sum(chroms.values()),
+            }
         )
         paths.append(str(fasta))
         print("prepared", name, sum(chroms.values()), flush=True)
@@ -69,16 +82,24 @@ def main() -> None:
         (data / "genomes.list").write_text("\n".join(paths) + "\n")
     protocol = json.loads(Path("config/protocol.json").read_text())
     bucket, key = protocol["label_source"].removeprefix("s3://").split("/", 1)
-    head = client.head_object(Bucket=bucket, Key=key, ExpectedBucketOwner="836683583872")
+    head = client.head_object(
+        Bucket=bucket, Key=key, ExpectedBucketOwner="836683583872"
+    )
     assert head["ETag"].strip('"') == protocol["label_etag"]
     assert head["ContentLength"] == protocol["label_bytes"]
     path = data / "phyloP_447m.bw"
     if not path.exists():
-        client.download_file(bucket, key, str(path))
+        client.download_file(
+            bucket, key, str(path), Config=TransferConfig(use_threads=False)
+        )
     assert path.stat().st_size == protocol["label_bytes"]
-    receipt["labels"] = {"uri": protocol["label_source"], "etag": head["ETag"],
-                         "sha256": sha256(path), "bytes": path.stat().st_size,
-                         "threshold": protocol["conservation_threshold"]}
+    receipt["labels"] = {
+        "uri": protocol["label_source"],
+        "etag": head["ETag"],
+        "sha256": sha256(path),
+        "bytes": path.stat().st_size,
+        "threshold": protocol["conservation_threshold"],
+    }
     (data / "manifest.json").write_text(json.dumps(receipt, indent=2) + "\n")
 
 

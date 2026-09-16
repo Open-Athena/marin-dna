@@ -221,6 +221,15 @@ wheels = [
 ]
 
 [[package]]
+name = "pybigwig"
+version = "0.3.26"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/91/9b/85daed040fc5a33117e97dd48047bf771f3caa633537eccd9c24a96377fa/pybigwig-0.3.26.tar.gz", hash = "sha256:8b01c6542ed9e65d0758ff18a43d6fd7b1c517e1f6aa6132368fe17ee32c1533", size = 75758, upload-time = "2026-09-14T10:04:42.569Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c3/57/43cfb46cd842f67f8654484eff284d9a922848cc60af42dddcd8d30e4117/pybigwig-0.3.26-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:3403636c431a5bbab05f5c3ce24acb5ae0fab5e5602c259725ef0f54ddc98817", size = 189085, upload-time = "2026-09-14T10:04:46.225Z" },
+]
+
+[[package]]
 name = "pygments"
 version = "2.21.0"
 source = { registry = "https://pypi.org/simple" }
@@ -368,6 +377,7 @@ dependencies = [
     { name = "boto3" },
     { name = "numpy" },
     { name = "py2bit" },
+    { name = "pybigwig" },
     { name = "pyyaml" },
     { name = "scipy" },
 ]
@@ -384,6 +394,7 @@ requires-dist = [
     { name = "boto3", specifier = ">=1.35" },
     { name = "numpy", specifier = "==2.5.3" },
     { name = "py2bit", specifier = "==1.0.1" },
+    { name = "pybigwig", specifier = ">=0.3.24" },
     { name = "pyyaml", specifier = ">=6" },
     { name = "scipy", specifier = "==1.18.1" },
 ]

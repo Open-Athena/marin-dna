@@ -74,3 +74,18 @@ author: user
   Report the fraction of windows with at least 20% conserved bases as a secondary endpoint, using the pipeline's fraction cutoff at our larger window length.
 - The earlier phastCons table was downloaded but never used for metrics or parameter selection; it is superseded and excluded from the final data owner.
 - The complete-genome scoring run is independent of labels and continues unchanged.
+
+### 2026-09-16 — local resolution correction before held-out evaluation
+
+- User clarified that the target is conserved stretches at approximately 100 bp resolution, with short conserved exons/enhancers embedded in mostly neutral 4 kb windows.
+- Supersede the 4 kb protocol with nonoverlapping 100 bp bins and deterministic 1/4 sampling (roughly 25 sampled word positions per complete valid bin, before deduplication).
+- Only the old chr1 development result was inspected: k25/any selected, 1.81245× random and 2.22192× composition-matched conserved-base enrichment at 5%; this is exploratory history, not the local-resolution endpoint.
+- Chr2 conservation labels remain uninspected.
+- Start with the same three complete genomes for a fast iteration; the user explicitly permits deciding whether additional species are warranted.
+- Query index retains words from complete human chr1/chr2 only, then counts species support and maximum within-species copies across all complete genomes.
+  This reduces memory while preserving exactly the scores from a global index for those query chromosomes; an independent-enumeration test asserts equivalence.
+- Keep the k17/k21/k25 and six-score grid, covariate controls, held-out split, and gate; use 200 genomic-block bootstrap replicates at the much larger bin count.
+- Primary spatial artifact: 0-based half-open BED stretches formed by merging only immediately adjacent selected 100 bp bins at each fixed base budget.
+- Expected cost for B total genome bases and Q query bases is O(B + Q), with O(U_query) working space; all-genome scoring uses O(U_global) space and is tested separately on synthetic data.
+- Validation: remote locked pytest, 13 passed; ruff check and format passed; C++ warning-as-error build passed.
+- All tests and analysis remain on the authorized EC2 worker; no child agents or concurrent analysis workers launched.

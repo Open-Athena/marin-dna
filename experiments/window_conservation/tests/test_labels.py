@@ -16,6 +16,8 @@ def test_bigwig_zero_based_half_open(tmp_path: Path) -> None:
     with pyBigWig.open(str(path), "w") as bw:
         bw.addHeader([("chr1", 20)])
         bw.addEntries(["chr1", "chr1"], [0, 10], ends=[5, 20], values=[2.0, -1.0])
-    labels = window_labels(path, "chr1", np.array([0, 5, 10]), np.array([5, 10, 20]), 2.0)
+    labels = window_labels(
+        path, "chr1", np.array([0, 5, 10]), np.array([5, 10, 20]), 2.0
+    )
     assert labels["conserved_bases"].tolist() == [5, 0, 0]
     assert labels["label_covered_bases"].tolist() == [5, 0, 10]
