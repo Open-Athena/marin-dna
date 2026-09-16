@@ -33,12 +33,16 @@ def main() -> None:
     for name in ["genomes.list", "Homo_sapiens.GRCh38.115.gtf.gz", "ccre.bare.parquet"]:
         (data / name).symlink_to(root / "extension/data" / name)
     (data / "phyloP_447m.bw").symlink_to(root / "data/phyloP_447m.bw")
-    extract(root / "data/human.fa", data / "query.fa", {
-        settings["dev_chromosome"], settings["validation_chromosome"]
-    })
+    extract(
+        root / "data/human.fa",
+        data / "query.fa",
+        {settings["dev_chromosome"], settings["validation_chromosome"]},
+    )
     manifest = {
         "pilot_input_manifest_sha256": sha256(root / "data/manifest.json"),
-        "extension_input_manifest_sha256": sha256(root / "extension/data/manifest.json"),
+        "extension_input_manifest_sha256": sha256(
+            root / "extension/data/manifest.json"
+        ),
         "query_sha256": sha256(data / "query.fa"),
         "protocol_sha256": sha256(data / "protocol.json"),
         "experiment_protocol_sha256": sha256(Path("config/repeatfree.json")),

@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from itertools import pairwise
 from contextlib import ExitStack
+from itertools import pairwise
 from pathlib import Path
 
 import numpy as np
-import pyBigWig
 import py2bit
+import pyBigWig
 
 
 def summarize(values: np.ndarray, threshold: float) -> tuple[int, int, float]:
@@ -22,7 +22,11 @@ def summarize(values: np.ndarray, threshold: float) -> tuple[int, int, float]:
 
 
 def window_labels(
-    path: Path, chrom: str, starts: np.ndarray, ends: np.ndarray, threshold: float,
+    path: Path,
+    chrom: str,
+    starts: np.ndarray,
+    ends: np.ndarray,
+    threshold: float,
     exclude_lowercase_twobit: Path | None = None,
 ) -> dict[str, np.ndarray]:
     conserved = np.zeros(len(starts), dtype=np.int32)

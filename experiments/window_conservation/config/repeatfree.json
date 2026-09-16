@@ -98,12 +98,12 @@
     0.01,
     0.1
   ],
-  "selection_rule": "Choose the best absolute conserved-base fraction on chr1 at 5%, ties: lower nominal seeds per bin (prespecified memory proxy), fewer species, score lexical order. Also freeze best score for every panel/sampling cell (3 fixed rates plus bottom16/bottom32); evaluate all frozen cells once on chr3 and report entire matrix.",
+  "selection_rule": "Choose the best absolute conserved-base fraction on chr1 at 5%, ties: lower nominal seeds per bin (prespecified memory proxy), fewer species, score lexical order. Also freeze best score for every panel/sampling cell (3 fixed rates plus bottom16/bottom32); evaluate all frozen cells once on chr4 and report entire matrix.",
   "primary_comparison": "Selected extension setting versus three-species k25 any_copy4 at 1/4 sampling on the same fresh chromosome. Paired 1 MiB block bootstrap, 200 resamples.",
-  "memory_comparison": "Byte-identical compact vs baseline scores on the original query chromosomes; global synthetic exact partitioning benchmark if compact table alone is insufficient. Record preparation, construction, score, selection, disk bytes, RSS separately.",
-  "biological_strata": "Exploratory annotated CDS, exon, UTR, promoter, cCRE, repeat class and family composition on the preserved chr2 pilot and fresh chr3 result. No annotation-based parameter tuning.",
+  "memory_comparison": "Preserve the completed synthetic resource matrix; measure masked query footprints and full three-genome disk-partition scoring/selection, with complete query parity.",
+  "biological_strata": "Exploratory CDS, exon, UTR, promoter and cCRE overlaps among retained chr4 windows only. No repeat class/family analysis or annotation-based parameter tuning.",
   "spatial_robustness": "Synthetic 50/100/150/300bp planted tracts with 0/5/10/20% substitution, 0/1% indels and randomized bin offsets; report localization and neutral false selection.",
-  "labels": "Reuse pilot bigWig and definition; do not inspect chr3 conservation labels until selection is published.",
+  "labels": "Reuse the pinned bigWig; count lowercase as non-conserved in the full 100 bp denominator. Do not inspect chr4 labels until choices are published.",
   "resource_limit": "Same single c7i.4xlarge until 2026-09-16T23:20Z; cumulative authorized EC2 costs <=$30; no production run or training.",
   "bottom_hash_counts": [
     16,

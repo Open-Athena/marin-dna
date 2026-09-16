@@ -60,7 +60,13 @@ def score_cutoff(scores: Counter[float], rank: int) -> tuple[float, int]:
     return struct.unpack(">d", struct.pack(">Q", prefix))[0], rank
 
 
-def select(source: Path, output: Path, score_name: str, fraction: float, maximum_repeat: float = 1.0) -> dict:
+def select(
+    source: Path,
+    output: Path,
+    score_name: str,
+    fraction: float,
+    maximum_repeat: float = 1.0,
+) -> dict:
     assert 0 < fraction <= 1 and 0 <= maximum_repeat <= 1
     output.mkdir(exist_ok=False)
     with source.open() as handle:
@@ -69,7 +75,10 @@ def select(source: Path, output: Path, score_name: str, fraction: float, maximum
     repeat_index = fields.index("repeat") if maximum_repeat < 1.0 else None
 
     def eligible(row: list[str]) -> bool:
-        return int(row[4]) >= 95 and (repeat_index is None or float(row[repeat_index]) <= maximum_repeat)
+        return int(row[4]) >= 95 and (
+            repeat_index is None or float(row[repeat_index]) <= maximum_repeat
+        )
+
     assert fields[:5] == ["species", "chrom", "start", "end", "valid"]
     histogram: Counter[float] = Counter()
     total_rows = 0
@@ -228,7 +237,11 @@ def main() -> None:
     parser.add_argument("--maximum-repeat", type=float, default=1.0)
     args = parser.parse_args()
     print(
-        json.dumps(select(args.input, args.output, args.score, args.fraction, args.maximum_repeat)),
+        json.dumps(
+            select(
+                args.input, args.output, args.score, args.fraction, args.maximum_repeat
+            )
+        ),
         flush=True,
     )
 

@@ -46,7 +46,12 @@ def load_chromosome(
     mask_policy = protocol.get("exclude_lowercase_twobit", "")
     if cache.exists():
         labels = np.load(cache)
-        assert str(labels["mask_policy"]) == mask_policy if "mask_policy" in labels else not mask_policy
+        if "mask_policy" in labels:
+            assert str(labels["mask_policy"]) == mask_policy
+        else:
+            assert not mask_policy, (
+                "Unmasked label cache cannot serve masked evaluation"
+            )
         assert np.array_equal(labels["starts"], starts) and np.array_equal(
             labels["ends"], ends
         )
@@ -67,7 +72,9 @@ def load_chromosome(
             starts,
             ends,
             protocol["conservation_threshold"],
-            Path(protocol["exclude_lowercase_twobit"]) if "exclude_lowercase_twobit" in protocol else None,
+            Path(protocol["exclude_lowercase_twobit"])
+            if "exclude_lowercase_twobit" in protocol
+            else None,
         )
         np.savez_compressed(
             cache,

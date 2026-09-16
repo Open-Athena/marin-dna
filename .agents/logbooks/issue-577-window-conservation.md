@@ -295,3 +295,20 @@ The scope and queue above are living summaries; the entry log below preserves th
   Validation remains pending while the earlier foreground global run completes; this commit is a protocol/source snapshot, not a tested result.
 - Expected work stays linear in total scanned bases plus emitted intervals at fixed resolution and sampling rate.
   Skipping repeats reduces constants and the eligible output, not the need to scan input sequence.
+
+### 2026-09-16 — full three-genome baseline and repeat-policy verification
+
+- The repeat-inclusive global trial processed all 9,659,766,308 bases and emitted 96,574,572 complete intervals.
+  Counting/scoring took 2,669.81 s at 3,167,592 KiB peak RSS (3.02085 GiB); exact per-genome 5% selection took 206.45 s at 19,012 KiB.
+  Combined measured compute is 2,876.26 s (47.94 min), excluding downloads, audit, and biological evaluation; the enclosing run including parity audit took 2,903.15 s.
+- All 4,911,499 original query rows match byte for byte.
+  The word spool wrote 36,339,575,632 bytes, contribution spool 1,674,262,304 bytes, and metadata 4,683,516,809 bytes; these are cumulative component sizes, not a measured simultaneous scratch peak.
+  The output score table is 6,196,684,951 bytes.
+- Original-query standalone profiles confirm bottom-32 uses 6.00562 GiB peak RSS versus 3.00561 GiB for quarter-rate, while bottom-16 still needs 3.00556 GiB under this doubling table allocator.
+  These profile query chromosomes are chr1/chr3; new masked profiles use chr1/chr4 and cannot be treated as a controlled mask-only comparison.
+- Synthetic local robustness: for 150 bp tracts, 1% indels, and quarter-rate copy-filtered scoring, any-positive-evidence detection is 19/20 at 5% substitutions, 16/20 at 10%, and 2/20 at 20%.
+  This is exploratory planted-tract detection, not a calibrated biological classifier or fixed-budget recall.
+- All legacy extension contracts passed, including 60 resource runs, fifteen frozen chr3 cells, complete global query parity, BED budgets/bounds, and 94 successful resource receipts.
+  Three rendered figures were inspected for scales, labels, and clipping.
+- Repeat-policy source passes all 38 locked tests in 11.72 s, ruff checks/formatting, and all three warning-as-error C++ builds.
+  Prepared a separate manifest/query universe without accessing chr4 labels and started masked panel scoring on the existing worker.

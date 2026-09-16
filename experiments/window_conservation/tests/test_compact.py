@@ -173,8 +173,10 @@ def test_repeat_mask_and_window_cutoff(
     _, compact = executables
     rng = random.Random(580)
     raw = "".join(rng.choices("ACGT", k=400))
-    query = raw[:40] + raw[40:60].lower() + raw[60:140] + raw[140:161].lower() + raw[161:]
-    sequences = [query, raw, raw.lower()]
+    query = (
+        raw[:40] + raw[40:60].lower() + raw[60:140] + raw[140:161].lower() + raw[161:]
+    )
+    sequences = [query, raw, raw.lower() * 6]
     paths = []
     for i, sequence in enumerate(sequences):
         path = tmp_path / f"s{i}.fa"
@@ -183,26 +185,52 @@ def test_repeat_mask_and_window_cutoff(
     listing = tmp_path / "list"
     listing.write_text("\n".join(map(str, paths)) + "\n")
     out = tmp_path / "out"
-    subprocess.run([
-        str(compact), "17", str(bits), str(listing), str(paths[0]), str(out),
-        "3", "100", "0", str(bottom), "1", "0.2",
-    ], check=True, capture_output=True)
+    subprocess.run(
+        [
+            str(compact),
+            "17",
+            str(bits),
+            str(listing),
+            str(paths[0]),
+            str(out),
+            "3",
+            "100",
+            "0",
+            str(bottom),
+            "1",
+            "0.2",
+        ],
+        check=True,
+        capture_output=True,
+    )
     masked = ["".join("N" if c.islower() else c for c in s) for s in sequences]
     counts = [Counter(key for _, key in keys(s, 17, bits)) for s in masked]
-    for size, filename in ([(32, "human.tsv"), (16, "bottom16.tsv")] if bottom else [(0, "human.tsv")]):
+    for size, filename in (
+        [(32, "human.tsv"), (16, "bottom16.tsv")] if bottom else [(0, "human.tsv")]
+    ):
         rows = list(csv.DictReader((out / "3" / filename).open(), delimiter="\t"))
         for index, row in enumerate(rows):
-            chosen = sorted({key for end, key in keys(masked[0], 17, bits) if index * 100 < end <= (index + 1) * 100})
+            chosen = sorted(
+                {
+                    key
+                    for end, key in keys(masked[0], 17, bits)
+                    if index * 100 < end <= (index + 1) * 100
+                }
+            )
             if size:
                 chosen = chosen[:size]
             if index == 1:
                 chosen = []  # 21% repeat; exactly 20% in bin zero remains eligible.
             assert int(row["seeds"]) == len(chosen)
             for field, condition in [
-                ("any", lambda n: n >= 2), ("both", lambda n: n >= 3),
+                ("any", lambda n: n >= 2),
+                ("both", lambda n: n >= 3),
                 ("breadth", lambda n: (n - 1) / 2),
             ]:
-                expected = sum(condition(sum(key in count for count in counts)) for key in chosen) / max(1, len(chosen))
+                expected = sum(
+                    condition(sum(key in count for count in counts)) for key in chosen
+                ) / max(1, len(chosen))
                 assert float(row[field]) == pytest.approx(expected, abs=1e-6)
+                assert float(row[field + "_copy4"]) == pytest.approx(expected, abs=1e-6)
             assert float(row["both"]) == 0  # Entire lowercase third genome is absent.
         assert int(rows[0]["seeds"]) > 0

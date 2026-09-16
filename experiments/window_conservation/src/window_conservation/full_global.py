@@ -27,7 +27,11 @@ def main() -> None:
         str(i): sum(length // 100 for length in source["chromosomes"].values())
         for i, source in enumerate(manifest["sources"], 1)
     }
-    prior = resource(experiment / "logs/rate-panels" if args.exclude_lowercase else args.root / "logs/k25-build")["measurements"][0]
+    prior = resource(
+        experiment / "logs/rate-panels"
+        if args.exclude_lowercase
+        else args.root / "logs/k25-build"
+    )["measurements"][0]
     # Conservative simultaneous upper bound: every occurrence creates both a
     # word record and a contribution, plus metadata/output and 8 GiB reserve.
     estimated_scratch = (
@@ -57,7 +61,11 @@ def main() -> None:
     compared = 0
     with (
         scores.open() as actual,
-        (experiment / "scores/rate/3/human.tsv" if args.exclude_lowercase else args.root / "scores/k25-human.tsv").open() as expected,
+        (
+            experiment / "scores/rate/3/human.tsv"
+            if args.exclude_lowercase
+            else args.root / "scores/k25-human.tsv"
+        ).open() as expected,
     ):
         actual.readline()
         expected.readline()
@@ -75,7 +83,9 @@ def main() -> None:
                 compared += 1
         assert expected.readline() == ""
     assert count == expected_counts
-    assert query_rows == sum(manifest["sources"][0]["chromosomes"][c] // 100 for c in query_chroms)
+    assert query_rows == sum(
+        manifest["sources"][0]["chromosomes"][c] // 100 for c in query_chroms
+    )
     if not args.exclude_lowercase:
         assert compared == 4_911_499
     print(

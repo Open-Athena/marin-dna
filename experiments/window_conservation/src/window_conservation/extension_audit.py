@@ -102,7 +102,14 @@ def main() -> None:
         if r["bits"] == 2
     )
     global_result = json.loads((report / "global3.json").read_text())
-    expected_query_rows = sum(manifest["sources"][0]["chromosomes"][c] // 100 for c in ({"chr1", "chr4"} if args.experiment_dir == "repeatfree" else {"chr1", "chr2"}))
+    expected_query_rows = sum(
+        manifest["sources"][0]["chromosomes"][c] // 100
+        for c in (
+            {"chr1", "chr4"}
+            if args.experiment_dir == "repeatfree"
+            else {"chr1", "chr2"}
+        )
+    )
     assert global_result["query_parity_rows"] == expected_query_rows
     global_selection = json.loads(
         (root / "global3/selection/selection.json").read_text()

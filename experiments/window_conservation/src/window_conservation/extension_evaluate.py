@@ -1,4 +1,4 @@
-"""Select on chr1, then evaluate the frozen extension once on fresh chr3."""
+"""Select on the declared development chromosome, then evaluate fresh validation."""
 
 from __future__ import annotations
 
@@ -54,7 +54,14 @@ def main() -> None:
     report = root / "report"
     report.mkdir(exist_ok=True)
     protocol_path = root / "data/protocol.json"
-    protocol = json.loads((protocol_path if protocol_path.exists() else Path("config/protocol.json")).read_text())
+    if protocol_path.exists():
+        manifest = json.loads((root / "data/manifest.json").read_text())
+        assert manifest["protocol_sha256"] == sha256(protocol_path)
+    protocol = json.loads(
+        (
+            protocol_path if protocol_path.exists() else Path("config/protocol.json")
+        ).read_text()
+    )
     extension = json.loads(args.protocol.read_text())
     dev_chrom = extension["dev_chromosome"]
     validation_chrom = extension["validation_chromosome"]
@@ -62,6 +69,9 @@ def main() -> None:
     if not label_path.exists():
         label_path.symlink_to(args.root / "data/phyloP_447m.bw")
     if args.split == "dev":
+        assert not (report / "selection.json").exists(), (
+            "Development choices already frozen"
+        )
         rows, winners = [], []
         for variant in variants(root):
             values = load(root, dev_chrom, protocol, variant)

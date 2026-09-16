@@ -1,0 +1,274 @@
+{
+  "compact_pilot_parity": {
+    "wall_seconds": 303.1244149208069,
+    "max_rss_kib": 3151476,
+    "measurements": [
+      {
+        "stage": "build",
+        "species": 3,
+        "bases": 9659766308,
+        "selected_occurrences": 2271223477,
+        "unique_keys": 100973493,
+        "table_bytes": 2147483648,
+        "peak_rss_kib": 3151476,
+        "seconds": 278.454
+      },
+      {
+        "stage": "score",
+        "species": 3,
+        "width": 100,
+        "windows": 4911499,
+        "lookups": 117607513,
+        "seconds": 24.6012,
+        "peak_rss_kib": 3151476
+      }
+    ]
+  },
+  "rate_panels": {
+    "wall_seconds": 1015.6150636672974,
+    "max_rss_kib": 3151472,
+    "measurements": [
+      {
+        "stage": "build",
+        "species": 3,
+        "bases": 9659766308,
+        "selected_occurrences": 2271223477,
+        "unique_keys": 91954536,
+        "table_bytes": 2147483648,
+        "peak_rss_kib": 3151472,
+        "seconds": 313.593
+      },
+      {
+        "stage": "score",
+        "species": 3,
+        "width": 100,
+        "bits": 2,
+        "bottom": 0,
+        "windows": 4472519,
+        "lookups": 107026875,
+        "seconds": 21.2998,
+        "peak_rss_kib": 3151472
+      },
+      {
+        "stage": "score",
+        "species": 3,
+        "width": 100,
+        "bits": 3,
+        "bottom": 0,
+        "windows": 4472519,
+        "lookups": 53473108,
+        "seconds": 15.5069,
+        "peak_rss_kib": 3151472
+      },
+      {
+        "stage": "score",
+        "species": 3,
+        "width": 100,
+        "bits": 4,
+        "bottom": 0,
+        "windows": 4472519,
+        "lookups": 26715748,
+        "seconds": 12.6171,
+        "peak_rss_kib": 3151472
+      },
+      {
+        "stage": "build",
+        "species": 6,
+        "bases": 18318958339,
+        "selected_occurrences": 4377771113,
+        "unique_keys": 91954536,
+        "table_bytes": 2147483648,
+        "peak_rss_kib": 3151472,
+        "seconds": 579.352
+      },
+      {
+        "stage": "score",
+        "species": 6,
+        "width": 100,
+        "bits": 2,
+        "bottom": 0,
+        "windows": 4472519,
+        "lookups": 107026875,
+        "seconds": 21.6139,
+        "peak_rss_kib": 3151472
+      },
+      {
+        "stage": "score",
+        "species": 6,
+        "width": 100,
+        "bits": 3,
+        "bottom": 0,
+        "windows": 4472519,
+        "lookups": 53473108,
+        "seconds": 15.6655,
+        "peak_rss_kib": 3151472
+      },
+      {
+        "stage": "score",
+        "species": 6,
+        "width": 100,
+        "bits": 4,
+        "bottom": 0,
+        "windows": 4472519,
+        "lookups": 26715748,
+        "seconds": 12.787,
+        "peak_rss_kib": 3151472
+      },
+      {
+        "stage": "build",
+        "species": 10,
+        "bases": 28145946367,
+        "selected_occurrences": 6748885032,
+        "unique_keys": 91954536,
+        "table_bytes": 2147483648,
+        "peak_rss_kib": 3151472,
+        "seconds": 864.313
+      },
+      {
+        "stage": "score",
+        "species": 10,
+        "width": 100,
+        "bits": 2,
+        "bottom": 0,
+        "windows": 4472519,
+        "lookups": 107026875,
+        "seconds": 22.2811,
+        "peak_rss_kib": 3151472
+      },
+      {
+        "stage": "score",
+        "species": 10,
+        "width": 100,
+        "bits": 3,
+        "bottom": 0,
+        "windows": 4472519,
+        "lookups": 53473108,
+        "seconds": 16.1242,
+        "peak_rss_kib": 3151472
+      },
+      {
+        "stage": "score",
+        "species": 10,
+        "width": 100,
+        "bits": 4,
+        "bottom": 0,
+        "windows": 4472519,
+        "lookups": 26715748,
+        "seconds": 13.3371,
+        "peak_rss_kib": 3151472
+      }
+    ]
+  },
+  "bottom_panels": {
+    "wall_seconds": 1659.6063187122345,
+    "max_rss_kib": 6297216,
+    "measurements": [
+      {
+        "stage": "build",
+        "species": 3,
+        "bases": 9659766308,
+        "selected_occurrences": 9081095847,
+        "unique_keys": 118111346,
+        "table_bytes": 4294967296,
+        "peak_rss_kib": 6297216,
+        "seconds": 548.032
+      },
+      {
+        "stage": "score",
+        "species": 3,
+        "width": 100,
+        "bits": 0,
+        "bottom": 32,
+        "windows": 4472519,
+        "lookups": 137145454,
+        "seconds": 26.6144,
+        "peak_rss_kib": 6297216
+      },
+      {
+        "stage": "score",
+        "species": 3,
+        "width": 100,
+        "bits": 0,
+        "bottom": 16,
+        "windows": 4472519,
+        "lookups": 68573620,
+        "seconds": 24.3149,
+        "peak_rss_kib": 6297216
+      },
+      {
+        "stage": "build",
+        "species": 6,
+        "bases": 18318958339,
+        "selected_occurrences": 17511295510,
+        "unique_keys": 118111346,
+        "table_bytes": 4294967296,
+        "peak_rss_kib": 6297216,
+        "seconds": 985.848
+      },
+      {
+        "stage": "score",
+        "species": 6,
+        "width": 100,
+        "bits": 0,
+        "bottom": 32,
+        "windows": 4472519,
+        "lookups": 137145454,
+        "seconds": 26.8588,
+        "peak_rss_kib": 6297216
+      },
+      {
+        "stage": "score",
+        "species": 6,
+        "width": 100,
+        "bits": 0,
+        "bottom": 16,
+        "windows": 4472519,
+        "lookups": 68573620,
+        "seconds": 24.4401,
+        "peak_rss_kib": 6297216
+      },
+      {
+        "stage": "build",
+        "species": 10,
+        "bases": 28145946367,
+        "selected_occurrences": 26990190751,
+        "unique_keys": 118111346,
+        "table_bytes": 4294967296,
+        "peak_rss_kib": 6297216,
+        "seconds": 1504.7
+      },
+      {
+        "stage": "score",
+        "species": 10,
+        "width": 100,
+        "bits": 0,
+        "bottom": 32,
+        "windows": 4472519,
+        "lookups": 137145454,
+        "seconds": 27.7549,
+        "peak_rss_kib": 6297216
+      },
+      {
+        "stage": "score",
+        "species": 10,
+        "width": 100,
+        "bits": 0,
+        "bottom": 16,
+        "windows": 4472519,
+        "lookups": 68573620,
+        "seconds": 24.7829,
+        "peak_rss_kib": 6297216
+      }
+    ]
+  },
+  "development": {
+    "wall_seconds": 133.74216556549072,
+    "max_rss_kib": 652184,
+    "measurements": []
+  },
+  "validation": {
+    "wall_seconds": 522.1989216804504,
+    "max_rss_kib": 871612,
+    "measurements": []
+  }
+}

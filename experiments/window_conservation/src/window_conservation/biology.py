@@ -102,7 +102,9 @@ def main() -> None:
     parser.add_argument("--experiment-dir")
     args = parser.parse_args()
     if args.experiment_dir is None:
-        print("Legacy biology diagnostics skipped after user excluded repeats", flush=True)
+        print(
+            "Legacy biology diagnostics skipped after user excluded repeats", flush=True
+        )
         return
     root = args.root
     extension = root / args.experiment_dir

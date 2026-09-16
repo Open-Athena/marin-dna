@@ -89,7 +89,9 @@ def main() -> None:
         writer.writeheader()
         writer.writerows(table)
 
-    measurements = json.loads((args.root / "extension/memory/measurements.json").read_text())
+    measurements = json.loads(
+        (args.root / "extension/memory/measurements.json").read_text()
+    )
     summaries = []
     shapes = sorted(
         {(row["species"], row["windows_per_species"]) for row in measurements}
@@ -165,11 +167,24 @@ def main() -> None:
         biology = json.loads(biology_path.read_text())
         features = ["CDS", "exon", "TSS_plus_minus_1kb", "cCRE_dELS", "cCRE_pELS"]
         fig, ax = plt.subplots(figsize=(6, 5), layout="constrained")
-        for offset, choice, label in [(-0.12, "baseline", "Three-species baseline"), (0.12, "primary", "Selected method")]:
-            lookup = {r["feature"]: r for r in biology["feature_overlap"] if r["choice"] == choice and r["budget"] == 0.05}
-            y = [lookup.get(name, {}).get("coverage_enrichment", np.nan) for name in features]
+        for offset, choice, label in [
+            (-0.12, "baseline", "Three-species baseline"),
+            (0.12, "primary", "Selected method"),
+        ]:
+            lookup = {
+                r["feature"]: r
+                for r in biology["feature_overlap"]
+                if r["choice"] == choice and r["budget"] == 0.05
+            }
+            y = [
+                lookup.get(name, {}).get("coverage_enrichment", np.nan)
+                for name in features
+            ]
             ax.plot(y, np.arange(len(features)) + offset, "o", label=label)
-        ax.set_yticks(range(len(features)), labels=["CDS", "Exon", "TSS ±1 kb", "Distal cCRE", "Proximal cCRE"])
+        ax.set_yticks(
+            range(len(features)),
+            labels=["CDS", "Exon", "TSS ±1 kb", "Distal cCRE", "Proximal cCRE"],
+        )
         ax.axvline(1, color="0.5", linestyle="--")
         ax.set_xlabel("Annotation coverage enrichment")
         ax.set_xlim(left=0)
@@ -211,7 +226,9 @@ def main() -> None:
     (report / "resources.json").write_text(
         json.dumps(
             {
-                "compact_pilot_parity": resource(args.root / "extension/logs/compact-parity"),
+                "compact_pilot_parity": resource(
+                    args.root / "extension/logs/compact-parity"
+                ),
                 "rate_panels": resource(root / "logs/rate-panels"),
                 "bottom_panels": resource(root / "logs/bottom-panels"),
                 "development": resource(root / "logs/development"),

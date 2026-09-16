@@ -1,0 +1,81 @@
+{
+  "query_parity_rows": 4911499,
+  "all_window_counts": {
+    "1": 32092634,
+    "2": 28189623,
+    "3": 36292315
+  },
+  "score_bytes": 6196684951,
+  "count_and_score": {
+    "wall_seconds": 2669.8125002384186,
+    "max_rss_kib": 3167592,
+    "measurements": [
+      {
+        "bases": 9659766308,
+        "species": 3,
+        "windows": 96574572,
+        "unique_keys": 1764345794,
+        "maximum_partition_keys": 55155023,
+        "partitions": 32,
+        "occurrence_records": 2271223477,
+        "contribution_records": 52320697,
+        "word_spool_bytes": 36339575632,
+        "contribution_spool_bytes": 1674262304,
+        "metadata_bytes": 4683516809,
+        "partition_seconds": 352.264,
+        "reduce_seconds": 2210.36,
+        "total_seconds": 2669.38,
+        "peak_rss_kib": 3167592
+      }
+    ]
+  },
+  "selection": {
+    "wall_seconds": 206.44985556602478,
+    "max_rss_kib": 19012,
+    "measurements": [
+      {
+        "input_rows": 96574572,
+        "fraction": 0.05,
+        "score": "any_copy4",
+        "species": {
+          "1": {
+            "eligible_windows": 30492095,
+            "selected_windows": 1524604,
+            "threshold": 0.0689655,
+            "ties_needed": 27033,
+            "threshold_ties": 42442,
+            "distinct_scores": 548,
+            "hash_cutoff": 11762974230071662205,
+            "equal_hash_needed": 1,
+            "stretches": 1151583
+          },
+          "2": {
+            "eligible_windows": 27394693,
+            "selected_windows": 1369734,
+            "threshold": 0.04,
+            "ties_needed": 12514,
+            "threshold_ties": 85569,
+            "distinct_scores": 528,
+            "hash_cutoff": 2658561525783191400,
+            "equal_hash_needed": 1,
+            "stretches": 1111759
+          },
+          "3": {
+            "eligible_windows": 32736567,
+            "selected_windows": 1636828,
+            "threshold": 0.05,
+            "ties_needed": 51420,
+            "threshold_ties": 67745,
+            "distinct_scores": 546,
+            "hash_cutoff": 13995555897481469997,
+            "equal_hash_needed": 1,
+            "stretches": 1267958
+          }
+        },
+        "tie_rule": "SHA256(577:chrom:start) first 64 bits, then input order for exact hash collisions; budgets independent per species."
+      }
+    ]
+  },
+  "selection_budget": "Exact 5% independently per species; minimum one eligible interval; k25 any_copy4 at 1/4 sampling.",
+  "biological_scope": "The full score universe is three complete genomes. Biological annotations validate human intervals only; this run does not validate selected mouse or armadillo regions."
+}

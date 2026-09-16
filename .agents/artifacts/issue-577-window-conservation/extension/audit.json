@@ -1,0 +1,9 @@
+{
+  "status": "passed",
+  "fresh_validation_cells": 15,
+  "resource_runs": 60,
+  "global_query_parity_rows": 4911499,
+  "global_intervals": 96574572,
+  "resource_receipts": 94,
+  "freeze_sha": "aef30904792d0a26c5547dcdb885b1bf4665fcdc"
+}

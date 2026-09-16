@@ -39,7 +39,13 @@ def main() -> None:
             "PublicAccessBlockConfiguration"
         ].values()
     )
-    version = "local100-repeatfree-v1" if args.repeatfree else "local100-extension-v1" if args.extension else "local100-v1"
+    version = (
+        "local100-repeatfree-v1"
+        if args.repeatfree
+        else "local100-extension-v1"
+        if args.extension
+        else "local100-v1"
+    )
     prefix = f"issues/577/{version}/{args.commit}/"
     assert not client.list_objects_v2(Bucket=bucket, Prefix=prefix, MaxKeys=1).get(
         "KeyCount"
