@@ -226,3 +226,18 @@ author: user
 - Expanded the sole worker's task-owned, DeleteOnTermination gp3 root volume from 80 to 200 GiB to hold this trial's temporary word partitions.
   No IOPS or throughput increase and no additional worker; the original automatic termination and $30 cumulative ceiling remain.
   At the verified $0.714/hour instance rate, even the full eight-hour worker lifetime plus prior $1.34 and a conservative disk/IPv4 allowance stays below $8, excluding a final invoice reconciliation.
+
+### 2026-09-16 — extension development selection frozen
+
+- Completed the 15 panel/sampling cells and all six scoring choices per cell on chromosome 1.
+  The original chr2 pilot remains unchanged; no chr3 conservation labels have been created or inspected.
+- Development winner: ten species, bottom 32 hashes across all words per 100 bp bin, copy-filtered mean other-species breadth.
+  Selected conserved-base fraction is 31.4818%, versus 23.6625% for the three-species 1/4-sampled any-copy4 baseline, at the fixed 5% budget.
+- Fixed-rate 1/4 density at 3/6/10 species is 23.6625%/28.6348%/31.0824%; bottom-32 is 24.0965%/29.1000%/31.4818%.
+  These are development comparisons, not evidence from the fresh validation chromosome.
+- The selection artifact fixes all 15 cell winners, the primary comparison, and hashes of the input manifest and protocol.
+  Commit and publish this artifact before running `extension_evaluate --split validation --freeze-sha COMMIT`.
+- Updated the resource matrix to include contemporaneous baseline reruns, giving 60 measurements in total; all 1/4 results must reproduce the original complete synthetic score tables.
+- Streaming selection now uses weighted radix threshold selection instead of sorting distinct score values and keeps one species histogram resident at a time.
+  Added standalone per-scheme query-index profiles and full-genome/extension artifact audits.
+- All 31 locked tests pass in 11.71 seconds; ruff formatting/checks and three C++ warning-as-error builds pass on the worker.

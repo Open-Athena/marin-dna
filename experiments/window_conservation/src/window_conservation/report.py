@@ -110,7 +110,7 @@ def main() -> None:
         ax.set_xticks(x, labels=[str(int(v)) for v in x])
         ax.set_ylabel("Construction + scoring (s)")
         ax.set_xlabel(
-            "Synthetic species" if axis == "species" else "Windows per species"
+            "Synthetic species" if axis == "species" else "Intervals per species"
         )
         ax.set_box_aspect(1)
         ax.legend(title="Time", loc="upper left")

@@ -89,7 +89,6 @@ def main() -> None:
         writer.writerows(table)
 
     measurements = json.loads((root / "memory/measurements.json").read_text())
-    original = json.loads((args.root / "scaling/measurements.json").read_text())
     summaries = []
     shapes = sorted(
         {(row["species"], row["windows_per_species"]) for row in measurements}
@@ -102,23 +101,15 @@ def main() -> None:
             ("compact", 4),
             ("partition", 4),
         ]:
-            if mode == "baseline":
-                rows = [
-                    r
-                    for r in original
-                    if r["species"] == species and r["windows_per_species"] == windows
-                ]
-                times = [r["total_seconds"] for r in rows]
-            else:
-                rows = [
-                    r
-                    for r in measurements
-                    if r["species"] == species
-                    and r["windows_per_species"] == windows
-                    and r["mode"] == mode
-                    and r["bits"] == bits
-                ]
-                times = [r["wall_seconds"] for r in rows]
+            rows = [
+                r
+                for r in measurements
+                if r["species"] == species
+                and r["windows_per_species"] == windows
+                and r["mode"] == mode
+                and r["bits"] == bits
+            ]
+            times = [r["wall_seconds"] for r in rows]
             assert len(rows) == 3
             memory = [r["max_rss_kib"] / 2**20 for r in rows]
             summaries.append(

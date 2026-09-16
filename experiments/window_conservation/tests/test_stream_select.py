@@ -1,11 +1,26 @@
 import csv
 import struct
+from collections import Counter
 from pathlib import Path
 
 import numpy as np
 
 from window_conservation.evaluate import select_indices
-from window_conservation.stream_select import radix_cutoff, select, tie_hash
+from window_conservation.stream_select import (
+    radix_cutoff,
+    score_cutoff,
+    select,
+    tie_hash,
+)
+
+
+def test_weighted_score_radix() -> None:
+    counts = Counter({0.0: 10, 1 / 3: 5, 0.75: 2, 1.0: 1})
+    reference = sorted(counts.elements(), reverse=True)
+    for rank, expected in enumerate(reference, 1):
+        score, needed = score_cutoff(counts, rank)
+        assert score == expected
+        assert needed == rank - sum(value > expected for value in reference)
 
 
 def test_radix_ties_and_extremes(tmp_path: Path) -> None:

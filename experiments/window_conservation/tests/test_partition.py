@@ -21,6 +21,7 @@ def partition_exe(tmp_path_factory: pytest.TempPathFactory) -> Path:
             "-Wall",
             "-Wextra",
             "-Werror",
+            "-DWINDOW_CHUNK_SIZE=2",
             "src/window_conservation/partition.cpp",
             "-o",
             str(target),
@@ -48,12 +49,13 @@ def test_global_score_parity(
     )
     rng = random.Random(577)
     sequence = "".join(rng.choices("ACGT", k=350))
+    unique = "".join(rng.choices("ACGT", k=240))
     paths = []
     for i in range(3):
         path = tmp_path / f"s{i}.fa"
         reverse = sequence.translate(str.maketrans("ACGT", "TGCA"))[::-1]
         path.write_text(
-            f">first\n{sequence * (i + 4)}\n>partial\n{sequence[:90]}\n>last\n{reverse[:100]}NNN{reverse.lower()}\n"
+            f">first\n{sequence * (i + 4)}\n>partial\n{sequence[:90]}\n>last\n{reverse[:100]}NNN{reverse.lower()}\n>single\n{unique}\n"
         )
         paths.append(path)
     listing = tmp_path / "list"

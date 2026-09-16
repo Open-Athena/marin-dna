@@ -25,6 +25,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--root", type=Path, required=True)
     parser.add_argument("--commit", required=True)
+    parser.add_argument("--extension", action="store_true")
     args = parser.parse_args()
     assert len(args.commit) == 40
     client = boto3.client("s3", region_name="us-east-2")
@@ -35,7 +36,8 @@ def main() -> None:
             "PublicAccessBlockConfiguration"
         ].values()
     )
-    prefix = f"issues/577/local100-v1/{args.commit}/"
+    version = "local100-extension-v1" if args.extension else "local100-v1"
+    prefix = f"issues/577/{version}/{args.commit}/"
     assert not client.list_objects_v2(Bucket=bucket, Prefix=prefix, MaxKeys=1).get(
         "KeyCount"
     ), "archive prefix already exists"
@@ -47,6 +49,16 @@ def main() -> None:
         for p in (args.root / directory).rglob("*")
         if p.is_file()
     ]
+    if args.extension:
+        paths += [args.root / "data/rmsk.txt.gz"]
+        paths += [
+            p
+            for directory in ["memory", "spatial", "global3/selection", "profiles"]
+            for p in (args.root / directory).rglob("*")
+            if p.is_file()
+            and p.suffix
+            in [".json", ".csv", ".fa", ".bed", ".time", ".stdout", ".stderr", ".list"]
+        ]
     paths += [
         p
         for directory in [
@@ -64,12 +76,22 @@ def main() -> None:
     ]
     compressed = args.root / "archive-scores"
     compressed.mkdir(exist_ok=True)
-    for path in (args.root / "scores").glob("*.tsv"):
-        output = compressed / (path.name + ".gz")
+    score_paths = list((args.root / "scores").rglob("*.tsv"))
+    if args.extension:
+        score_paths.append(args.root / "global3/scores.tsv")
+    for path in score_paths:
+        relative = str(path.relative_to(args.root)) if args.extension else path.name
+        output = compressed / (relative + ".gz")
+        output.parent.mkdir(parents=True, exist_ok=True)
         with (
             path.open("rb") as src,
             output.open("wb") as handle,
-            gzip.GzipFile(fileobj=handle, mode="wb", mtime=0) as dst,
+            gzip.GzipFile(
+                fileobj=handle,
+                mode="wb",
+                mtime=0,
+                compresslevel=1 if args.extension else 9,
+            ) as dst,
         ):
             shutil.copyfileobj(src, dst, length=2**20)
         paths.append(output)
@@ -78,7 +100,7 @@ def main() -> None:
         "prefix": f"s3://{bucket}/{prefix}",
         "files": [],
     }
-    assert sum(p.stat().st_size for p in paths) < 2 * 2**30
+    assert sum(p.stat().st_size for p in paths) < (8 if args.extension else 2) * 2**30
     for path in sorted(paths):
         key = prefix + str(path.relative_to(args.root))
         checksum = digest(path)

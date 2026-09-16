@@ -6,7 +6,11 @@
 #include <sys/resource.h>
 
 constexpr uint64_t invalid_window=(1ULL<<48)-1;
-constexpr uint64_t chunk_windows=262144;
+#ifndef WINDOW_CHUNK_SIZE
+#define WINDOW_CHUNK_SIZE 262144
+#endif
+constexpr uint64_t chunk_windows=WINDOW_CHUNK_SIZE;
+static_assert(chunk_windows>0);
 struct Occurrence { uint64_t key, location; };
 struct Contribution { uint64_t window; std::array<uint32_t,6> values{}; };
 static_assert(sizeof(Occurrence)==16 && sizeof(Contribution)==32);
@@ -71,7 +75,9 @@ int main(int argc,char **argv) {
             flush(false);
         }
         if (!species) throw std::runtime_error("no species");
+        for (auto &shard:shards) { shard.close(); if (!shard) throw std::runtime_error("word spool close failed"); }
         shards.clear(); metadata.close();
+        if (!metadata) throw std::runtime_error("metadata write failed");
         double partition_seconds=std::chrono::duration<double>(std::chrono::steady_clock::now()-started).count();
         uint64_t max_keys=0,unique_keys=0,contribution_records=0;
         auto word_started=std::chrono::steady_clock::now();
@@ -89,6 +95,7 @@ int main(int argc,char **argv) {
                 else if (v.current<65535) ++v.current;
                 v.maximum=std::max(v.maximum,v.current);
             }
+            if (!input.eof()) throw std::runtime_error("word spool read failed");
             max_keys=std::max(max_keys,uint64_t(counts.size())); unique_keys+=counts.size();
             input.clear(); input.seekg(0);
             std::vector<uint64_t> keys;
@@ -128,6 +135,7 @@ int main(int argc,char **argv) {
                 if (id!=current) { flush(); current=id; }
                 keys.push_back(record.key);
             }
+            if (!input.eof()) throw std::runtime_error("word spool replay failed");
             flush(); input.close(); contributions.close();
             std::filesystem::remove(wordpath);
             std::cerr << "partition " << part << " unique " << counts.size() << std::endl;
@@ -149,6 +157,7 @@ int main(int argc,char **argv) {
                     if (contribution.window<first || contribution.window>=first+size) throw std::runtime_error("window partition mismatch");
                     for (int j=0;j<6;++j) totals[contribution.window-first][j]+=contribution.values[j];
                 }
+                if (!input.eof()) throw std::runtime_error("contribution read failed");
                 input.close(); std::filesystem::remove(filename);
             }
             for (uint64_t i=0;i<size;++i) {

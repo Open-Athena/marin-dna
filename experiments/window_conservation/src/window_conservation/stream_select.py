@@ -6,7 +6,7 @@ import argparse
 import hashlib
 import json
 import struct
-from collections import Counter, defaultdict
+from collections import Counter
 from pathlib import Path
 
 
@@ -37,6 +37,29 @@ def radix_cutoff(path: Path, rank: int) -> tuple[int, int]:
     return prefix, rank
 
 
+def score_cutoff(scores: Counter[float], rank: int) -> tuple[float, int]:
+    """Weighted descending selection in eight passes over nonnegative float keys."""
+    assert 1 <= rank <= scores.total()
+    values = [
+        (struct.unpack(">Q", struct.pack(">d", value))[0], count)
+        for value, count in scores.items()
+    ]
+    prefix = 0
+    for shift in range(56, -1, -8):
+        histogram = [0] * 256
+        for value, count in values:
+            if value >> (shift + 8) == prefix:
+                histogram[(value >> shift) & 255] += count
+        for byte in range(255, -1, -1):
+            if rank <= histogram[byte]:
+                prefix = prefix * 256 + byte
+                break
+            rank -= histogram[byte]
+        else:
+            raise AssertionError("score rank absent")
+    return struct.unpack(">d", struct.pack(">Q", prefix))[0], rank
+
+
 def select(source: Path, output: Path, score_name: str, fraction: float) -> dict:
     assert 0 < fraction <= 1
     output.mkdir(exist_ok=False)
@@ -44,15 +67,33 @@ def select(source: Path, output: Path, score_name: str, fraction: float) -> dict
         fields = handle.readline().rstrip().split("\t")
     score_index = fields.index(score_name)
     assert fields[:5] == ["species", "chrom", "start", "end", "valid"]
-    histograms: dict[str, Counter] = defaultdict(Counter)
+    histogram: Counter[float] = Counter()
     total_rows = 0
     seen_species: set[str] = set()
     previous_species = None
+    plans = {}
+
+    def finish_species() -> None:
+        if not histogram:
+            return
+        budget = max(1, int(fraction * histogram.total()))
+        threshold, remaining = score_cutoff(histogram, budget)
+        plans[previous_species] = {
+            "eligible_windows": histogram.total(),
+            "selected_windows": budget,
+            "threshold": threshold,
+            "ties_needed": remaining,
+            "threshold_ties": histogram[threshold],
+            "distinct_scores": len(histogram),
+        }
+        histogram.clear()
+
     with source.open() as handle:
         handle.readline()
         for line in handle:
             row = line.rstrip().split("\t")
             if row[0] != previous_species:
+                finish_species()
                 assert row[0] not in seen_species, "input species must be contiguous"
                 seen_species.add(row[0])
                 previous_species = row[0]
@@ -61,23 +102,8 @@ def select(source: Path, output: Path, score_name: str, fraction: float) -> dict
             if int(row[4]) >= 95:
                 value = float(row[score_index])
                 assert 0 <= value <= 1
-                histograms[row[0]][value] += 1
-    plans = {}
-    for species, histogram in histograms.items():
-        budget = max(1, int(fraction * histogram.total()))
-        remaining = budget
-        for score, count in sorted(histogram.items(), reverse=True):
-            if remaining <= count:
-                plans[species] = {
-                    "eligible_windows": histogram.total(),
-                    "selected_windows": budget,
-                    "threshold": score,
-                    "ties_needed": remaining,
-                    "threshold_ties": count,
-                    "distinct_scores": len(histogram),
-                }
-                break
-            remaining -= count
+                histogram[0.0 if value == 0 else value] += 1
+    finish_species()
     tie_file = None
     current = None
     try:

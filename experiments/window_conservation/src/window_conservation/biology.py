@@ -83,6 +83,7 @@ def annotations(data: Path, chrom: str, length: int) -> tuple[dict, dict]:
     table = pq.read_table(
         data / "ccre.bare.parquet", filters=[("chrom", "=", bare)], use_threads=False
     )
+    assert features["CDS"] and table.num_rows > 0, "annotation chromosome mismatch"
     cols = table.to_pydict()
     for start, end, category in zip(
         cols["start"], cols["end"], cols["cre_class"], strict=True

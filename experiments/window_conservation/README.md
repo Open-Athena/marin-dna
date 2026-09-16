@@ -75,7 +75,7 @@ It varies species count (125–1,000) and intervals per species (1,024–8,192) 
 It measures construction and score-table generation; scientific evaluation, downloading, preparation, and fixed-budget selection are separate stages.
 An in-memory global index still grows with the number of distinct sampled words and may require impractical memory at thousands of complete genomes.
 Repeatedly rescanning all genomes for bounded query batches would add a batch-count factor; the pilot does not claim that strategy preserves total linear work when scoring every genome.
-A disk-partitioned global implementation is not part of this experiment.
+The original pilot did not include a disk-partitioned global implementation; the extension below tests one.
 
 ## Expanded panel and bounded-memory comparisons
 
@@ -96,8 +96,9 @@ Temporary disk and I/O scale with sampled occurrences and partial score records.
 The measured implementation accepts up to 512 partitions; excessive partition size or skew can still exceed RAM and is not handled by recursive repartitioning.
 
 `stream_select.py` makes exact fixed-budget selections independently per species without retaining every window score in RAM.
-It counts distinct score values, finds the threshold, resolves boundary ties with eight disk radix passes over 64-bit hashes, and merges adjacent selected intervals in a final score-stream pass.
-For M intervals, T boundary ties, and D distinct scores across per-species histograms, selection uses O(M + 8T + D log D) work, O(D) RAM, and O(T) scratch disk.
+It counts distinct score values for one species at a time, finds the threshold in eight weighted radix passes, resolves boundary ties with eight disk radix passes over 64-bit hashes, and merges adjacent selected intervals in a final score-stream pass.
+For M intervals, T boundary ties, and D distinct scores summed across species, selection uses O(M + 8D + 8T) expected work, which is O(M) because D and T are at most M.
+Resident selection state is O(maximum distinct scores in one species + species), and scratch disk is O(T).
 For the any-species scores at fixed 100 bp width, the finite set of numerator/denominator fractions bounds the number of score values per species independently of genome length.
 Species must appear contiguously in the score stream; within a species, intervals must be in genomic order for merging.
 Output is a BED6+2 file per species plus the selection receipt.
@@ -116,7 +117,13 @@ uv run --locked python -m window_conservation.extension_evaluate --root /data/is
 # Commit and publish report/selection.json before the validation command.
 uv run --locked python -m window_conservation.extension_evaluate --root /data/issue577 --split validation --freeze-sha COMMIT
 uv run --locked python -m window_conservation.memory_scaling --root /data/issue577
+uv run --locked python -m window_conservation.full_global --root /data/issue577
+uv run --locked python -m window_conservation.query_profiles --root /data/issue577
 uv run --locked python -m window_conservation.biology --root /data/issue577 --split pilot
 uv run --locked python -m window_conservation.biology --root /data/issue577 --split extension
 uv run --locked python -m window_conservation.spatial --root /data/issue577
+uv run --locked python -m window_conservation.extension_report --root /data/issue577
 ```
+
+The full-genome resource trial scores every complete 100 bp interval in the original three genomes, verifies every original human query score, and produces exact 5% per-genome selections with `any_copy4`.
+The resource matrix repeats the original baseline, compact table, and disk partitions contemporaneously, with three repetitions per setting and complete baseline score parity at 1/4 sampling.
