@@ -1,7 +1,7 @@
 # Which genomic regions to train on, and how to find them?
 
 > [!NOTE]
-> **TL;DR:** Targeted or conservation-selected corpora often improve functional prediction at current scales, and absolute loss or entropy can proxy conservation; hard loss-ranked token selection and anchor-free clustering of short mammalian genome windows both failed as practical selectors, while same-lineage teacher distillation outperformed uniform once and repeat downweighting remains untested.
+> **TL;DR:** Targeted or conservation-selected corpora often improve functional prediction at current scales, and absolute loss or entropy can proxy conservation; neither hard loss-ranked selection nor tested clustering/LSH pipelines produced a practical selector, despite strong homology retrieval with complete k-mer sets, while same-lineage teacher distillation outperformed uniform once and repeat downweighting remains untested.
 
 ## Question
 
@@ -36,6 +36,10 @@ On a projected three-species control in a five-million-window background, the be
 Extending windows from 255 to 511 bp reduced matched-anchor exhaustive recall, alternative seed and graph recipes traded away precision or recall, and monolithic Linclust segfaulted on the exact 298.5-million-window 20-genome panel.
 The workflow placed every retained tile in one database and lacked distributed sharding or cross-shard reconciliation, so it supplied no path from the mammalian proof of concept to all-animal or all-eukaryote coverage.
 This argues against further tuning of unordered short-window clustering for this purpose, while leaving targeted local alignment and methods with positional, syntenic, or anchor evidence as distinct directions.
+
+The [local k-mer follow-up](../experiments/568-kmer-conservation.md) recovered 97.1% of held-out mammalian homology pairs at ten unique candidate loci using complete k-mer sets, showing that local sequence similarity survives even when the earlier clustering recipe misses it.
+The tested MinHash/LSH settings did not improve the recall–runtime frontier over exact indexes, quarter-window stride at W255/k9 and a two-scale union did not raise aggregate held-out recall over the selected half-stride representation, and strict full-window verification discarded most recovered pairs.
+This separates useful homology retrieval from a viable conservation selector: the study stopped before enrichment or training, and its homology-enriched candidate universe could not support an unbiased conservation-enrichment claim.
 
 The leading hypothesis is that increasing the density of constrained or correctly annotated sequence improves functional-VEP sample efficiency at fixed compute.
 Whole-genome data may become more useful at larger scale, under weighting that prevents easy background from dominating, or for mutation-process, repeat, phylogeny, and regional-context tasks.
@@ -92,6 +96,8 @@ It should retain a background arm so gains on functional VEP can be weighed agai
   All four loss-ranked half-token objectives harmed Mendelian missense-plus-splicing AUPRC, while pure final-checkpoint teacher KL beat uniform CE at step 200 within the paired evaluation records; one seed, privileged later-lineage supervision, and unmatched per-step compute limit the inference.
 - [Anchor-free clustering of mammalian genome windows](../experiments/521-linclust-conservation.md) tested Linclust, exhaustive alignment controls, longer windows, hash ensembles, denser seeds, DECIPHER, and a source-aware seed graph against projected homology.
   The tested symmetric short-window recipes missed too many known pairs or admitted too many genomic decoys, and the single-database workflow failed at the exact 20-genome scale without a distributed path to all animals or eukaryotes, so this path was stopped without a phyloP selector or training run.
+- [Local k-mer retrieval of mammalian homologs](../experiments/568-kmer-conservation.md) found strong complete-set similarity on a bounded human/mouse/armadillo fixture, recovering 97.1% of held-out pairs at ten unique candidate loci.
+  Sampled MinHash/LSH settings failed to improve the recall–runtime frontier over exact indexes, and projected homology, weak complexity controls, and independently sampled backgrounds did not establish conservation enrichment or training value.
 
 </details>
 
@@ -104,6 +110,7 @@ It should retain a background arm so gains on functional VEP can be weighed agai
 - Measure the footprint tradeoff across Mendelian and complex-trait VEP, region-matched likelihood gaps, frozen probes, and at least one outcome expected to benefit from neutral sequence.
 - Ablate the current 100-fold repeat downweighting across model and token scales while holding footprint and sampling fixed.
 - Compare conservation or whole-genome alignment with direct annotation, targeted local alignment, and learned single-sequence selection only after the target distribution and leakage contract are fixed.
-- Do not revisit symmetric clustering of independently tiled 255 bp whole genomes without materially new positional, syntenic, or candidate-representation evidence; the bounded 511 bp projected-center diagnostic provides no reason to lengthen the window.
+- Use the complete-set k-mer signal as a bounded retrieval baseline when testing positional, syntenic, or local-alignment evidence; preserve unique-locus budgets and provide an unbiased conservation-enrichment cohort before treating retrieval as a selector.
+- Do not scale the tested symmetric clustering or MinHash/LSH recipes without a measured improvement over those baselines; longer or denser windows alone did not resolve the observed limitations.
 
 </details>
