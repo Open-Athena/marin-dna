@@ -14,9 +14,9 @@ from window_conservation.prepare import sha256
 
 
 def load_chromosome(
-    root: Path, k: int, chrom: str, protocol: dict
+    root: Path, k: int, chrom: str, protocol: dict, score_path: Path | None = None
 ) -> dict[str, np.ndarray]:
-    path = root / "scores" / f"k{k}-human.tsv"
+    path = score_path or root / "scores" / f"k{k}-human.tsv"
     with path.open() as handle:
         fields = handle.readline().strip().split("\t")[1:]
         table = np.loadtxt(

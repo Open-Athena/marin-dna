@@ -1,0 +1,127 @@
+{
+  "sources": [
+    {
+      "name": "Bos_taurus",
+      "uri": "s3://oa-bolinas/staging/vertebrate_projection_dataset/v1/06549d8f7f3ba76151b9c54a5e52d3e3f4402a2d/full/hal/genomes/Bos_taurus.2bit",
+      "bytes": 756424438,
+      "etag": "612e3b2d807ed16189957c73ef018e5e-91",
+      "assembly": "GCF_000003205.7",
+      "family": "Bovidae",
+      "order": "Artiodactyla",
+      "sha256": "6f37ca66c0c1796a8aa2078eab084ffa81fca7bafed84a1c03d5a5445d39a2b2",
+      "fasta_sha256": "1ee01fe9e64264d85fa08d69dd43f147e09c53629d6e5e288d11be6ddee4c450",
+      "fasta_bytes": 2725036621,
+      "bases": 2724980740,
+      "contigs": 3143
+    },
+    {
+      "name": "Loxodonta_africana",
+      "uri": "s3://oa-bolinas/staging/vertebrate_projection_dataset/v1/06549d8f7f3ba76151b9c54a5e52d3e3f4402a2d/full/hal/genomes/Loxodonta_africana.2bit",
+      "bytes": 873163722,
+      "etag": "2c5487fd95a015c40530519b4f3ac690-105",
+      "assembly": "HAL asset; do not infer assembly from taxon-proxy accession",
+      "family": "Elephantidae",
+      "order": "Proboscidea",
+      "sha256": "231016397be3e94e83c7532c7e89da2d5e1ca8a91e64ceabefd0753fcb1323ee",
+      "fasta_sha256": "e9d2b9f9801263dacdf0f71f529b9a853cebc9e935161ba0819b6c1a583608d3",
+      "fasta_bytes": 3196778123,
+      "bases": 3196738035,
+      "contigs": 2352
+    },
+    {
+      "name": "Oryctolagus_cuniculus",
+      "uri": "s3://oa-bolinas/staging/vertebrate_projection_dataset/v1/06549d8f7f3ba76151b9c54a5e52d3e3f4402a2d/full/hal/genomes/Oryctolagus_cuniculus.2bit",
+      "bytes": 761339830,
+      "etag": "90164fe6b374445fb329b01dcd0de7b4-91",
+      "assembly": "GCF_000003625.3",
+      "family": "Leporidae",
+      "order": "Lagomorpha",
+      "sha256": "c4c33ac96f4616cd13f94c2c8661ac118f1a62a40ac0c3c080f5566165eebda3",
+      "fasta_sha256": "0379d4f3e40561d9bcb473facc52732ba2e9a30743718164459cb7569f95f9e2",
+      "fasta_bytes": 2737525310,
+      "bases": 2737473256,
+      "contigs": 3241
+    },
+    {
+      "name": "Lycaon_pictus",
+      "uri": "s3://oa-bolinas/staging/vertebrate_projection_dataset/v1/06549d8f7f3ba76151b9c54a5e52d3e3f4402a2d/full/hal/genomes/Lycaon_pictus.2bit",
+      "bytes": 676934755,
+      "etag": "b64ac494ea02f54e33fd8af90a307d3f-81",
+      "assembly": "GCA_001887905.1",
+      "family": "Canidae",
+      "order": "Carnivora",
+      "sha256": "6ff5b5434804bf9ea0d76546702a9bf01d288d150f8613c494d316fbcaabc699",
+      "fasta_sha256": "0170fa255d0de818897712462b1bfc445a53f68518c67c801212009a6712e0a7",
+      "fasta_bytes": 2358159513,
+      "bases": 2358143818,
+      "contigs": 803
+    },
+    {
+      "name": "Papio_anubis",
+      "uri": "s3://oa-bolinas/staging/vertebrate_projection_dataset/v1/06549d8f7f3ba76151b9c54a5e52d3e3f4402a2d/full/hal/genomes/Papio_anubis.2bit",
+      "bytes": 873183333,
+      "etag": "d620e33f6a1290747ce4137ef8e88a4f-105",
+      "assembly": "GCA_000264685.2",
+      "family": "Cercopithecidae",
+      "order": "Primates",
+      "sha256": "6e4a9a7a3902a3eed24250d2bf7a0cc8ad4ad8b184fe4389679b8071ddf93891",
+      "fasta_sha256": "7d7f83ceda72562cd0916842940dd7799a5711108b45aff787fcd82f54a27644",
+      "fasta_bytes": 2960403231,
+      "bases": 2959356508,
+      "contigs": 63234
+    },
+    {
+      "name": "Equus_caballus",
+      "uri": "s3://oa-bolinas/staging/vertebrate_projection_dataset/v1/06549d8f7f3ba76151b9c54a5e52d3e3f4402a2d/full/hal/genomes/Equus_caballus.2bit",
+      "bytes": 693377845,
+      "etag": "fa8f7003b34479985dda0ea42c0d3312-83",
+      "assembly": "GCF_000002305.2",
+      "family": "Equidae",
+      "order": "Perissodactyla",
+      "sha256": "fd607ec07b670824ad47950bd06074d07d70b90e085ed1efed23255a4582785c",
+      "fasta_sha256": "5c97240b63f77dfc94e87024e997241e99f3ea81c6a7bb7e5eace8e06be96d13",
+      "fasta_bytes": 2475072184,
+      "bases": 2474912402,
+      "contigs": 9636
+    },
+    {
+      "name": "Myotis_lucifugus",
+      "uri": "s3://oa-bolinas/staging/vertebrate_projection_dataset/v1/06549d8f7f3ba76151b9c54a5e52d3e3f4402a2d/full/hal/genomes/Myotis_lucifugus.2bit",
+      "bytes": 574872725,
+      "etag": "a2f8f863bc2485bfa73498682a78b820-69",
+      "assembly": "GCF_000147115.1",
+      "family": "Vespertilionidae",
+      "order": "Chiroptera",
+      "sha256": "55c40e76802593c9aec99864d7c3ef45227d6b2a30e013d856cea93ed74d30c5",
+      "fasta_sha256": "a2ed8eef2ca92ccd47452f39ae7f37496539a940f9da2e19f4f1f9ef9a2efc2c",
+      "fasta_bytes": 2034761150,
+      "bases": 2034575300,
+      "contigs": 11654
+    }
+  ],
+  "annotations": [
+    {
+      "name": "Homo_sapiens.GRCh38.115.gtf.gz",
+      "uri": "s3://oa-bolinas/staging/vertebrate_projection_dataset/v1/06549d8f7f3ba76151b9c54a5e52d3e3f4402a2d/full/anchors/Homo_sapiens.GRCh38.115.gtf.gz",
+      "etag": "\"83d0307886d2c4c23af7ef2c7403f299-13\"",
+      "bytes": 104395529,
+      "sha256": "2f8e31578c3aa2f35646927c4a3b3b0dcf0321e57c0ebd3ecc81afcbc836d1a8"
+    },
+    {
+      "name": "ccre.bare.parquet",
+      "uri": "s3://oa-bolinas/staging/vertebrate_projection_dataset/v1/06549d8f7f3ba76151b9c54a5e52d3e3f4402a2d/full/anchors/ccre.bare.parquet",
+      "etag": "\"b141203cb0f89a0512fd501fbda4369e-2\"",
+      "bytes": 10361229,
+      "sha256": "35c322243a347ddcbcfac478c825ca9bb1af1cdfbbd876b64e788b5105a7afd5"
+    },
+    {
+      "name": "rmsk.txt.gz",
+      "uri": "https://hgdownload.soe.ucsc.edu/goldenPath/hg38/database/rmsk.txt.gz",
+      "bytes": 155633856,
+      "sha256": "36a5ea0d3f5527b74efb07aa9d8d76d3125f2696d5e2518b6adc74642331cb33"
+    }
+  ],
+  "query_sha256": "f2b3600ba546c752255e4dff2c9d423355d5f62909dea1b735b872e1156cd449",
+  "pilot_input_manifest_sha256": "c76e960efe61bbc9678649f3c3ac16bdc222fa72c497e7b3ce7b805b5f1f4432",
+  "annotation_coordinates": "GTF 1-based closed converted at parse; cCRE bare chromosomes explicitly mapped 1/2/3 to chr1/chr2/chr3; RepeatMasker UCSC coordinates retained. All internal intervals 0-based half-open."
+}

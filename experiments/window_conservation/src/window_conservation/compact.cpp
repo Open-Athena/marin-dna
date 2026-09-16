@@ -52,7 +52,7 @@ public:
 };
 long peak_rss() { struct rusage r{}; getrusage(RUSAGE_SELF,&r); return r.ru_maxrss; }
 void compact_score(int k,int bits,int species,int width,const Flat &entries,
-                   const std::string &path,const std::string &output,uint64_t limit=0) {
+                   const std::string &path,const std::string &output,uint64_t limit=0,int bottom=0) {
     std::ofstream out(output);
     if (!out) throw std::runtime_error("cannot write scores");
     out << "chrom\tstart\tend\tvalid\tgc\trepeat\tentropy\tseeds\tany\tboth\tbreadth\tany_copy4\tboth_copy4\tbreadth_copy4\n";
@@ -70,10 +70,11 @@ void compact_score(int k,int bits,int species,int width,const Flat &entries,
         if (code>=0) { ++freq[code]; ++valid; }
         repeats+=c>='a' && c<='z';
         uint64_t key;
-        if (rolling.push(c,key) && !(key&((1ULL<<bits)-1))) keys.push_back(key);
+        if (rolling.push(c,key) && (bottom || !(key&((1ULL<<bits)-1)))) keys.push_back(key);
         if (++pos%width) return;
         std::sort(keys.begin(),keys.end());
         keys.erase(std::unique(keys.begin(),keys.end()),keys.end());
+        if (bottom && keys.size()>size_t(bottom)) keys.resize(bottom);
         double any=0,both=0,breadth=0,any4=0,both4=0,breadth4=0;
         for (uint64_t word:keys) {
             ++lookups;
@@ -93,17 +94,20 @@ void compact_score(int k,int bits,int species,int width,const Flat &entries,
     },limit);
     if (!out) throw std::runtime_error("score write failed");
     std::cout << "{\"stage\":\"score\",\"species\":" << species << ",\"width\":" << width
-              << ",\"windows\":" << windows << ",\"lookups\":" << lookups
+              << ",\"bits\":" << bits << ",\"bottom\":" << bottom << ",\"windows\":" << windows << ",\"lookups\":" << lookups
               << ",\"seconds\":" << std::chrono::duration<double>(std::chrono::steady_clock::now()-start).count()
               << ",\"peak_rss_kib\":" << peak_rss() << "}" << std::endl;
 }
 int main(int argc,char **argv) {
     try {
-        if (argc!=8 && argc!=9) throw std::runtime_error("compact K BITS LIST QUERY OUTDIR PANELS WIDTH [LIMIT]");
+        if (argc<8 || argc>10) throw std::runtime_error("compact K BITS LIST QUERY OUTDIR PANELS WIDTH [LIMIT] [BOTTOM]");
         int k=std::stoi(argv[1]),bits=std::stoi(argv[2]),width=std::stoi(argv[7]);
-        uint64_t limit=argc==9 ? std::stoull(argv[8]) : 0;
+        uint64_t limit=argc>=9 ? std::stoull(argv[8]) : 0;
+        int bottom=argc==10 ? std::stoi(argv[9]) : 0;
+        if (bottom<0 || bottom>width) throw std::runtime_error("invalid bottom size");
         if (k<1 || k>31 || bits<0 || bits>20 || width<k) throw std::runtime_error("invalid geometry");
         std::string query=argv[4];
+        if (bottom && query=="-") throw std::runtime_error("bottom sketch requires explicit query universe");
         std::vector<int> panels;
         std::string part; std::istringstream panel_stream(argv[6]);
         while (std::getline(panel_stream,part,',')) panels.push_back(std::stoi(part));
@@ -113,9 +117,20 @@ int main(int argc,char **argv) {
         auto start=std::chrono::steady_clock::now();
         if (query!="-") {
             Rolling rolling(k);
-            fasta(query,[&](const std::string &) { rolling.clear(); },[&](char c) {
+            std::vector<uint64_t> keys; uint64_t pos=0;
+            fasta(query,[&](const std::string &) { rolling.clear(); keys.clear(); pos=0; },[&](char c) {
                 uint64_t key;
-                if (rolling.push(c,key) && !(key&((1ULL<<bits)-1))) counts.insert(key);
+                if (rolling.push(c,key)) {
+                    if (bottom) keys.push_back(key);
+                    else if (!(key&((1ULL<<bits)-1))) counts.insert(key);
+                }
+                if (++pos%width==0 && bottom) {
+                    std::sort(keys.begin(),keys.end());
+                    keys.erase(std::unique(keys.begin(),keys.end()),keys.end());
+                    if (keys.size()>size_t(bottom)) keys.resize(bottom);
+                    for (uint64_t word:keys) counts.insert(word);
+                    keys.clear();
+                }
             });
         }
         std::vector<uint64_t> bloom;
@@ -140,7 +155,7 @@ int main(int argc,char **argv) {
             Rolling rolling(k);
             fasta(path,[&](const std::string &) { rolling.clear(); },[&](char c) {
                 ++bases; uint64_t key;
-                if (!rolling.push(c,key) || (key&((1ULL<<bits)-1))) return;
+                if (!rolling.push(c,key) || (!bottom && (key&((1ULL<<bits)-1)))) return;
                 ++selected;
                 CompactValue *value;
                 if (query!="-") {
@@ -163,7 +178,12 @@ int main(int argc,char **argv) {
             auto scoring_start=std::chrono::steady_clock::now();
             auto output=std::filesystem::path(argv[5])/std::to_string(species);
             std::filesystem::create_directories(output);
-            if (query!="-") compact_score(k,bits,species,width,counts,query,(output/"human.tsv").string());
+            if (query!="-") {
+                compact_score(k,bits,species,width,counts,query,(output/"human.tsv").string(),0,bottom);
+                if (bottom==32) compact_score(k,bits,species,width,counts,query,(output/"bottom16.tsv").string(),0,16);
+                if (!bottom && bits==2) for (int thin: {3,4})
+                    compact_score(k,thin,species,width,counts,query,(output/("bits"+std::to_string(thin)+".tsv")).string());
+            }
             else for (const auto &p:seen_paths)
                 compact_score(k,bits,species,width,counts,p,(output/(std::filesystem::path(p).stem().string()+".tsv")).string(),limit);
             scoring_seconds+=std::chrono::duration<double>(std::chrono::steady_clock::now()-scoring_start).count();

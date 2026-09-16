@@ -190,3 +190,21 @@ author: user
   It supports partitioned counting as a design precedent, not a measured performance prediction for species-deduplicated scoring here.
 - Negative lead: pairwise window MinHash does not remove the aggregate index requirement for this unary objective, and sparse whole-genome sketches may miss short local features.
 - Active hypotheses: PREVALENCE-004 compact storage preserves scores; PREVALENCE-005 more diverse species improve density; PREVALENCE-006 thinner sampling preserves useful ranking; PREVALENCE-007 the selected signal remains after repeat/functional stratification; PREVALENCE-008 local boundaries tolerate realistic divergence and bin offsets.
+
+### 2026-09-16 — fixed-size MinHash comparison and exact compact parity
+
+- User asked specifically why not retain minimum hashes across all words in each window.
+  Add bottom-16 and bottom-32 sketches of all valid canonical words, using the same full-genome species/copy counts; these do not compare window pairs.
+- Final extension grid has 15 panel/sampling cells, each comparing the same six scores.
+  Nominal seed count is the prespecified memory-proxy tiebreak, followed by panel size and score name.
+- Bottom-16 is evaluated from the bottom-32 query universe; selected words are counted across every full support genome, so other windows' sketch choices do not remove matches.
+- Exact compact pilot parity passed with `cmp`: all 4,911,499 rows and scores are identical to the original k25 score table.
+  Full counted bases 9,659,766,308; distinct retained keys 100,973,493; allocated table 2,147,483,648 bytes.
+  Build 278.454 seconds, score 24.6012 seconds, measured command 303.125 seconds, peak RSS 3,151,476 KiB (3.01 GiB).
+  Original build-plus-score was 486.715 seconds and 5.77 GiB peak RSS; the compact run avoids serializing/reloading an index, so time includes that execution improvement.
+- Seven additional full genomes are prepared and checksum-pinned: cow, elephant, rabbit, African wild dog, baboon, horse, and little brown bat.
+  The elephant asset is identified by its exact HAL mirror object and hash, not a newer taxonomy-proxy assembly accession.
+- Existing pipeline GTF and cCRE annotations were retrieved for descriptive biological overlap; UCSC hg38 RepeatMasker table was retrieved and SHA-pinned.
+  GTF and cCRE bare chromosome names are explicitly converted for matching hg38 primary chromosomes at the annotation boundary.
+- All 24 locked tests, ruff checks/format, and warning-as-error C++ builds pass.
+  No chromosome-3 conservation labels have been inspected; expanded scoring and chromosome-1 development evaluation are next.
