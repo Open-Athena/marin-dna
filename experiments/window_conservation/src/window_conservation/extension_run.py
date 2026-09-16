@@ -12,8 +12,11 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--root", type=Path, required=True)
     parser.add_argument("--mode", choices=["rate", "bottom", "all"], default="all")
+    parser.add_argument("--experiment-dir", default="extension")
+    parser.add_argument("--exclude-lowercase", action="store_true")
+    parser.add_argument("--maximum-repeat", type=float, default=1.0)
     args = parser.parse_args()
-    root = args.root / "extension"
+    root = args.root / args.experiment_dir
     for mode, bits, bottom in [("rate", 2, 0), ("bottom", 0, 32)]:
         if args.mode != "all" and mode != args.mode:
             continue
@@ -29,6 +32,8 @@ def main() -> None:
                 "100",
                 "0",
                 str(bottom),
+                str(int(args.exclude_lowercase)),
+                str(args.maximum_repeat),
             ],
             root / "logs" / f"{mode}-panels",
         )

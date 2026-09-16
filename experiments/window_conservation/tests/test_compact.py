@@ -164,3 +164,45 @@ def test_bottom_sketch_counts_full_genomes(
                     assert float(row[field + suffix]) == pytest.approx(
                         expected, abs=1e-6
                     )
+
+
+@pytest.mark.parametrize("bottom,bits", [(0, 0), (0, 2), (32, 0)])
+def test_repeat_mask_and_window_cutoff(
+    tmp_path: Path, executables: tuple[Path, Path], bottom: int, bits: int
+) -> None:
+    _, compact = executables
+    rng = random.Random(580)
+    raw = "".join(rng.choices("ACGT", k=400))
+    query = raw[:40] + raw[40:60].lower() + raw[60:140] + raw[140:161].lower() + raw[161:]
+    sequences = [query, raw, raw.lower()]
+    paths = []
+    for i, sequence in enumerate(sequences):
+        path = tmp_path / f"s{i}.fa"
+        path.write_text(f">chr1\n{sequence}\n")
+        paths.append(path)
+    listing = tmp_path / "list"
+    listing.write_text("\n".join(map(str, paths)) + "\n")
+    out = tmp_path / "out"
+    subprocess.run([
+        str(compact), "17", str(bits), str(listing), str(paths[0]), str(out),
+        "3", "100", "0", str(bottom), "1", "0.2",
+    ], check=True, capture_output=True)
+    masked = ["".join("N" if c.islower() else c for c in s) for s in sequences]
+    counts = [Counter(key for _, key in keys(s, 17, bits)) for s in masked]
+    for size, filename in ([(32, "human.tsv"), (16, "bottom16.tsv")] if bottom else [(0, "human.tsv")]):
+        rows = list(csv.DictReader((out / "3" / filename).open(), delimiter="\t"))
+        for index, row in enumerate(rows):
+            chosen = sorted({key for end, key in keys(masked[0], 17, bits) if index * 100 < end <= (index + 1) * 100})
+            if size:
+                chosen = chosen[:size]
+            if index == 1:
+                chosen = []  # 21% repeat; exactly 20% in bin zero remains eligible.
+            assert int(row["seeds"]) == len(chosen)
+            for field, condition in [
+                ("any", lambda n: n >= 2), ("both", lambda n: n >= 3),
+                ("breadth", lambda n: (n - 1) / 2),
+            ]:
+                expected = sum(condition(sum(key in count for count in counts)) for key in chosen) / max(1, len(chosen))
+                assert float(row[field]) == pytest.approx(expected, abs=1e-6)
+            assert float(row["both"]) == 0  # Entire lowercase third genome is absent.
+        assert int(rows[0]["seeds"]) > 0

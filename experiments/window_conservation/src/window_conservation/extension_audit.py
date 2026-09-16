@@ -40,15 +40,17 @@ def audit_bed(path: Path, lengths: dict[str, int], expected_bins: int) -> int:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--root", type=Path, required=True)
+    parser.add_argument("--experiment-dir", default="extension")
+    parser.add_argument("--protocol", type=Path, default=Path("config/extension.json"))
     args = parser.parse_args()
-    root = args.root / "extension"
+    root = args.root / args.experiment_dir
     report = root / "report"
     validation = json.loads((report / "validation.json").read_text())
     selection = json.loads((report / "selection.json").read_text())
     assert selection == validation["selection"]
     assert len(validation["freeze_sha"]) == 40
     assert selection["manifest_sha256"] == sha256(root / "data/manifest.json")
-    assert selection["protocol_sha256"] == sha256(Path("config/extension.json"))
+    assert selection["protocol_sha256"] == sha256(args.protocol)
     assert len(validation["cells"]) == 15
     assert {(cell["panel"], cell["sample"]) for cell in validation["cells"]} == {
         (panel, sample)
@@ -70,14 +72,14 @@ def main() -> None:
                 manifest["sources"][0]["chromosomes"],
                 result["selected_windows"],
             )
-    labels = np.load(root / "data/labels-chr3.npz")
+    labels = np.load(root / f"data/labels-{selection['validation_chromosome']}.npz")
     assert np.all(
         (0 <= labels["conserved_bases"])
         & (labels["conserved_bases"] <= labels["label_covered_bases"])
     )
     assert np.all(labels["label_covered_bases"] <= 100)
     assert np.all(labels["ends"] - labels["starts"] == 100)
-    memory = json.loads((root / "memory/measurements.json").read_text())
+    memory = json.loads((args.root / "extension/memory/measurements.json").read_text())
     assert len(memory) == 60
     assert (
         len(
@@ -100,7 +102,8 @@ def main() -> None:
         if r["bits"] == 2
     )
     global_result = json.loads((report / "global3.json").read_text())
-    assert global_result["query_parity_rows"] == 4_911_499
+    expected_query_rows = sum(manifest["sources"][0]["chromosomes"][c] // 100 for c in ({"chr1", "chr4"} if args.experiment_dir == "repeatfree" else {"chr1", "chr2"}))
+    assert global_result["query_parity_rows"] == expected_query_rows
     global_selection = json.loads(
         (root / "global3/selection/selection.json").read_text()
     )
@@ -114,7 +117,7 @@ def main() -> None:
             )
             == plan["stretches"]
         )
-    spatial = json.loads((report / "spatial.json").read_text())
+    spatial = json.loads((args.root / "extension/report/spatial.json").read_text())
     assert len(spatial["summary"]) == 960
     assert all(row["replicates"] == 20 for row in spatial["summary"])
     receipts = (
@@ -130,7 +133,7 @@ def main() -> None:
         "status": "passed",
         "fresh_validation_cells": 15,
         "resource_runs": 60,
-        "global_query_parity_rows": 4_911_499,
+        "global_query_parity_rows": expected_query_rows,
         "global_intervals": global_selection["input_rows"],
         "resource_receipts": len(receipts),
         "freeze_sha": validation["freeze_sha"],

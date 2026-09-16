@@ -281,3 +281,17 @@ The scope and queue above are living summaries; the entry log below preserves th
 - Negative scaling detail: eightfold input growth takes approximately 15× wall time in quarter-rate disk partitioning on both axes, versus approximately 10× for the original/compact indexes and 9.2× for sixteenth-rate partitioning.
   The expected hash-work bound is linear, but empirical cache and I/O effects prevent a constant-throughput production extrapolation.
 - The real three-genome global run has passed its disk-space preflight and started; expected output is 96,574,572 complete intervals over 9,659,766,308 bases.
+
+### 2026-09-16 — PREVALENCE-005: user excludes repeat-rich training regions
+
+- User clarified that lowercase repeats can count as non-conserved and need no dedicated analysis, suggesting exclusion above 20% repeat.
+  Apply a strict >20% exclusion to complete 100 bp query windows, retaining the existing >=95% ACGT rule.
+  Lowercase interrupts rolling words in both query and support genomes; remaining lowercase query bases count as non-conserved with the full-window denominator.
+- Cancelled queued repeat-family diagnostics and moved gene/cCRE analysis to the new eligible cohort.
+  Preserve all completed chr2/chr3 metrics under their original definitions; they do not estimate this new target population.
+- New config `config/repeatfree.json` declares the same 15 panel/sampling cells and six scores, chr1 development, fresh chr4 validation, and no new input downloads or additional worker.
+  Freeze chr1 choices publicly before accessing chr4 labels.
+- Added cutoff/masking support, independent Python-word-oracle checks, lowercase-label tests, and exact 20%/21% selector boundary tests.
+  Validation remains pending while the earlier foreground global run completes; this commit is a protocol/source snapshot, not a tested result.
+- Expected work stays linear in total scanned bases plus emitted intervals at fixed resolution and sampling rate.
+  Skipping repeats reduces constants and the eligible output, not the need to scan input sequence.

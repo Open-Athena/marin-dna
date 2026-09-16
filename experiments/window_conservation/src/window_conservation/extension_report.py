@@ -29,8 +29,9 @@ def save(fig: plt.Figure, path: Path) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--root", type=Path, required=True)
+    parser.add_argument("--experiment-dir", default="extension")
     args = parser.parse_args()
-    root = args.root / "extension"
+    root = args.root / args.experiment_dir
     report = root / "report"
     validation = json.loads((report / "validation.json").read_text())
     cells = validation["cells"]
@@ -47,7 +48,7 @@ def main() -> None:
         rows = sorted(
             [row for row in cells if row["sample"] == sample], key=lambda r: r["panel"]
         )
-        x = np.arange(3) + (i - 2) * 0.045
+        x = np.array([row["panel"] for row in rows]) + (i - 2) * 0.13
         y = np.array(
             [
                 row["validation_metrics"]["selected_annotated_fraction"] * 100
@@ -74,7 +75,7 @@ def main() -> None:
                     **row["validation_metrics"],
                 }
             )
-    ax.set_xticks([0, 1, 2], labels=["3", "6", "10"])
+    ax.set_xticks([3, 6, 10])
     ax.set_xlabel("Species in panel")
     ax.set_ylabel("Conserved bases among selected bases (%)")
     ax.set_ylim(bottom=0)
@@ -88,7 +89,7 @@ def main() -> None:
         writer.writeheader()
         writer.writerows(table)
 
-    measurements = json.loads((root / "memory/measurements.json").read_text())
+    measurements = json.loads((args.root / "extension/memory/measurements.json").read_text())
     summaries = []
     shapes = sorted(
         {(row["species"], row["windows_per_species"]) for row in measurements}
@@ -158,52 +159,25 @@ def main() -> None:
         ax.set_box_aspect(1)
     save(fig, report / "global-memory")
 
-    biology = json.loads((report / "biology-chr3.json").read_text())
-    features = [
-        "CDS",
-        "exon",
-        "TSS_plus_minus_1kb",
-        "cCRE_dELS",
-        "cCRE_pELS",
-        "repeat_LINE",
-        "repeat_SINE",
-        "repeat_LTR",
-    ]
-    fig, ax = plt.subplots(figsize=(7, 5.5), layout="constrained")
-    for offset, choice, label in [
-        (-0.12, "baseline", "Three-species baseline"),
-        (0.12, "primary", "Selected extension"),
-    ]:
-        lookup = {
-            r["feature"]: r
-            for r in biology["feature_overlap"]
-            if r["choice"] == choice and r["budget"] == 0.05
-        }
-        y = [
-            lookup.get(name, {}).get("coverage_enrichment", np.nan) for name in features
-        ]
-        ax.plot(y, np.arange(len(features)) + offset, "o", label=label)
-    ax.set_yticks(
-        range(len(features)),
-        labels=[
-            "CDS",
-            "Exon",
-            "TSS ±1 kb",
-            "Distal cCRE",
-            "Proximal cCRE",
-            "LINE",
-            "SINE",
-            "LTR",
-        ],
-    )
-    ax.axvline(1, color="0.5", linestyle="--")
-    ax.set_xlabel("Annotation coverage enrichment")
-    ax.set_xlim(left=0)
-    ax.set_box_aspect(1)
-    ax.legend(title="Selection", loc="lower center", bbox_to_anchor=(0.5, 1.01))
-    save(fig, report / "biology")
+    # Repeat-inclusive biological diagnostics superseded by the masked experiment.
+    biology_path = report / "biology-chr4.json"
+    if biology_path.exists():
+        biology = json.loads(biology_path.read_text())
+        features = ["CDS", "exon", "TSS_plus_minus_1kb", "cCRE_dELS", "cCRE_pELS"]
+        fig, ax = plt.subplots(figsize=(6, 5), layout="constrained")
+        for offset, choice, label in [(-0.12, "baseline", "Three-species baseline"), (0.12, "primary", "Selected method")]:
+            lookup = {r["feature"]: r for r in biology["feature_overlap"] if r["choice"] == choice and r["budget"] == 0.05}
+            y = [lookup.get(name, {}).get("coverage_enrichment", np.nan) for name in features]
+            ax.plot(y, np.arange(len(features)) + offset, "o", label=label)
+        ax.set_yticks(range(len(features)), labels=["CDS", "Exon", "TSS ±1 kb", "Distal cCRE", "Proximal cCRE"])
+        ax.axvline(1, color="0.5", linestyle="--")
+        ax.set_xlabel("Annotation coverage enrichment")
+        ax.set_xlim(left=0)
+        ax.set_box_aspect(1)
+        ax.legend(title="Selection", loc="lower center", bbox_to_anchor=(0.5, 1.01))
+        save(fig, report / "biology")
 
-    spatial = json.loads((report / "spatial.json").read_text())
+    spatial = json.loads((args.root / "extension/report/spatial.json").read_text())
     fig, ax = plt.subplots(figsize=(6, 5), layout="constrained")
     for i, (sample, label) in enumerate(names.items()):
         rows = sorted(
@@ -237,7 +211,7 @@ def main() -> None:
     (report / "resources.json").write_text(
         json.dumps(
             {
-                "compact_pilot_parity": resource(root / "logs/compact-parity"),
+                "compact_pilot_parity": resource(args.root / "extension/logs/compact-parity"),
                 "rate_panels": resource(root / "logs/rate-panels"),
                 "bottom_panels": resource(root / "logs/bottom-panels"),
                 "development": resource(root / "logs/development"),

@@ -41,11 +41,12 @@ int basecode(char c) {
 struct Rolling {
     int k, valid = 0;
     uint64_t f = 0, r = 0, mask;
-    explicit Rolling(int length) : k(length), mask((1ULL << (2*length))-1) {}
+    bool exclude_lowercase;
+    explicit Rolling(int length, bool exclude=false) : k(length), mask((1ULL << (2*length))-1), exclude_lowercase(exclude) {}
     void clear() { valid = 0; f = r = 0; }
     bool push(char c, uint64_t &key) {
         int b = basecode(c);
-        if (b < 0) { clear(); return false; }
+        if (b < 0 || (exclude_lowercase && c>='a' && c<='z')) { clear(); return false; }
         f = ((f << 2) | b) & mask;
         r = (r >> 2) | (uint64_t(3-b) << (2*(k-1)));
         valid = std::min(valid+1, k);

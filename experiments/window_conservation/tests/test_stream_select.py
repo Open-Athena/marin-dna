@@ -54,3 +54,26 @@ def test_streaming_selection_matches_partition_selector(tmp_path: Path) -> None:
                 observed.update(range(int(row[1]) // 100, int(row[2]) // 100))
         assert observed == expected
         assert report["species"][str(species)]["selected_windows"] == 19
+
+
+def test_repeat_cutoff_is_inclusive_and_applies_to_every_pass(tmp_path: Path) -> None:
+    source = tmp_path / "repeat.tsv"
+    source.write_text(
+        "species\tchrom\tstart\tend\tvalid\trepeat\tany_copy4\n"
+        "1\tchr1\t0\t100\t100\t0.21\t1\n"
+        "1\tchr1\t100\t200\t100\t0.20\t0.5\n"
+        "1\tchr1\t200\t300\t100\t0.00\t0.5\n"
+        "1\tchr1\t300\t400\t100\t0.21\t0.5\n"
+        "1\tchr1\t400\t500\t94\t0.00\t1\n"
+        "2\tchr1\t0\t100\t100\t1.00\t1\n"
+    )
+    for fraction in [0.5, 1.0]:
+        output = tmp_path / str(fraction)
+        result = select(source, output, "any_copy4", fraction, 0.2)
+        assert result["species"]["1"]["eligible_windows"] == 2
+        assert "2" not in result["species"]
+        observed = set()
+        for row in csv.reader((output / "species-1.bed").open(), delimiter="\t"):
+            observed.update(range(int(row[1]), int(row[2]), 100))
+        assert observed <= {100, 200}
+        assert len(observed) == int(2 * fraction)

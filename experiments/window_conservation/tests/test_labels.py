@@ -2,6 +2,7 @@ from pathlib import Path
 
 import numpy as np
 import pyBigWig
+import pytest
 
 from window_conservation.labels import summarize, window_labels
 
@@ -43,3 +44,36 @@ def test_bigwig_batching_preserves_gaps_and_chunk_boundaries(tmp_path: Path) -> 
     assert labels["conserved_bases"].tolist() == [50, 25, 100]
     assert labels["label_covered_bases"].tolist() == [50, 50, 100]
     np.testing.assert_allclose(labels["mean_phylop"], [3.0, 1.0, 4.0])
+
+
+def test_lowercase_is_nonconserved_with_full_denominator(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    path = tmp_path / "masked.bw"
+    with pyBigWig.open(str(path), "w") as bw:
+        bw.addHeader([("chr1", 10)])
+        bw.addEntries(["chr1"], [0], ends=[10], values=[3.0])
+
+    class Genome:
+        closed = False
+
+        def sequence(self, chrom: str, start: int, end: int) -> str:
+            assert chrom == "chr1"
+            return "ACgtACGTac"[start:end]
+
+        def close(self) -> None:
+            self.closed = True
+
+    genome = Genome()
+
+    def open_genome(path: str, store_mask: bool) -> Genome:
+        assert store_mask
+        return genome
+
+    monkeypatch.setattr("window_conservation.labels.py2bit.open", open_genome)
+    labels = window_labels(
+        path, "chr1", np.array([0, 5]), np.array([5, 10]), 2.0, tmp_path / "mask.2bit"
+    )
+    assert labels["conserved_bases"].tolist() == [3, 3]
+    assert labels["label_covered_bases"].tolist() == [5, 5]
+    assert genome.closed

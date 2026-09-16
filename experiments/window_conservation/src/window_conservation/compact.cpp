@@ -52,11 +52,12 @@ public:
 };
 long peak_rss() { struct rusage r{}; getrusage(RUSAGE_SELF,&r); return r.ru_maxrss; }
 void compact_score(int k,int bits,int species,int width,const Flat &entries,
-                   const std::string &path,const std::string &output,uint64_t limit=0,int bottom=0) {
+                   const std::string &path,const std::string &output,uint64_t limit=0,int bottom=0,
+                   bool exclude_lowercase=false,double maximum_repeat=1.0) {
     std::ofstream out(output);
     if (!out) throw std::runtime_error("cannot write scores");
     out << "chrom\tstart\tend\tvalid\tgc\trepeat\tentropy\tseeds\tany\tboth\tbreadth\tany_copy4\tboth_copy4\tbreadth_copy4\n";
-    Rolling rolling(k);
+    Rolling rolling(k,exclude_lowercase);
     std::string chrom;
     uint64_t pos=0,windows=0,lookups=0;
     std::vector<uint64_t> keys;
@@ -72,6 +73,7 @@ void compact_score(int k,int bits,int species,int width,const Flat &entries,
         uint64_t key;
         if (rolling.push(c,key) && (bottom || !(key&((1ULL<<bits)-1)))) keys.push_back(key);
         if (++pos%width) return;
+        if (repeats>maximum_repeat*width) keys.clear();
         std::sort(keys.begin(),keys.end());
         keys.erase(std::unique(keys.begin(),keys.end()),keys.end());
         if (bottom && keys.size()>size_t(bottom)) keys.resize(bottom);
@@ -100,10 +102,13 @@ void compact_score(int k,int bits,int species,int width,const Flat &entries,
 }
 int main(int argc,char **argv) {
     try {
-        if (argc<8 || argc>10) throw std::runtime_error("compact K BITS LIST QUERY OUTDIR PANELS WIDTH [LIMIT] [BOTTOM]");
+        if (argc<8 || argc>12) throw std::runtime_error("compact K BITS LIST QUERY OUTDIR PANELS WIDTH [LIMIT] [BOTTOM] [EXCLUDE_LOWERCASE] [MAX_REPEAT]");
         int k=std::stoi(argv[1]),bits=std::stoi(argv[2]),width=std::stoi(argv[7]);
         uint64_t limit=argc>=9 ? std::stoull(argv[8]) : 0;
-        int bottom=argc==10 ? std::stoi(argv[9]) : 0;
+        int bottom=argc>=10 ? std::stoi(argv[9]) : 0;
+        bool exclude_lowercase=argc>=11 && std::stoi(argv[10])!=0;
+        double maximum_repeat=argc>=12 ? std::stod(argv[11]) : 1.0;
+        if (!(maximum_repeat>=0 && maximum_repeat<=1)) throw std::runtime_error("invalid repeat fraction");
         if (bottom<0 || bottom>width) throw std::runtime_error("invalid bottom size");
         if (k<1 || k>31 || bits<0 || bits>20 || width<k) throw std::runtime_error("invalid geometry");
         std::string query=argv[4];
@@ -116,20 +121,27 @@ int main(int argc,char **argv) {
         Flat counts;
         auto start=std::chrono::steady_clock::now();
         if (query!="-") {
-            Rolling rolling(k);
-            std::vector<uint64_t> keys; uint64_t pos=0;
-            fasta(query,[&](const std::string &) { rolling.clear(); keys.clear(); pos=0; },[&](char c) {
+            Rolling rolling(k,exclude_lowercase);
+            std::vector<uint64_t> keys; uint64_t pos=0; int repeats=0;
+            bool by_window=bottom || maximum_repeat<1.0;
+            fasta(query,[&](const std::string &) { rolling.clear(); keys.clear(); pos=0; repeats=0; },[&](char c) {
+                repeats+=c>='a' && c<='z';
                 uint64_t key;
                 if (rolling.push(c,key)) {
                     if (bottom) keys.push_back(key);
-                    else if (!(key&((1ULL<<bits)-1))) counts.insert(key);
+                    else if (!(key&((1ULL<<bits)-1))) {
+                        if (by_window) keys.push_back(key);
+                        else counts.insert(key);
+                    }
                 }
-                if (++pos%width==0 && bottom) {
-                    std::sort(keys.begin(),keys.end());
-                    keys.erase(std::unique(keys.begin(),keys.end()),keys.end());
-                    if (keys.size()>size_t(bottom)) keys.resize(bottom);
-                    for (uint64_t word:keys) counts.insert(word);
-                    keys.clear();
+                if (++pos%width==0) {
+                    if (by_window && repeats<=maximum_repeat*width) {
+                        std::sort(keys.begin(),keys.end());
+                        keys.erase(std::unique(keys.begin(),keys.end()),keys.end());
+                        if (bottom && keys.size()>size_t(bottom)) keys.resize(bottom);
+                        for (uint64_t word:keys) counts.insert(word);
+                    }
+                    keys.clear(); repeats=0;
                 }
             });
         }
@@ -160,7 +172,7 @@ int main(int argc,char **argv) {
         while (std::getline(listing,path)) if (!path.empty()) {
             if (++species>65535) throw std::runtime_error("too many species");
             seen_paths.push_back(path);
-            Rolling rolling(k);
+            Rolling rolling(k,exclude_lowercase);
             fasta(path,[&](const std::string &) { rolling.clear(); },[&](char c) {
                 ++bases; uint64_t key;
                 if (!rolling.push(c,key) || (!bottom && (key&((1ULL<<bits)-1)))) return;
@@ -187,13 +199,13 @@ int main(int argc,char **argv) {
             auto output=std::filesystem::path(argv[5])/std::to_string(species);
             std::filesystem::create_directories(output);
             if (query!="-") {
-                compact_score(k,bits,species,width,counts,query,(output/"human.tsv").string(),0,bottom);
-                if (bottom==32) compact_score(k,bits,species,width,counts,query,(output/"bottom16.tsv").string(),0,16);
+                compact_score(k,bits,species,width,counts,query,(output/"human.tsv").string(),0,bottom,exclude_lowercase,maximum_repeat);
+                if (bottom==32) compact_score(k,bits,species,width,counts,query,(output/"bottom16.tsv").string(),0,16,exclude_lowercase,maximum_repeat);
                 if (!bottom && bits==2) for (int thin: {3,4})
-                    compact_score(k,thin,species,width,counts,query,(output/("bits"+std::to_string(thin)+".tsv")).string());
+                    compact_score(k,thin,species,width,counts,query,(output/("bits"+std::to_string(thin)+".tsv")).string(),0,0,exclude_lowercase,maximum_repeat);
             }
             else for (const auto &p:seen_paths)
-                compact_score(k,bits,species,width,counts,p,(output/(std::filesystem::path(p).stem().string()+".tsv")).string(),limit);
+                compact_score(k,bits,species,width,counts,p,(output/(std::filesystem::path(p).stem().string()+".tsv")).string(),limit,0,exclude_lowercase,maximum_repeat);
             scoring_seconds+=std::chrono::duration<double>(std::chrono::steady_clock::now()-scoring_start).count();
         }
         if (species==0 || *std::max_element(panels.begin(),panels.end())>species) throw std::runtime_error("missing panel species");

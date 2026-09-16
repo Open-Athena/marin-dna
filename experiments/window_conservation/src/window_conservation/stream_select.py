@@ -60,12 +60,16 @@ def score_cutoff(scores: Counter[float], rank: int) -> tuple[float, int]:
     return struct.unpack(">d", struct.pack(">Q", prefix))[0], rank
 
 
-def select(source: Path, output: Path, score_name: str, fraction: float) -> dict:
-    assert 0 < fraction <= 1
+def select(source: Path, output: Path, score_name: str, fraction: float, maximum_repeat: float = 1.0) -> dict:
+    assert 0 < fraction <= 1 and 0 <= maximum_repeat <= 1
     output.mkdir(exist_ok=False)
     with source.open() as handle:
         fields = handle.readline().rstrip().split("\t")
     score_index = fields.index(score_name)
+    repeat_index = fields.index("repeat") if maximum_repeat < 1.0 else None
+
+    def eligible(row: list[str]) -> bool:
+        return int(row[4]) >= 95 and (repeat_index is None or float(row[repeat_index]) <= maximum_repeat)
     assert fields[:5] == ["species", "chrom", "start", "end", "valid"]
     histogram: Counter[float] = Counter()
     total_rows = 0
@@ -99,7 +103,7 @@ def select(source: Path, output: Path, score_name: str, fraction: float) -> dict
                 previous_species = row[0]
             assert int(row[3]) - int(row[2]) == 100
             total_rows += 1
-            if int(row[4]) >= 95:
+            if eligible(row):
                 value = float(row[score_index])
                 assert 0 <= value <= 1
                 histogram[0.0 if value == 0 else value] += 1
@@ -113,7 +117,7 @@ def select(source: Path, output: Path, score_name: str, fraction: float) -> dict
                 row = line.rstrip().split("\t")
                 species = row[0]
                 if (
-                    int(row[4]) < 95
+                    not eligible(row)
                     or species not in plans
                     or float(row[score_index]) != plans[species]["threshold"]
                 ):
@@ -168,7 +172,7 @@ def select(source: Path, output: Path, score_name: str, fraction: float) -> dict
                 start, end = int(row[2]), int(row[3])
                 score = float(row[score_index])
                 chosen = False
-                if int(row[4]) >= 95 and species in plans:
+                if eligible(row) and species in plans:
                     plan = plans[species]
                     chosen = score > plan["threshold"]
                     if score == plan["threshold"]:
@@ -206,6 +210,7 @@ def select(source: Path, output: Path, score_name: str, fraction: float) -> dict
     result = {
         "input_rows": total_rows,
         "fraction": fraction,
+        "maximum_repeat_fraction": maximum_repeat,
         "score": score_name,
         "species": plans,
         "tie_rule": "SHA256(577:chrom:start) first 64 bits, then input order for exact hash collisions; budgets independent per species.",
@@ -220,9 +225,10 @@ def main() -> None:
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--score", default="any_copy4")
     parser.add_argument("--fraction", type=float, default=0.05)
+    parser.add_argument("--maximum-repeat", type=float, default=1.0)
     args = parser.parse_args()
     print(
-        json.dumps(select(args.input, args.output, args.score, args.fraction)),
+        json.dumps(select(args.input, args.output, args.score, args.fraction, args.maximum_repeat)),
         flush=True,
     )
 

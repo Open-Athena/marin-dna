@@ -32,6 +32,8 @@ def load_chromosome(
         table[:, fields.index("valid")] / protocol["window_bases"]
         >= protocol["minimum_valid_fraction"]
     )
+    if "maximum_repeat_fraction" in protocol:
+        valid &= table[:, fields.index("repeat")] <= protocol["maximum_repeat_fraction"]
     table = table[valid]
     assert len(table)
     values = {field: table[:, i].copy() for i, field in enumerate(fields)}
@@ -41,8 +43,10 @@ def load_chromosome(
         starts[1:] >= ends[:-1]
     )
     cache = root / "data" / f"labels-{chrom}.npz"
+    mask_policy = protocol.get("exclude_lowercase_twobit", "")
     if cache.exists():
         labels = np.load(cache)
+        assert str(labels["mask_policy"]) == mask_policy if "mask_policy" in labels else not mask_policy
         assert np.array_equal(labels["starts"], starts) and np.array_equal(
             labels["ends"], ends
         )
@@ -63,12 +67,14 @@ def load_chromosome(
             starts,
             ends,
             protocol["conservation_threshold"],
+            Path(protocol["exclude_lowercase_twobit"]) if "exclude_lowercase_twobit" in protocol else None,
         )
         np.savez_compressed(
             cache,
             starts=starts,
             ends=ends,
             threshold=protocol["conservation_threshold"],
+            mask_policy=mask_policy,
             input_manifest_sha256=sha256(root / "data/manifest.json"),
             **labels,
         )

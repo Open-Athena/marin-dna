@@ -89,14 +89,6 @@ def annotations(data: Path, chrom: str, length: int) -> tuple[dict, dict]:
         cols["start"], cols["end"], cols["cre_class"], strict=True
     ):
         features["cCRE_" + category].append((int(start), int(end)))
-    with gzip.open(data / "rmsk.txt.gz", "rt") as handle:
-        for line in handle:
-            fields = line.rstrip().split("\t")
-            if fields[5] != chrom:
-                continue
-            start, end = int(fields[6]), int(fields[7])
-            features["repeat_" + fields[11]].append((start, end))
-            families[fields[11] + ":" + fields[12]].append((start, end))
     return (
         {name: merge(rows, length) for name, rows in features.items()},
         {name: merge(rows, length) for name, rows in families.items()},
@@ -107,10 +99,14 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--root", type=Path, required=True)
     parser.add_argument("--split", choices=["pilot", "extension"], required=True)
+    parser.add_argument("--experiment-dir")
     args = parser.parse_args()
+    if args.experiment_dir is None:
+        print("Legacy biology diagnostics skipped after user excluded repeats", flush=True)
+        return
     root = args.root
-    extension = root / "extension"
-    protocol = json.loads(Path("config/protocol.json").read_text())
+    extension = root / args.experiment_dir
+    protocol = json.loads((extension / "data/protocol.json").read_text())
     if args.split == "pilot":
         chrom, source = "chr2", root
         choices = [
@@ -122,7 +118,7 @@ def main() -> None:
             },
         ]
     else:
-        chrom, source = "chr3", extension
+        chrom, source = "chr4", extension
         assert (extension / "report/validation.json").exists()
         selection = json.loads((extension / "report/selection.json").read_text())
         choices = [
@@ -135,11 +131,11 @@ def main() -> None:
     features, families = annotations(extension / "data", chrom, length)
     output = {
         "chromosome": chrom,
-        "coordinate_mapping": "GTF and cCRE bare 1/2/3 map explicitly to matching hg38 chr1/chr2/chr3; GTF start-1.",
+        "coordinate_mapping": "GTF and cCRE bare chromosome names map explicitly to the matching hg38 chr-prefixed names; GTF start-1.",
         "feature_overlap": [],
         "family_overlap": [],
         "within_feature_bins": [],
-        "caveat": "Feature and repeat categories overlap; coverage rows are not an exclusive partition. Within-feature conservation uses whole bins with at least 50% feature coverage, not only annotated sub-bases. Exploratory diagnostics do not tune selection.",
+        "caveat": "Feature categories overlap; coverage rows are not an exclusive partition. Within-feature conservation uses whole bins with at least 50% feature coverage, not only annotated sub-bases. Exploratory diagnostics do not tune selection.",
     }
     for choice in choices:
         values = load_chromosome(source, 25, chrom, protocol, Path(choice["path"]))
@@ -202,6 +198,8 @@ def main() -> None:
     report.mkdir(exist_ok=True)
     (report / f"biology-{chrom}.json").write_text(json.dumps(output, indent=2) + "\n")
     for name in ["feature_overlap", "family_overlap", "within_feature_bins"]:
+        if not output[name]:
+            continue
         with (report / f"biology-{chrom}-{name}.csv").open("w") as handle:
             writer = csv.DictWriter(handle, fieldnames=list(output[name][0]))
             writer.writeheader()

@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 from itertools import pairwise
+from contextlib import ExitStack
 from pathlib import Path
 
 import numpy as np
 import pyBigWig
+import py2bit
 
 
 def summarize(values: np.ndarray, threshold: float) -> tuple[int, int, float]:
@@ -20,12 +22,18 @@ def summarize(values: np.ndarray, threshold: float) -> tuple[int, int, float]:
 
 
 def window_labels(
-    path: Path, chrom: str, starts: np.ndarray, ends: np.ndarray, threshold: float
+    path: Path, chrom: str, starts: np.ndarray, ends: np.ndarray, threshold: float,
+    exclude_lowercase_twobit: Path | None = None,
 ) -> dict[str, np.ndarray]:
     conserved = np.zeros(len(starts), dtype=np.int32)
     coverage = np.zeros(len(starts), dtype=np.int32)
     means = np.full(len(starts), np.nan)
-    with pyBigWig.open(str(path)) as bw:
+    with ExitStack() as stack:
+        bw = stack.enter_context(pyBigWig.open(str(path)))
+        genome = None
+        if exclude_lowercase_twobit is not None:
+            genome = py2bit.open(str(exclude_lowercase_twobit), True)
+            stack.callback(genome.close)
         chroms = bw.chroms()
         assert chrom in chroms, f"missing expected chromosome {chrom}"
         assert len(starts) == len(ends)
@@ -42,7 +50,13 @@ def window_labels(
             assert len(values) == end - start
             assert not np.isinf(values).any()
             lo, hi = starts[left:right] - start, ends[left:right] - start
-            positive = np.r_[0, np.cumsum(values >= threshold)]
+            is_conserved = values >= threshold
+            if genome is not None:
+                sequence = genome.sequence(chrom, start, end)
+                assert len(sequence) == end - start
+                codes = np.frombuffer(sequence.encode("ascii"), dtype=np.uint8)
+                is_conserved &= ~((codes >= ord("a")) & (codes <= ord("z")))
+            positive = np.r_[0, np.cumsum(is_conserved)]
             finite = np.r_[0, np.cumsum(np.isfinite(values))]
             total = np.r_[0, np.cumsum(np.nan_to_num(values))]
             conserved[left:right] = positive[hi] - positive[lo]

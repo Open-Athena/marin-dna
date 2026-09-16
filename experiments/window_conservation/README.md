@@ -119,11 +119,34 @@ uv run --locked python -m window_conservation.extension_evaluate --root /data/is
 uv run --locked python -m window_conservation.memory_scaling --root /data/issue577
 uv run --locked python -m window_conservation.full_global --root /data/issue577
 uv run --locked python -m window_conservation.query_profiles --root /data/issue577
-uv run --locked python -m window_conservation.biology --root /data/issue577 --split pilot
-uv run --locked python -m window_conservation.biology --root /data/issue577 --split extension
 uv run --locked python -m window_conservation.spatial --root /data/issue577
 uv run --locked python -m window_conservation.extension_report --root /data/issue577
+uv run --locked python -m window_conservation.extension_audit --root /data/issue577
 ```
 
 The full-genome resource trial scores every complete 100 bp interval in the original three genomes, verifies every original human query score, and produces exact 5% per-genome selections with `any_copy4`.
 The resource matrix repeats the original baseline, compact table, and disk partitions contemporaneously, with three repetitions per setting and complete baseline score parity at 1/4 sampling.
+
+### Repeat-excluded cohort
+
+The user-defined training-region policy excludes 100 bp windows containing more than 20 lowercase bases.
+Words touching any lowercase base never contribute evidence in either query or support genomes.
+The remaining lowercase bases in retained windows count as non-conserved in the full 100 bp label denominator; finite bigWig coverage is reported separately.
+The 95% ACGT eligibility rule also remains in effect.
+Uppercase support words elsewhere in the genome remain eligible evidence, even when their surrounding support window is excluded from selection.
+The implementation scans sequence to determine eligibility but skips scoring repeat-rich windows.
+
+The new experiment uses chr1 for development and fresh chr4 for validation, with separate caches and outputs under `repeatfree/`.
+The chr2 and chr3 results retain their original definitions.
+Repeat-family diagnostics are cancelled; gene and cCRE overlaps are computed only for the new cohort.
+
+```bash
+uv run --locked python -m window_conservation.repeat_prepare --root /data/issue577
+uv run --locked python -m window_conservation.extension_run --root /data/issue577 --experiment-dir repeatfree --exclude-lowercase --maximum-repeat 0.2
+uv run --locked python -m window_conservation.extension_evaluate --root /data/issue577 --experiment-dir repeatfree --protocol config/repeatfree.json --split dev
+# Commit and publish the new report/selection.json before accessing chr4 labels.
+uv run --locked python -m window_conservation.extension_evaluate --root /data/issue577 --experiment-dir repeatfree --protocol config/repeatfree.json --split validation --freeze-sha COMMIT
+uv run --locked python -m window_conservation.query_profiles --root /data/issue577 --experiment-dir repeatfree --exclude-lowercase --maximum-repeat 0.2
+uv run --locked python -m window_conservation.full_global --root /data/issue577 --experiment-dir repeatfree --exclude-lowercase --maximum-repeat 0.2
+uv run --locked python -m window_conservation.biology --root /data/issue577 --experiment-dir repeatfree --split extension
+```

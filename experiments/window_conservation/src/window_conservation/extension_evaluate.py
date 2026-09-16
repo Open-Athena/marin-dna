@@ -47,19 +47,24 @@ def main() -> None:
     parser.add_argument("--root", type=Path, required=True)
     parser.add_argument("--split", choices=["dev", "validation"], required=True)
     parser.add_argument("--freeze-sha")
+    parser.add_argument("--experiment-dir", default="extension")
+    parser.add_argument("--protocol", type=Path, default=Path("config/extension.json"))
     args = parser.parse_args()
-    root = args.root / "extension"
+    root = args.root / args.experiment_dir
     report = root / "report"
     report.mkdir(exist_ok=True)
-    protocol = json.loads(Path("config/protocol.json").read_text())
-    extension = json.loads(Path("config/extension.json").read_text())
+    protocol_path = root / "data/protocol.json"
+    protocol = json.loads((protocol_path if protocol_path.exists() else Path("config/protocol.json")).read_text())
+    extension = json.loads(args.protocol.read_text())
+    dev_chrom = extension["dev_chromosome"]
+    validation_chrom = extension["validation_chromosome"]
     label_path = root / "data/phyloP_447m.bw"
     if not label_path.exists():
         label_path.symlink_to(args.root / "data/phyloP_447m.bw")
     if args.split == "dev":
         rows, winners = [], []
         for variant in variants(root):
-            values = load(root, "chr1", protocol, variant)
+            values = load(root, dev_chrom, protocol, variant)
             cell = []
             for score in extension["scores"]:
                 result = metrics(values, values[score], 0.05)
@@ -93,10 +98,10 @@ def main() -> None:
             "primary": primary,
             "cell_winners": winners,
             "baseline": {**variants(root)[0], "score": "any_copy4"},
-            "protocol_sha256": sha256(Path("config/extension.json")),
+            "protocol_sha256": sha256(args.protocol),
             "manifest_sha256": sha256(root / "data/manifest.json"),
-            "development_chromosome": "chr1",
-            "validation_chromosome": "chr3",
+            "development_chromosome": dev_chrom,
+            "validation_chromosome": validation_chrom,
         }
         (report / "development.json").write_text(json.dumps(rows, indent=2) + "\n")
         (report / "selection.json").write_text(json.dumps(frozen, indent=2) + "\n")
@@ -111,7 +116,7 @@ def main() -> None:
         assert args.freeze_sha and len(args.freeze_sha) == 40
         assert not (report / "validation.json").exists(), "Validation already evaluated"
         frozen = json.loads((report / "selection.json").read_text())
-        assert frozen["protocol_sha256"] == sha256(Path("config/extension.json"))
+        assert frozen["protocol_sha256"] == sha256(args.protocol)
         assert frozen["manifest_sha256"] == sha256(root / "data/manifest.json")
         output = {
             "freeze_sha": args.freeze_sha,
@@ -121,7 +126,7 @@ def main() -> None:
             "baseline": [],
         }
         for choice in frozen["cell_winners"]:
-            values = load(root, "chr3", protocol, choice)
+            values = load(root, validation_chrom, protocol, choice)
             output["cells"].append(
                 {
                     **choice,
@@ -137,7 +142,7 @@ def main() -> None:
             del values
         for label in ["primary", "baseline"]:
             choice = frozen[label]
-            values = load(root, "chr3", protocol, choice)
+            values = load(root, validation_chrom, protocol, choice)
             for budget in [0.01, 0.05, 0.10]:
                 result = metrics(values, values[choice["score"]], budget)
                 if budget == 0.05:
@@ -147,7 +152,7 @@ def main() -> None:
                 output[label].append({"budget": budget, **result})
                 write_stretches(
                     report / f"{label}-{budget}.bed",
-                    "chr3",
+                    validation_chrom,
                     values,
                     values[choice["score"]],
                     budget,
@@ -155,8 +160,8 @@ def main() -> None:
             print("validated", label, flush=True)
             del values
         # Paired block resampling of the declared main endpoint.
-        primary = load(root, "chr3", protocol, frozen["primary"])
-        baseline = load(root, "chr3", protocol, frozen["baseline"])
+        primary = load(root, validation_chrom, protocol, frozen["primary"])
+        baseline = load(root, validation_chrom, protocol, frozen["baseline"])
         assert np.array_equal(primary["start"], baseline["start"])
         unique, inverse = np.unique(primary["blocks"], return_inverse=True)
         rng = np.random.default_rng(577)

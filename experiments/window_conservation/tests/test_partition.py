@@ -115,3 +115,34 @@ def test_global_score_parity(
                     float(right[field]), abs=1e-6
                 )
     assert not (tmp_path / "scratch").exists()
+
+
+def test_partition_mask_matches_manually_hardmasked_words(
+    partition_exe: Path, tmp_path: Path
+) -> None:
+    rng = random.Random(581)
+    sequence = "".join(rng.choices("ACGT", k=400))
+    masked = sequence[:50] + sequence[50:70].lower() + sequence[70:110] + sequence[110:131].lower() + sequence[131:]
+    results = []
+    for mode in ["soft", "hard"]:
+        paths = []
+        for i, text in enumerate([masked, sequence, sequence.lower()]):
+            if mode == "hard":
+                text = "".join("N" if c.islower() else c for c in text)
+            path = tmp_path / f"{mode}-{i}.fa"
+            path.write_text(f">chr1\n{text}\n")
+            paths.append(path)
+        listing = tmp_path / f"{mode}-list"
+        listing.write_text("\n".join(map(str, paths)) + "\n")
+        output = tmp_path / f"{mode}.tsv"
+        subprocess.run([
+            str(partition_exe), "17", "0", "100", "4", str(listing),
+            str(tmp_path / f"scratch-{mode}"), str(output), "0",
+            "1" if mode == "soft" else "0", "0.2" if mode == "soft" else "1",
+        ], check=True, capture_output=True)
+        results.append(list(csv.DictReader(output.open(), delimiter="\t")))
+    for actual, expected in zip(*results, strict=True):
+        excluded = float(actual["repeat"]) > 0.2
+        for field in ["seeds", "any", "both", "breadth", "any_copy4", "both_copy4", "breadth_copy4"]:
+            assert float(actual[field]) == pytest.approx(0 if excluded else float(expected[field]))
+    assert float(results[0][0]["repeat"]) == 0.2 and int(results[0][0]["seeds"]) > 0

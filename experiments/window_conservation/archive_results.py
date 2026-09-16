@@ -26,7 +26,10 @@ def main() -> None:
     parser.add_argument("--root", type=Path, required=True)
     parser.add_argument("--commit", required=True)
     parser.add_argument("--extension", action="store_true")
+    parser.add_argument("--repeatfree", action="store_true")
     args = parser.parse_args()
+    assert not (args.extension and args.repeatfree)
+    expanded = args.extension or args.repeatfree
     assert len(args.commit) == 40
     client = boto3.client("s3", region_name="us-east-2")
     bucket, owner = "oa-bolinas", "836683583872"
@@ -36,7 +39,7 @@ def main() -> None:
             "PublicAccessBlockConfiguration"
         ].values()
     )
-    version = "local100-extension-v1" if args.extension else "local100-v1"
+    version = "local100-repeatfree-v1" if args.repeatfree else "local100-extension-v1" if args.extension else "local100-v1"
     prefix = f"issues/577/{version}/{args.commit}/"
     assert not client.list_objects_v2(Bucket=bucket, Prefix=prefix, MaxKeys=1).get(
         "KeyCount"
@@ -49,8 +52,11 @@ def main() -> None:
         for p in (args.root / directory).rglob("*")
         if p.is_file()
     ]
-    if args.extension:
-        paths += [args.root / "data/rmsk.txt.gz"]
+    if expanded:
+        if args.extension:
+            paths += [args.root / "data/rmsk.txt.gz"]
+        else:
+            paths += [args.root / "data/protocol.json"]
         paths += [
             p
             for directory in ["memory", "spatial", "global3/selection", "profiles"]
@@ -77,10 +83,10 @@ def main() -> None:
     compressed = args.root / "archive-scores"
     compressed.mkdir(exist_ok=True)
     score_paths = list((args.root / "scores").rglob("*.tsv"))
-    if args.extension:
+    if expanded:
         score_paths.append(args.root / "global3/scores.tsv")
     for path in score_paths:
-        relative = str(path.relative_to(args.root)) if args.extension else path.name
+        relative = str(path.relative_to(args.root)) if expanded else path.name
         output = compressed / (relative + ".gz")
         output.parent.mkdir(parents=True, exist_ok=True)
         with (
@@ -90,7 +96,7 @@ def main() -> None:
                 fileobj=handle,
                 mode="wb",
                 mtime=0,
-                compresslevel=1 if args.extension else 9,
+                compresslevel=1 if expanded else 9,
             ) as dst,
         ):
             shutil.copyfileobj(src, dst, length=2**20)
@@ -100,7 +106,7 @@ def main() -> None:
         "prefix": f"s3://{bucket}/{prefix}",
         "files": [],
     }
-    assert sum(p.stat().st_size for p in paths) < (8 if args.extension else 2) * 2**30
+    assert sum(p.stat().st_size for p in paths) < (8 if expanded else 2) * 2**30
     for path in sorted(paths):
         key = prefix + str(path.relative_to(args.root))
         checksum = digest(path)

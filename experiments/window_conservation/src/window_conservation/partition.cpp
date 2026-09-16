@@ -20,9 +20,12 @@ template<class T> void put(std::ofstream &out,const T &value) {
 }
 int main(int argc,char **argv) {
     try {
-        if (argc!=8 && argc!=9) throw std::runtime_error("partition K BITS WIDTH PARTITIONS LIST DIRECTORY OUTPUT [LIMIT]");
+        if (argc<8 || argc>11) throw std::runtime_error("partition K BITS WIDTH PARTITIONS LIST DIRECTORY OUTPUT [LIMIT] [EXCLUDE_LOWERCASE] [MAX_REPEAT]");
         int k=std::stoi(argv[1]),bits=std::stoi(argv[2]),width=std::stoi(argv[3]),parts=std::stoi(argv[4]);
-        uint64_t limit=argc==9 ? std::stoull(argv[8]) : 0;
+        uint64_t limit=argc>=9 ? std::stoull(argv[8]) : 0;
+        bool exclude_lowercase=argc>=10 && std::stoi(argv[9])!=0;
+        double maximum_repeat=argc>=11 ? std::stod(argv[10]) : 1.0;
+        if (!(maximum_repeat>=0 && maximum_repeat<=1)) throw std::runtime_error("invalid repeat fraction");
         if (k<1 || k>31 || bits<0 || bits>20 || width<k || width>4096 || parts<1 || parts>512 || (parts&(parts-1))) throw std::runtime_error("invalid geometry");
         std::filesystem::path scratch=argv[6];
         if (std::filesystem::exists(scratch)) throw std::runtime_error("scratch directory must be new");
@@ -39,20 +42,22 @@ int main(int argc,char **argv) {
         auto started=std::chrono::steady_clock::now();
         while (std::getline(listing,path)) if (!path.empty()) {
             if (++species>65535) throw std::runtime_error("too many species");
-            Rolling rolling(k);
+            Rolling rolling(k,exclude_lowercase);
             std::string chrom;
             uint64_t pos=0;
             std::vector<uint64_t> keys;
             std::array<int,4> freq{};
             int repeats=0,valid=0;
             auto flush=[&](bool complete) {
-                uint64_t id=complete ? window : invalid_window;
+                bool eligible=complete && repeats<=maximum_repeat*width;
+                uint64_t id=eligible ? window : invalid_window;
                 if (window>=invalid_window) throw std::runtime_error("too many windows");
                 for (uint64_t key:keys) {
                     put(shards[(key>>32)&(parts-1)],Occurrence{key,(id<<16)|uint64_t(species)});
                     ++occurrences;
                 }
                 if (complete) {
+                    if (!eligible) keys.clear();
                     std::sort(keys.begin(),keys.end());
                     keys.erase(std::unique(keys.begin(),keys.end()),keys.end());
                     double entropy=0;

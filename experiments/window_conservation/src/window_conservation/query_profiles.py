@@ -13,8 +13,11 @@ from window_conservation.scaling import resource
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--root", type=Path, required=True)
+    parser.add_argument("--experiment-dir", default="extension")
+    parser.add_argument("--exclude-lowercase", action="store_true")
+    parser.add_argument("--maximum-repeat", type=float, default=1.0)
     args = parser.parse_args()
-    root = args.root / "extension"
+    root = args.root / args.experiment_dir
     output = root / "profiles"
     output.mkdir(exist_ok=True)
     rows = []
@@ -38,6 +41,8 @@ def main() -> None:
                 "100",
                 "0",
                 str(bottom),
+                str(int(args.exclude_lowercase)),
+                str(args.maximum_repeat),
             ],
             prefix,
         )
