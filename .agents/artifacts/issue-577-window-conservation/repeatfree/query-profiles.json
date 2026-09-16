@@ -1,0 +1,87 @@
+[
+  {
+    "sample": "rate4",
+    "wall_seconds": 9.086636781692505,
+    "max_rss_kib": 1578752,
+    "measurements": [
+      {
+        "stage": "query_profile",
+        "bits": 2,
+        "bottom": 0,
+        "unique_keys": 41931054,
+        "table_bytes": 1073741824,
+        "bloom_bytes": 67108864,
+        "peak_rss_kib": 1578752,
+        "seconds": 9.02513
+      }
+    ]
+  },
+  {
+    "sample": "rate8",
+    "wall_seconds": 5.31391978263855,
+    "max_rss_kib": 792280,
+    "measurements": [
+      {
+        "stage": "query_profile",
+        "bits": 3,
+        "bottom": 0,
+        "unique_keys": 20963425,
+        "table_bytes": 536870912,
+        "bloom_bytes": 33554432,
+        "peak_rss_kib": 792280,
+        "seconds": 5.27681
+      }
+    ]
+  },
+  {
+    "sample": "rate16",
+    "wall_seconds": 3.4815056324005127,
+    "max_rss_kib": 399068,
+    "measurements": [
+      {
+        "stage": "query_profile",
+        "bits": 4,
+        "bottom": 0,
+        "unique_keys": 10480414,
+        "table_bytes": 268435456,
+        "bloom_bytes": 16777216,
+        "peak_rss_kib": 399068,
+        "seconds": 3.46123
+      }
+    ]
+  },
+  {
+    "sample": "bottom16",
+    "wall_seconds": 10.385335683822632,
+    "max_rss_kib": 1578720,
+    "measurements": [
+      {
+        "stage": "query_profile",
+        "bits": 0,
+        "bottom": 16,
+        "unique_keys": 27572117,
+        "table_bytes": 1073741824,
+        "bloom_bytes": 33554432,
+        "peak_rss_kib": 1578720,
+        "seconds": 10.3295
+      }
+    ]
+  },
+  {
+    "sample": "bottom32",
+    "wall_seconds": 15.454581499099731,
+    "max_rss_kib": 3151576,
+    "measurements": [
+      {
+        "stage": "query_profile",
+        "bits": 0,
+        "bottom": 32,
+        "unique_keys": 55121680,
+        "table_bytes": 2147483648,
+        "bloom_bytes": 67108864,
+        "peak_rss_kib": 3151576,
+        "seconds": 15.3488
+      }
+    ]
+  }
+]

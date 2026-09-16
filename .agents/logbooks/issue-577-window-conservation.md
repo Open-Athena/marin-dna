@@ -312,3 +312,20 @@ The scope and queue above are living summaries; the entry log below preserves th
   Three rendered figures were inspected for scales, labels, and clipping.
 - Repeat-policy source passes all 38 locked tests in 11.72 s, ruff checks/formatting, and all three warning-as-error C++ builds.
   Prepared a separate manifest/query universe without accessing chr4 labels and started masked panel scoring on the existing worker.
+
+### 2026-09-16 — PREVALENCE-005 choices frozen before chr4
+
+- The repeat-excluded experiment completed both full ten-genome scans and all chr1 development comparisons.
+  Fixed-rate panels took 525.84 s and bottom-32/bottom-16 panels 720.84 s; each run includes its nested panel score outputs.
+  Development used 960,473 eligible chr1 intervals and the declared 5% budget.
+- Frozen primary: six species, bottom-32 sampled words, copy-filtered species breadth.
+  Its development conserved-base density is 54.3000%, compared with 53.9281% for the corresponding quarter-rate six-species cell.
+  The ten-species bottom-32 cell selected `both_copy4` and reached 53.482%; larger panels are not uniformly better under the new policy.
+  These are development metrics, not held-out evidence.
+- All fifteen cell winners and the unchanged three-species quarter-rate `any_copy4` comparator are recorded in `repeatfree/selection.json`.
+  Protocol, evaluation-policy, and input-manifest SHA-256 hashes match the tested source.
+  No chr4 conservation labels have been accessed.
+- Standalone query-index peaks for the same chr1/chr4 query universe: quarter-rate 1.50562 GiB, eighth-rate 0.75558 GiB, sixteenth-rate 0.38058 GiB, bottom-16 1.50558 GiB, bottom-32 3.00558 GiB.
+  Bottom-16 retains 27,572,117 unique words versus 41,931,054 at quarter-rate, but both cross the same allocation-doubling boundary; retained word counts and peak RSS are distinct measures.
+- Next: publish this freeze, evaluate chr4 once, run the masked global three-genome trial, and complete non-repeat gene/cCRE diagnostics.
+  Legacy extension archival is running sequentially first, using the verified private issue-owned bucket.

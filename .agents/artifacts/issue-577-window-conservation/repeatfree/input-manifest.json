@@ -1,0 +1,8 @@
+{
+  "pilot_input_manifest_sha256": "c76e960efe61bbc9678649f3c3ac16bdc222fa72c497e7b3ce7b805b5f1f4432",
+  "extension_input_manifest_sha256": "d5386315b9aba0eb12cc18c3eefd82b065552f4a45a8c447e26729459f32d31a",
+  "query_sha256": "8cee06f01f5c316035cc70c9f24534da00a0ec357b3392b4a9ed2ec289db22fe",
+  "protocol_sha256": "93c3f524cb9bca3caf515e44c57040245e528663c7d65fafaa2b1e0e99510b5e",
+  "experiment_protocol_sha256": "0da140ea8a2d788bae2b5c06170d86aaeb62cc0ca7ef8cc1d5db7f71ae84110b",
+  "inputs": "Reuse genomes, lowercase masks and annotations pinned in the two parent manifests."
+}
