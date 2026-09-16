@@ -234,6 +234,20 @@ uv run --locked --group genome-s3 snakemake
 The default profile (`workflow/profiles/default/config.yaml`) uses S3 storage
 at `s3://oa-bolinas/snakemake/analysis/evals_v2/`.
 
+### Issue #517 GPN uniform terminal specialists
+
+`config/issue517_gpn_uniform.yaml` registers the six GPN-Star-P-filtered uniform-grid specialists at terminal step 4,999.
+It reads only the development `train` splits and removes complete mature-miRNA match groups from Mendelian metrics.
+Each arm runs Mendelian Traits and Complex Traits; CDS also runs the biologically scoped SGE evaluation.
+Launch one model-dataset target per Sky cluster so completed arms can begin evaluation independently:
+
+```bash
+sky launch sky/run.yaml \
+  -c evals-v2-exp517-gpn-cds-mendelian \
+  --env SNAKEMAKE_ARGS="--configfile config/issue517_gpn_uniform.yaml -- results/metrics/exp517-gpn-uniform-cds-step-4999/mendelian_traits.parquet" \
+  --down
+```
+
 ### Issue #417 repair trajectory and #473 validation control
 
 The default `all` target includes nine checkpoints from the repaired issue #417 CDS full-window trajectory at steps 1,000 through 4,999 and the terminal issue #473 CDS full-window random-validation control.
