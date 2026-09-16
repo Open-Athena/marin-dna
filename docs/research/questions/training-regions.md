@@ -38,7 +38,7 @@ The workflow placed every retained tile in one database and lacked distributed s
 This argues against further tuning of unordered short-window clustering for this purpose, while leaving targeted local alignment and methods with positional, syntenic, or anchor evidence as distinct directions.
 
 [Local species-word prevalence](../experiments/577-local-conservation.md) provides an alignment-free candidate selector at 100 bp resolution.
-On one held-out human chromosome, a three-mammal score with copy filtering selected 5% of eligible bases containing 23.4% phyloP-conserved bases, versus 4.13% in the eligible sequence.
+On one held-out human chromosome, a three-mammal score with copy filtering, chosen as a secondary comparison after development evaluation, selected 5% of eligible bases containing 23.4% phyloP-conserved bases, versus 4.13% in the eligible sequence.
 The comparison controls GC, repeat fraction, and nucleotide complexity, but does not establish training value or feasibility of an in-memory index across 1,000 complete genomes.
 
 The leading hypothesis is that increasing the density of constrained or correctly annotated sequence improves functional-VEP sample efficiency at fixed compute.

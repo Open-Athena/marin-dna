@@ -91,4 +91,4 @@ Fixed selected-base budgets produce ranked candidate stretches, not an absolute 
 
 ## Research record
 
-- [Experiment #577](https://github.com/Open-Athena/marin-dna/issues/577)
+- [Experiment issue #577](https://github.com/Open-Athena/marin-dna/issues/577)
