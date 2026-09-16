@@ -1,0 +1,12 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.1.1, pluggy-1.6.0
+rootdir: /data/issue577/window_conservation
+configfile: pyproject.toml
+testpaths: tests
+collected 16 items
+
+tests/test_evaluate.py ....                                              [ 25%]
+tests/test_labels.py ...                                                 [ 43%]
+tests/test_prevalence.py .........                                       [100%]
+
+============================== 16 passed in 1.52s ==============================

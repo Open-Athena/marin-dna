@@ -1,0 +1,38 @@
+[
+  {
+    "k": 17,
+    "build_seconds": 628.7382009029388,
+    "score_seconds": 59.74904656410217,
+    "total_seconds": 688.487247467041,
+    "peak_rss_kib": 5230072,
+    "index_bytes": 1322334608,
+    "bases": 9659766308,
+    "windows": 4911499,
+    "unique_words": 82645913,
+    "lookup_operations": 117331457
+  },
+  {
+    "k": 21,
+    "build_seconds": 431.59613275527954,
+    "score_seconds": 64.37433505058289,
+    "total_seconds": 495.9704678058624,
+    "peak_rss_kib": 5871392,
+    "index_bytes": 1555970448,
+    "bases": 9659766308,
+    "windows": 4911499,
+    "unique_words": 97248153,
+    "lookup_operations": 117610381
+  },
+  {
+    "k": 25,
+    "build_seconds": 421.3638973236084,
+    "score_seconds": 65.35108160972595,
+    "total_seconds": 486.71497893333435,
+    "peak_rss_kib": 6046016,
+    "index_bytes": 1615575888,
+    "bases": 9659766308,
+    "windows": 4911499,
+    "unique_words": 100973493,
+    "lookup_operations": 117607513
+  }
+]

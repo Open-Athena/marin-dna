@@ -1,0 +1,114 @@
+{
+  "real_resources": [
+    {
+      "k": 17,
+      "build_seconds": 628.7382009029388,
+      "score_seconds": 59.74904656410217,
+      "total_seconds": 688.487247467041,
+      "peak_rss_kib": 5230072,
+      "index_bytes": 1322334608,
+      "bases": 9659766308,
+      "windows": 4911499,
+      "unique_words": 82645913,
+      "lookup_operations": 117331457
+    },
+    {
+      "k": 21,
+      "build_seconds": 431.59613275527954,
+      "score_seconds": 64.37433505058289,
+      "total_seconds": 495.9704678058624,
+      "peak_rss_kib": 5871392,
+      "index_bytes": 1555970448,
+      "bases": 9659766308,
+      "windows": 4911499,
+      "unique_words": 97248153,
+      "lookup_operations": 117610381
+    },
+    {
+      "k": 25,
+      "build_seconds": 421.3638973236084,
+      "score_seconds": 65.35108160972595,
+      "total_seconds": 486.71497893333435,
+      "peak_rss_kib": 6046016,
+      "index_bytes": 1615575888,
+      "bases": 9659766308,
+      "windows": 4911499,
+      "unique_words": 100973493,
+      "lookup_operations": 117607513
+    }
+  ],
+  "scaling_fits": {
+    "species": {
+      "log_log_slope": 1.097098523952295,
+      "input_growth": 8.0,
+      "time_growth": 9.835669270227555,
+      "peak_rss_growth": 7.999066703855479
+    },
+    "windows_per_species": {
+      "log_log_slope": 1.0832814188469966,
+      "input_growth": 8.0,
+      "time_growth": 9.549985098688067,
+      "peak_rss_growth": 7.999656604461996
+    }
+  },
+  "real_scope": "Query-restricted chr1/chr2 scores, full-genome support counts across three species",
+  "selected_real_setting": {
+    "k": 25,
+    "build_seconds": 421.3638973236084,
+    "score_seconds": 65.35108160972595,
+    "total_seconds": 486.71497893333435,
+    "peak_rss_kib": 6046016,
+    "index_bytes": 1615575888,
+    "bases": 9659766308,
+    "windows": 4911499,
+    "unique_words": 100973493,
+    "lookup_operations": 117607513
+  },
+  "global_extrapolation_not_measurement": {
+    "basis": {
+      "species": 1000,
+      "windows_per_species": 2048,
+      "windows": 2048000,
+      "median_seconds": 75.58666753768921,
+      "min_seconds": 75.5175518989563,
+      "max_seconds": 75.7324116230011,
+      "median_peak_rss_kib": 2982628.0,
+      "index_bytes": 819243920,
+      "selected_occurrences": 51202751,
+      "score_lookups": 51202749,
+      "repetitions": 3
+    },
+    "scenarios": [
+      {
+        "target_bases": 100000000000,
+        "target_100bp_intervals": 1000000000,
+        "linear_single_process_hours": 10.25209791906592,
+        "linear_index_bytes": 400021445312.5,
+        "linear_peak_rss_bytes": 1491314000000.0
+      },
+      {
+        "target_bases": 3000000000000,
+        "target_100bp_intervals": 30000000000,
+        "linear_single_process_hours": 307.56293757197756,
+        "linear_index_bytes": 12000643359375.0,
+        "linear_peak_rss_bytes": 44739420000000.0
+      }
+    ],
+    "window_bases": 100,
+    "hash_sampling": "1/4",
+    "limits": "Synthetic uniform-DNA, constant-throughput and distinct-word-rate extrapolation. Real genome repetition/divergence, RAM/cache/I/O and species diversity change both. The full 1,000-genome workload was not run."
+  },
+  "primary_stretches": {
+    "count": 93374,
+    "total_bases": 12027300,
+    "median_bases": 100.0,
+    "max_bases": 2400
+  },
+  "density_alternative_stretches": {
+    "count": 88952,
+    "total_bases": 12027300,
+    "median_bases": 100.0,
+    "max_bases": 2700
+  },
+  "biological_gate_passed": true
+}

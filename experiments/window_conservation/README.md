@@ -67,6 +67,7 @@ The source and complete experiment record remain on the permanent research branc
 ## Selection and scaling boundaries
 
 The ordinary fixed-budget selector uses partition-based selection and a linear pass to merge adjacent bins, avoiding an all-interval ranking sort.
+Retaining M interval scores for this exact budget adds O(M) working space; the combined scoring-and-selection bound is O(U + M), with O(B + M) expected work at fixed interval length.
 Bootstrap evaluation reuses a sorted score order to handle resampled multiplicities; that uncertainty calculation is separate from producing the stretches.
 The three-species biological run retains only query-chromosome words, so its memory footprint must not be extrapolated as if it indexed every genome.
 The synthetic scaling run constructs the global index and scores every synthetic species at the same 1/4 sampling density and 100 bp resolution.

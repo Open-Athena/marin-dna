@@ -126,7 +126,7 @@ def main() -> None:
     plt.close(fig)
     held = json.loads((out / "heldout.json").read_text())
     primary = held["budgets"]["0.05"]
-    fig, ax = plt.subplots(figsize=(5, 4), layout="constrained")
+    fig, ax = plt.subplots(figsize=(5, 4.5), layout="constrained")
     names = ["Versus random", "Versus matched"]
     fields = ["random_enrichment", "matched_enrichment"]
     for offset, label, result, color in [
@@ -139,7 +139,9 @@ def main() -> None:
         x = np.array([0, 1]) + offset
         ax.vlines(x, ci[:, 0], ci[:, 1], color=color)
         ax.plot(x, heights, "o", color=color, label=label)
-    ax.legend(title="Scoring rule", loc="upper left")
+    ax.legend(
+        title="Scoring rule", loc="lower center", bbox_to_anchor=(0.5, 1.02), ncol=2
+    )
     ax.axhline(1, color="0.5", linestyle="--")
     ax.set_xticks([0, 1], labels=names)
     ax.set_xlim(-0.5, 1.5)

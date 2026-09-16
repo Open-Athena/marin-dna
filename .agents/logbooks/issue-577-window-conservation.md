@@ -143,3 +143,21 @@ author: user
 - Interpretation: three genomes suffice for measurable local conservation enrichment; copy filtering improves absolute conserved-base density in this panel.
   This does not establish a calibrated conservation probability, training benefit, or generalization to 1,000 real genomes.
 - Remaining work: finish the 21 synthetic timing runs, inspect figures and output contracts, archive, terminate the worker, and deliver the interpretation for review.
+
+### 2026-09-16 — resource scaling and spatial-output audit complete
+
+- Scaling command: `uv run --locked python -m window_conservation.scaling --root /data/issue577 --k 25`.
+- All 21 runs completed: 7 shapes, 3 repetitions, with species counts 125/250/500/1,000 at 2,048 intervals each and interval counts 1,024/2,048/4,096/8,192 at 250 species.
+- Eightfold species growth: 9.83567× median runtime and 7.99907× peak RSS; fitted log-log time slope 1.09710.
+- Eightfold interval-count growth: 9.54999× median runtime and 7.99966× peak RSS; fitted slope 1.08328.
+- The 1,000-species shape processes 204,800,000 bases and 2,048,000 intervals in median 75.5867 seconds (range 75.5176–75.7324), with 2,982,628 KiB peak RSS and 819,243,920 serialized index bytes.
+- These are uniform synthetic genomes and measure global-index construction plus scoring, not biological accuracy or full production throughput.
+- Naive linear extrapolation to one billion 100 bp intervals: 10.252 single-process hours, 400.0 GB index, and 1.491 TB peak RSS.
+  This extrapolates constant throughput and distinct-word rate far beyond measurement; it is a planning warning, not a validated estimate for real genomes.
+- Approximately 1,000 human-sized genomes contain 30 billion 100 bp intervals, rather than one billion.
+- Algorithmic bound at fixed interval length: expected O(B + M) work and O(U + M) memory for B bases, M interval scores, and U sampled distinct words, including exact-budget partition selection.
+  The query-only biological index and global synthetic index have different U; repeatedly rescanning the whole corpus for query batches adds a batch factor.
+- Spatial audit passed all three budgets for both frozen settings, chromosome bounds, 100 bp grid alignment, absence of bridged gaps, conserved/covered-base ranges, and all 21 processed-base/window-count receipts.
+- At 5%, primary output has 93,374 stretches and copy-filtered output has 88,952, each totaling 12,027,300 bp; both have median length 100 bp, with maxima 2,400 and 2,700 bp respectively.
+- All 16 locked tests still pass; figures were rendered and inspected, and the conservation legend was moved outside the plot to avoid obscuring a data point.
+- Conclusion: measurable local conservation signal from three genomes, with copy suppression improving conserved-base density; the present global in-memory index is not a demonstrated 1,000-real-genome solution.

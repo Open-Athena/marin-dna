@@ -1,0 +1,23 @@
+{
+    "InstanceId": "i-0f0be03bac311291c",
+    "InstanceType": "c7i.4xlarge",
+    "ImageId": "ami-00adec9774170bad2",
+    "LaunchTime": "2026-09-16T15:19:55+00:00",
+    "State": "running",
+    "Zone": "us-east-2a",
+    "Root": [
+        {
+            "DeviceName": "/dev/sda1",
+            "Ebs": {
+                "AttachTime": "2026-09-16T15:19:56+00:00",
+                "DeleteOnTermination": true,
+                "Status": "attached",
+                "VolumeId": "vol-0f242c96029f9f3b7",
+                "EbsCardIndex": 0
+            }
+        }
+    ],
+    "Name": [
+        "codex-issue577-window-conservation"
+    ]
+}
