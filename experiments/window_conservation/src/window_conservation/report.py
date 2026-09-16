@@ -131,18 +131,14 @@ def main() -> None:
     fields = ["random_enrichment", "matched_enrichment"]
     heights = np.array([primary[field] for field in fields])
     ci = np.array([held["primary_ci"][field] for field in fields])
-    ax.errorbar(
-        [0, 1],
-        heights,
-        yerr=np.stack([heights - ci[:, 0], ci[:, 1] - heights]),
-        fmt="o",
-        capsize=0,
-    )
+    ax.vlines([0, 1], ci[:, 0], ci[:, 1], color="C0")
+    ax.plot([0, 1], heights, "o", color="C0")
     ax.axhline(1, color="0.5", linestyle="--")
     ax.set_xticks([0, 1], labels=names)
     ax.set_xlim(-0.5, 1.5)
     ax.set_ylabel("Conserved-base enrichment")
     ax.set_ylim(bottom=0)
+    ax.set_box_aspect(1)
     fig.savefig(out / "conservation.svg")
     fig.savefig(out / "conservation.png", dpi=160)
     plt.close(fig)
@@ -150,7 +146,7 @@ def main() -> None:
     chosen = next(r for r in resources if r["k"] == selection["k"])
     # The real run uses a query-restricted index: do not scale its query-only
     # memory or score time as if it indexed/scored every genome.
-    largest = max(summaries, key=lambda row: row["windows"])
+    largest = max(summaries, key=lambda row: (row["windows"], row["species"]))
     extrapolations = []
     for target_bases in [100_000_000_000, 3_000_000_000_000]:
         scale = target_bases / (largest["windows"] * 100)
@@ -165,7 +161,7 @@ def main() -> None:
         )
     stretches = []
     for line in (out / "stretches-0.05.bed").read_text().splitlines():
-        _, start, end, _, _ = line.split("\t")
+        _, start, end, _, _, _, _, _ = line.split("\t")
         stretches.append(int(end) - int(start))
     assert sum(stretches) == primary["selected_bases"]
     summary = {

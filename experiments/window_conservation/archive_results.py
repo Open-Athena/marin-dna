@@ -10,6 +10,7 @@ import shutil
 from pathlib import Path
 
 import boto3
+from boto3.s3.transfer import TransferConfig
 
 
 def digest(path: Path) -> str:
@@ -48,7 +49,11 @@ def main() -> None:
     ]
     paths += [
         p
-        for directory in ["exploratory4096/report", "exploratory4096/logs"]
+        for directory in [
+            "exploratory4096/report",
+            "exploratory4096/logs",
+            "slow-query-prototype",
+        ]
         for p in (args.root / directory).rglob("*")
         if p.is_file()
     ]
@@ -78,7 +83,11 @@ def main() -> None:
         key = prefix + str(path.relative_to(args.root))
         checksum = digest(path)
         client.upload_file(
-            str(path), bucket, key, ExtraArgs={"Metadata": {"sha256": checksum}}
+            str(path),
+            bucket,
+            key,
+            ExtraArgs={"Metadata": {"sha256": checksum}},
+            Config=TransferConfig(use_threads=False),
         )
         response = client.get_object(Bucket=bucket, Key=key, ExpectedBucketOwner=owner)
         actual = hashlib.sha256()
@@ -90,7 +99,12 @@ def main() -> None:
         )
     output = args.root / "archive_manifest.json"
     output.write_text(json.dumps(manifest, indent=2) + "\n")
-    client.upload_file(str(output), bucket, prefix + "manifest.json")
+    client.upload_file(
+        str(output),
+        bucket,
+        prefix + "manifest.json",
+        Config=TransferConfig(use_threads=False),
+    )
     assert (
         client.get_object(
             Bucket=bucket, Key=prefix + "manifest.json", ExpectedBucketOwner=owner

@@ -281,3 +281,54 @@ def test_query_restriction_preserves_global_counts(
         )
         outputs.append(out.read_text())
     assert outputs[0] == outputs[1]
+
+
+def test_short_shared_tract_is_localized_inside_neutral_context(
+    executable: Path, tmp_path: Path
+) -> None:
+    rng = random.Random(152)
+    tract = "".join(rng.choices("ACGT", k=150))
+    paths = []
+    for i, start in enumerate([2050, 1300, 3700]):
+        sequence = "".join(rng.choices("ACGT", k=5000))
+        sequence = sequence[:start] + tract + sequence[start + len(tract) :]
+        path = tmp_path / f"species{i}.fa"
+        path.write_text(f">chr\n{sequence}\n")
+        paths.append(path)
+    listing, index = tmp_path / "list", tmp_path / "index"
+    listing.write_text("\n".join(map(str, paths)) + "\n")
+    subprocess.run(
+        [
+            str(executable),
+            "build-query",
+            "25",
+            "2",
+            str(listing),
+            str(index),
+            str(paths[0]),
+        ],
+        check=True,
+    )
+    output = tmp_path / "scores"
+    subprocess.run(
+        [
+            str(executable),
+            "score",
+            "25",
+            "2",
+            "3",
+            "100",
+            str(index),
+            str(paths[0]),
+            str(output),
+        ],
+        check=True,
+    )
+    rows = list(csv.DictReader(output.open(), delimiter="\t"))
+    assert len(rows) == 50
+    assert float(rows[21]["both"]) == 1.0
+    assert all(
+        float(row["both"]) == 0
+        for row in rows
+        if int(row["end"]) <= 2000 or int(row["start"]) >= 2300
+    )

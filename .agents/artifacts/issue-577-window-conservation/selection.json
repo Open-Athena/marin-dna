@@ -1,0 +1,27 @@
+{
+  "k": 25,
+  "score": "any",
+  "protocol_sha256": "ab8119ef24b5698b3d0e414803c88da13a5080f60de6bc2cb2635177c3a43160",
+  "development": {
+    "k": 25,
+    "score": "any",
+    "windows": 2304742,
+    "selected_windows": 115237,
+    "selected_bases": 11523700,
+    "selected_annotated_fraction": 0.13783585133247064,
+    "random_annotated_fraction": 0.040006195921290365,
+    "matched_annotated_fraction": 0.025491402181615566,
+    "random_enrichment": 3.4453626034240767,
+    "matched_enrichment": 5.407150628688368,
+    "annotated_base_recall": 0.17226798068103952,
+    "selected_gc": 0.4148553411577851,
+    "selected_repeat": 0.7197489521594628,
+    "selected_entropy": 1.8625771207771848,
+    "selected_seeds": 24.634232060883225,
+    "selected_label_coverage": 0.9981689040846254,
+    "population_label_coverage": 0.9845058752780136,
+    "selected_positive_window_fraction": 0.2030684589151054,
+    "population_positive_window_fraction": 0.05327017080436769
+  },
+  "input_manifest_sha256": "c76e960efe61bbc9678649f3c3ac16bdc222fa72c497e7b3ce7b805b5f1f4432"
+}

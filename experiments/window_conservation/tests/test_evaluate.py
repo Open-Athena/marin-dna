@@ -56,8 +56,8 @@ def test_stretches_merge_adjacent_bins_without_bridging_gaps(tmp_path) -> None:
     output = tmp_path / "stretches.bed"
     write_stretches(output, "chr1", values, np.array([1.0, 0.9, 0.0, 0.8, 0.7]), 0.8)
     assert output.read_text().splitlines() == [
-        "chr1\t0\t200\t0.95\t2",
-        "chr1\t400\t600\t0.75\t2",
+        "chr1\t0\t200\tcandidate_1\t950\t.\t0.95\t2",
+        "chr1\t400\t600\tcandidate_2\t750\t.\t0.75\t2",
     ]
 
 

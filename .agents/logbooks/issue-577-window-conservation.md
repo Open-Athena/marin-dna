@@ -89,3 +89,32 @@ author: user
 - Expected cost for B total genome bases and Q query bases is O(B + Q), with O(U_query) working space; all-genome scoring uses O(U_global) space and is tested separately on synthetic data.
 - Validation: remote locked pytest, 13 passed; ruff check and format passed; C++ warning-as-error build passed.
 - All tests and analysis remain on the authorized EC2 worker; no child agents or concurrent analysis workers launched.
+
+### 2026-09-16 — exact membership acceleration and validation
+
+- The first dense query-counting attempt was interrupted after 549.429 seconds with exit 130; only this task's native process received SIGINT.
+  Its command, timing, and stderr remain under `slow-query-prototype/` on the worker.
+- Add a blocked Bloom membership prefilter before the exact query dictionary lookup.
+  Every candidate that survives is still checked against the exact dictionary; false positives can add work but cannot add a word or alter a score.
+- Avoid sorting the ordinary fixed-budget result: partition the score and deterministic tie key, then merge selected bins in genomic order.
+  Bootstrap uncertainty still uses a cached ranking for weighted resampling; this is evaluation overhead, not the selector's algorithmic bound.
+- Published implementation: `895163e9` on the permanent research branch.
+- Validation on EC2: 15 locked tests passed in 1.66 seconds, ruff check/format passed, and the native C++ warning-as-error build passed.
+- Public AWS Ohio price list effective 2026-09-01 confirms Linux shared c7i.4xlarge at $0.714/hour; the exact source row is retained in `report/aws-price.json`.
+- First-minute startup check: approximately 3.7 GB resident memory and 26.9 GB available; one foreground analysis process, no added workers.
+- No 100 bp development or held-out conservation metrics have yet been inspected.
+
+### 2026-09-16 — freeze the 100 bp development selection
+
+- Exact run: `uv run --locked python -m window_conservation.local_run --root /data/issue577`, followed by `uv run --locked python -m window_conservation.evaluate --root /data/issue577 --split dev`.
+- Generation source: `895163e9`; final output-schema and archive changes are included in this selection snapshot.
+- Three full-genome support scans completed for each k, covering 9,659,766,308 input bases; each setting scored 4,911,499 complete 100 bp query intervals across human chr1/chr2.
+- Construction/scoring wall seconds: k17 628.739/59.749, k21 431.596/64.375, k25 421.364/65.351.
+- On 2,304,742 eligible chromosome-1 intervals, the declared selection rule chose k25, `any`, at the 5% budget.
+- Selected bases: 11,523,700; conserved-base fraction 0.13783585 versus 0.04000620 population and 0.02549140 matched control.
+- Development enrichment: 3.44536× random and 5.40715× matched; annotated-base recall 0.17226798.
+- Selected soft-mask fraction is 0.71975, so repeat-family confounding remains a material limitation despite composition matching.
+- Three genomes show enough development signal to run the prespecified held-out test; additional genomes are deferred to keep this iteration bounded, not ruled out as useful.
+- Final locked validation: 16 passed in 1.53 seconds, including localization of a planted 150 bp shared tract inside independent 5 kb backgrounds, exact query-index counts, partition selection, bigWig boundaries, and BED6+2 stretch merging.
+- The selected k/score, complete development matrix, unchanged protocol hash, and input-manifest hash are committed before any chromosome-2 conservation labels are inspected.
+- Next: one frozen chromosome-2 evaluation, the declared global-index synthetic resource matrix, output-contract audits, durable archive, and worker termination.

@@ -24,9 +24,14 @@ def main() -> None:
         for line in (
             (root / "report" / f"stretches-{fraction}.bed").read_text().splitlines()
         ):
-            chrom, start, end, score, bins = line.split("\t")
+            chrom, start, end, name, bed_score, strand, score, bins = line.split("\t")
             start, end, bins = int(start), int(end), int(bins)
             assert chrom == "chr2" and 0 <= start < end <= 242193529
+            assert (
+                name.startswith("candidate_")
+                and strand == "."
+                and 0 <= int(bed_score) <= 1000
+            )
             assert start > last_end  # touching intervals must already have merged
             assert start % 100 == end % 100 == 0
             assert end - start == bins * 100 and 0 <= float(score) <= 1

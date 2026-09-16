@@ -37,7 +37,7 @@ This biological pilot scores all complete 100 bp intervals on human chromosomes 
 A query-restricted index retains only words present on those chromosomes, but counts their copies and distinct-species support across every complete input genome.
 The restricted index gives identical scores to a global index for its query intervals; a test asserts this equivalence.
 Adjacent selected intervals merge into BED stretches, without bridging an unselected or invalid interval.
-BED columns are chromosome, start, end, mean score, and number of constituent intervals.
+The output is BED6+2: chromosome, start, end, candidate name, rounded mean score scaled to 0–1,000, unstranded marker, original mean score, and number of constituent intervals.
 The 100 bp bins set boundary resolution; this pilot does not claim nucleotide-accurate boundaries.
 The 4 kb development experiment was superseded following the user’s resolution clarification, before inspecting held-out labels.
 Its results are preserved separately as exploratory history.

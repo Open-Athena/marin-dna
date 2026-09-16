@@ -202,11 +202,14 @@ def write_stretches(
     count = max(1, int(np.floor(fraction * len(score))))
     chosen = select_indices(score, values["tie"], count)
     with path.open("w") as handle:
-        start, end, total, bins = 0, 0, 0.0, 0
+        start, end, total, bins, ordinal = 0, 0, 0.0, 0, 0
         for i in chosen:
             left, right = int(values["start"][i]), int(values["end"][i])
             if bins and left != end:
-                handle.write(f"{chrom}\t{start}\t{end}\t{total / bins:.8g}\t{bins}\n")
+                ordinal += 1
+                handle.write(
+                    f"{chrom}\t{start}\t{end}\tcandidate_{ordinal}\t{round(1000 * total / bins)}\t.\t{total / bins:.8g}\t{bins}\n"
+                )
                 bins = 0
             if not bins:
                 start = left
@@ -215,7 +218,10 @@ def write_stretches(
             total += float(score[i])
             bins += 1
         if bins:
-            handle.write(f"{chrom}\t{start}\t{end}\t{total / bins:.8g}\t{bins}\n")
+            ordinal += 1
+            handle.write(
+                f"{chrom}\t{start}\t{end}\tcandidate_{ordinal}\t{round(1000 * total / bins)}\t.\t{total / bins:.8g}\t{bins}\n"
+            )
 
 
 def main() -> None:
