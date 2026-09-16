@@ -409,3 +409,12 @@ The scope and queue above are living summaries; the entry log below preserves th
   This is a presentation-only follow-up; archived numerical evidence and its producing commit remain unchanged.
 - The two review threads from the earlier pilot revision were answered and resolved against the published replacement interpretation.
   CI for documentation head 068a42b8 passed quality, tests, and dashboard build before this label-only revision.
+
+### 2026-09-16 — delivered for human review
+
+- PR #578 is ready for review at `43ea658efb2a69de0281531446c1eb7eca272283` after independent review and its label correction.
+  Latest quality, test, and dashboard-build checks passed; no merge was performed.
+- Updated both issue bodies, posted #568 follow-up comment 5704404516, and posted #577 completion comment 5704564257.
+  Re-fetched and verified each published payload; both issues remain open under the interpretation-merge gate.
+- At 21:11:24 UTC the EC2 worker had no remaining analysis/test/archive subprocesses, and its scheduled automatic shutdown remained 23:20:12 UTC.
+  It remains available for further user-directed analysis within the existing budget.
