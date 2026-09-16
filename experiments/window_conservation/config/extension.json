@@ -1,0 +1,108 @@
+{
+  "experiment": "PREVALENCE-004 extension",
+  "preserves_pilot_commit": "bd3b6efd289507eac5151951042561e4ae51b9a4",
+  "dev_chromosome": "chr1",
+  "validation_chromosome": "chr3",
+  "k": 25,
+  "window_bases": 100,
+  "hash_sample_bits": [
+    2,
+    3,
+    4
+  ],
+  "panels": [
+    3,
+    6,
+    10
+  ],
+  "original_species": [
+    "human",
+    "mouse",
+    "armadillo"
+  ],
+  "additional_species_in_order": [
+    {
+      "name": "Bos_taurus",
+      "uri": "s3://oa-bolinas/staging/vertebrate_projection_dataset/v1/06549d8f7f3ba76151b9c54a5e52d3e3f4402a2d/full/hal/genomes/Bos_taurus.2bit",
+      "bytes": 756424438,
+      "etag": "612e3b2d807ed16189957c73ef018e5e-91",
+      "assembly": "GCF_000003205.7",
+      "family": "Bovidae",
+      "order": "Artiodactyla"
+    },
+    {
+      "name": "Loxodonta_africana",
+      "uri": "s3://oa-bolinas/staging/vertebrate_projection_dataset/v1/06549d8f7f3ba76151b9c54a5e52d3e3f4402a2d/full/hal/genomes/Loxodonta_africana.2bit",
+      "bytes": 873163722,
+      "etag": "2c5487fd95a015c40530519b4f3ac690-105",
+      "assembly": "HAL asset; do not infer assembly from taxon-proxy accession",
+      "family": "Elephantidae",
+      "order": "Proboscidea"
+    },
+    {
+      "name": "Oryctolagus_cuniculus",
+      "uri": "s3://oa-bolinas/staging/vertebrate_projection_dataset/v1/06549d8f7f3ba76151b9c54a5e52d3e3f4402a2d/full/hal/genomes/Oryctolagus_cuniculus.2bit",
+      "bytes": 761339830,
+      "etag": "90164fe6b374445fb329b01dcd0de7b4-91",
+      "assembly": "GCF_000003625.3",
+      "family": "Leporidae",
+      "order": "Lagomorpha"
+    },
+    {
+      "name": "Lycaon_pictus",
+      "uri": "s3://oa-bolinas/staging/vertebrate_projection_dataset/v1/06549d8f7f3ba76151b9c54a5e52d3e3f4402a2d/full/hal/genomes/Lycaon_pictus.2bit",
+      "bytes": 676934755,
+      "etag": "b64ac494ea02f54e33fd8af90a307d3f-81",
+      "assembly": "GCA_001887905.1",
+      "family": "Canidae",
+      "order": "Carnivora"
+    },
+    {
+      "name": "Papio_anubis",
+      "uri": "s3://oa-bolinas/staging/vertebrate_projection_dataset/v1/06549d8f7f3ba76151b9c54a5e52d3e3f4402a2d/full/hal/genomes/Papio_anubis.2bit",
+      "bytes": 873183333,
+      "etag": "d620e33f6a1290747ce4137ef8e88a4f-105",
+      "assembly": "GCA_000264685.2",
+      "family": "Cercopithecidae",
+      "order": "Primates"
+    },
+    {
+      "name": "Equus_caballus",
+      "uri": "s3://oa-bolinas/staging/vertebrate_projection_dataset/v1/06549d8f7f3ba76151b9c54a5e52d3e3f4402a2d/full/hal/genomes/Equus_caballus.2bit",
+      "bytes": 693377845,
+      "etag": "fa8f7003b34479985dda0ea42c0d3312-83",
+      "assembly": "GCF_000002305.2",
+      "family": "Equidae",
+      "order": "Perissodactyla"
+    },
+    {
+      "name": "Myotis_lucifugus",
+      "uri": "s3://oa-bolinas/staging/vertebrate_projection_dataset/v1/06549d8f7f3ba76151b9c54a5e52d3e3f4402a2d/full/hal/genomes/Myotis_lucifugus.2bit",
+      "bytes": 574872725,
+      "etag": "a2f8f863bc2485bfa73498682a78b820-69",
+      "assembly": "GCF_000147115.1",
+      "family": "Vespertilionidae",
+      "order": "Chiroptera"
+    }
+  ],
+  "scores": [
+    "any",
+    "both",
+    "breadth",
+    "any_copy4",
+    "both_copy4",
+    "breadth_copy4"
+  ],
+  "selection_budget": 0.05,
+  "secondary_budgets": [
+    0.01,
+    0.1
+  ],
+  "selection_rule": "Choose the best absolute conserved-base fraction on chr1 at 5%, ties: lower memory, fewer species, score lexical order. Also freeze best score for every panel/sampling cell; evaluate all frozen cells once on chr3 and report entire matrix.",
+  "primary_comparison": "Selected extension setting versus three-species k25 any_copy4 at 1/4 sampling on the same fresh chromosome. Paired 1 MiB block bootstrap, 200 resamples.",
+  "memory_comparison": "Byte-identical compact vs baseline scores on the original query chromosomes; global synthetic exact partitioning benchmark if compact table alone is insufficient. Record preparation, construction, score, selection, disk bytes, RSS separately.",
+  "biological_strata": "Exploratory annotated CDS, exon, UTR, promoter, cCRE, repeat class and family composition on the preserved chr2 pilot and fresh chr3 result. No annotation-based parameter tuning.",
+  "spatial_robustness": "Synthetic 50/100/150/300bp planted tracts with 0/5/10/20% substitution, 0/1% indels and randomized bin offsets; report localization and neutral false selection.",
+  "labels": "Reuse pilot bigWig and definition; do not inspect chr3 conservation labels until selection is published.",
+  "resource_limit": "Same single c7i.4xlarge until 2026-09-16T23:20Z; cumulative authorized EC2 costs <=$30; no production run or training."
+}

@@ -161,3 +161,32 @@ author: user
 - At 5%, primary output has 93,374 stretches and copy-filtered output has 88,952, each totaling 12,027,300 bp; both have median length 100 bp, with maxima 2,400 and 2,700 bp respectively.
 - All 16 locked tests still pass; figures were rendered and inspected, and the conservation legend was moved outside the plot to avoid obscuring a data point.
 - Conclusion: measurable local conservation signal from three genomes, with copy suppression improving conserved-base density; the present global in-memory index is not a demonstrated 1,000-real-genome solution.
+
+### 2026-09-16 — archive, interpretation review, and authorized extension
+
+- Pilot archive is complete: `s3://oa-bolinas/issues/577/local100-v1/bd3b6efd289507eac5151951042561e4ae51b9a4/`, 274 payload files, 311,956,628 bytes, all round-trip SHA-256 verified.
+- Manifest SHA-256: `86fdcfec1b8d968f1a7debb1e0b5abf1a95eab713bbc4ccbcaa584565650e454`.
+- Ownership checks confirmed the bucket belongs to authenticated account 836683583872, has only owner FULL_CONTROL ACL, and enables all public-access blocks.
+  The initial automatic upload review needed this evidence; retry succeeded after read-only proof checks.
+- Interpretation PR #578 passed all required checks and is ready for human review after independent GitHub Claude review.
+  Addressed secondary-selection provenance and experiment-link wording; CI required removing trailing SVG whitespace.
+  The independent review could check internal arithmetic and framing but lacked network permission to fetch raw artifacts; the separate experiment audit verifies source output contracts.
+- Updated both #577 and #568 with the pilot result, archive, interpretation, and follow-up pointer.
+- User explicitly requested keeping the worker for further analysis and pursuing all proposed axes, plus additional useful checks.
+  This supersedes the earlier planned immediate worker termination; automatic termination at 23:20 UTC remains and cumulative EC2 costs must stay within $30.
+- Extension protocol: `config/extension.json`; development remains chr1, fresh validation is chr3, and the completed chr2 pilot remains unchanged.
+- Test nested panels of 3, 6, and 10 real mammals, and consistent sampling at 1/4, 1/8, and 1/16, preserving k25 and 100 bp resolution.
+  Choose scores by absolute development conserved-base density; freeze all nine cell winners and the overall winner before opening chr3 labels.
+- Add exact compact counting, biological/repeat-class characterization, and synthetic boundary/divergence/indel checks.
+- Compact implementation uses contiguous 16-byte slots and the same exact species/copy semantics; all 22 tests pass, including byte-identical results against the baseline across sampling rates, reverse complements, ambiguous sequence, repeated words, incremental panels, and global/query-restricted modes.
+- Full original-query byte-parity and resource measurement are running before any extension biological evaluation.
+
+### 2026-09-16 — compact prior-work pass for memory and sampling
+
+- Effort: low; stop after confirming the relevant sampling and external-memory design patterns.
+- [Sourmash practical guide](https://sourmash.readthedocs.io/en/latest/using-sourmash-a-guide.html) distinguishes fixed-size sketches from fixed-rate scaled sketches.
+  Our modulo-hash sample follows the latter pattern; the biological question is how far thinning can go at 100 bp resolution.
+- [KMC 2](https://arxiv.org/abs/1407.1507) demonstrates disk-based k-mer counting with reduced RAM and I/O-aware compression.
+  It supports partitioned counting as a design precedent, not a measured performance prediction for species-deduplicated scoring here.
+- Negative lead: pairwise window MinHash does not remove the aggregate index requirement for this unary objective, and sparse whole-genome sketches may miss short local features.
+- Active hypotheses: PREVALENCE-004 compact storage preserves scores; PREVALENCE-005 more diverse species improve density; PREVALENCE-006 thinner sampling preserves useful ranking; PREVALENCE-007 the selected signal remains after repeat/functional stratification; PREVALENCE-008 local boundaries tolerate realistic divergence and bin offsets.
