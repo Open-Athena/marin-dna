@@ -11,20 +11,32 @@ author: user
 
 - Goal: one score per genomic window that enriches selected bases for conservation annotations while approaching O(species × windows) time and storage at fixed window length.
 - User correction: homology pairs and clusters are not the target output or success metric.
-- Primary endpoint: chromosome-2 phastCons100way annotated-base enrichment at a 5% selected-base budget, versus random and GC/repeat/entropy-matched selection.
-- Boundaries: three real reference genomes; synthetic fixtures test computational scaling only; no billion-window production run or training.
+- Endpoint: existing pipeline phyloP447way >= 2.2162 annotated-base density at a 5% selected-base budget, with random and GC/repeat/entropy-matched comparisons.
+  The original chr2 pilot and the extension on fresh chr3 are frozen separately; chr1 supplies development selection.
+- Boundaries: biological comparisons use 3/6/10 complete mammalian genomes; the global all-window trial uses the original three genomes.
+  Synthetic fixtures test computational scaling only; no 1,000-complete-genome production run or training.
 - Authority: user's original $30 EC2 allowance plus explicit request to try the follow-up in this session.
 - Prior cost: conservative estimate below $1.34, not an invoiced bill.
 
 ## Hypothesis queue
 
+### Supported within the tested scope
+
+- PREVALENCE-001: species-deduplicated word support enriches conserved bases on held-out human chromosomes, including after coarse composition matching.
+- PREVALENCE-002: copy suppression improves absolute density in the original three-genome panel; it does not eliminate all repeats or establish functional constraint.
+- PREVALENCE-003: aggregate counting avoids pair enumeration; synthetic timing follows approximately linear input growth, with global real-genome resource checks pending.
+- PREVALENCE-004: exact compact storage preserves all 4,911,499 pilot query scores and lowers peak RSS from 5.77 to 3.01 GiB.
+- PREVALENCE-005: ten-species development selection improves fresh-chr3 density from 20.14% to 27.69%, with a paired gain interval of +7.11 to +8.04 percentage points.
+
 ### Active
 
-- PREVALENCE-001: species-deduplicated sampled k-mer support ranks conserved windows beyond composition and repeats.
-- PREVALENCE-002: copy-number suppression improves specificity without erasing the conservation signal.
-- PREVALENCE-003: aggregate counting and one scoring pass give expected linear work in total sequence, without pair enumeration or per-window global scans.
+- PREVALENCE-006: thinner sampling trades lower density for smaller indexes; standalone footprints and disk-partitioned global measurements will determine practical tradeoffs.
+- PREVALENCE-007: describe fixed selections by functional annotations and repeat class/family without retuning them.
+- PREVALENCE-008: measure local evidence under planted tract length, divergence, indels, offset, duplication, and shuffled negatives.
 
-## Background research brief
+The scope and queue above are living summaries; the entry log below preserves the chronological record.
+
+## Initial background research brief (superseded label proposal)
 
 - Effort: low.
 - Date: 2026-09-16.
@@ -255,3 +267,17 @@ author: user
   The larger panel supplies most of the combined gain; per-scheme index footprints remain to be measured.
 - All fifteen cell winners were fixed using chr1 and reported on chr3 without retuning.
   The resource matrix is now running, followed by full three-genome scoring/selection and descriptive controls.
+
+### 2026-09-16 — repeated global synthetic resource matrix complete
+
+- Completed all 60 runs: four shapes, five storage/sampling arms, three repetitions.
+  All 36 quarter-rate comparisons reproduce the full original score tables, totaling 41,472,000 audited rows across repetitions and methods.
+- Largest shape (1,000 species × 2,048 intervals, 204.8 Mb), median wall time / peak RSS:
+  original quarter-rate index 76.8726 s / 2.84449 GiB;
+  compact quarter-rate 22.0165 s / 1.50389 GiB;
+  32-partition quarter-rate 32.7861 s / 0.0919571 GiB;
+  compact sixteenth-rate 9.02176 s / 0.378784 GiB;
+  32-partition sixteenth-rate 7.92341 s / 0.0252953 GiB.
+- Negative scaling detail: eightfold input growth takes approximately 15× wall time in quarter-rate disk partitioning on both axes, versus approximately 10× for the original/compact indexes and 9.2× for sixteenth-rate partitioning.
+  The expected hash-work bound is linear, but empirical cache and I/O effects prevent a constant-throughput production extrapolation.
+- The real three-genome global run has passed its disk-space preflight and started; expected output is 96,574,572 complete intervals over 9,659,766,308 bases.
