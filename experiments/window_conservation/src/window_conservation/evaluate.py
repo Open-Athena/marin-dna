@@ -103,15 +103,19 @@ def metrics(
     weights: np.ndarray | None = None,
     order: np.ndarray | None = None,
 ) -> dict:
+    unweighted = weights is None
     if weights is None:
         weights = np.ones(len(score), dtype=np.float64)
     assert len(score) == len(weights) and np.all(np.isfinite(score))
-    if order is None:
-        order = np.lexsort((values["tie"], -score))
     budget = max(1, int(np.floor(fraction * weights.sum())))
     selected = np.zeros(len(score), dtype=np.float64)
-    remaining = np.clip(budget - np.r_[0, np.cumsum(weights[order])[:-1]], 0, None)
-    selected[order] = np.minimum(weights[order], remaining)
+    if unweighted:
+        selected[select_indices(score, values["tie"], budget)] = 1
+    else:
+        if order is None:
+            order = np.lexsort((values["tie"], -score))
+        remaining = np.clip(budget - np.r_[0, np.cumsum(weights[order])[:-1]], 0, None)
+        selected[order] = np.minimum(weights[order], remaining)
     assert np.isclose(selected.sum(), budget)
     y, strata = values["label"], values["strata"]
     denominators = np.bincount(strata, weights=weights)
@@ -175,6 +179,18 @@ def intervals(
     }
 
 
+def select_indices(score: np.ndarray, tie: np.ndarray, count: int) -> np.ndarray:
+    """Fixed-budget selection without a global sort; return genomic-order indices."""
+    assert 1 <= count <= len(score)
+    threshold = np.partition(score, len(score) - count)[len(score) - count]
+    chosen = score > threshold
+    remaining = count - int(chosen.sum())
+    candidates = np.flatnonzero(score == threshold)
+    picks = np.argpartition(tie[candidates], remaining - 1)[:remaining]
+    chosen[candidates[picks]] = True
+    return np.flatnonzero(chosen)
+
+
 def write_stretches(
     path: Path,
     chrom: str,
@@ -184,7 +200,7 @@ def write_stretches(
 ) -> None:
     """Merge only directly adjacent selected bins; retain 0-based half-open bounds."""
     count = max(1, int(np.floor(fraction * len(score))))
-    chosen = np.sort(np.lexsort((values["tie"], -score))[:count])
+    chosen = select_indices(score, values["tie"], count)
     with path.open("w") as handle:
         start, end, total, bins = 0, 0, 0.0, 0
         for i in chosen:

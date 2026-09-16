@@ -34,7 +34,7 @@ def main() -> None:
             "PublicAccessBlockConfiguration"
         ].values()
     )
-    prefix = f"issues/577/v1/{args.commit}/"
+    prefix = f"issues/577/local100-v1/{args.commit}/"
     assert not client.list_objects_v2(Bucket=bucket, Prefix=prefix, MaxKeys=1).get(
         "KeyCount"
     ), "archive prefix already exists"
@@ -43,6 +43,12 @@ def main() -> None:
     paths += [
         p
         for directory in ["report", "logs"]
+        for p in (args.root / directory).rglob("*")
+        if p.is_file()
+    ]
+    paths += [
+        p
+        for directory in ["exploratory4096/report", "exploratory4096/logs"]
         for p in (args.root / directory).rglob("*")
         if p.is_file()
     ]

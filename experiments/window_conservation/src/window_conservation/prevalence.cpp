@@ -87,6 +87,22 @@ void build(int k, int bits, const std::string &list, const std::string &output, 
             if (rolling.push(c,key) && !(key & ((1ULL<<bits)-1))) counts.try_emplace(key);
         });
     }
+    // Blocked Bloom prefilter: one compact memory access rejects most absent
+    // query keys; all survivors still use exact dictionary membership.
+    std::vector<uint64_t> bloom;
+    auto bloom_bits = [](uint64_t key) {
+        return (1ULL << ((key >> 2) & 63)) | (1ULL << ((key >> 8) & 63)) |
+               (1ULL << ((key >> 14) & 63));
+    };
+    if (!query.empty()) {
+        size_t blocks=1;
+        while (blocks < counts.size()/8) blocks*=2;
+        bloom.resize(blocks);
+        for (const auto &[key,value] : counts) {
+            (void)value;
+            bloom[(key >> 20) & (blocks-1)] |= bloom_bits(key);
+        }
+    }
     uint64_t bases = 0, selected = 0, valid = 0;
     uint32_t species = 0;
     std::string path;
@@ -102,8 +118,15 @@ void build(int k, int bits, const std::string &list, const std::string &output, 
             ++valid;
             if (key & ((1ULL<<bits)-1)) return;
             ++selected;
-            if (!query.empty() && counts.find(key) == counts.end()) return;
-            auto &v = counts[key];
+            Counts *value;
+            if (!query.empty()) {
+                uint64_t mask=bloom_bits(key);
+                if ((bloom[(key >> 20) & (bloom.size()-1)] & mask) != mask) return;
+                auto it=counts.find(key);
+                if (it == counts.end()) return;
+                value=&it->second;
+            } else value=&counts[key];
+            auto &v = *value;
             if (v.last != species) {
                 v.last = species;
                 ++v.species;

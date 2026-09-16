@@ -61,3 +61,15 @@ uv run --locked python -m window_conservation.evaluate --root /data/issue577 --s
 Per-stage command receipts, wall time, exit code, GNU time peak RSS, per-window score tables, annotation provenance, and selected-word index sizes are retained.
 Durable ownership is `s3://oa-bolinas/issues/577/` under a producing-commit prefix.
 The source and complete experiment record remain on the permanent research branch; accepted findings are delivered separately through a documentation PR.
+
+## Selection and scaling boundaries
+
+The ordinary fixed-budget selector uses partition-based selection and a linear pass to merge adjacent bins, avoiding an all-interval ranking sort.
+Bootstrap evaluation reuses a sorted score order to handle resampled multiplicities; that uncertainty calculation is separate from producing the stretches.
+The three-species biological run retains only query-chromosome words, so its memory footprint must not be extrapolated as if it indexed every genome.
+The synthetic scaling run constructs the global index and scores every synthetic species at the same 1/4 sampling density and 100 bp resolution.
+It varies species count (125–1,000) and intervals per species (1,024–8,192) independently, with three timing repetitions per shape.
+It measures construction and score-table generation; scientific evaluation, downloading, preparation, and fixed-budget selection are separate stages.
+An in-memory global index still grows with the number of distinct sampled words and may require impractical memory at thousands of complete genomes.
+Repeatedly rescanning all genomes for bounded query batches would add a batch-count factor; the pilot does not claim that strategy preserves total linear work when scoring every genome.
+A disk-partitioned global implementation is not part of this experiment.

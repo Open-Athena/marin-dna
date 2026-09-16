@@ -59,3 +59,14 @@ def test_stretches_merge_adjacent_bins_without_bridging_gaps(tmp_path) -> None:
         "chr1\t0\t200\t0.95\t2",
         "chr1\t400\t600\t0.75\t2",
     ]
+
+
+def test_linear_selection_matches_ranked_budget_with_ties() -> None:
+    from window_conservation.evaluate import select_indices
+
+    rng = np.random.default_rng(577)
+    score = rng.integers(0, 7, 1000).astype(float)
+    tie = rng.permutation(1000)
+    for count in [1, 50, 500, 1000]:
+        expected = np.sort(np.lexsort((tie, -score))[:count])
+        np.testing.assert_array_equal(select_indices(score, tie, count), expected)

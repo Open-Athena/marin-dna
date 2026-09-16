@@ -87,7 +87,7 @@ def main() -> None:
             r
             for r in summaries
             if (
-                r["windows_per_species"] == 256
+                r["windows_per_species"] == 2048
                 if axis == "species"
                 else r["species"] == 250
             )
@@ -148,17 +148,43 @@ def main() -> None:
     plt.close(fig)
     selection = held["selection"]
     chosen = next(r for r in resources if r["k"] == selection["k"])
-    scale = 1e9 / chosen["windows"]
+    # The real run uses a query-restricted index: do not scale its query-only
+    # memory or score time as if it indexed/scored every genome.
+    largest = max(summaries, key=lambda row: row["windows"])
+    extrapolations = []
+    for target_bases in [100_000_000_000, 3_000_000_000_000]:
+        scale = target_bases / (largest["windows"] * 100)
+        extrapolations.append(
+            {
+                "target_bases": target_bases,
+                "target_100bp_intervals": target_bases // 100,
+                "linear_single_process_hours": largest["median_seconds"] * scale / 3600,
+                "linear_index_bytes": largest["index_bytes"] * scale,
+                "linear_peak_rss_bytes": largest["median_peak_rss_kib"] * 1024 * scale,
+            }
+        )
+    stretches = []
+    for line in (out / "stretches-0.05.bed").read_text().splitlines():
+        _, start, end, _, _ = line.split("\t")
+        stretches.append(int(end) - int(start))
+    assert sum(stretches) == primary["selected_bases"]
     summary = {
         "real_resources": resources,
         "scaling_fits": fitted,
-        "extrapolation_not_measurement": {
-            "target_windows": 1_000_000_000,
-            "window_bases": 4096,
-            "linear_hours": chosen["total_seconds"] * scale / 3600,
-            "linear_index_bytes": chosen["index_bytes"] * scale,
-            "linear_peak_rss_bytes": chosen["peak_rss_kib"] * 1024 * scale,
-            "limits": "Unvalidated constant-throughput and distinct-word-rate extrapolation; RAM/cache/I/O and species diversity can change both.",
+        "real_scope": "Query-restricted chr1/chr2 scores, full-genome support counts across three species",
+        "selected_real_setting": chosen,
+        "global_extrapolation_not_measurement": {
+            "basis": largest,
+            "scenarios": extrapolations,
+            "window_bases": 100,
+            "hash_sampling": "1/4",
+            "limits": "Synthetic uniform-DNA, constant-throughput and distinct-word-rate extrapolation. Real genome repetition/divergence, RAM/cache/I/O and species diversity change both. The full 1,000-genome workload was not run.",
+        },
+        "primary_stretches": {
+            "count": len(stretches),
+            "total_bases": sum(stretches),
+            "median_bases": float(np.median(stretches)),
+            "max_bases": max(stretches),
         },
         "biological_gate_passed": held["biological_gate_passed"],
     }
