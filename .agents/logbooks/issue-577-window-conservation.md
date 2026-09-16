@@ -118,3 +118,13 @@ author: user
 - Final locked validation: 16 passed in 1.53 seconds, including localization of a planted 150 bp shared tract inside independent 5 kb backgrounds, exact query-index counts, partition selection, bigWig boundaries, and BED6+2 stretch merging.
 - The selected k/score, complete development matrix, unchanged protocol hash, and input-manifest hash are committed before any chromosome-2 conservation labels are inspected.
 - Next: one frozen chromosome-2 evaluation, the declared global-index synthetic resource matrix, output-contract audits, durable archive, and worker termination.
+
+### 2026-09-16 — secondary density comparison declared before held-out labels
+
+- The development matrix exposes a tradeoff in the original selection objective: k25/any maximizes matched enrichment, whereas k25/any_copy4 maximizes the absolute conserved-base fraction among selected bases.
+- Declare the latter as a secondary, development-selected comparison before reading any chr2 labels; retain the original primary setting and gate.
+- Development k25/any_copy4: selected fraction conserved 0.23662487, 5.91471× random, 5.26465× matched, and 0.29573502 annotated-base recall.
+- Its selected soft-mask fraction is 0.49365, versus 0.71975 for the primary setting.
+- The amended protocol explicitly records that this secondary comparison was added after inspecting development results.
+- Both settings and all output budgets are frozen together; the held-out evaluation will produce both in one invocation without retuning.
+- Validation still passes all 16 locked tests; report/audit tooling checks BED6+2 outputs for both settings.

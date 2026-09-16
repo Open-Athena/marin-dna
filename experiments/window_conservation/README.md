@@ -32,6 +32,8 @@ The pinned S3 object and checksum identify the exact existing annotation; no new
 These labels are alignment-derived conservation annotations, not independent biological ground truth.
 `config/protocol.json` fixes the method grid, chromosome split, controls, selection rule, and advancement criterion before metrics are inspected.
 Select on chromosome 1, publish the selection, and inspect chromosome 2 only afterward.
+After inspecting development results, also freeze a secondary setting maximizing selected conserved-base fraction; this comparison does not replace the original matched-enrichment selection or gate.
+Export its BED6+2 files with the `stretches-density-` prefix and report its uncertainty separately.
 Chromosome separation prevents overlapping-window leakage; homologous repeat families can still cross chromosomes.
 This biological pilot scores all complete 100 bp intervals on human chromosomes 1 and 2.
 A query-restricted index retains only words present on those chromosomes, but counts their copies and distinct-species support across every complete input genome.

@@ -261,6 +261,10 @@ def main() -> None:
             "protocol_sha256": sha256(Path("config/protocol.json")),
             "development": chosen,
             "input_manifest_sha256": sha256(root / "data/manifest.json"),
+            "density_alternative": min(
+                matrix,
+                key=lambda x: (-x["selected_annotated_fraction"], x["k"], x["score"]),
+            ),
         }
         (report / "selection.json").write_text(json.dumps(selection, indent=2) + "\n")
         print(json.dumps(selection, indent=2))
@@ -310,6 +314,35 @@ def main() -> None:
                 "high_gc": values["gc"],
             }.items()
         }
+        alternative = selection["density_alternative"]
+        alternate_values = (
+            values
+            if alternative["k"] == selection["k"]
+            else load_chromosome(
+                root, alternative["k"], protocol["heldout_chromosome"], protocol
+            )
+        )
+        output["density_alternative"] = {"selection": alternative, "budgets": {}}
+        for fraction in [
+            protocol["primary_selected_fraction"],
+            *protocol["secondary_selected_fractions"],
+        ]:
+            output["density_alternative"]["budgets"][str(fraction)] = metrics(
+                alternate_values, alternate_values[alternative["score"]], fraction
+            )
+            write_stretches(
+                report / f"stretches-density-{fraction}.bed",
+                protocol["heldout_chromosome"],
+                alternate_values,
+                alternate_values[alternative["score"]],
+                fraction,
+            )
+        output["density_alternative"]["primary_ci"] = intervals(
+            alternate_values,
+            alternate_values[alternative["score"]],
+            protocol["primary_selected_fraction"],
+            protocol["bootstrap_replicates"],
+        )
         primary = output["budgets"][str(protocol["primary_selected_fraction"])]
         gate = protocol["advance_gate"]
         output["biological_gate_passed"] = bool(

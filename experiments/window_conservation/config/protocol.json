@@ -51,5 +51,6 @@
     "chr2"
   ],
   "query_restricted_index": true,
-  "scope_change": "User clarified 100 bp conserved stretches after only 4 kb chr1 development metrics were inspected; chr2 labels remain uninspected. The 4 kb selection is superseded."
+  "scope_change": "User clarified 100 bp conserved stretches after only 4 kb chr1 development metrics were inspected; chr2 labels remain uninspected. The 4 kb selection is superseded.",
+  "secondary_density_comparison": "Added after inspecting chromosome-1 development metrics, before any chromosome-2 labels: retain the original primary selection, and also freeze the setting with highest selected conserved-base fraction at the 5% budget (ties: ascending k, score). Report this as a secondary comparison without changing the primary gate."
 }

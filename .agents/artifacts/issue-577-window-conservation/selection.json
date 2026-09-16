@@ -1,7 +1,7 @@
 {
   "k": 25,
   "score": "any",
-  "protocol_sha256": "ab8119ef24b5698b3d0e414803c88da13a5080f60de6bc2cb2635177c3a43160",
+  "protocol_sha256": "b0a62b1609a95157febf6a615d880fcb1de5f39629d74afc7412debe7cd8aa35",
   "development": {
     "k": 25,
     "score": "any",
@@ -23,5 +23,26 @@
     "selected_positive_window_fraction": 0.2030684589151054,
     "population_positive_window_fraction": 0.05327017080436769
   },
-  "input_manifest_sha256": "c76e960efe61bbc9678649f3c3ac16bdc222fa72c497e7b3ce7b805b5f1f4432"
+  "input_manifest_sha256": "c76e960efe61bbc9678649f3c3ac16bdc222fa72c497e7b3ce7b805b5f1f4432",
+  "density_alternative": {
+    "k": 25,
+    "score": "any_copy4",
+    "windows": 2304742,
+    "selected_windows": 115237,
+    "selected_bases": 11523700,
+    "selected_annotated_fraction": 0.23662486874875077,
+    "random_annotated_fraction": 0.040006195921290365,
+    "matched_annotated_fraction": 0.044945960958883174,
+    "random_enrichment": 5.914705542468849,
+    "matched_enrichment": 5.264652567228824,
+    "annotated_base_recall": 0.2957350204914401,
+    "selected_gc": 0.39623432533821346,
+    "selected_repeat": 0.4936538611730612,
+    "selected_entropy": 1.8692530218506231,
+    "selected_seeds": 24.71041418988693,
+    "selected_label_coverage": 0.9997960724420109,
+    "population_label_coverage": 0.9845058752780136,
+    "selected_positive_window_fraction": 0.38912849171707004,
+    "population_positive_window_fraction": 0.05327017080436769
+  }
 }

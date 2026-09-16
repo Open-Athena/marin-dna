@@ -15,29 +15,34 @@ def main() -> None:
     args = parser.parse_args()
     root = args.root
     held = json.loads((root / "report/heldout.json").read_text())
-    for fraction, metrics in held["budgets"].items():
-        assert metrics["selected_bases"] == 100 * metrics["selected_windows"]
-        assert 0 <= metrics["selected_annotated_fraction"] <= 1
-        assert 0 <= metrics["annotated_base_recall"] <= 1
-        lengths = []
-        last_end = -1
-        for line in (
-            (root / "report" / f"stretches-{fraction}.bed").read_text().splitlines()
-        ):
-            chrom, start, end, name, bed_score, strand, score, bins = line.split("\t")
-            start, end, bins = int(start), int(end), int(bins)
-            assert chrom == "chr2" and 0 <= start < end <= 242193529
-            assert (
-                name.startswith("candidate_")
-                and strand == "."
-                and 0 <= int(bed_score) <= 1000
-            )
-            assert start > last_end  # touching intervals must already have merged
-            assert start % 100 == end % 100 == 0
-            assert end - start == bins * 100 and 0 <= float(score) <= 1
-            last_end = end
-            lengths.append(end - start)
-        assert sum(lengths) == metrics["selected_bases"]
+    for prefix, result in [("", held), ("density-", held["density_alternative"])]:
+        for fraction, metrics in result["budgets"].items():
+            assert metrics["selected_bases"] == 100 * metrics["selected_windows"]
+            assert 0 <= metrics["selected_annotated_fraction"] <= 1
+            assert 0 <= metrics["annotated_base_recall"] <= 1
+            lengths = []
+            last_end = -1
+            for line in (
+                (root / "report" / f"stretches-{prefix}{fraction}.bed")
+                .read_text()
+                .splitlines()
+            ):
+                chrom, start, end, name, bed_score, strand, score, bins = line.split(
+                    "\t"
+                )
+                start, end, bins = int(start), int(end), int(bins)
+                assert chrom == "chr2" and 0 <= start < end <= 242193529
+                assert (
+                    name.startswith("candidate_")
+                    and strand == "."
+                    and 0 <= int(bed_score) <= 1000
+                )
+                assert start > last_end  # touching intervals must already have merged
+                assert start % 100 == end % 100 == 0
+                assert end - start == bins * 100 and 0 <= float(score) <= 1
+                last_end = end
+                lengths.append(end - start)
+            assert sum(lengths) == metrics["selected_bases"]
     raw = json.loads((root / "scaling/measurements.json").read_text())
     assert len(raw) == 21 and all(
         row["build"]["measurements"][0]["bases"] == row["windows"] * 100 for row in raw

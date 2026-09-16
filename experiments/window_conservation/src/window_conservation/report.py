@@ -129,10 +129,17 @@ def main() -> None:
     fig, ax = plt.subplots(figsize=(5, 4), layout="constrained")
     names = ["Versus random", "Versus matched"]
     fields = ["random_enrichment", "matched_enrichment"]
-    heights = np.array([primary[field] for field in fields])
-    ci = np.array([held["primary_ci"][field] for field in fields])
-    ax.vlines([0, 1], ci[:, 0], ci[:, 1], color="C0")
-    ax.plot([0, 1], heights, "o", color="C0")
+    for offset, label, result, color in [
+        (-0.1, "Primary", held, "C0"),
+        (0.1, "Copy-filtered", held["density_alternative"], "C1"),
+    ]:
+        current = result["budgets"]["0.05"]
+        heights = np.array([current[field] for field in fields])
+        ci = np.array([result["primary_ci"][field] for field in fields])
+        x = np.array([0, 1]) + offset
+        ax.vlines(x, ci[:, 0], ci[:, 1], color=color)
+        ax.plot(x, heights, "o", color=color, label=label)
+    ax.legend(title="Scoring rule", loc="upper left")
     ax.axhline(1, color="0.5", linestyle="--")
     ax.set_xticks([0, 1], labels=names)
     ax.set_xlim(-0.5, 1.5)
@@ -164,6 +171,14 @@ def main() -> None:
         _, start, end, _, _, _, _, _ = line.split("\t")
         stretches.append(int(end) - int(start))
     assert sum(stretches) == primary["selected_bases"]
+    alternative_stretches = []
+    for line in (out / "stretches-density-0.05.bed").read_text().splitlines():
+        fields = line.split("\t")
+        alternative_stretches.append(int(fields[2]) - int(fields[1]))
+    assert (
+        sum(alternative_stretches)
+        == held["density_alternative"]["budgets"]["0.05"]["selected_bases"]
+    )
     summary = {
         "real_resources": resources,
         "scaling_fits": fitted,
@@ -181,6 +196,12 @@ def main() -> None:
             "total_bases": sum(stretches),
             "median_bases": float(np.median(stretches)),
             "max_bases": max(stretches),
+        },
+        "density_alternative_stretches": {
+            "count": len(alternative_stretches),
+            "total_bases": sum(alternative_stretches),
+            "median_bases": float(np.median(alternative_stretches)),
+            "max_bases": max(alternative_stretches),
         },
         "biological_gate_passed": held["biological_gate_passed"],
     }
