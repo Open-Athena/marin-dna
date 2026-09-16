@@ -343,3 +343,21 @@ The scope and queue above are living summaries; the entry log below preserves th
   Archival took 221.01 s and finished before the masked validation process started.
 - The current foreground sequence is fresh chr4 validation, masked global three-genome scoring/selection, gene/cCRE diagnostics, figures, and final output audits.
   The worker remains available under its existing deadline and budget.
+
+### 2026-09-16 — PREVALENCE-005 fresh chr4 validation complete
+
+- Frozen choice: `194a009cee5de2b6a69e4bf49284c70c72aad8b8`, published before labels in comment 5703900339.
+  Validation completed in 206.34 s without retuning any of the 15 cell choices.
+- Chr4 has 799,540 eligible 100 bp intervals; the 5% budget selects 39,977 intervals / 3,997,700 bases.
+  The six-species bottom-32 breadth-copy4 primary has 41.86567% conserved-base density versus 35.73037% for the three-species quarter-rate any-copy4 comparator.
+  The paired 95% density-difference interval is +5.19151 to +6.89903 percentage points around +6.13530 points.
+- Primary random enrichment is 7.17835x, matched enrichment 6.58708x, and annotated-base recall 35.89174%.
+  Baseline recall is 30.63190%; the eligible population's conserved-base fraction is 5.83222%.
+  Selected repeat fraction is 0.24982%, within the <=20% window policy.
+- Same six-genome panel: quarter-rate density 41.52833%, eighth-rate 40.24131%, sixteenth-rate 37.04905%, bottom-16 41.13395%, bottom-32 41.86567%.
+  Bottom-32's observed gain over quarter-rate is only 0.33734 percentage points while query-index peak RSS doubles from 1.50562 to 3.00558 GiB.
+  These are unequal word budgets; no statistical superiority claim for MinHash is made.
+- The ten-genome bottom-32 cell reaches 41.41174%; adding these four genomes does not improve this point estimate.
+  Panel composition and selected scoring rule change with size, so this is not an isolated causal effect of species count.
+- At the 1% budget, primary density is 67.94084% and recall 11.64865%; at 10%, density is 27.41277% and recall 47.00233%.
+  Full-genome masked scoring/selection is now running; gene/cCRE diagnostics and final audits follow sequentially.
