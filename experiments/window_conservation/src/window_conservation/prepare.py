@@ -3,19 +3,13 @@
 from __future__ import annotations
 
 import argparse
-import gzip
 import hashlib
 import json
-import urllib.request
 from pathlib import Path
 
 import boto3
 import py2bit
 import yaml
-
-LABEL_URL = "https://hgdownload.soe.ucsc.edu/goldenPath/hg38/database/phastConsElements100way.txt.gz"
-SCHEMA_URL = "https://hgdownload.soe.ucsc.edu/goldenPath/hg38/database/phastConsElements100way.sql"
-
 
 def sha256(path: Path) -> str:
     digest = hashlib.sha256()
@@ -28,14 +22,18 @@ def sha256(path: Path) -> str:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--root", type=Path, required=True)
+    parser.add_argument("--labels-only", action="store_true")
     args = parser.parse_args()
     data = args.root / "data"
     data.mkdir(parents=True, exist_ok=True)
     cfg = yaml.safe_load(Path("config/genomes.yaml").read_text())
     client = boto3.client("s3", region_name="us-east-2")
     receipt: dict = {"sources": [], "labels": {}, "coordinates": "0-based half-open"}
+    if args.labels_only:
+        receipt = json.loads((data / "manifest.json").read_text())
+        assert len(receipt["sources"]) == 3
     paths = []
-    for source in cfg["homology_fixture"]["sources"]:
+    for source in ([] if args.labels_only else cfg["homology_fixture"]["sources"]):
         name = source["label"]
         path = data / f"{name}.2bit"
         bucket, key = source["genome_uri"].removeprefix("s3://").split("/", 1)
@@ -67,15 +65,20 @@ def main() -> None:
         paths.append(str(fasta))
         print("prepared", name, sum(chroms.values()), flush=True)
         (data / "manifest.json").write_text(json.dumps(receipt, indent=2) + "\n")
-    (data / "genomes.list").write_text("\n".join(paths) + "\n")
-    for url, name in [(LABEL_URL, "phastConsElements100way.txt.gz"), (SCHEMA_URL, "phastConsElements100way.sql")]:
-        path = data / name
-        urllib.request.urlretrieve(url, path)
-        receipt["labels"][name] = {"url": url, "sha256": sha256(path), "bytes": path.stat().st_size}
-    with gzip.open(data / "phastConsElements100way.txt.gz", "rt") as handle:
-        first = handle.readline().rstrip().split("\t")
-    assert first[1].startswith("chr") and int(first[2]) < int(first[3])
-    receipt["labels"]["first_row_schema_check"] = first
+    if not args.labels_only:
+        (data / "genomes.list").write_text("\n".join(paths) + "\n")
+    protocol = json.loads(Path("config/protocol.json").read_text())
+    bucket, key = protocol["label_source"].removeprefix("s3://").split("/", 1)
+    head = client.head_object(Bucket=bucket, Key=key, ExpectedBucketOwner="836683583872")
+    assert head["ETag"].strip('"') == protocol["label_etag"]
+    assert head["ContentLength"] == protocol["label_bytes"]
+    path = data / "phyloP_447m.bw"
+    if not path.exists():
+        client.download_file(bucket, key, str(path))
+    assert path.stat().st_size == protocol["label_bytes"]
+    receipt["labels"] = {"uri": protocol["label_source"], "etag": head["ETag"],
+                         "sha256": sha256(path), "bytes": path.stat().st_size,
+                         "threshold": protocol["conservation_threshold"]}
     (data / "manifest.json").write_text(json.dumps(receipt, indent=2) + "\n")
 
 

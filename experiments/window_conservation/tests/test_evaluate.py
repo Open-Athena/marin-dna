@@ -3,13 +3,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from window_conservation.evaluate import interval_coverage, metrics
-
-
-def test_coverage_merges_overlaps_and_respects_boundaries() -> None:
-    result = interval_coverage(np.array([0, 10, 20, 30]), np.array([10, 20, 30, 40]),
-                               [(4, 12), (8, 14), (20, 25), (25, 28), (40, 50)])
-    assert result.tolist() == [6, 4, 8, 0]
+from window_conservation.evaluate import metrics
 
 
 def test_matched_control_removes_composition_only_signal() -> None:

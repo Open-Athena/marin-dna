@@ -103,7 +103,7 @@ def test_reverse_complement_and_ambiguity(executable: Path, tmp_path: Path) -> N
 
 
 def test_invalid_parameters_fail(executable: Path, tmp_path: Path) -> None:
-    result = subprocess.run([str(executable), "build", "32", "6", str(tmp_path / "missing"), str(tmp_path / "out")], capture_output=True)
+    result = subprocess.run([str(executable), "build", "32", "6", str(tmp_path / "missing"), str(tmp_path / "out")], capture_output=True, check=False)
     assert result.returncode != 0
     assert not (tmp_path / "out").exists()
 

@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import argparse
 import csv
-import gzip
 import hashlib
 import json
 from pathlib import Path
@@ -12,27 +11,7 @@ from pathlib import Path
 import numpy as np
 
 from window_conservation.prepare import sha256
-
-
-def interval_coverage(starts: np.ndarray, ends: np.ndarray, intervals: list[tuple[int, int]]) -> np.ndarray:
-    """Union annotation intervals before computing half-open window coverage."""
-    merged: list[list[int]] = []
-    for left, right in sorted(intervals):
-        if merged and left <= merged[-1][1]:
-            merged[-1][1] = max(right, merged[-1][1])
-        else:
-            merged.append([left, right])
-    result = np.zeros(len(starts), dtype=np.int64)
-    cursor = 0
-    for i, (start, end) in enumerate(zip(starts, ends, strict=True)):
-        while cursor < len(merged) and merged[cursor][1] <= start:
-            cursor += 1
-        j = cursor
-        while j < len(merged) and merged[j][0] < end:
-            result[i] += max(0, min(end, merged[j][1]) - max(start, merged[j][0]))
-            j += 1
-    assert np.all(result >= 0) and np.all(result <= ends - starts)
-    return result
+from window_conservation.labels import window_labels
 
 
 def load_chromosome(root: Path, k: int, chrom: str, protocol: dict) -> dict[str, np.ndarray]:
@@ -45,15 +24,20 @@ def load_chromosome(root: Path, k: int, chrom: str, protocol: dict) -> dict[str,
     values = {key: np.array([float(row[key]) for row in rows]) for key in rows[0] if key != "chrom"}
     starts, ends = values["start"].astype(np.int64), values["end"].astype(np.int64)
     assert np.all(ends - starts == protocol["window_bases"]) and np.all(starts[1:] >= ends[:-1])
-    intervals = []
-    with gzip.open(root / "data/phastConsElements100way.txt.gz", "rt") as handle:
-        for line in handle:
-            fields = line.rstrip().split("\t")
-            if fields[1] == chrom:
-                intervals.append((int(fields[2]), int(fields[3])))
-    assert intervals
-    values["conserved_bases"] = interval_coverage(starts, ends, intervals)
+    cache = root / "data" / f"labels-{chrom}.npz"
+    if cache.exists():
+        labels = np.load(cache)
+        assert np.array_equal(labels["starts"], starts) and np.array_equal(labels["ends"], ends)
+        assert float(labels["threshold"]) == protocol["conservation_threshold"]
+        assert str(labels["input_manifest_sha256"]) == sha256(root / "data/manifest.json")
+        values.update({key: labels[key] for key in ["conserved_bases", "label_covered_bases", "mean_phylop"]})
+    else:
+        labels = window_labels(root / "data/phyloP_447m.bw", chrom, starts, ends, protocol["conservation_threshold"])
+        np.savez_compressed(cache, starts=starts, ends=ends, threshold=protocol["conservation_threshold"],
+                            input_manifest_sha256=sha256(root / "data/manifest.json"), **labels)
+        values.update(labels)
     values["label"] = values["conserved_bases"] / (ends - starts)
+    values["label_coverage"] = values["label_covered_bases"] / (ends - starts)
     raw_strata = np.stack([np.floor(values[field] / step).astype(int) for field, step in
                            [("gc", .05), ("repeat", .1), ("entropy", .1)]], axis=1)
     _, values["strata"] = np.unique(raw_strata, axis=0, return_inverse=True)
@@ -91,6 +75,10 @@ def metrics(values: dict[str, np.ndarray], score: np.ndarray, fraction: float,
         "selected_repeat": float(np.dot(selected, values["repeat"]) / budget),
         "selected_entropy": float(np.dot(selected, values["entropy"]) / budget),
         "selected_seeds": float(np.dot(selected, values["seeds"]) / budget),
+        "selected_label_coverage": float(np.dot(selected, values.get("label_coverage", np.ones(len(score)))) / budget),
+        "population_label_coverage": float(np.dot(weights, values.get("label_coverage", np.ones(len(score)))) / weights.sum()),
+        "selected_positive_window_fraction": float(np.dot(selected, y >= .2) / budget),
+        "population_positive_window_fraction": float(np.dot(weights, y >= .2) / weights.sum()),
     }
 
 
@@ -102,9 +90,9 @@ def intervals(values: dict[str, np.ndarray], score: np.ndarray, fraction: float,
         sampled = rng.integers(0, len(unique), size=len(unique))
         weights = np.bincount(sampled, minlength=len(unique))[inverse].astype(float)
         result = metrics(values, score, fraction, weights)
-        for key in draws:
+        for key, samples in draws.items():
             if result[key] is not None:
-                draws[key].append(result[key])
+                samples.append(result[key])
     return {key: np.quantile(value, [.025, .975]).tolist() for key, value in draws.items()}
 
 
@@ -125,7 +113,7 @@ def main() -> None:
             for field in protocol["scores"]:
                 result = metrics(values, values[field], protocol["primary_selected_fraction"])
                 matrix.append({"k": k, "score": field, **result})
-        chosen = sorted(matrix, key=lambda x: (-x["matched_enrichment"], -x["random_enrichment"], x["k"], x["score"]))[0]
+        chosen = min(matrix, key=lambda x: (-x["matched_enrichment"], -x["random_enrichment"], x["k"], x["score"]))
         (report / "development.json").write_text(json.dumps(matrix, indent=2) + "\n")
         selection = {"k": chosen["k"], "score": chosen["score"], "protocol_sha256": sha256(Path("config/protocol.json")),
                      "development": chosen, "input_manifest_sha256": sha256(root / "data/manifest.json")}

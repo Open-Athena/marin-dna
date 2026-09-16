@@ -25,8 +25,11 @@ This is an expected hash-table bound, not an adversarial worst-case guarantee.
 
 Complete reference sequences from #568 are indexed without selecting regions by known homology or conservation annotations.
 The primary output is a window score, and the endpoint is conserved-base enrichment at a fixed selected-base budget.
-UCSC hg38 phastCons100way elements supply external evaluation labels; they never enter the scoring index.
-The labels are an existing alignment-derived conservation annotation, not independent biological ground truth.
+The existing vertebrate-projection phyloP_447m bigWig supplies evaluation labels; it never enters the scoring index.
+Reuse the pipeline's phyloP >= 2.2162 definition, counting missing bigWig values as non-conserved over the whole-window denominator and reporting coverage separately.
+The secondary positive-window definition requires at least 20% conserved bases, matching the pipeline's fraction criterion at our different window size.
+The pinned S3 object and checksum identify the exact existing annotation; no new conservation-label source is introduced.
+These labels are alignment-derived conservation annotations, not independent biological ground truth.
 `config/protocol.json` fixes the method grid, chromosome split, controls, selection rule, and advancement criterion before metrics are inspected.
 Select on chromosome 1, publish the selection, and inspect chromosome 2 only afterward.
 Chromosome separation prevents overlapping-window leakage; homologous repeat families can still cross chromosomes.

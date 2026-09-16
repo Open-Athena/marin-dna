@@ -62,3 +62,15 @@ author: user
 - Genome preparation completed for 3,209,286,105 human, 2,818,974,548 mouse, and 3,631,505,655 armadillo bases; annotation download from the first UCSC host timed out.
 - Review during implementation caught and removed an avoidable species-times-index-loading cost: batch scoring loads the aggregate index once for all species.
 - Next: freeze source, complete annotation download, run all-window scores, select on chr1, publish selection, and evaluate chr2 once.
+
+### 2026-09-16 — reuse the established phyloP bigWig before evaluation
+
+- User directed reuse of conservation bigWigs already used by Marin pipelines.
+- Replace the proposed phastCons-elements endpoint with the existing vertebrate-projection `phyloP_447m` definition, before inspecting any development or held-out conservation result.
+- Source: `s3://oa-bolinas/staging/vertebrate_projection_dataset/v1/06549d8f7f3ba76151b9c54a5e52d3e3f4402a2d/full/anchors/phyloP_447m.bw`.
+- Verified object: 10,022,801,463 bytes; ETag `43926355ad35c1a32f4238c7f4b394f4-1195`; last modified 2026-08-01T17:05:34Z.
+- Existing definition: phyloP >= 2.2162, inclusive; NaN contributes zero to the conserved-base numerator and remains in the full-window denominator; retain finite coverage and mean phyloP separately.
+- Primary metric remains conserved-base enrichment at the same fixed selection budget with the same covariate controls.
+  Report the fraction of windows with at least 20% conserved bases as a secondary endpoint, using the pipeline's fraction cutoff at our larger window length.
+- The earlier phastCons table was downloaded but never used for metrics or parameter selection; it is superseded and excluded from the final data owner.
+- The complete-genome scoring run is independent of labels and continues unchanged.
