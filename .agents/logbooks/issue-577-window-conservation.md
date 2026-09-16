@@ -208,3 +208,21 @@ author: user
   GTF and cCRE bare chromosome names are explicitly converted for matching hg38 primary chromosomes at the annotation boundary.
 - All 24 locked tests, ruff checks/format, and warning-as-error C++ builds pass.
   No chromosome-3 conservation labels have been inspected; expanded scoring and chromosome-1 development evaluation are next.
+
+### 2026-09-16 — external-memory implementation and full-corpus check
+
+- Fixed-rate panel counting/scoring completed successfully for all 3/6/10-species checkpoints, totaling 28,145,946,367 support bases at the largest panel.
+  An idle SSH connection ended after the completed rate checkpoint; the exit-zero receipt and all outputs remain intact, no analysis process was left running, and the bottom-hash arm resumes separately with SSH keepalives.
+- Added disk-partitioned global counting with one sequence scan, exact per-partition species/copy counting, and bounded chunks for assembling window scores.
+  No partition triggers a rescan of the complete source genomes.
+- Added exact per-species budget selection using score histograms and eight bounded-memory radix passes over only threshold-tied hashes.
+  This avoids an O(all-windows) resident score array for final BED generation.
+- All 30 locked project tests pass, including global score parity across partition counts, reverse complements, repeated words, partial contigs, and exact streaming-budget selection with ties and invalid windows.
+- Planned resource matrix: 125 versus 1,000 species at 2,048 intervals each and 1,024 versus 8,192 intervals at 250 species; compact versus 32-partition counting at 1/4 and 1/16 sampling, three repetitions per cell.
+  Original 1/4 synthetic tables supply full byte-parity references.
+- After synthetic parity/resource checks, run the same 1/4 sampled partitioned algorithm over all three original full genomes and produce exact 5% per-species BED selections.
+  Verify every original human chr1/chr2 score against the preserved pilot table.
+  This is an all-window feasibility check at three real genomes, not a 1,000-genome production run or new biological endpoint.
+- Expanded the sole worker's task-owned, DeleteOnTermination gp3 root volume from 80 to 200 GiB to hold this trial's temporary word partitions.
+  No IOPS or throughput increase and no additional worker; the original automatic termination and $30 cumulative ceiling remain.
+  At the verified $0.714/hour instance rate, even the full eight-hour worker lifetime plus prior $1.34 and a conservative disk/IPv4 allowance stays below $8, excluding a final invoice reconciliation.

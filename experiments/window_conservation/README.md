@@ -76,3 +76,47 @@ It measures construction and score-table generation; scientific evaluation, down
 An in-memory global index still grows with the number of distinct sampled words and may require impractical memory at thousands of complete genomes.
 Repeatedly rescanning all genomes for bounded query batches would add a batch-count factor; the pilot does not claim that strategy preserves total linear work when scoring every genome.
 A disk-partitioned global implementation is not part of this experiment.
+
+## Expanded panel and bounded-memory comparisons
+
+`config/extension.json` preserves the completed chr2 pilot and declares chr1 development plus fresh chr3 validation for the extension.
+The nested panels contain 3, 6, and 10 complete mammalian genomes; sampling compares fixed rates 1/4, 1/8, and 1/16 with the bottom 16 and 32 hashes of all words in each 100 bp query interval.
+For fixed-size sketches, selected query words are counted against every word in each complete support genome, even if another interval would omit that word from its sketch.
+The bottom-16 comparison uses a superset index seeded by bottom-32, and thinner rates similarly reuse the 1/4 index; separate query-profile runs measure each smaller index's own footprint.
+
+`compact.cpp` uses contiguous 16-byte slots while preserving exact word identity and species/copy counts.
+It retains one query index across incremental species panels and scoring, avoiding repeated index serialization and loading.
+The original dense implementation remains the independent parity reference.
+
+`partition.cpp` routes sampled word occurrences into disk partitions in one input pass, counts each partition exactly, and writes nonzero partial window scores into contiguous window chunks.
+A final pass assembles scores using at most 262,144 interval accumulators.
+There is no complete-genome rescan per partition.
+Expected counting/scoring work is O(B + M) for fixed interval width, with O(U/P + C + P) resident state for P word partitions and C intervals per aggregation chunk, assuming roughly balanced hash partitions.
+Temporary disk and I/O scale with sampled occurrences and partial score records.
+The measured implementation accepts up to 512 partitions; excessive partition size or skew can still exceed RAM and is not handled by recursive repartitioning.
+
+`stream_select.py` makes exact fixed-budget selections independently per species without retaining every window score in RAM.
+It counts distinct score values, finds the threshold, resolves boundary ties with eight disk radix passes over 64-bit hashes, and merges adjacent selected intervals in a final score-stream pass.
+For M intervals, T boundary ties, and D distinct scores across per-species histograms, selection uses O(M + 8T + D log D) work, O(D) RAM, and O(T) scratch disk.
+For the any-species scores at fixed 100 bp width, the finite set of numerator/denominator fractions bounds the number of score values per species independently of genome length.
+Species must appear contiguously in the score stream; within a species, intervals must be in genomic order for merging.
+Output is a BED6+2 file per species plus the selection receipt.
+
+`biology.py` describes fixed selections using the existing pipeline GTF/cCRE assets and checksum-pinned UCSC RepeatMasker annotations.
+Annotation types may overlap; reported fractions are not an exclusive partition.
+GTF coordinates convert from 1-based closed, and bare primary chromosome names explicitly map to the corresponding hg38 `chr` names at the boundary.
+`spatial.py` tests planted tract length, substitution, indels, bin offset, duplicated targets, and shuffled negative controls without using them to retune the real-data selector.
+
+Run the extension sequentially on the authorized worker:
+
+```bash
+uv run --locked python -m window_conservation.extension_prepare --root /data/issue577
+uv run --locked python -m window_conservation.extension_run --root /data/issue577
+uv run --locked python -m window_conservation.extension_evaluate --root /data/issue577 --split dev
+# Commit and publish report/selection.json before the validation command.
+uv run --locked python -m window_conservation.extension_evaluate --root /data/issue577 --split validation --freeze-sha COMMIT
+uv run --locked python -m window_conservation.memory_scaling --root /data/issue577
+uv run --locked python -m window_conservation.biology --root /data/issue577 --split pilot
+uv run --locked python -m window_conservation.biology --root /data/issue577 --split extension
+uv run --locked python -m window_conservation.spatial --root /data/issue577
+```

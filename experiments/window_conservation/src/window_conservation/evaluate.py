@@ -162,6 +162,7 @@ def intervals(
     unique, inverse = np.unique(values["blocks"], return_inverse=True)
     rng = np.random.default_rng(577)
     draws: dict[str, list[float]] = {
+        "selected_annotated_fraction": [],
         "random_enrichment": [],
         "matched_enrichment": [],
         "annotated_base_recall": [],

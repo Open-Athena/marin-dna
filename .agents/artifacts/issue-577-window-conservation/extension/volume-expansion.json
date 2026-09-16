@@ -1,0 +1,18 @@
+{
+    "VolumeModification": {
+        "VolumeId": "vol-0f242c96029f9f3b7",
+        "ModificationState": "modifying",
+        "TargetSize": 200,
+        "TargetIops": 3000,
+        "TargetVolumeType": "gp3",
+        "TargetThroughput": 125,
+        "TargetMultiAttachEnabled": false,
+        "OriginalSize": 80,
+        "OriginalIops": 3000,
+        "OriginalVolumeType": "gp3",
+        "OriginalThroughput": 125,
+        "OriginalMultiAttachEnabled": false,
+        "Progress": 0,
+        "StartTime": "2026-09-16T18:01:29+00:00"
+    }
+}

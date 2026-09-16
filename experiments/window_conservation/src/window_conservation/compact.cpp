@@ -143,6 +143,14 @@ int main(int argc,char **argv) {
             bloom.resize(blocks);
             counts.each([&](uint64_t key,const CompactValue &) { bloom[(key>>20)&(blocks-1)]|=bloom_bits(key); });
         }
+        if (std::string(argv[3])=="-") {
+            if (query=="-") throw std::runtime_error("profile requires query");
+            std::cout << "{\"stage\":\"query_profile\",\"bits\":" << bits << ",\"bottom\":" << bottom
+                      << ",\"unique_keys\":" << counts.size() << ",\"table_bytes\":" << counts.bytes()
+                      << ",\"bloom_bytes\":" << bloom.size()*sizeof(uint64_t) << ",\"peak_rss_kib\":" << peak_rss()
+                      << ",\"seconds\":" << std::chrono::duration<double>(std::chrono::steady_clock::now()-start).count() << "}" << std::endl;
+            return 0;
+        }
         std::ifstream listing(argv[3]);
         if (!listing) throw std::runtime_error("missing species list");
         std::string path; int species=0;

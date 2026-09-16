@@ -11,9 +11,12 @@ from window_conservation.run import measured
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--root", type=Path, required=True)
+    parser.add_argument("--mode", choices=["rate", "bottom", "all"], default="all")
     args = parser.parse_args()
     root = args.root / "extension"
     for mode, bits, bottom in [("rate", 2, 0), ("bottom", 0, 32)]:
+        if args.mode != "all" and mode != args.mode:
+            continue
         measured(
             [
                 str(Path("compact").resolve()),

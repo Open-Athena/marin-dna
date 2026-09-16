@@ -64,8 +64,7 @@ def main() -> None:
             for score in extension["scores"]:
                 result = metrics(values, values[score], 0.05)
                 cell.append({**variant, "score": score, **result})
-            # Memory proxy is the measured distinct key count below; no labels
-            # enter tie breaking except the explicitly declared density endpoint.
+            # Selection uses only the declared development density endpoint.
             winner = min(
                 cell,
                 key=lambda row: (-row["selected_annotated_fraction"], row["score"]),
@@ -128,6 +127,9 @@ def main() -> None:
                     **choice,
                     "validation_metrics": metrics(
                         values, values[choice["score"]], 0.05
+                    ),
+                    "validation_intervals": intervals(
+                        values, values[choice["score"]], 0.05, 200
                     ),
                 }
             )
