@@ -38,8 +38,10 @@ The workflow placed every retained tile in one database and lacked distributed s
 This argues against further tuning of unordered short-window clustering for this purpose, while leaving targeted local alignment and methods with positional, syntenic, or anchor evidence as distinct directions.
 
 [Local species-word prevalence](../experiments/577-local-conservation.md) provides an alignment-free candidate selector at 100 bp resolution.
-On one held-out human chromosome, a three-mammal score with copy filtering, chosen as a secondary comparison after development evaluation, selected 5% of eligible bases containing 23.4% phyloP-conserved bases, versus 4.13% in the eligible sequence.
-The comparison controls GC, repeat fraction, and nucleotide complexity, but does not establish training value or feasibility of an in-memory index across 1,000 complete genomes.
+After excluding repeat-rich windows, a frozen six-mammal score selects 5% of eligible held-out human bases containing 41.9% phyloP-conserved bases, versus 35.7% for a three-mammal comparator.
+Quarter-rate sampling reaches 41.5% with half the query-index peak RAM of bottom-32 MinHash, and exact disk partitions reduce the memory needed for full-genome counting.
+The selected 5% recovers 50.9% of eligible CDS bases but only 10.1% of distal enhancer-like bases, and the primary score is zero for 91.4% of eligible windows.
+These results support a sparse conservation proxy, but do not establish gLM training value, sensitive broader coverage, or accuracy across 1,000 real genomes.
 
 The leading hypothesis is that increasing the density of constrained or correctly annotated sequence improves functional-VEP sample efficiency at fixed compute.
 Whole-genome data may become more useful at larger scale, under weighting that prevents easy background from dominating, or for mutation-process, repeat, phylogeny, and regional-context tasks.
@@ -96,8 +98,8 @@ It should retain a background arm so gains on functional VEP can be weighed agai
   All four loss-ranked half-token objectives harmed Mendelian missense-plus-splicing AUPRC, while pure final-checkpoint teacher KL beat uniform CE at step 200 within the paired evaluation records; one seed, privileged later-lineage supervision, and unmatched per-step compute limit the inference.
 - [Anchor-free clustering of mammalian genome windows](../experiments/521-linclust-conservation.md) tested Linclust, exhaustive alignment controls, longer windows, hash ensembles, denser seeds, DECIPHER, and a source-aware seed graph against projected homology.
   The tested symmetric short-window recipes missed too many known pairs or admitted too many genomic decoys, and the single-database workflow failed at the exact 20-genome scale without a distributed path to all animals or eukaryotes, so this path was stopped without a phyloP selector or training run.
-- [Local conservation scores from species k-mer prevalence](../experiments/577-local-conservation.md) found held-out conservation enrichment from shared-word counts and a higher-density copy-filtered alternative at 100 bp resolution.
-  Biological validation covers three mammals; global-index memory and broader species accuracy remain open.
+- [Local conservation scores from species k-mer prevalence](../experiments/577-local-conservation.md) measures repeat-excluded conservation enrichment at 100 bp resolution, with little MinHash gain over dense fixed-rate sampling.
+  Full-genome disk partitioning addresses resident index memory, while biological validation remains limited to held-out human chromosomes and panels of up to ten mammals.
 
 </details>
 
@@ -110,7 +112,7 @@ It should retain a background arm so gains on functional VEP can be weighed agai
 - Measure the footprint tradeoff across Mendelian and complex-trait VEP, region-matched likelihood gaps, frozen probes, and at least one outcome expected to benefit from neutral sequence.
 - Ablate the current 100-fold repeat downweighting across model and token scales while holding footprint and sampling fixed.
 - Compare conservation or whole-genome alignment with direct annotation, targeted local alignment, and learned single-sequence selection only after the target distribution and leakage contract are fixed.
-- Test local species-word prevalence across broader clades and reduced sampling densities, with disk-partitioned indexing before attempting all-genome scoring at 1,000-species scale.
+- Validate local species-word prevalence across broader clades and larger real-genome corpora, measuring disk traffic, sharding limits, and sensitivity to evolutionary divergence before a 1,000-species production run.
 - Do not revisit symmetric clustering of independently tiled 255 bp whole genomes without materially new positional, syntenic, or candidate-representation evidence; the bounded 511 bp projected-center diagnostic provides no reason to lengthen the window.
 
 </details>
