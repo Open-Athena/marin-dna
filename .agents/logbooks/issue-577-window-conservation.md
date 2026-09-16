@@ -329,3 +329,17 @@ The scope and queue above are living summaries; the entry log below preserves th
   Bottom-16 retains 27,572,117 unique words versus 41,931,054 at quarter-rate, but both cross the same allocation-doubling boundary; retained word counts and peak RSS are distinct measures.
 - Next: publish this freeze, evaluate chr4 once, run the masked global three-genome trial, and complete non-repeat gene/cCRE diagnostics.
   Legacy extension archival is running sequentially first, using the verified private issue-owned bucket.
+
+### 2026-09-16 — extension archive sealed and fresh masked validation started
+
+- Repeat-excluded choices were published at `194a009cee5de2b6a69e4bf49284c70c72aad8b8` in issue comment 5703900339 before chr4 evaluation began.
+  The exact six-species quarter-rate development density is 53.928180246965%; the preceding entry truncated its fourth decimal place.
+- Automatic approval review initially rejected the extension upload because destination ownership/authorization was not established in its context.
+  Read-only STS, expected-owner ACL, and public-access-block checks confirmed authenticated account 836683583872 owns `oa-bolinas`, grants only owner FULL_CONTROL, and enables every public block.
+  The same upload was then approved; no permission workaround or destination change was used.
+- Extension archive: `s3://oa-bolinas/issues/577/local100-extension-v1/6bc0855801e5d1050a71309454d3e912ab9b7ea6/`.
+  All 438 files, totaling 3,155,707,471 bytes, passed round-trip SHA-256 checks.
+  Manifest SHA-256: `57eb16e2e5d4e02b93bda475f508d4937cf6dd72e150bf93d1a6d041043bdf6b`.
+  Archival took 221.01 s and finished before the masked validation process started.
+- The current foreground sequence is fresh chr4 validation, masked global three-genome scoring/selection, gene/cCRE diagnostics, figures, and final output audits.
+  The worker remains available under its existing deadline and budget.
