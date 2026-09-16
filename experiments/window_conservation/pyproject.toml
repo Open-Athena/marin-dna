@@ -1,0 +1,16 @@
+[project]
+name = "window-conservation"
+version = "0.1.0"
+description = "Issue 577 unary conservation scores and scaling benchmark"
+requires-python = ">=3.12,<3.13"
+dependencies = ["numpy==2.5.3", "scipy==1.18.1", "boto3>=1.35", "py2bit==1.0.1", "pyyaml>=6"]
+
+[dependency-groups]
+dev = ["pytest==9.1.1", "ruff==0.16.7", "matplotlib==3.11.2"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
