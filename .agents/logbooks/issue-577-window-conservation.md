@@ -241,3 +241,17 @@ author: user
 - Streaming selection now uses weighted radix threshold selection instead of sorting distinct score values and keeps one species histogram resident at a time.
   Added standalone per-scheme query-index profiles and full-genome/extension artifact audits.
 - All 31 locked tests pass in 11.71 seconds; ruff formatting/checks and three C++ warning-as-error builds pass on the worker.
+
+### 2026-09-16 — fresh chromosome-3 validation complete
+
+- Selection/code freeze: `aef30904792d0a26c5547dcdb885b1bf4665fcdc`, published in issue comment 5702602314 before opening chr3 labels.
+- The frozen ten-species bottom-32 breadth-copy4 primary selects 5% of eligible chromosome-3 bases containing 27.6930% conserved bases, versus 20.1387% for the three-species rate-4 any-copy4 baseline.
+  The paired 200-block-bootstrap density difference interval is +7.1074 to +8.0403 percentage points, around a +7.5543-point estimate.
+- Primary random enrichment is 7.1974×, matched enrichment 4.9758×, and annotated-base recall 35.9869%.
+  Baseline recall is 26.1702%; composition-matched enrichment is 5.0863×, so the extension improves the declared absolute-density endpoint rather than every possible enrichment statistic.
+- At the prespecified 1% budget the primary contains 64.2041% conserved bases and recovers 16.6859%; at 10%, density is 17.2218% and recall 44.7593%.
+- At ten species, fixed-rate 1/4 reaches 27.3423% density, bottom-16 26.7229%, and bottom-32 27.6930%.
+  MinHash's incremental gain over the dense fixed-rate sample is only 0.3508 percentage points and is not a matched-memory comparison.
+  The larger panel supplies most of the combined gain; per-scheme index footprints remain to be measured.
+- All fifteen cell winners were fixed using chr1 and reported on chr3 without retuning.
+  The resource matrix is now running, followed by full three-genome scoring/selection and descriptive controls.
