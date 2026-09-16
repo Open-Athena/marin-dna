@@ -1,0 +1,26 @@
+{
+  "producing_commit": "227b57f26418a9dc5750e513207415de8aecf13d",
+  "archive_prefix": "s3://oa-bolinas/issues/577/local100-repeatfree-v1/227b57f26418a9dc5750e513207415de8aecf13d/",
+  "archive_files": 178,
+  "archive_bytes": 2397047735,
+  "archive_manifest_sha256": "a2e63d2fee9c378cff6613020c8988c514f211accfda5a1058596a1ad2f2e16a",
+  "archive_verification": "All objects downloaded and SHA-256 checked; manifest round-trip byte checked.",
+  "worker": {
+    "instance_id": "i-0f0be03bac311291c",
+    "type": "c7i.4xlarge",
+    "region": "us-east-2",
+    "launch_utc": "2026-09-16T15:19:55Z",
+    "scheduled_shutdown_utc": "2026-09-16T23:20:12Z",
+    "shutdown_behavior": "terminate",
+    "state": "Idle and available for follow-up until scheduled deadline; no analysis/archive subprocess left running at 20:54:50 UTC."
+  },
+  "budget": {
+    "authorized_ec2_usd": 30,
+    "conservative_cumulative_ec2_ebs_ipv4_estimate_through_deadline_usd_upper_bound": 8,
+    "includes": "Current worker through automatic deadline plus prior issue-568 run; not invoiced actual costs.",
+    "instance_hourly_usd": 0.714
+  },
+  "tests": "38 passed in 12.16 s; ruff passed; C++ sources unchanged from previously passing warning-as-error builds.",
+  "interpretation_pr": "https://github.com/Open-Athena/marin-dna/pull/578",
+  "disposition": "interpretation PR open; do not close coordinating issue before merge"
+}

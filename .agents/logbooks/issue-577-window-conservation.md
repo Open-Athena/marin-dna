@@ -386,3 +386,15 @@ The scope and queue above are living summaries; the entry log below preserves th
   Rendered panel, resource, functional, and budget figures were inspected for clipping, labels, scales, and consistency.
 - Worker remains available until its existing 23:20:12 UTC deadline; conservative cumulative EC2/EBS/IPv4 estimate through that deadline remains below $8 of the authorized $30.
   No additional machine or production run was launched.
+
+### 2026-09-16 — masked archive sealed and interpretation published for review
+
+- Producing source/results commit: `227b57f26418a9dc5750e513207415de8aecf13d`.
+  Private archive: `s3://oa-bolinas/issues/577/local100-repeatfree-v1/227b57f26418a9dc5750e513207415de8aecf13d/`.
+  All 178 files totaling 2,397,047,735 bytes passed round-trip SHA-256 checks; archive completed in 140.937 s.
+  Manifest SHA-256: `a2e63d2fee9c378cff6613020c8988c514f211accfda5a1058596a1ad2f2e16a`.
+- PR #578 now records the repeat-excluded result, requested budget sensitivity, functional base recall, and the positive-score saturation limit, with four inspected SVG figures.
+  Published documentation head is `068a42b811ea8a6b44e47202d2f3d3e3a9082f79`; independent review requested in comment 5704351961.
+  Tests and pre-commit CI have passed; the dashboard build and independent review are still running at this snapshot.
+- At 20:54:50 UTC, no analysis/archive subprocess remained on the worker, disk had 113 GiB free, and the scheduled shutdown remained 23:20:12 UTC.
+  The instance remains available at the user's request within the original budget.
