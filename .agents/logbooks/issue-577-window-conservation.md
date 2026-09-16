@@ -398,3 +398,14 @@ The scope and queue above are living summaries; the entry log below preserves th
   Tests and pre-commit CI have passed; the dashboard build and independent review are still running at this snapshot.
 - At 20:54:50 UTC, no analysis/archive subprocess remained on the worker, disk had 113 GiB free, and the scheduled shutdown remained 23:20:12 UTC.
   The instance remains available at the user's request within the original budget.
+
+### 2026-09-16 — independent review and presentation correction
+
+- Independent review completed successfully in GitHub run 35149189330, comment 5704356823.
+  It found no blocking internal-consistency or interpretation-scope issue, and identified one low-severity label ambiguity: the resource figure called the original index "Baseline" while prose called it "Original".
+  Its raw-artifact fetches were not permitted by that review job's tool allowlist, so it verified document ratios and figure/prose agreement rather than independently recomputing raw results.
+- Corrected that plot label to "Original" and harmonized the budget figure's "Six-species MinHash" label with the table.
+  Regenerated and inspected both plots; all 38 tests passed again in 11.90 s, with ruff checks and formatting clean.
+  This is a presentation-only follow-up; archived numerical evidence and its producing commit remain unchanged.
+- The two review threads from the earlier pilot revision were answered and resolved against the published replacement interpretation.
+  CI for documentation head 068a42b8 passed quality, tests, and dashboard build before this label-only revision.

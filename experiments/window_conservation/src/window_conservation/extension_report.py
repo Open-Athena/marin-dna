@@ -136,7 +136,10 @@ def main() -> None:
         for r in summaries
         if r["species"] == 1000 and r["windows_per_species"] == 2048
     ]
-    labels = [f"{r['mode'].capitalize()}\n{r['sample_rate']}" for r in chosen]
+    labels = [
+        f"{'Original' if r['mode'] == 'baseline' else r['mode'].capitalize()}\n{r['sample_rate']}"
+        for r in chosen
+    ]
     for ax, field, low, high, label in [
         (
             axes[0],
@@ -204,7 +207,7 @@ def main() -> None:
         fig, axes = plt.subplots(1, 2, figsize=(10, 4.8), layout="constrained")
         for choice, label in [
             ("baseline", "Three-species baseline"),
-            ("primary", "Six-species primary"),
+            ("primary", "Six-species MinHash"),
         ]:
             rows = budgets[choice]
             x = [100 * r["budget"] for r in rows]
