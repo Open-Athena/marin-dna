@@ -128,3 +128,18 @@ author: user
 - The amended protocol explicitly records that this secondary comparison was added after inspecting development results.
 - Both settings and all output budgets are frozen together; the held-out evaluation will produce both in one invocation without retuning.
 - Validation still passes all 16 locked tests; report/audit tooling checks BED6+2 outputs for both settings.
+
+### 2026-09-16 — frozen chromosome-2 conservation result
+
+- Evaluation: `uv run --locked python -m window_conservation.evaluate --root /data/issue577 --split heldout --freeze-sha a9a641a1ae8fbc126e4d8be12889ff562fc5f734`.
+- One invocation evaluated both frozen choices; runtime 75.75 seconds and peak RSS 692,228 KiB.
+- Eligible chr2 intervals: 2,405,464; 5% selection contains 120,273 intervals / 12,027,300 bases.
+- Primary k25/any: 14.5902% conserved bases, 3.53310× random (95% CI 3.26899–3.82294), 5.68280× matched (5.42107–5.87283), and 17.6655% conserved-base recall.
+- Secondary k25/any_copy4: 23.3865% conserved bases, 5.66321× random (5.39075–5.94940), 5.53423× matched (5.34515–5.66324), and 28.3160% conserved-base recall.
+- Population conserved-base fraction: 4.12956%; simple low-repeat, high-entropy, and high-GC selectors obtain 8.15555%, 3.61662%, and 5.41432% at the same 5% budget.
+- At the prespecified secondary 1% budget, copy-filtered selection contains 60.0786% conserved bases and recovers 14.5480% of all annotated conserved bases.
+  This is a precision–coverage tradeoff, not a new held-out tuning decision.
+- The original biological gate passes.
+- Interpretation: three genomes suffice for measurable local conservation enrichment; copy filtering improves absolute conserved-base density in this panel.
+  This does not establish a calibrated conservation probability, training benefit, or generalization to 1,000 real genomes.
+- Remaining work: finish the 21 synthetic timing runs, inspect figures and output contracts, archive, terminate the worker, and deliver the interpretation for review.
