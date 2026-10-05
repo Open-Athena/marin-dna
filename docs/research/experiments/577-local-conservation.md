@@ -142,7 +142,7 @@ Expected linear hash work therefore does not establish constant-throughput produ
 
 _Medians and minimum-to-maximum ranges over three repetitions on 1,000 synthetic species × 2,048 intervals, totaling 204.8 million bases.
 Each run uses one CPU process on the same worker.
-The matrix independently varies species and intervals per species and checks all quarter-rate scores against the complete baseline tables.
+The matrix independently varies species and intervals per species.
 These measurements exclude biological evaluation and final selection; the real-genome measurement above includes selection._
 
 ## Limitations
