@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import polars as pl
@@ -215,8 +216,12 @@ def test_combine_sequence_parquets_rejects_empty_input_with_wrong_schema(
         )
 
 
+@pytest.mark.parametrize("anchor_mode", ["generated", "external", "smoke"])
+@pytest.mark.parametrize("synthetic", [False, True])
 def test_dataset_card_distinguishes_anchor_filter_from_repeat_mask_case(
     tmp_path: Path,
+    anchor_mode: str,
+    synthetic: bool,
 ) -> None:
     train = tmp_path / "train.parquet"
     validation = tmp_path / "validation.parquet"
@@ -230,7 +235,33 @@ def test_dataset_card_distinguishes_anchor_filter_from_repeat_mask_case(
     )
     frame.write_parquet(train)
     frame.write_parquet(validation)
-    species_manifest().write_csv(manifest, separator="\t")
+    species = species_manifest()
+    species.write_csv(manifest, separator="\t")
+    config = {
+        "tier": "smoke" if anchor_mode == "smoke" else "full",
+        "phyloP_447m_threshold": 2.2162,
+        "min_proportion_conserved": 0.2,
+    }
+    if anchor_mode == "external":
+        config["anchors"] = "unfiltered-external.tsv"
+        config["anchors_sha256"] = "b" * 64
+    origin = "synthetic-test-only" if synthetic else "fixture-recorded-origin"
+    provenance = tmp_path / "assets.json"
+    provenance.write_text(
+        json.dumps(
+            {
+                "pipeline_commit": "a" * 40,
+                "config": config,
+                "chains": {
+                    name: {"chain_origin": origin} for name in species["alignment_name"]
+                },
+                "genomes": {
+                    name: {"origin": origin}
+                    for name in ["hg38", *species["alignment_name"]]
+                },
+            }
+        )
+    )
 
     write_dataset_card(
         train,
@@ -242,6 +273,7 @@ def test_dataset_card_distinguishes_anchor_filter_from_repeat_mask_case(
         region_label="cds",
         species_scope="all",
         validation_seed=42,
+        provenance_path=provenance,
     )
 
     text = " ".join(card.read_text().split())
@@ -250,12 +282,24 @@ def test_dataset_card_distinguishes_anchor_filter_from_repeat_mask_case(
         "data/train/*.jsonl.zst - split: validation path: "
         "data/validation/*.jsonl.zst" in text
     )
-    assert (
-        "Anchor eligibility uses the pipeline's pinned phyloP conservation filter."
-        in text
-    )
+    if anchor_mode == "generated":
+        assert "Anchor eligibility uses the pipeline's configured phyloP" in text
+        assert "base-score threshold 2.2162" in text
+        assert "minimum conserved-base fraction 0.2" in text
+    elif anchor_mode == "external":
+        assert "externally supplied, checksum-pinned catalog" in text
+        assert "no additional phyloP eligibility filter" in text
+        assert "Anchor eligibility uses" not in text
+    else:
+        assert "pinned smoke catalog" in text
+        assert "no phyloP eligibility filter" in text
+        assert "Anchor eligibility uses" not in text
+    assert ("fabricated synthetic test assets" in text) == synthetic
+    assert f"Recorded chain origins: {origin}." in text
+    assert f"Recorded genome origins: {origin}." in text
+    assert "Zoonomia-derived" not in text
     assert "lowercase bases preserve source repeat masking" in text
-    assert "Sequence case is independent of that filter" in text
+    assert "Sequence case is independent of anchor selection" in text
     assert "project only the central human nucleotide" in text
     assert "conservation scores never rewrite emitted characters or case" in text
     assert "sampled uniformly without replacement with seed 42" in text

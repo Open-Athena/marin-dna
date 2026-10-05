@@ -1,276 +1,163 @@
 # Vertebrate projection dataset
 
-This independent Snakemake pipeline builds 255 bp, hg38-human-anchored training examples from three sources:
+Build human-anchored 255-bp training sequences with one chain-based workflow for mammals and non-mammalian vertebrates.
+The same `workflow/Snakefile` selects or reads human anchors, projects their central nucleotide with UCSC `liftOver`, extracts assembly-matched sequences, writes QC, and builds row-random training/validation splits.
+No active rule opens HAL, scans MultiZ MAFs, or generates chains.
+The HAL/MultiZ workflow remains reproducible at [the historical commit](https://github.com/Open-Athena/marin-dna/tree/086f74ed31b4c471f538b2f9a466c866ee4e964c/snakemake/vertebrate_projection_dataset).
+Existing S3 and Hugging Face datasets are unchanged.
 
-- the human hg38 reference sequence, once per anchor;
-- one family-deduplicated mammal projection target from each of 107 families in the Zoonomia 447-mammal Cactus HAL; and
-- one family-deduplicated non-mammal target from each of 28 vertebrate families represented in the UCSC hg38 MultiZ 100-way alignment.
+## Setup and smoke test
 
-For every non-human target, the pipeline projects only the central human nucleotide and extracts the 255 bp target-genome window centered on its unique mapped locus.
-The retired `snakemake/zoonomia_projection_dataset` workflow is no longer a code or dependency boundary.
-Its existing S3 and Hugging Face artifacts remain historical records and are not read, rewritten, or deleted by this workflow.
-This workflow writes `results/<pipeline_version>/<producer_commit>/<config_sha256>/<tier>/`; producer and configuration keys prevent cross-recipe reuse.
-
-Run commands from `snakemake/vertebrate_projection_dataset` so this project uses its own pinned environment and lockfile. Install it with:
+Run from this independent project root:
 
 ```bash
 uv sync --locked --group dev
+uv run --locked pytest
+uv run --locked snakemake -n --default-storage-provider none
 ```
 
-All coordinates inside the library, manifests, intermediate Parquets, and
-published datasets are **0-based, half-open**. MAF reverse-strand coordinates
-are converted at the parser boundary. Sequence case is preserved from the
-source genome; phyloP is used only to select human anchors and never changes
-emitted sequence characters or case.
-
-## Pinned inputs and cohorts
-
-The full anchor tier independently reproduces the current anchor recipe from
-the values in `config/config.yaml`: 255 bp windows on hg38 primary chromosomes,
-128 bp step, phyloP-447m threshold 2.2162, and at least 20% conserved bases.
-Anchors retain stable IDs and explicit human source coordinates. Region labels
-use the pinned v4 labeling parameters in the same config.
-
-`config/species_candidates.tsv` records all 107 non-human Zoonomia targets and
-38 non-mammal MultiZ candidates. `config/species_selected.tsv` contains the 107
-Zoonomia targets and the 28 deterministic one-per-family MultiZ selections.
-Human is deliberately absent from both projection-target sets and is added as
-`human_reference` exactly once per anchor. Both manifests record alignment and
-scientific names, assembly, taxonomy ID, family, clade, phylogenetic rank,
-backend, pinned assembly ranking fields, selection status, and reason. Loading
-either manifest recomputes the selection decision and asserts selected-family,
-taxonomy-ID, and assembly uniqueness.
-
-The source manifests can be regenerated with:
+The default configuration uses three fabricated human anchors, one mammal target, one bird target, and tiny FASTAs.
+It exercises both strands, an unmapped anchor, sequence case, QC, and dataset splitting without downloading biological alignments or genomes.
+These fixtures are software tests, not biological validation, and cannot be used with `tier=full`.
+External bioinformatics programs are installed through the rule-specific Conda environments.
+For a local synthetic smoke execution on a suitable machine, inspect the dry-run first, then run:
 
 ```bash
-uv run --locked marin-dna-build-vertebrate-species-manifest
-uv run --locked marin-dna-build-multiz-mirror-manifest --output config/multiz_mirror.tsv
-uv run --locked marin-dna-build-twobit-manifest --output config/twobit_manifest.tsv
+uv run --locked snakemake --default-storage-provider none --cores 1
 ```
 
-The species script queries pinned NCBI taxonomy/assembly metadata, and the 2bit script queries UCSC's published checksum indexes plus its public S3 mirror metadata, so review either diff before accepting a regeneration. The committed files are the pipeline inputs; runtime species selection never relies on name matching. `config/twobit_manifest.tsv` pins the exact v1 human and 28 MultiZ-target archives by byte size and either UCSC-published MD5 or a locally reproducible S3 multipart ETag.
+Follow the inherited shared-node resource limits even for tests.
+Do not run biological projection, whole-genome chain loading, or data-scale sorting on the shared development VM.
+Use an explicitly approved remote worker for those operations.
 
-## MultiZ mirror and local staging
+## Biological inputs
 
-`config/multiz_mirror.tsv` pins the 24 primary-chromosome compressed MAFs, both
-species-tree representations, source README/checksum metadata, byte sizes, MD5
-checksums, source URLs, and the immutable S3 prefix
-`s3://oa-bolinas/staging/multiz100way/hg38/ucsc-2015-05-12`.
+Supply `chain_assets` and `genome_assets` TSV paths in a configuration overlay.
+Each path inside a manifest is project-relative, absolute, or an explicit S3 URI.
+There are no inferred downloads, assembly aliases, or automatic fallbacks to a different alignment or genome.
+Missing inputs and mismatched checksums fail before projection or sequence extraction.
 
-Mirroring is an explicit, mutating bootstrap operation and is not in the normal
-DAG. Run it only after reviewing the manifest and S3 destination:
+The committed species manifest contains the established family-deduplicated cohort: 107 non-human mammals and 28 non-mammalian vertebrates.
+Human is added once per anchor and is never a projection target.
+The chain manifest selects an explicit subset for smoke runs; `tier=full` requires every selected target.
+Species identities and assembly versions must match `config/species_selected.tsv` exactly.
+The existing `zoonomia_cactus` and `ucsc_multiz100way` values identify cohort provenance, not the query program.
+All non-human rows now use `liftOver`; non-mammalian chains are UCSC pairwise alignments and are not assumed equivalent to MultiZ.
+
+The chain manifest follows `tests/fixtures/chains/pipeline_assets.tsv`:
+
+- `alignment_name`, `assembly`, `source_assembly` (`hg38`), and `chain_origin` identify the target and producing alignment/recipe.
+- `chain`, `source_sizes`, and `target_sizes` each have a corresponding `_sha256` field.
+- All chains use the same pinned human chromosome dictionary.
+  Chain `t` is human; chain `q` is the destination genome.
+  Every chain header is checked against the complete dictionaries, including contigs absent from the query sample.
+
+The genome manifest follows `tests/fixtures/chains/genomes.tsv`:
+
+- Include `hg38` and exactly the chain targets.
+- `name`, `assembly`, and `origin` identify each sequence source.
+- `sequence`, `format` (`twobit` or uncompressed `fasta`), and `sha256` pin the sequence bytes.
+- `chrom_sizes` and `chrom_sizes_sha256` pin the complete sequence dictionary.
+  Each target's dictionary must be the exact one used to validate its chain.
+
+Existing HAL-extracted mammalian 2bits can be registered as pinned inputs; they are not regenerated by this workflow.
+Use those assembly-matched archives when retaining the previous sequence source matters.
+Do not substitute a newer NCBI assembly based only on species name.
+FASTA inputs are converted with `faToTwoBit`; use A/C/G/T/N sequence because 2bit does not preserve other IUPAC symbols.
+After preparing each archive, `twoBitInfo` must reproduce its entire pinned dictionary exactly.
+Projected contig sizes are checked again before sequence extraction.
+
+HAL-derived hg38 chains can name GenBank scaffolds and `chrMT` where UCSC uses other names.
+An explicit alias-aware source dictionary may include those names when independently verified against the matching assembly report.
+It must still contain every human genome contig with the same length.
+The reader never renames queries or derives dictionary sizes from the chain being validated.
+
+No complete biological chain-plus-genome manifest is bundled with this migration.
+Register the chosen releases and their verified digests before a biological execution.
+The existing mammalian chain release and bounded comparison are documented in [issue #523](https://github.com/Open-Athena/marin-dna/issues/523).
+Those sampled comparisons do not establish genome-wide equivalence or validate sequence content for a new genome source.
+
+## Anchors and projection contract
+
+Internal coordinates are 0-based, half-open.
+The anchor table contains unique BED-safe string `query_name` values, `source_chrom`, Int64 `source_start`/`source_end`, and `region_label`.
+Every source window is exactly 255 bp and fits the pinned hg38 dictionary.
+For an existing TSV/Parquet catalog, set `anchors` and `anchors_sha256`.
+Otherwise the smoke tier reads `smoke_anchors`, and the full tier constructs the uniform 255/128 grid with the configured phyloP threshold, conserved-base fraction, and region-labeling recipe.
+Anchor selection changes neither emitted sequence case nor sequence characters.
+
+For `[s, s + 255)`, one BED batch per species submits `[s + 127, s + 128)` to `liftOver -minMatch=0.95 -multiple`.
+All mappings are retained for validation.
+Ambiguous, inconsistent, overlapping, multi-chromosome, or multi-strand mappings are rejected rather than selecting an arbitrary copy.
+A retained target locus is resized to a 255-bp window with sufficient flanking sequence, and reverse-strand windows are reverse-complemented during extraction.
+The mapped center nucleotide must appear at index 127 in human-anchor orientation.
+Sequence case is preserved from the archive.
+
+Accepted plus rejected queries must equal the input count for every species.
+Raw mapped/unmapped BEDs and rejection reasons remain available.
+QC counts explicit unmapped queries once under `no_mapping`; sequence-extraction rejections also feed the shared QC path.
+The default `all` target builds sequences, QC, dataset splits, and draft cards.
+The `all_projections` target stops at accepted/rejected coordinates and audits within the same Snakefile.
+
+## Execution and storage
+
+Every biological run needs a reviewed configuration and an approved compute budget.
+Commit the complete recipe before execution and inspect its dry-run:
 
 ```bash
-uv run --locked snakemake \
-  --profile workflow/profiles/default \
-  mirror_multiz_bootstrap
+uv run --locked snakemake -n --configfile path/to/biological.yaml
 ```
 
-Normal projection rules stage only configured chromosomes from S3 to local NVMe and verify size and MD5 before use. They fail on a missing/mismatched S3 object and never fall back to UCSC. The Zoonomia HAL follows the same S3-to-NVMe staging pattern. All HAL and MAF staging writes to a sibling partial file, validates it, and atomically installs it.
+The default profile uses `s3://oa-bolinas/snakemake/vertebrate_projection_dataset/`.
+Durable outputs live under `results/chains-v1/<producer-commit>/<config-and-manifest-hash>/<tier>/`.
+The identity hashes the resolved configuration, species manifest, chain manifest, genome manifest, and input anchor digest.
+`metadata/producer.json` records that identity; `metadata/assets.json` records the configuration and exact asset pins.
+`metadata/config.yaml` preserves the resolved configuration, including overlays, for publication validation.
+Genome working copies and their source-verification receipts are `local()` intermediates.
+They are recreated from the pinned inputs on a clean worker and are not uploaded as duplicate genome archives in each result namespace.
+The new namespace cannot silently reuse a v2 HAL/MultiZ result.
+Using `--default-storage-provider none` is only for local fixture/graph checks, not normal biological execution.
 
-Target-genome sequence extraction retains the v1 UCSC human and `gbdb` 2bit sources. Each download must match `config/twobit_manifest.tsv`; before MultiZ extraction, every chromosome size used by an accepted MAF mapping must exactly match `twoBitInfo` for that archive. UCSC downloads are capped at four concurrent transfers and retry refused/transient connections so a full-worker startup cannot overload the shared endpoint.
+Whole-genome chain loading can dominate a small BED query.
+The per-species `liftover.benchmark.tsv` measures the single batched invocation, including chain loading and excluding staging, validation, and sequence extraction.
+Begin with one species and measured memory before increasing concurrency.
+The example 32-GB projector and 16-GB table reservations are conservative placeholders, not full-grid measurements.
+The table adapter materializes one species at a time and is not a bounded-memory all-grid implementation.
+Keep `final_large_scan=1` for the large downstream QC and dataset consumers.
 
-## Projection contract
+`sky/project.yaml` provides a spot-worker template with a dry-run default and no HAL/NVMe RAID setup.
+Its minimum worker memory is 40 GiB, with a 32,000-MB Snakemake pool matching the largest default projection reservation and leaving runtime headroom.
+The default workflow profile uses the same pool; increase both the worker memory and scheduler pool when raising per-rule reservations.
+Choose resources and disk capacity from the reviewed DAG and asset sizes before launch.
+No full projection, chain construction, dataset upload, or training run is implied by this PR.
 
-The request table retains each original 255 bp human anchor for identity and downstream row-random selection, and stores `[source_start + 127, source_start + 128)` as the only interval submitted to HAL or MAF.
-HAL receives all active anchors in one BED and runs one `halLiftover` job per mammal species.
-MultiZ reads each configured chromosome MAF once and emits candidates for all active non-mammal species.
+## Dataset splits and publication
 
-The HAL and MAF adapters emit the same fragment schema.
-The shared contract then:
+Each cohort first writes internal `train.parquet` and `validation.parquet` files.
+Validation selects the configured number of original-orientation rows using stable identity hashes, a cohort salt, and the configured seed.
+The full default is 16,384 rows; the synthetic smoke uses one.
+Selection is row-level, so projections of one human anchor can occur on both sides.
+Reverse-complement augmentation applies only to training originals.
+Selection, composition, and split-summary sidecars record row identities, counts, digests, and token totals.
 
-1. groups fragments by `(query_name, species)`;
-2. rejects inconsistent metadata, duplicated or overlapping mappings, multi-chromosome mappings, multi-strand mappings, invalid bounds, and target spans outside 1–2 bp;
-3. midpoint-resizes the retained target locus to exactly 255 bp within target chromosome bounds; and
-4. extracts source-case-preserving IUPAC DNA from the target assembly and reverse-complements negative-strand mappings.
+`cds_mammals_only` filters the shared accepted CDS rows to human plus the mammalian cohort before its independent validation selection.
+Its finalized splits need not be subsets of the combined CDS splits.
+Do not compare validation losses across differently sampled cohorts as a common benchmark.
 
-Every accepted target sequence is 255 bp and places the mapped center nucleotide at index 127 in human-anchor orientation.
-Target loci without enough flanking sequence to preserve that position are rejected as `target_window_out_of_bounds`.
-Every rejection has one explicit machine-countable reason.
-Every accepted row retains the original human anchor, region, species, assembly, taxonomy, backend, target interval, strand, target-source size, fragment count, aligned-base count, and sequence.
+`all_hf_files` prepares shuffled JSONL.zst shards and cards locally, validates schemas, row counts, split invariants, and digests, and does not write to Hugging Face.
+Validation uses the resolved cohort, shard, split, and ownership settings rather than the committed defaults.
+Cards report the supplied asset origins and distinguish generated phyloP-filtered anchors from external or smoke catalogs; synthetic inputs are explicitly labeled.
+The isolated upload tree contains only `README.md`, `data/train/shard_NNNN.jsonl.zst`, and `data/validation/shard_0000.jsonl.zst`.
+Inputs of at most 100 million augmented rows use the existing deterministic shuffle; larger inputs use a spill-capable hash sort and partitioned NDJSON sink.
+QC and audit files stay outside the upload tree.
+`all_hf` is an explicit external-write target requiring separate approval and checks the exact remote tree and bytes after upload.
+Never publish the synthetic fixture datasets as a biological release.
 
-The full tier uses bounded-memory intermediates.
-Each chromosome MAF is parsed into species-clustered Parquet row groups, and the contract runs independently for each chromosome and species before streaming per-species outputs.
-Each HAL species contract reads one fragment Parquet and derives consistency, bounds, duplicate, and overlap flags with vectorized group summaries.
-An assertion requires exactly one accepted or rejected row per input group.
-HAL contract rules reserve 10 GB to preserve worker memory headroom.
+## QC and review
 
-Human, HAL, and MultiZ sequence extraction all use one compiled `twoBitToFa -bed` call per genome.
-BED6 strand is honored by `twoBitToFa`, and soft-masked case from the 2bit source is preserved.
-Sequence rules reserve 4 GB.
-Sequence combination, row-random dataset split writes, QC aggregation, and inspection candidate selection use lazy streaming scans.
-Publication sharding retains the established deterministic eager shuffle for inputs of at most 100 million post-augmentation rows.
-Larger inputs use a deterministic hash sort and balanced partitioned NDJSON sink in Polars' streaming engine, allowing the sort to spill rather than materializing the entire publication cohort in RAM.
-The conservation-filtered anchor BED is compressed through a temporary plain file, fully decompressed to verify its row count, and atomically installed only after the gzip stream passes its CRC check.
-
-## Runbook
-
-The checked-in profile caps local work at two cores and makes `s3://oa-bolinas/snakemake/vertebrate_projection_dataset/` the default storage prefix. Every output not explicitly marked `local()` is uploaded by Snakemake and can be restored automatically on another worker; `local()` is reserved for large or regenerable NVMe-only staging files and verification receipts. Durable paths include the producing commit and a SHA-256 of the fully resolved Snakemake config, and every namespace stores a matching `metadata/producer.json`. Always commit the complete recipe before execution and dry-run before a real run:
-
-```bash
-uv run --locked snakemake -n \
-  --profile workflow/profiles/default
-```
-
-That dry-run consults the durable S3 state. For a credential-free graph check only, use `--default-storage-provider none`; CI uses that override, but real pipeline executions must retain the profile default.
-
-The historical issue #417 staging snapshot remains a provenance artifact only; it is not an implicit pipeline input or fallback. A fresh v2 execution populates a producer-keyed namespace under the canonical storage prefix.
-
-The default `smoke` tier uses two mammals, five non-mammals spanning birds,
-reptiles, amphibians, ray-finned fish, and jawless vertebrates, chromosomes 7
-and 18, two ZRS positive-control anchors, and small CDS/cCRE/background anchors.
-After the dry-run shows only intended work, launch the smoke tier with `sky/project.yaml` as described below. Do not execute the projection on the shared development node.
-
-Inspect the full graph with:
-
-```bash
-uv run --locked snakemake -n \
-  --profile workflow/profiles/default \
-  --config tier=full
-```
-
-Do not launch the full projection or any paid/cloud job without explicit user
-approval. If the dry-run plans to recompute an upstream or unrelated artifact,
-stop before running it.
-
-### Shared local-node safety
-
-Run data-scale validation, tracing, global sorts/group-bys, and working sets
-larger than 500 MB on the SkyPilot worker, not on the shared development node.
-Any potentially heavy command that must run locally must first acquire the
-nonblocking `/tmp/marin-dna-local-heavy.lock`, require at least 6 GiB of
-`MemAvailable` and a one-minute load below 2, and run with `nice -n 10` and
-`ionice -c2 -n7`. Set `POLARS_MAX_THREADS=2` and `RAYON_NUM_THREADS=2`, and set
-`OMP_NUM_THREADS`, `MKL_NUM_THREADS`, `OPENBLAS_NUM_THREADS`, and
-`NUMEXPR_NUM_THREADS` to 1 before importing their runtimes. Abort a newly
-started command if `MemAvailable` falls below 4 GiB or the one-minute load
-exceeds 3 during its first minute.
-
-### SkyPilot execution
-
-The 1.26 TB HAL cannot run on a normal root volume. `sky/project.yaml` owns the
-EC2 launch setup: `c6id.12xlarge` in `us-east-2`, both 1,425 GB instance-store
-NVMes combined as RAID0, explicit free-space checks, Cactus binaries, and
-symlinks that keep Snakemake state and the local working copies of generated results off the 100 GB root volume. Snakemake uploads every non-`local()` result to the profile's canonical S3 prefix as rules complete.
-
-`halLiftover` is single-threaded.
-The workflow bundles every active center-1 request into one BED, then runs one single-threaded, 2 GB job per mammal species.
-The 48-core worker can project species concurrently without reserving idle cores.
-
-The combined projection table is much larger than an individual species file.
-QC, manual inspection, and each cohort writer therefore reserve the shared
-`final_large_scan` resource. Its capacity is one in both the default profile
-and the SkyPilot command, so these consumers run serially instead of
-materializing several copies of the table and exhausting worker memory.
-
-The 74.7 GB MultiZ source mirror is bootstrapped separately and resumably. Each
-uploaded object records its pinned MD5 as S3 user metadata; reruns skip objects
-only when both byte size and MD5 metadata match.
-
-```bash
-sky launch -c vertebrate-multiz-mirror \
-  snakemake/vertebrate_projection_dataset/sky/mirror.yaml \
-  --env PIPELINE_COMMIT_SHA="$(git rev-parse HEAD)"
-
-sky launch -c vertebrate-project \
-  snakemake/vertebrate_projection_dataset/sky/project.yaml \
-  --env TIER=smoke \
-  --env PIPELINE_COMMIT_SHA="$(git rev-parse HEAD)"
-
-sky exec vertebrate-project \
-  snakemake/vertebrate_projection_dataset/sky/project.yaml \
-  --env TIER=full --env TARGET=all --env DRY_RUN=1 \
-  --env PIPELINE_COMMIT_SHA="$(git rev-parse HEAD)"
-```
-
-Actively inspect first-run setup, HAL transfer rate, mounted capacity, rule
-progress, and ZRS/QC outputs. Reuse the same node for a later approved full run
-with the same `sky exec` command and `--env DRY_RUN=0`; terminate it with
-`sky down vertebrate-project` when inspection is complete.
-
-HAL staging downloads to a temporary filename and atomically renames it only after the S3 object size matches and `halStats --genomes` succeeds. The staged HAL and other explicitly `local()` intermediates live only on instance-store NVMe and do not survive termination. Normal results use NVMe as their local working copy and are uploaded automatically to `s3://oa-bolinas/snakemake/vertebrate_projection_dataset/`; a later worker restores them through Snakemake rather than an ad hoc copy step. Do not terminate a worker while rules are still running or before any needed `local()` artifact has been consumed.
-
-Every HAL projection/extraction path also depends on the tier-specific local `metadata/hal_stage_validated.txt` record. Because both the HAL and its receipt are `local()`, a clean worker cannot reuse a durable receipt independently of the NVMe file it certifies; a newly staged or changed HAL is revalidated before use.
-
-## Splits and output datasets
-
-Each configured region cohort first gets internal `train.parquet` and `validation.parquet` files.
-Parquet is the efficient projection, split, and card-count intermediate; it is not the published training format.
-
-For each cohort, validation selection considers only original-orientation rows after cohort filters and before reverse-complement augmentation.
-The selector hashes each stable biological row identity with the configured seed and a stable region/species-scope cohort salt in Polars, so nested cohorts receive independent rankings.
-It takes exactly `validation_rows` lowest ranks without replacement: 16,384 rows in the full tier and one row in the smoke tier.
-Stable identity tie-breaks make membership independent of input row order.
-Selection is row-level and does not stratify by chromosome, species, alignment backend, or human anchor.
-Chromosome 18 is an ordinary eligible chromosome.
-Different species projections from the same human anchor may occur on opposite sides of the split.
-Every unselected original row remains in training.
-When reverse-complement augmentation is enabled, it applies only to those training originals; validation stays in original orientation and the reverse complement of every selected validation row is excluded from training.
-
-Each cohort writes three audit sidecars in addition to its Parquets.
-`validation_selection.tsv` records stable identities, selection ranks, the seed, cohort salt, and selection digests.
-`validation_composition.tsv` reconciles eligible and selected counts by chromosome, species, and alignment backend.
-`split_summary.json` records the strategy, seed, cohort salt, source/train/validation counts, augmentation setting, and realized token count.
-At 16,384 rows, validation has exactly 4,194,304 tokens including BOS.
-These audit sidecars remain in the pipeline results and are never copied into the Hugging Face artifact directory.
-
-The full tier additionally writes `datasets/cds_mammals_only/`, which applies the CDS label after the complete shared projection/acceptance pass and then retains only `human_reference` and `zoonomia_cactus` rows.
-The regular `datasets/cds/` cohort uses the same pre-split mammal rows and also includes `ucsc_multiz100way`.
-Before splitting, the mammals-only eligible rows are an exact subset of the combined arm.
-Each cohort selects validation independently because its eligible species set differs, so finalized training and validation rows are not guaranteed to preserve that subset relationship.
-The realized validation rows, and therefore validation-loss levels, must not be compared directly between arms.
-
-For Hugging Face, `all_hf_files` deterministically prepares the v2 center-1 datasets: shuffle each split, write 64 full-tier train shards (four in smoke) and one validation shard as JSONL, then zstd-compress them. On a dedicated HF worker, an explicitly supplied `PIPELINE_COMMIT_SHA` selects the matching producer/config namespace; the worker restores its producer manifest, source split Parquets, and active-species manifest through default Snakemake S3 storage. Local JSONL.zst artifacts are rebuilt on that worker and are never recovered through a separate issue-specific snapshot path.
-Each isolated `hf/<cohort>/` directory contains only:
-
-```text
-README.md
-data/train/shard_NNNN.jsonl.zst
-data/validation/shard_0000.jsonl.zst
-```
-
-Generated cards contain the exact committed pipeline SHA, split row counts, schema, selected species counts, and explicit `data/<split>/*.jsonl.zst` loader paths. The validation manifest also records the resolved-config SHA-256 and refuses a producer manifest that does not match the restored namespace. `all_hf_files` then rejects any missing or unexpected file, validates zstd integrity and each shard’s boundary-record schema and split invariants, reconciles every shard row count to its source Parquet, and writes a content-hash manifest outside the upload tree. Build these review artifacts without external writes:
-
-```bash
-uv run --locked snakemake \
-  --profile workflow/profiles/default \
-  all_hf_files
-```
-
-After explicit human approval, `all_hf` serially uploads only those isolated artifact directories with the Xet client. Before each upload it rejects unexpected existing Hub paths; after upload it requires the exact remote tree, LFS sizes and SHA-256 hashes, and a byte-identical card at the resulting revision. It writes external Hugging Face state and is intentionally neither a default target nor part of `all_hf_files`. Upload completion markers are temporary and local, so a clean invocation always rechecks mutable Hub state instead of trusting a durable receipt. The large-folder client uses one worker per repository to avoid overwhelming the Hub LFS batch endpoint; interrupted uploads are resumable.
-`config/HF_DATASET_CARD_TEMPLATE.md` is the pre-run review draft.
-
-The published encoding and layout are JSONL.zst; internal Parquet and every QC TSV/JSON/Parquet stay off Hugging Face.
-
-## QC and manual review
-
-The default DAG writes:
-
-- `qc/per_anchor.parquet`: mammal/non-mammal/total recovery, requested fraction, recovered clades, deepest clade, and no-mapping count per anchor;
-- `qc/per_anchor_scope.parquet`: recovery by anchor, backend, and clade;
-- `qc/rejection_counts.parquet`: explicit reasons including `no_mapping`;
-- `qc/aggregates.parquet`: region/backend/clade counts, median, q10/q25/q75/q90, mean fraction, and fraction of anchors reaching the clade; and
-- `qc/manual_inspection.md` plus accepted/rejected TSV samples.
-
-The full-dataset inspection sample deterministically includes several CDS and
-cCRE rows, accepted fragmented mappings when present, and explicit rejection
-examples. ZRS is QC only: the two named loci are projected in a separate
-sidecar check and are intentionally not appended to the conservation-filtered
-training grid. The smoke/sidecar check fails unless each ZRS anchor recovers at
-least two non-mammal clades. Both reports remain marked **pending human review**
-until a reviewer completes the UCSC/raw MAF and HAL coordinate spot checks and
-records any exclusions.
-
-Compare aggregate CDS breadth with cCRE/enhancer breadth after the real build;
-broader CDS recovery is a biological expectation, not a per-anchor invariant.
-
-## Tests
-
-Focused tests cover the exact center-base request, MAF gaps, fragmented blocks, reverse strands, coordinate conversion, duplicate and ambiguous mappings, bounds, case-preserving sequence orientation, manifest decisions, row-random split selection, mirroring checks, QC, and inspection sampling:
-
-```bash
-uv run --locked --group dev pytest
-```
-
-The root repository tests are separate from this independently locked project. The full-window baseline was produced in [issue 417](https://github.com/Open-Athena/marin-dna/issues/417); [issue 473](https://github.com/Open-Athena/marin-dna/issues/473) selected center-1 as the production default.
+The workflow writes per-anchor recovery, backend/clade summaries, rejection counts, aggregates, and deterministic accepted/rejected inspection samples.
+Inspection samples each region present in the input, including single-region catalogs.
+Set `require_zrs: true` only for a biological smoke catalog containing the expected ZRS controls and a target set spanning enough non-mammalian clades.
+The synthetic fixture has no biological positive-control interpretation.
+Manual review should inspect both strands, mapped center placement, sequence case, and assembly/dictionary agreement, and compare sampled mappings to saved source-alignment projections.
+Report sampled agreement with its sampling design; do not claim genome-wide equivalence from a smoke test.

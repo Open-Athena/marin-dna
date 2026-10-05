@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import polars as pl
+import pytest
 from marin_dna_vertebrate_projection.contract import (
     ACCEPTED_SCHEMA,
     REJECTION_SCHEMA,
@@ -53,7 +54,8 @@ def _accepted(
     }
 
 
-def test_qc_reports_recovery_breadth_and_missing_reasons() -> None:
+@pytest.mark.parametrize("reason", ["multi_strand", "unmapped"])
+def test_qc_reports_recovery_breadth_and_missing_reasons(reason: str) -> None:
     anchors = pl.DataFrame(
         {
             "query_name": ["a1", "a2"],
@@ -86,7 +88,7 @@ def test_qc_reports_recovery_breadth_and_missing_reasons() -> None:
                 "clade": "amphibians",
                 "phylogenetic_rank": 4,
                 "alignment_source": "ucsc_multiz100way",
-                "rejection_reason": "multi_strand",
+                "rejection_reason": reason,
                 "detail": "+,-",
                 "fragment_count": 2,
             }
@@ -100,19 +102,21 @@ def test_qc_reports_recovery_breadth_and_missing_reasons() -> None:
     assert a1["requested_total_species"] == 4
     assert a1["recovered_fraction"] == 0.5
     assert a1["deepest_recovered_clade"] == "birds"
-    assert a1["no_mapping_count"] == 1
+    assert a1["no_mapping_count"] == (2 if reason == "unmapped" else 1)
     reasons = tables.rejection_counts.filter(pl.col("query_name") == "a1")
-    assert dict(reasons.select("rejection_reason", "count").iter_rows()) == {
-        "multi_strand": 1,
-        "no_mapping": 1,
-    }
+    assert dict(reasons.select("rejection_reason", "count").iter_rows()) == (
+        {"no_mapping": 2}
+        if reason == "unmapped"
+        else {"multi_strand": 1, "no_mapping": 1}
+    )
     assert set(tables.aggregates["region_label"].to_list()) == {
         "cds",
         "enhancer",
     }
 
 
-def test_streaming_qc_matches_recovery_contract(tmp_path: Path) -> None:
+@pytest.mark.parametrize("reason", ["multi_strand", "unmapped"])
+def test_streaming_qc_matches_recovery_contract(tmp_path: Path, reason: str) -> None:
     anchors = pl.DataFrame(
         {
             "query_name": ["a1", "a2"],
@@ -145,7 +149,7 @@ def test_streaming_qc_matches_recovery_contract(tmp_path: Path) -> None:
                 "clade": "amphibians",
                 "phylogenetic_rank": 4,
                 "alignment_source": "ucsc_multiz100way",
-                "rejection_reason": "multi_strand",
+                "rejection_reason": reason,
                 "detail": "+,-",
                 "fragment_count": 2,
             }
@@ -173,12 +177,13 @@ def test_streaming_qc_matches_recovery_contract(tmp_path: Path) -> None:
     assert a1["requested_total_species"] == 4
     assert a1["recovered_fraction"] == 0.5
     assert a1["deepest_recovered_clade"] == "birds"
-    assert a1["no_mapping_count"] == 1
+    assert a1["no_mapping_count"] == (2 if reason == "unmapped" else 1)
     reasons = pl.read_parquet(outputs[2]).filter(pl.col("query_name") == "a1")
-    assert dict(reasons.select("rejection_reason", "count").iter_rows()) == {
-        "multi_strand": 1,
-        "no_mapping": 1,
-    }
+    assert dict(reasons.select("rejection_reason", "count").iter_rows()) == (
+        {"no_mapping": 2}
+        if reason == "unmapped"
+        else {"multi_strand": 1, "no_mapping": 1}
+    )
     assert set(pl.read_parquet(outputs[3])["region_label"].to_list()) == {
         "cds",
         "enhancer",
