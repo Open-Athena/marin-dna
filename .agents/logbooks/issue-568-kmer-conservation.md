@@ -245,3 +245,19 @@ The experiment locks the actual installed version and must not apply ordinary ba
 - Issue #568 records the final review outcome and retains the interpretation-merge gate.
   PR #569 remains open and ready for human review; no merge or issue closure was performed.
   The separate #577/#578 conservation-selector closeout is unchanged.
+
+### 2026-10-05 17:13 UTC — authorized merge and experiment closeout
+
+- The user explicitly authorized merging PR #569 and asked what remains.
+  Updated its branch to current `main`; the five intervening merges changed only evaluation registration files, and `git diff 85a9aaf5 HEAD -- docs/research` confirmed the reviewed research documents were unchanged.
+- The final head `d764cf95ecc048300ad1964516313c2dedb948b2` passed Dashboard, Quality, and Test checks with all four review threads resolved.
+  Ran `gh pr merge 569 --repo Open-Athena/marin-dna --squash --match-head-commit d764cf95ecc048300ad1964516313c2dedb948b2`.
+  GitHub confirmed merge commit `08550fa76e307f66f774c0c0c9473b3462f275a0` at `2026-10-05T17:13:27Z`.
+- Knowledge-base disposition: interpretation page merged.
+  The accepted #568 page and training-regions synthesis are on `main`, alongside the separately completed #577 conservation experiment.
+  This final snapshot supports the issue body's final outcome and completion comment; the merge gate is satisfied.
+- No experiments, paid workers, or model-training runs were launched during review or closeout.
+  Original #568 compute and temporary-storage teardown remain recorded above; the historical cumulative estimate including #577 remains below $8 against the authorized $30, not an invoiced actual.
+- The bounded experiments are complete.
+  Possible subsequent investigations are more sensitive 100 bp conservation evidence for zero-score windows and enhancers, broader real-genome biological and storage validation with a maintained pipeline, and a matched-compute gLM training comparison.
+  These remain future work; no 1,000-real-genome production run or training-benefit test was performed.
