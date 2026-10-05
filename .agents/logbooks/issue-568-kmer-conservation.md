@@ -224,3 +224,24 @@ The experiment locks the actual installed version and must not apply ordinary ba
   No new paid resources were launched.
 - Resolved the interpretation branch's merge conflict with `main`, preserving the separately accepted #577 conservation results and adding #568's bounded pair-retrieval evidence alongside them.
   PR #569 and issue #568 remain open pending review and explicit merge approval.
+
+### 2026-10-05 16:03 UTC — publish review corrections
+
+- Published plotting source and the review receipt at `4db93f0f0f4e5adbaf003bf6a626920dbf6955ad` on the permanent experiment branch.
+  Interpretation PR #569 now points to `a258eef4e3f7772c044e9193fefbe4b343934b18`, whose merge with `main` retains the accepted #577 results.
+- Replied to and resolved all three review threads; the remote reports no unresolved threads and a clean merge state.
+  The published head passed Dashboard build, Quality pre-commit, and Test checks; expected deploy/Claude skips are not failures.
+- Updated the issue body with the review disposition and immutable figure provenance.
+  A fresh Codex review was requested in https://github.com/Open-Athena/marin-dna/pull/569#issuecomment-5998116761 and remains in progress at this checkpoint.
+  No merge was performed; #568 remains open behind the #569 merge gate.
+
+### 2026-10-05 16:08 UTC — second review and final checks
+
+- The fresh independent review completed on `a258eef4` and identified one additional disclosure issue: the first figure's window-length axis is logarithmic.
+  Added that fact to its caption and alt text at `85a9aaf5080a7cb91559d29ee58a36a47a50b17c`, without changing the figure or any measurements.
+- All four review threads are now resolved.
+  The final PR head passed Dashboard build, Quality pre-commit, and Test checks; the caption correction also passed the pinned local documentation hooks.
+  The main worktree and interpretation worktree are clean, and the local validation jobs left no owned workers.
+- Issue #568 records the final review outcome and retains the interpretation-merge gate.
+  PR #569 remains open and ready for human review; no merge or issue closure was performed.
+  The separate #577/#578 conservation-selector closeout is unchanged.
