@@ -75,6 +75,10 @@ No grouped-only score path, metrics path, or bootstrap sidecar is produced.
 Legacy metrics parquets without the appended columns remain valid AUPRC-only artifacts and are not backfilled automatically.
 The leaderboard continues selecting `value`, `se`, `n_groups`, and `n_rows`, so the added columns do not change its output.
 
+Issue #517's strict phyloP selector control uses `config/issue517_phylop_uniform.yaml`.
+It registers only the six terminal step-4,999 checkpoints on the development `train` splits: Mendelian Traits and Complex Traits for every arm, plus SGE for CDS.
+It does not register a held-out dataset or an intermediate checkpoint.
+
 ### QTL datasets (`caqtl` / `dsqtl`, `eval_protocol: qtl_global`)
 
 The DART-Eval Task-5 chromatin-accessibility QTL benchmarks (PR #214) are
