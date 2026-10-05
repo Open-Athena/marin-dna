@@ -23,6 +23,7 @@ rule compute_region_embeddings:
         model="|".join(UMAP_MODELS),
     threads: config["inference"]["num_workers"]
     params:
+        **inference_precision_params(config["inference"]),
         # Output-affecting fields only (snakemake `params` rerun trigger);
         # batch_size is execution-only and read inside `run:`.
         dataset=UMAP_CFG.get("dataset", "songlab/gpn-star-umap-regions"),
