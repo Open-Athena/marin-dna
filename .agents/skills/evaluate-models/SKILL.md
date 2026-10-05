@@ -11,7 +11,11 @@ Apply these rules before computing aggregates or choosing tables and plots.
 
 - Use odd-numbered autosomes and chromosome X for development, training, validation, model selection, probing, and tuning on labeled variant-effect prediction data.
 - Reserve even-numbered autosomes and chromosome Y for final test evaluation.
-- Require explicit user permission before accessing held-out labels, predictions, effect measurements, or aggregate metrics.
+- Downloading, transferring, and caching files containing held-out records is allowed as routine data handling.
+  This includes a dataset loader preparing both split caches while returning only development rows.
+  Do not stop or rewrite a development workflow solely because held-out files are cached; verify that inference and metrics consume only the authorized split.
+- Require explicit user permission before evaluating held-out rows, inspecting their labels or effect measurements for analysis, or computing or inspecting their predictions or aggregate metrics.
+  File availability does not authorize using held-out records for training, tuning, model selection, or research decisions.
 - Apply this restriction to labeled VEP data only.
   Unlabeled reference sequence and functional-genomics data remain available unless their dataset defines a stricter split.
 

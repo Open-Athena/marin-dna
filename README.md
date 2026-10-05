@@ -16,7 +16,7 @@ These documents synthesize MarinDNA's current answers and help organize future e
 ### Current priorities
 
 - [Complex-trait VEP](docs/research/questions/complex-trait-vep.md)
-- [Genomic anchor projection](docs/research/questions/genomic-anchors.md)
+- [Genomic anchor selection and projection](docs/research/questions/genomic-anchors.md)
 - [RAG](docs/research/questions/retrieval-augmented-models.md)
 
 ### Other active questions

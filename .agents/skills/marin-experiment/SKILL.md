@@ -1,11 +1,14 @@
 ---
 name: marin-experiment
-description: Set up, launch, monitor, and debug a Marin-launched DNA training or evaluation experiment on the shared iris cluster. Use when creating a new numbered experiment, packaging it as an independent locked project, choosing a current Marin dependency set, launching remote training, or diagnosing coordinator, worker, accelerator, or resume failures. Do not use for Snakemake pipelines or one-off analyses.
+description: Set up, launch, monitor, and debug a Marin-launched DNA training or evaluation experiment on the shared iris cluster. Use when creating a new numbered experiment, packaging it as an independent locked project, choosing a current Marin dependency set, launching remote training, or diagnosing coordinator, worker, accelerator, or resume failures. Use run-training-sweep-cw or run-training-sweep-trc for capacity-aware operation after a multi-trial catalog exists. Do not use for Snakemake pipelines or one-off analyses.
 ---
 
 # Marin Experiment
 
 Keep each experiment reproducible on its permanent branch. Use a self-contained directory with its own `pyproject.toml`, `uv.lock`, and launch module, and cite the resulting commit from the experiment issue.
+
+For a multi-trial sweep, use this skill to build and validate the experiment project.
+Once the trial catalog and one-trial launch command exist, route ongoing placement, recovery, and completion to `run-training-sweep-cw` or `run-training-sweep-trc`.
 
 ## Build A Self-Contained Project
 
