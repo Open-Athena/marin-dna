@@ -75,6 +75,10 @@ No grouped-only score path, metrics path, or bootstrap sidecar is produced.
 Legacy metrics parquets without the appended columns remain valid AUPRC-only artifacts and are not backfilled automatically.
 The leaderboard continues selecting `value`, `se`, `n_groups`, and `n_rows`, so the added columns do not change its output.
 
+Issue #517's strict phyloP selector control uses `config/issue517_phylop_uniform.yaml`.
+It registers only the six terminal step-4,999 checkpoints on the development `train` splits: Mendelian Traits and Complex Traits for every arm, plus SGE for CDS.
+It does not register a held-out dataset or an intermediate checkpoint.
+
 ### QTL datasets (`caqtl` / `dsqtl`, `eval_protocol: qtl_global`)
 
 The DART-Eval Task-5 chromatin-accessibility QTL benchmarks (PR #214) are
@@ -233,6 +237,20 @@ uv run --locked --group genome-s3 snakemake
 
 The default profile (`workflow/profiles/default/config.yaml`) uses S3 storage
 at `s3://oa-bolinas/snakemake/analysis/evals_v2/`.
+
+### Issue #517 GPN uniform terminal specialists
+
+`config/issue517_gpn_uniform.yaml` registers the six GPN-Star-P-filtered uniform-grid specialists at terminal step 4,999.
+It reads only the development `train` splits and removes complete mature-miRNA match groups from Mendelian metrics.
+Each arm runs Mendelian Traits and Complex Traits; CDS also runs the biologically scoped SGE evaluation.
+Launch one model-dataset target per Sky cluster so completed arms can begin evaluation independently:
+
+```bash
+sky launch sky/run.yaml \
+  -c evals-v2-exp517-gpn-cds-mendelian \
+  --env SNAKEMAKE_ARGS="--configfile config/issue517_gpn_uniform.yaml -- results/metrics/exp517-gpn-uniform-cds-step-4999/mendelian_traits.parquet" \
+  --down
+```
 
 ### Issue #417 repair trajectory and #473 validation control
 

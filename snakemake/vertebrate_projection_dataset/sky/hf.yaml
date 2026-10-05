@@ -18,6 +18,7 @@ file_mounts:
 
 envs:
   PIPELINE_COMMIT_SHA: ""
+  CONFIG_FILE: config/config.yaml
   TARGET: all_hf_files
   DRY_RUN: "1"
   ALLOW_HF_UPLOAD: "0"
@@ -72,7 +73,7 @@ run: |
 
   uv run --locked snakemake "$TARGET" "${SNAKEMAKE_MODE[@]}" \
     --profile workflow/profiles/default \
-    --config tier=full \
+    --configfile "$CONFIG_FILE" \
     --cores 32 \
     --resources mem_mb=250000 final_large_scan=1 hf_uploads=1 \
     --allowed-rules "${ALLOWED_RULES[@]}" \

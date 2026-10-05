@@ -1,59 +1,194 @@
-"""HAL and MAF adapters feeding one projection/sequence contract."""
+"""One chain projector and assembly-matched sequence path for every target."""
 
-from marin_dna_vertebrate_projection.projection.hal import (
-    attach_src_size,
-    parse_halliftover_bed,
-    run_halliftover,
-    write_chrom_sizes,
+from marin_dna_vertebrate_projection.projection.chains import (
+    prepare_chain_requests,
+    validate_chain_inputs,
+    write_chain_projections,
 )
-from marin_dna_vertebrate_projection.projection.center import (
-    write_hal_request_bed6,
-    write_maf_request_candidates,
+from marin_dna_vertebrate_projection.genome_assets import (
+    validate_genome_source,
+    validate_genome_dictionary,
+    validate_human_dictionary,
 )
-from marin_dna_vertebrate_projection.projection.requests import (
-    build_projection_requests,
-)
-from marin_dna_vertebrate_projection.pipeline_io import (
-    combine_sequence_parquets,
-    merge_parquets_streaming,
-    read_anchor_catalog,
-    write_contract_outputs,
-    write_contract_outputs_for_alignment,
-    write_hal_fragments,
-)
+from marin_dna_vertebrate_projection.pipeline_io import combine_sequence_parquets
 from marin_dna_vertebrate_projection.sequence_compatibility import (
     validate_projected_twobit_sizes,
 )
-from marin_dna_vertebrate_projection.sequence_sources import stage_twobit
+
+SOURCE = ASSETS[ACTIVE_SPECIES[0]]
 
 
-rule download_human_twobit:
+rule chain_requests:
     input:
-        TWOBIT_MANIFEST_INPUT,
+        anchors=ANCHOR_CATALOG_INPUT,
+        sizes=asset_input(SOURCE["source_sizes"]),
+        human_sizes=asset_input(GENOMES["hg38"]["chrom_sizes"]),
+        provenance=ASSET_PROVENANCE,
     output:
-        f"{RESULTS}/reference/hg38.2bit",
+        requests=PROJECTION_REQUESTS,
+        bed=f"{RESULTS}/anchors/centers.bed",
     resources:
-        ucsc_downloads=1,
+        mem_mb=int(config["table_mem_mb"]),
     run:
-        stage_twobit(twobit_objects["hg38"], output[0])
+        if (
+            config.get("anchors")
+            and file_sha256(input.anchors) != config["anchors_sha256"]
+        ):
+            raise ValueError("anchor catalog SHA-256 mismatch")
+        if file_sha256(input.sizes) != SOURCE["source_sizes_sha256"]:
+            raise ValueError("source chromosome dictionary SHA-256 mismatch")
+        if file_sha256(input.human_sizes) != GENOMES["hg38"]["chrom_sizes_sha256"]:
+            raise ValueError("human genome dictionary SHA-256 mismatch")
+        validate_human_dictionary(input.sizes, input.human_sizes)
+        prepare_chain_requests(
+            input.anchors, input.sizes, output.requests, output.bed
+        )
 
 
-rule human_chrom_sizes:
+rule chain_validate:
     input:
-        f"{RESULTS}/reference/hg38.2bit",
+        chain=lambda w: asset_input(ASSETS[w.species]["chain"]),
+        source=lambda w: asset_input(ASSETS[w.species]["source_sizes"]),
+        target=lambda w: asset_input(ASSETS[w.species]["target_sizes"]),
+        provenance=ASSET_PROVENANCE,
     output:
-        f"{RESULTS}/reference/hg38.chrom.sizes",
+        f"{RESULTS}/chains/{{species}}/validated.json",
+    wildcard_constraints:
+        species=SPECIES_RE,
+    resources:
+        mem_mb=1000,
+    run:
+        validate_chain_inputs(
+            input.chain,
+            input.source,
+            input.target,
+            ASSETS[wildcards.species],
+            output[0],
+        )
+
+
+rule chain_liftover:
+    input:
+        bed=f"{RESULTS}/anchors/centers.bed",
+        chain=lambda w: asset_input(ASSETS[w.species]["chain"]),
+        validated=f"{RESULTS}/chains/{{species}}/validated.json",
+    output:
+        mapped=f"{RESULTS}/chains/{{species}}/mapped.bed",
+        unmapped=f"{RESULTS}/chains/{{species}}/unmapped.bed",
+    log:
+        f"{RESULTS}/chains/{{species}}/liftover.log",
+    benchmark:
+        f"{RESULTS}/chains/{{species}}/liftover.benchmark.tsv"
+    conda:
+        "../envs/chains.yaml"
+    threads: 1
+    resources:
+        mem_mb=int(config["liftover_mem_mb"]),
+    shell:
+        "liftOver -minMatch=0.95 -multiple {input.bed:q} {input.chain:q} "
+        "{output.mapped:q} {output.unmapped:q} 2> {log:q}"
+
+
+rule chain_contract:
+    input:
+        requests=PROJECTION_REQUESTS,
+        mapped=f"{RESULTS}/chains/{{species}}/mapped.bed",
+        unmapped=f"{RESULTS}/chains/{{species}}/unmapped.bed",
+        sizes=lambda w: asset_input(ASSETS[w.species]["target_sizes"]),
+        species=SPECIES_SELECTED_INPUT,
+        validated=f"{RESULTS}/chains/{{species}}/validated.json",
+    output:
+        accepted=f"{RESULTS}/chains/{{species}}/accepted.parquet",
+        rejected=f"{RESULTS}/chains/{{species}}/rejected.parquet",
+        audit=f"{RESULTS}/chains/{{species}}/audit.json",
+    wildcard_constraints:
+        species=SPECIES_RE,
+    resources:
+        mem_mb=int(config["table_mem_mb"]),
+    run:
+        write_chain_projections(
+            input.requests,
+            input.mapped,
+            input.unmapped,
+            input.sizes,
+            input.species,
+            wildcards.species,
+            input.validated,
+            output.accepted,
+            output.rejected,
+            output.audit,
+        )
+
+
+rule genome_source_validation:
+    input:
+        sequence=lambda w: asset_input(GENOMES[w.genome]["sequence"]),
+        sizes=lambda w: asset_input(GENOMES[w.genome]["chrom_sizes"]),
+        provenance=ASSET_PROVENANCE,
+    output:
+        local(f"{RESULTS}/reference/{{genome}}.source.json"),
+    wildcard_constraints:
+        genome=GENOME_RE,
+    resources:
+        mem_mb=1000,
+    run:
+        validate_genome_source(
+            input.sequence, input.sizes, GENOMES[wildcards.genome], output[0]
+        )
+
+
+rule genome_twobit:
+    input:
+        sequence=lambda w: asset_input(GENOMES[w.genome]["sequence"]),
+        validated=local(f"{RESULTS}/reference/{{genome}}.source.json"),
+    output:
+        local(f"{RESULTS}/reference/{{genome}}.2bit"),
+    wildcard_constraints:
+        genome=GENOME_RE,
+    conda:
+        "../envs/bioinformatics.yaml"
+    resources:
+        mem_mb=4000,
+    params:
+        format=lambda w: GENOMES[w.genome]["format"],
+    shell:
+        "if [ {params.format:q} = fasta ]; then "
+        "faToTwoBit {input.sequence:q} {output:q}; "
+        "else cp {input.sequence:q} {output:q}; fi"
+
+
+rule genome_chrom_sizes:
+    input:
+        local(f"{RESULTS}/reference/{{genome}}.2bit"),
+    output:
+        f"{RESULTS}/reference/{{genome}}.chrom.sizes",
+    wildcard_constraints:
+        genome=GENOME_RE,
     conda:
         "../envs/bioinformatics.yaml"
     shell:
-        "twoBitInfo {input} {output}"
+        "twoBitInfo {input:q} {output:q}"
+
+
+rule genome_compatibility:
+    input:
+        sizes=f"{RESULTS}/reference/{{genome}}.chrom.sizes",
+        pinned=lambda w: asset_input(GENOMES[w.genome]["chrom_sizes"]),
+    output:
+        f"{RESULTS}/reference/{{genome}}.compatibility.json",
+    wildcard_constraints:
+        genome=GENOME_RE,
+    run:
+        validate_genome_dictionary(input.sizes, input.pinned, output[0])
 
 
 rule human_reference_sequences:
     input:
         anchors=ANCHOR_CATALOG_INPUT,
-        twobit=f"{RESULTS}/reference/hg38.2bit",
+        requests=PROJECTION_REQUESTS,
+        twobit=local(f"{RESULTS}/reference/hg38.2bit"),
         sizes=f"{RESULTS}/reference/hg38.chrom.sizes",
+        compatibility=f"{RESULTS}/reference/hg38.compatibility.json",
     output:
         HUMAN_SEQUENCES,
     conda:
@@ -61,295 +196,51 @@ rule human_reference_sequences:
     resources:
         mem_mb=4000,
     shell:
-        "uv run python -m "
-        "marin_dna_vertebrate_projection.sequence_cli "
-        "human {input.anchors} {input.twobit} {input.sizes} {output}"
+        "uv run --locked python -m marin_dna_vertebrate_projection.sequence_cli "
+        "human {input.anchors:q} {input.twobit:q} {input.sizes:q} {output:q}"
 
 
-rule projection_requests:
+rule projected_genome_compatibility:
     input:
-        ANCHOR_CATALOG_INPUT,
+        accepted=f"{RESULTS}/chains/{{species}}/accepted.parquet",
+        sizes=f"{RESULTS}/reference/{{species}}.chrom.sizes",
+        validated=f"{RESULTS}/reference/{{species}}.compatibility.json",
     output:
-        PROJECTION_REQUESTS,
-    run:
-        requests = build_projection_requests(read_anchor_catalog(input[0]))
-        Path(output[0]).parent.mkdir(parents=True, exist_ok=True)
-        requests.write_parquet(output[0])
-
-
-rule prepare_hal_bed:
-    input:
-        PROJECTION_REQUESTS,
-    output:
-        f"{RESULTS}/hal/input.bed",
-    run:
-        write_hal_request_bed6(input[0], output[0])
-
-
-rule hal_chrom_sizes:
-    input:
-        hal=local(HAL_PATH),
-        validation=local(HAL_VALIDATION),
-    output:
-        f"{RESULTS}/hal/chrom_sizes/{{species}}.tsv",
+        f"{RESULTS}/chains/{{species}}/sequence_compatibility.json",
     wildcard_constraints:
-        species=MAMMAL_RE,
-    resources:
-        mem_mb=2000,
-    run:
-        write_chrom_sizes(input.hal, wildcards.species, output[0])
-
-
-rule hal_liftover:
-    input:
-        hal=local(HAL_PATH),
-        bed=f"{RESULTS}/hal/input.bed",
-        validation=local(HAL_VALIDATION),
-    output:
-        f"{RESULTS}/hal/raw/{{species}}.bed",
-    wildcard_constraints:
-        species=MAMMAL_RE,
-    threads: 1
-    resources:
-        mem_mb=2000,
-    run:
-        Path(output[0]).parent.mkdir(parents=True, exist_ok=True)
-        run_halliftover(
-            input.hal,
-            "Homo_sapiens",
-            input.bed,
-            wildcards.species,
-            output[0],
-            no_dupes=True,
-        )
-
-
-rule hal_fragments:
-    input:
-        raw=f"{RESULTS}/hal/raw/{{species}}.bed",
-        sizes=f"{RESULTS}/hal/chrom_sizes/{{species}}.tsv",
-        requests=PROJECTION_REQUESTS,
-        manifest=ACTIVE_MANIFEST,
-    output:
-        f"{RESULTS}/hal/fragments/{{species}}.parquet",
-    wildcard_constraints:
-        species=MAMMAL_RE,
-    resources:
-        mem_mb=8000,
-    run:
-        records = attach_src_size(
-            parse_halliftover_bed(input.raw, wildcards.species), input.sizes
-        )
-        write_hal_fragments(records, input.requests, input.manifest, output[0])
-
-
-rule hal_contract:
-    input:
-        f"{RESULTS}/hal/fragments/{{species}}.parquet",
-    output:
-        accepted=f"{RESULTS}/hal/accepted/{{species}}.parquet",
-        rejected=f"{RESULTS}/hal/rejected/{{species}}.parquet",
-    wildcard_constraints:
-        species=MAMMAL_RE,
-    resources:
-        mem_mb=10000,
-    run:
-        write_contract_outputs(
-            input[0],
-            output.accepted,
-            output.rejected,
-        )
-
-
-rule hal_to_fasta:
-    input:
-        hal=local(HAL_PATH),
-        validation=local(HAL_VALIDATION),
-    output:
-        local(f"{RESULTS}/hal/genomes/{{species}}.fa"),
-    wildcard_constraints:
-        species=MAMMAL_RE,
-    threads: 4
-    resources:
-        mem_mb=4000,
-    shell:
-        "hal2fasta {input.hal} {wildcards.species} > {output}"
-
-
-rule hal_fasta_to_twobit:
-    input:
-        local(f"{RESULTS}/hal/genomes/{{species}}.fa"),
-    output:
-        f"{RESULTS}/hal/genomes/{{species}}.2bit",
-    wildcard_constraints:
-        species=MAMMAL_RE,
-    conda:
-        "../envs/bioinformatics.yaml"
-    threads: 2
-    resources:
-        mem_mb=4000,
-    shell:
-        "faToTwoBit {input} {output}"
-
-
-rule hal_sequences:
-    input:
-        accepted=f"{RESULTS}/hal/accepted/{{species}}.parquet",
-        twobit=f"{RESULTS}/hal/genomes/{{species}}.2bit",
-    output:
-        sequences=f"{RESULTS}/sequences/hal/{{species}}.parquet",
-        rejected=f"{RESULTS}/hal/sequence_rejected/{{species}}.parquet",
-    wildcard_constraints:
-        species=MAMMAL_RE,
-    conda:
-        "../envs/bioinformatics.yaml"
-    resources:
-        mem_mb=4000,
-    shell:
-        "uv run python -m "
-        "marin_dna_vertebrate_projection.sequence_cli "
-        "projected {input.accepted} {input.twobit} {output.sequences} {output.rejected}"
-
-
-rule multiz_candidates:
-    input:
-        maf=local(f"{MULTIZ_STAGE_DIR}/maf/{{chrom}}.maf.gz"),
-        requests=PROJECTION_REQUESTS,
-        manifest=ACTIVE_MANIFEST,
-    output:
-        f"{RESULTS}/multiz/fragments/{{chrom}}.parquet",
-    wildcard_constraints:
-        chrom=CHROM_RE,
-    threads: 4
-    resources:
-        mem_mb=16000,
-    run:
-        write_maf_request_candidates(
-            input.maf, input.requests, input.manifest, output[0]
-        )
-
-
-rule multiz_contract:
-    input:
-        f"{RESULTS}/multiz/fragments/{{chrom}}.parquet",
-    output:
-        accepted=f"{RESULTS}/multiz/accepted/by_chrom/{{chrom}}/{{species}}.parquet",
-        rejected=f"{RESULTS}/multiz/rejected/by_chrom/{{chrom}}/{{species}}.parquet",
-    wildcard_constraints:
-        chrom=CHROM_RE,
-        species=NON_MAMMAL_RE,
-    resources:
-        mem_mb=8000,
-    run:
-        write_contract_outputs_for_alignment(
-            input[0],
-            wildcards.species,
-            output.accepted,
-            output.rejected,
-        )
-
-
-rule merge_multiz_accepted:
-    input:
-        lambda wc: expand(
-            f"{RESULTS}/multiz/accepted/by_chrom/{{chrom}}/{{species}}.parquet",
-            chrom=CHROMS,
-            species=[wc.species],
-        ),
-    output:
-        f"{RESULTS}/multiz/accepted/{{species}}.parquet",
-    wildcard_constraints:
-        species=NON_MAMMAL_RE,
-    resources:
-        mem_mb=4000,
-    run:
-        merge_parquets_streaming(list(input), output[0])
-
-
-rule merge_multiz_rejected:
-    input:
-        lambda wc: expand(
-            f"{RESULTS}/multiz/rejected/by_chrom/{{chrom}}/{{species}}.parquet",
-            chrom=CHROMS,
-            species=[wc.species],
-        ),
-    output:
-        f"{RESULTS}/multiz/rejected/{{species}}.parquet",
-    wildcard_constraints:
-        species=NON_MAMMAL_RE,
-    resources:
-        mem_mb=4000,
-    run:
-        merge_parquets_streaming(list(input), output[0])
-
-
-rule download_multiz_twobit:
-    input:
-        TWOBIT_MANIFEST_INPUT,
-    output:
-        f"{RESULTS}/multiz/genomes/{{species}}.2bit",
-    wildcard_constraints:
-        species=NON_MAMMAL_RE,
-    resources:
-        ucsc_downloads=1,
-    run:
-        stage_twobit(twobit_objects[wildcards.species], output[0])
-
-
-rule multiz_twobit_chrom_sizes:
-    input:
-        f"{RESULTS}/multiz/genomes/{{species}}.2bit",
-    output:
-        f"{RESULTS}/multiz/genomes/{{species}}.chrom.sizes",
-    wildcard_constraints:
-        species=NON_MAMMAL_RE,
-    conda:
-        "../envs/bioinformatics.yaml"
-    shell:
-        "twoBitInfo {input} {output}"
-
-
-rule validate_multiz_twobit_compatibility:
-    input:
-        accepted=f"{RESULTS}/multiz/accepted/{{species}}.parquet",
-        sizes=f"{RESULTS}/multiz/genomes/{{species}}.chrom.sizes",
-    output:
-        f"{RESULTS}/multiz/genomes/{{species}}.compatibility.json",
-    wildcard_constraints:
-        species=NON_MAMMAL_RE,
+        species=SPECIES_RE,
     run:
         validate_projected_twobit_sizes(input.accepted, input.sizes, output[0])
 
 
-rule multiz_sequences:
+rule chain_sequences:
     input:
-        accepted=f"{RESULTS}/multiz/accepted/{{species}}.parquet",
-        twobit=f"{RESULTS}/multiz/genomes/{{species}}.2bit",
-        compatibility=f"{RESULTS}/multiz/genomes/{{species}}.compatibility.json",
+        accepted=f"{RESULTS}/chains/{{species}}/accepted.parquet",
+        twobit=local(f"{RESULTS}/reference/{{species}}.2bit"),
+        compatibility=f"{RESULTS}/chains/{{species}}/sequence_compatibility.json",
     output:
-        sequences=f"{RESULTS}/sequences/multiz/{{species}}.parquet",
-        rejected=f"{RESULTS}/multiz/sequence_rejected/{{species}}.parquet",
+        sequences=f"{RESULTS}/sequences/chains/{{species}}.parquet",
+        rejected=f"{RESULTS}/chains/{{species}}/sequence_rejected.parquet",
     wildcard_constraints:
-        species=NON_MAMMAL_RE,
+        species=SPECIES_RE,
     conda:
         "../envs/bioinformatics.yaml"
     resources:
         mem_mb=4000,
     shell:
-        "uv run python -m "
-        "marin_dna_vertebrate_projection.sequence_cli "
-        "projected {input.accepted} {input.twobit} {output.sequences} {output.rejected}"
+        "uv run --locked python -m marin_dna_vertebrate_projection.sequence_cli "
+        "projected {input.accepted:q} {input.twobit:q} {output.sequences:q} {output.rejected:q}"
 
 
 rule combine_sequences:
     input:
         [HUMAN_SEQUENCES]
-        + expand(f"{RESULTS}/sequences/hal/{{species}}.parquet", species=MAMMALS)
         + expand(
-            f"{RESULTS}/sequences/multiz/{{species}}.parquet",
-            species=NON_MAMMALS,
+            f"{RESULTS}/sequences/chains/{{species}}.parquet", species=ACTIVE_SPECIES
         ),
     output:
         COMBINED_SEQUENCES,
+    resources:
+        mem_mb=8000,
     run:
         combine_sequence_parquets(list(input), output[0])
