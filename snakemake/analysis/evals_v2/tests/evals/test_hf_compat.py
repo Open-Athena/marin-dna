@@ -257,6 +257,108 @@ def test_load_tokenizer_requires_json_for_transformers5_backend(tmp_path: Path) 
         load_hf_checkpoint_tokenizer(tmp_path)
 
 
+@pytest.mark.parametrize("class_name", ["PreTrainedTokenizerFast", "TokenizersBackend"])
+@pytest.mark.parametrize("serialized_added_token", [False, True])
+def test_load_tokenizer_translates_transformers5_special_tokens(
+    tmp_path: Path, class_name: str, serialized_added_token: bool
+) -> None:
+    from tokenizers import (
+        Regex,
+        Tokenizer,
+        models,
+        normalizers,
+        pre_tokenizers,
+        processors,
+    )
+    from transformers import PreTrainedTokenizerFast
+
+    vocab = {
+        token: index
+        for index, token in enumerate(
+            ["[PAD]", "[UNK]", "[BOS]", "[SEQ]", "a", "c", "g", "t"]
+        )
+    }
+    backend = Tokenizer(models.WordLevel(vocab, unk_token="[UNK]"))
+    backend.normalizer = normalizers.Lowercase()
+    backend.pre_tokenizer = pre_tokenizers.Split(Regex(".{1}"), behavior="isolated")
+    backend.post_processor = processors.TemplateProcessing(
+        single="[BOS] $A", special_tokens=[("[BOS]", 2)]
+    )
+    original = PreTrainedTokenizerFast(
+        tokenizer_object=backend,
+        bos_token="[BOS]",
+        pad_token="[PAD]",
+        unk_token="[UNK]",
+        additional_special_tokens=["[SEQ]"],
+        model_max_length=10240,
+    )
+    original.save_pretrained(tmp_path)
+    config_path = tmp_path / "tokenizer_config.json"
+    config = json.loads(config_path.read_text())
+    config["tokenizer_class"] = class_name
+    config.pop("additional_special_tokens")
+    config["extra_special_tokens"] = (
+        [
+            {
+                "content": "[SEQ]",
+                "special": True,
+                "normalized": False,
+                "single_word": False,
+                "lstrip": False,
+                "rstrip": False,
+                "__type": "AddedToken",
+            }
+        ]
+        if serialized_added_token
+        else ["[SEQ]"]
+    )
+    config_path.write_text(json.dumps(config))
+    (tmp_path / "special_tokens_map.json").unlink()
+    before = {path.name: path.read_bytes() for path in tmp_path.iterdir()}
+
+    loaded = load_hf_checkpoint_tokenizer(tmp_path)
+
+    assert loaded.get_vocab() == original.get_vocab() == vocab
+    assert (
+        loaded.encode("AC[SEQ]GT") == original.encode("AC[SEQ]GT") == [2, 4, 5, 3, 6, 7]
+    )
+    assert loaded.all_special_ids == original.all_special_ids
+    assert loaded.additional_special_tokens == ["[SEQ]"]
+    assert loaded.decode([2, 4, 3, 5, 0], skip_special_tokens=True) == original.decode(
+        [2, 4, 3, 5, 0], skip_special_tokens=True
+    )
+    assert {path.name: path.read_bytes() for path in tmp_path.iterdir()} == before
+
+
+def test_load_tokenizer_preserves_transformers4_named_tokens(tmp_path: Path) -> None:
+    (tmp_path / "tokenizer_config.json").write_text(
+        json.dumps(
+            {
+                "tokenizer_class": "PreTrainedTokenizerFast",
+                "extra_special_tokens": {"image_token": "[IMAGE]"},
+            }
+        )
+    )
+    with patch("marin_dna_evals.hf_compat.AutoTokenizer.from_pretrained") as loader:
+        load_hf_checkpoint_tokenizer(tmp_path)
+    loader.assert_called_once_with(tmp_path)
+
+
+def test_load_tokenizer_rejects_conflicting_special_token_lists(tmp_path: Path) -> None:
+    (tmp_path / "tokenizer_config.json").write_text(
+        json.dumps(
+            {
+                "extra_special_tokens": ["[SEQ]"],
+                "additional_special_tokens": ["[OTHER]"],
+            }
+        )
+    )
+    with pytest.raises(
+        HfCheckpointCompatibilityError, match="conflicting special-token lists"
+    ):
+        load_hf_checkpoint_tokenizer(tmp_path)
+
+
 @pytest.mark.parametrize(
     ("function_name", "loader_name"),
     [
