@@ -418,3 +418,18 @@ The scope and queue above are living summaries; the entry log below preserves th
   Re-fetched and verified each published payload; both issues remain open under the interpretation-merge gate.
 - At 21:11:24 UTC the EC2 worker had no remaining analysis/test/archive subprocesses, and its scheduled automatic shutdown remained 23:20:12 UTC.
   It remains available for further user-directed analysis within the existing budget.
+
+### 2026-10-05 — review follow-up and interpretation merged
+
+- Addressed the remaining caption finding in PR #578 at `c2b5822f81c7aba57bcb0e87997017107548c771` by removing its duplicate, ambiguous "baseline" parity clause.
+  Confirmed that the pinned figure source at `e615724b8a232c476958d119d9146f10073e18f2` contains both corrected labels and that its two SVG artifacts match the PR figures byte-for-byte.
+  Replied in review comment 4185734564 and PR comment 5997605279; all three review threads are resolved.
+- All checks passed for the corrected PR head, including quality, tests, and dashboard build.
+  The user explicitly authorized merging once checks passed and closing the loop.
+  PR #578 merged into main as `8d73e00847323c1b2c2c413379f49d9ba0e578ea` on 2026-10-05.
+- Final disposition: interpretation page merged.
+  The accepted experiment page is `docs/research/experiments/577-local-conservation.md`, with synthesis in `docs/research/questions/training-regions.md`.
+  Conclusion remains a sparse conservation proxy with strong CDS enrichment, weaker enhancer coverage, and zero-score saturation at 8.6% of eligible held-out windows; no new numerical analysis was performed.
+- Read-only AWS checks confirmed account 836683583872 and returned no instance for `i-0f0be03bac311291c` and no root volume for `vol-0f242c96029f9f3b7` in us-east-2.
+  The September budget estimate remains historical rather than an invoice reconciliation; these resources are no longer present.
+- Close #577 with merged-page links and the final snapshot; update #568's follow-up pointer while preserving its separate homology-retrieval interpretation gate.
