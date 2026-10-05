@@ -37,6 +37,10 @@ Extending windows from 255 to 511 bp reduced matched-anchor exhaustive recall, a
 The workflow placed every retained tile in one database and lacked distributed sharding or cross-shard reconciliation, so it supplied no path from the mammalian proof of concept to all-animal or all-eukaryote coverage.
 This argues against further tuning of unordered short-window clustering for this purpose, while leaving targeted local alignment and methods with positional, syntenic, or anchor evidence as distinct directions.
 
+The [local k-mer follow-up](../experiments/568-kmer-conservation.md) recovered 97.1% of held-out mammalian homology pairs at ten unique candidate loci using complete k-mer sets, showing that local sequence similarity survives even when the earlier clustering recipe misses it.
+The tested MinHash/LSH settings did not improve the recall–runtime frontier over exact indexes, quarter-window stride at W255/k9 and a two-scale union did not raise aggregate held-out recall over the selected half-stride representation, and strict full-window verification discarded most recovered pairs.
+This separates useful homology retrieval from a viable conservation selector: the study stopped before enrichment or training, and its homology-enriched candidate universe could not support an unbiased conservation-enrichment claim.
+
 [Local species-word prevalence](../experiments/577-local-conservation.md) provides an alignment-free candidate selector at 100 bp resolution.
 After excluding repeat-rich windows, a frozen six-mammal score selects 5% of eligible held-out human bases containing 41.9% phyloP-conserved bases, versus 35.7% for a three-mammal comparator.
 Quarter-rate sampling reaches 41.5% with half the query-index peak RAM of bottom-32 MinHash, and exact disk partitions reduce the memory needed for full-genome counting.
@@ -98,6 +102,8 @@ It should retain a background arm so gains on functional VEP can be weighed agai
   All four loss-ranked half-token objectives harmed Mendelian missense-plus-splicing AUPRC, while pure final-checkpoint teacher KL beat uniform CE at step 200 within the paired evaluation records; one seed, privileged later-lineage supervision, and unmatched per-step compute limit the inference.
 - [Anchor-free clustering of mammalian genome windows](../experiments/521-linclust-conservation.md) tested Linclust, exhaustive alignment controls, longer windows, hash ensembles, denser seeds, DECIPHER, and a source-aware seed graph against projected homology.
   The tested symmetric short-window recipes missed too many known pairs or admitted too many genomic decoys, and the single-database workflow failed at the exact 20-genome scale without a distributed path to all animals or eukaryotes, so this path was stopped without a phyloP selector or training run.
+- [Local k-mer retrieval of mammalian homologs](../experiments/568-kmer-conservation.md) found strong complete-set similarity on a bounded human/mouse/armadillo fixture, recovering 97.1% of held-out pairs at ten unique candidate loci.
+  Sampled MinHash/LSH settings failed to improve the recall–runtime frontier over exact indexes, and projected homology, weak complexity controls, and independently sampled backgrounds did not establish conservation enrichment or training value.
 - [Local conservation scores from species k-mer prevalence](../experiments/577-local-conservation.md) measures repeat-excluded conservation enrichment at 100 bp resolution, with little MinHash gain over dense fixed-rate sampling.
   Full-genome disk partitioning addresses resident index memory, while biological validation remains limited to held-out human chromosomes and panels of up to ten mammals.
 
@@ -114,5 +120,7 @@ It should retain a background arm so gains on functional VEP can be weighed agai
 - Compare conservation or whole-genome alignment with direct annotation, targeted local alignment, and learned single-sequence selection only after the target distribution and leakage contract are fixed.
 - Validate local species-word prevalence across broader clades and larger real-genome corpora, measuring disk traffic, sharding limits, and sensitivity to evolutionary divergence before a 1,000-species production run.
 - Do not revisit symmetric clustering of independently tiled 255 bp whole genomes without materially new positional, syntenic, or candidate-representation evidence; the bounded 511 bp projected-center diagnostic provides no reason to lengthen the window.
+- Use the complete-set k-mer signal as a bounded retrieval baseline when testing positional, syntenic, or local-alignment evidence; preserve unique-locus budgets and provide an unbiased conservation-enrichment cohort before treating retrieval as a selector.
+- Do not scale the tested pair-retrieval MinHash/LSH recipes without a measured improvement over exact-index baselines.
 
 </details>
