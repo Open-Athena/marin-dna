@@ -1,0 +1,74 @@
+# Issue 517 development-only terminal GPN-Star-P uniform-grid evaluation.
+# This config reads only the pinned VEP development splits.
+# Do not change `split` or add held-out datasets without explicit authorization.
+
+input_hf_prefix: bolinas-dna/evals
+genome_path: s3://oa-bolinas/data/genomes/homo_sapiens/GRCh38/ensembl-release-115/Homo_sapiens.GRCh38.dna_sm.primary_assembly.fa.gz
+split: train
+
+datasets:
+  - name: mendelian_traits
+    hf_revision: 4aed58e50c5dea0b878a665007af2ef9e5108e9f
+    score_protocol: minus_llr
+    exclude_complete_match_groups_with_subsets: [mature_miRNA_variant]
+  - name: complex_traits
+    hf_revision: 22f86a89c65cb8f3007ac3cc2739f40efefa4340
+    score_protocol: abs_llr
+  - name: sge
+    hf_revision: 225d3d1ea32a4af547891b13c33b5e92a5aae849
+    score_protocol: minus_llr
+    eval_protocol: sge
+
+models:
+  - name: exp517-gpn-uniform-cds-step-4999
+    gcs_path: gs://marin-us-east5/MarinDNA/exp517_gpn_uniform_specialists/checkpoints/dna-exp517-gpn-uniform-0p25b-cds-v1/2026.08.26/hf/step-4999
+    window_size: 255
+    datasets: [mendelian_traits, complex_traits, sge]
+
+  - name: exp517-gpn-uniform-utr3-step-4999
+    gcs_path: gs://marin-us-east5/MarinDNA/exp517_gpn_uniform_specialists/checkpoints/dna-exp517-gpn-uniform-0p25b-utr3-v1/2026.08.26/hf/step-4999
+    window_size: 255
+    datasets: [mendelian_traits, complex_traits]
+
+  - name: exp517-gpn-uniform-tss-utr5-step-4999
+    gcs_path: gs://marin-us-east5/MarinDNA/exp517_gpn_uniform_specialists/checkpoints/dna-exp517-gpn-uniform-0p25b-tss_utr5-v1/2026.08.26/hf/step-4999
+    window_size: 255
+    datasets: [mendelian_traits, complex_traits]
+
+  - name: exp517-gpn-uniform-ncrna-exon-step-4999
+    gcs_path: gs://marin-us-east5/MarinDNA/exp517_gpn_uniform_specialists/checkpoints/dna-exp517-gpn-uniform-0p25b-ncrna_exon-v1/2026.08.26/hf/step-4999
+    window_size: 255
+    datasets: [mendelian_traits, complex_traits]
+
+  - name: exp517-gpn-uniform-enhancer-arm-a-step-4999
+    gcs_path: gs://marin-us-east5/MarinDNA/exp517_gpn_uniform_specialists/checkpoints/dna-exp517-gpn-uniform-0p25b-enhancer_arm_a-v1/2026.08.26/hf/step-4999
+    window_size: 255
+    datasets: [mendelian_traits, complex_traits]
+
+  - name: exp517-gpn-uniform-background-step-4999
+    gcs_path: gs://marin-us-east5/MarinDNA/exp517_gpn_uniform_specialists/checkpoints/dna-exp517-gpn-uniform-0p25b-background-v1/2026.08.26/hf/step-4999
+    window_size: 255
+    datasets: [mendelian_traits, complex_traits]
+
+inference:
+  batch_size: 128
+  num_workers: 4
+  data_transform_on_the_fly: true
+  torch_compile: true
+  bf16: true
+  rc: true
+  return_embeddings: true
+  eval_accumulation_steps: null
+  n_bootstrap: 1000
+  bootstrap_seed: 0
+
+# The command-line config extends config/config.yaml.
+# Disable unrelated off-rule-all registries whose models are absent here.
+probe:
+  models: []
+nuc_dep:
+  models: []
+umap_embeddings:
+  models: []
+ll_gap:
+  models: []
