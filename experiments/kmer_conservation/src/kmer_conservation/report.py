@@ -55,6 +55,104 @@ def paired_difference(a: list[dict], b: list[dict], budget: int = 10) -> dict:
     }
 
 
+def plot_figures(table: list[dict], out: Path) -> None:
+    """Render the development plots from an already computed metrics table."""
+    out.mkdir(parents=True, exist_ok=True)
+    import matplotlib.pyplot as plt
+    from matplotlib import ticker
+
+    plt.rcParams.update({"svg.fonttype": "none", "font.size": 11})
+    fig, ax = plt.subplots(figsize=(6, 5), layout="constrained")
+    for k in [9, 13, 17, 21]:
+        selected = sorted(
+            [
+                r
+                for r in table
+                if r["split"] == "dev"
+                and r["method"] == "exact"
+                and r["stride_divisor"] == 2
+                and not r["mask"]
+                and r["k"] == k
+                and r["W"] <= 1024
+            ],
+            key=lambda r: r["W"],
+        )
+        y = np.array([r["recall10"] for r in selected]) * 100
+        errors = (
+            np.array(
+                [
+                    [r["recall10"] - r["recall10_ci_low"] for r in selected],
+                    [r["recall10_ci_high"] - r["recall10"] for r in selected],
+                ]
+            )
+            * 100
+        )
+        ax.errorbar([r["W"] for r in selected], y, yerr=errors, label=str(k), capsize=0)
+    ax.set(
+        xscale="log",
+        xlabel="Window length (bp)",
+        ylabel="Known-pair recall at C=10 (%)",
+        ylim=(0, 101),
+        title="Full k-mer sets on development loci",
+    )
+    ax.set_xticks([64, 128, 255, 511, 1024], ["64", "128", "255", "511", "1024"])
+    ax.set_box_aspect(1)
+    ax.legend(title="k-mer length", loc="lower right")
+    fig.savefig(out / "window-screen.svg")
+    fig.savefig(out / "window-screen.png", dpi=160)
+    plt.close(fig)
+    fig, axes = plt.subplots(1, 2, figsize=(10, 5.7), layout="constrained")
+    for axis, width in zip(axes, [255, 1024], strict=True):
+        for method, color in [("exact", "C0"), ("scan", "C1"), ("lsh", "C2")]:
+            rows = [
+                r
+                for r in table
+                if r["split"] == "dev"
+                and r["method"] == method
+                and r["W"] == width
+                and r["stride_divisor"] == 2
+                and not r["mask"]
+                and r["k"] == (9 if width == 255 else 13)
+            ]
+            axis.errorbar(
+                [r["query_seconds"] for r in rows],
+                [r["recall10"] * 100 for r in rows],
+                yerr=np.array(
+                    [
+                        [r["recall10"] - r["recall10_ci_low"] for r in rows],
+                        [r["recall10_ci_high"] - r["recall10"] for r in rows],
+                    ]
+                )
+                * 100,
+                label={"exact": "Full sets", "scan": "MinHash scan", "lsh": "LSH"}[
+                    method
+                ],
+                color=color,
+                fmt="o",
+                capsize=0,
+            )
+        axis.set(
+            xscale="log",
+            xlabel="Query wall time (s, log scale)",
+            ylabel="Known-pair recall at C=10 (%)",
+            ylim=(0, 101),
+            title=f"W={width}, k={9 if width == 255 else 13}",
+        )
+        axis.set_box_aspect(1)
+        axis.set_xticks([1, 10, 100] if width == 255 else [0.2, 1, 5])
+        axis.xaxis.set_major_formatter(ticker.ScalarFormatter())
+        axis.xaxis.set_minor_formatter(ticker.NullFormatter())
+    fig.legend(
+        *axes[1].get_legend_handles_labels(),
+        title="Method",
+        loc="outside upper center",
+        ncols=3,
+    )
+    fig.savefig(out / "index-frontier.svg")
+    fig.savefig(out / "index-frontier.png", dpi=160)
+    plt.close(fig)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--root", type=Path, required=True)
@@ -283,96 +381,7 @@ def main() -> None:
         )
     (args.out / "dominance.json").write_text(json.dumps(dominance, indent=2) + "\n")
     if args.figures:
-        import matplotlib.pyplot as plt
-        from matplotlib import ticker
-
-        plt.rcParams.update({"svg.fonttype": "none", "font.size": 11})
-        fig, ax = plt.subplots(figsize=(6, 5), layout="constrained")
-        for k in [9, 13, 17, 21]:
-            selected = sorted(
-                [
-                    r
-                    for r in table
-                    if r["split"] == "dev"
-                    and r["method"] == "exact"
-                    and r["stride_divisor"] == 2
-                    and not r["mask"]
-                    and r["k"] == k
-                    and r["W"] <= 1024
-                ],
-                key=lambda r: r["W"],
-            )
-            y = np.array([r["recall10"] for r in selected]) * 100
-            errors = (
-                np.array(
-                    [
-                        [r["recall10"] - r["recall10_ci_low"] for r in selected],
-                        [r["recall10_ci_high"] - r["recall10"] for r in selected],
-                    ]
-                )
-                * 100
-            )
-            ax.errorbar(
-                [r["W"] for r in selected], y, yerr=errors, label=str(k), capsize=0
-            )
-        ax.set(
-            xscale="log",
-            xlabel="Window length (bp)",
-            ylabel="Known-pair recall at C=10 (%)",
-            ylim=(0, 101),
-            title="Full k-mer sets on development loci",
-        )
-        ax.set_xticks([64, 128, 255, 511, 1024], ["64", "128", "255", "511", "1024"])
-        ax.set_box_aspect(1)
-        ax.legend(title="k-mer length", loc="lower right")
-        fig.savefig(args.out / "window-screen.svg")
-        fig.savefig(args.out / "window-screen.png", dpi=160)
-        plt.close(fig)
-        fig, axes = plt.subplots(1, 2, figsize=(10, 5), layout="constrained")
-        for axis, width in zip(axes, [255, 1024], strict=True):
-            for method, color in [("exact", "C0"), ("scan", "C1"), ("lsh", "C2")]:
-                rows = [
-                    r
-                    for r in table
-                    if r["split"] == "dev"
-                    and r["method"] == method
-                    and r["W"] == width
-                    and r["stride_divisor"] == 2
-                    and not r["mask"]
-                    and r["k"] == (9 if width == 255 else 13)
-                ]
-                axis.errorbar(
-                    [r["query_seconds"] for r in rows],
-                    [r["recall10"] * 100 for r in rows],
-                    yerr=np.array(
-                        [
-                            [r["recall10"] - r["recall10_ci_low"] for r in rows],
-                            [r["recall10_ci_high"] - r["recall10"] for r in rows],
-                        ]
-                    )
-                    * 100,
-                    label={"exact": "Full sets", "scan": "MinHash scan", "lsh": "LSH"}[
-                        method
-                    ],
-                    color=color,
-                    fmt="o",
-                    capsize=0,
-                )
-            axis.set(
-                xscale="log",
-                xlabel="Query wall time (s)",
-                ylabel="Known-pair recall at C=10 (%)",
-                ylim=(0, 101),
-                title=f"W={width}, k={9 if width == 255 else 13}",
-            )
-            axis.set_box_aspect(1)
-            axis.set_xticks([1, 10, 100] if width == 255 else [0.2, 1, 5])
-            axis.xaxis.set_major_formatter(ticker.ScalarFormatter())
-            axis.xaxis.set_minor_formatter(ticker.NullFormatter())
-        axes[1].legend(title="Method", loc="lower right")
-        fig.savefig(args.out / "index-frontier.svg")
-        fig.savefig(args.out / "index-frontier.png", dpi=160)
-        plt.close(fig)
+        plot_figures(table, args.out)
 
 
 if __name__ == "__main__":

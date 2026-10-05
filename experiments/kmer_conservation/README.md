@@ -43,8 +43,8 @@ Its OS shutdown deadline is ten hours after bootstrap, and instance-initiated sh
 The planning estimate is $0.714/hour compute, approximately $7.14 at the deadline, plus less than $0.20 for the short-lived root disk and public IPv4.
 Reserve the remaining budget for necessary bounded reruns; record launches and actual lifetime estimates before any additional instance.
 Expected peak analysis memory is below 16 GiB; stop a parameter arm on excessive repetitive postings or projected runtime beyond the allocation.
-All full-data work, dependency installation, and tests run on EC2.
-The shared 2-vCPU VM only orchestrates commands and handles small text artifacts.
+The original full-data work, dependency installation, and tests ran on EC2.
+A later documentation review rerendered plots from the small archived metrics table and reran the unit tests on the shared VM under its local resource limits; it did not rerun the experiment.
 
 Issue-owned data and results use versioned paths below `s3://oa-bolinas/issues/568/`.
 Do not duplicate the existing genome source assets into the result namespace.
@@ -56,12 +56,14 @@ Small summary artifacts live on this permanent branch; reviewed interpretations 
 From this directory on an appropriately sized worker:
 
 ```bash
+export UV_FORK_STRATEGY=requires-python
 uv sync --locked --group dev
 uv run --locked pytest
 uv run --locked kmer-fixture --root /data/issue568 --prior /data/issue568/prior
 uv run --locked kmer-screen --root /data/issue568 --split dev
 ```
 
+The environment variable preserves the archived lockfile resolver strategy with newer uv releases.
 The `prior` path must contain the pinned #521 source tree extracted from the commit above.
 See the logbook for exact producing commits and commands.
 
@@ -90,3 +92,22 @@ Linclust database bytes are disk storage and must not be compared as if they wer
 
 `uv run --locked python validate_artifacts.py --root ROOT` checks consistent query/truth universes, unique candidate-locus budgets, stored ranks, pair denominators, and recomputed recall across all result files.
 `archive_results.py` uploads a fresh immutable S3 prefix, verifies every object's bytes by round-trip SHA-256, and preserves superseded initial metrics under an explicitly invalidated namespace.
+
+### Rerender archived figures
+
+The plotting helper can use the archived metrics without loading sequences or recomputing the experiment.
+From this project directory, after installing the locked development dependencies:
+
+```bash
+UV_FORK_STRATEGY=requires-python uv run --locked python - <<'PYTHON'
+import json
+from pathlib import Path
+from kmer_conservation.report import plot_figures
+
+artifacts = Path("../../.agents/artifacts/issue-568-kmer-conservation")
+plot_figures(json.loads((artifacts / "final/metrics.json").read_text()), Path("/tmp/issue568-figures"))
+PYTHON
+```
+
+The index comparison uses method colors, a shared legend outside the panels, and logarithmic query-time axes.
+Individual sketch sizes and band settings are available in the metrics table and are not encoded in the plot.

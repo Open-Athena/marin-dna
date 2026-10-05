@@ -1,0 +1,30 @@
+{
+  "date": "2026-10-05T15:54:31.260602+00:00",
+  "purpose": "PR 569 review corrections; presentation only, no experiment rerun",
+  "metrics_source_commit": "74e51fdfa6f387d7e5191e3f05bd6d22f29bd770",
+  "metrics_path": ".agents/artifacts/issue-568-kmer-conservation/final/metrics.json",
+  "metrics_sha256": "a98d45a8ff2f294eae8b529b912548d0ad0ffdff36a440232f7fb2b22be1f192",
+  "render_command": "UV_FORK_STRATEGY=requires-python uv run --locked python: json.loads(metrics_path.read_text()); plot_figures(table, output_directory)",
+  "svg_postprocessing": "Repository trailing-whitespace hook only",
+  "validation": {
+    "unit_tests_passed": 26,
+    "plot_points_checked": 26,
+    "confidence_intervals_checked": 26,
+    "legend_outside_both_axes": true,
+    "both_query_axes_labeled_log": true,
+    "metrics_unchanged": true,
+    "rendered_png_visually_inspected": true,
+    "pre_commit": "Pinned hooks pass for changed source and documentation"
+  },
+  "resources": {
+    "location": "shared exe.dev VM",
+    "peak_test_rss_kib": 148848,
+    "peak_render_rss_kib": 96016,
+    "local_guard": "nonblocking shared lock, single-thread environment, nice 10, ionice 2/7, memory/load thresholds",
+    "paid_resources_started": false
+  },
+  "artifacts": {
+    "index-frontier.svg": "8a73406e0ea9c81a0c92c1f8f561404357d58426b3febee82f020e446a80507c",
+    "index-frontier.png": "e10bb46ffa5361a54ae6db1d0bf2fa2c7cccfcf7528c1ecb2fb22b6258ff72f8"
+  }
+}

@@ -208,3 +208,19 @@ The experiment locks the actual installed version and must not apply ordinary ba
 - Final disposition: interpretation PR open.
   Keep issue #568 open until that PR merges under the knowledge-base gate.
   The bounded experiment is complete; no selector enrichment, genome-scale indexing, or training was performed after the failed index gate.
+
+### 2026-10-05 15:54 UTC — address interpretation PR review
+
+- Addressed the three Codex review findings on PR #569: moved the index-frontier legend outside both panels, labeled query time as logarithmic, and limited the caption/alt text to the method-level encoding.
+  Sketch size and LSH band settings remain available in the unchanged result matrix.
+- Extracted the existing plotting block into `plot_figures` so the archived metrics can be rerendered without raw sequences, pair retrieval, or bootstrap recomputation.
+  The project README records the bounded reproduction command and the original lockfile's `requires-python` fork strategy.
+- Regenerated and visually inspected the figure, asserting equality of all 26 plotted coordinates and confidence intervals with the frozen metrics and checking that the legend overlaps neither panel.
+  The metrics SHA-256 remains `a98d45a8ff2f294eae8b529b912548d0ad0ffdff36a440232f7fb2b22be1f192`.
+  The revised figure and receipt live in `.agents/artifacts/issue-568-kmer-conservation/review-20261005/`; original artifacts remain intact.
+- The existing 26 project tests pass with the locked Python 3.12 environment.
+  Pinned repository quality hooks pass after normalizing generated SVG whitespace and Python formatting; document links and SVG XML also validate.
+  Local test/plot commands held the shared nonblocking lock, used one thread, and stayed below 149 MiB peak RSS; no task-owned worker remained.
+  No new paid resources were launched.
+- Resolved the interpretation branch's merge conflict with `main`, preserving the separately accepted #577 conservation results and adding #568's bounded pair-retrieval evidence alongside them.
+  PR #569 and issue #568 remain open pending review and explicit merge approval.
