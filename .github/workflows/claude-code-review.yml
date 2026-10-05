@@ -7,7 +7,7 @@ name: Claude Code Review
 # never per push. Ask for a re-review with an `@claude` comment (claude.yml).
 #
 # The author gate is load-bearing: this repo is public and the review spends
-# CLAUDE_CODE_OAUTH_TOKEN quota, so only PRs opened by repo writers run. That
+# CLAUDE_CODE_OAUTH_TOKEN_OA quota, so only PRs opened by repo writers run. That
 # also excludes dependabot (CONTRIBUTOR) and fork PRs, which never receive the
 # secret. Fork heads are excluded outright: even a member's fork PR passes the
 # association gate, but fork heads receive no secrets, so the review would run
@@ -59,7 +59,7 @@ jobs:
         id: claude
         uses: marin-community/marin-style/actions/consult-agent@4b2fc2b0ec0bb9ad1304ef76936eb68e97f893cb # 2026-08-24
         with:
-          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN_OA }}
           allowed_bots: 'claude[bot]'
           track_progress: true
           prompt: |

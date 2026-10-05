@@ -65,11 +65,12 @@ Linclust's unprofiled FASTA export prevents a complete comparable cold-stage fig
 Index MB are decimal bytes for both target species' postings or signatures plus bucket arrays; they exclude shared window metadata and are not process memory.
 
 <p align="center">
-  <img src="figures/568/index-frontier.svg" alt="Development comparison of full sets, MinHash scans, and LSH: larger sketches preserve more recall, while permissive LSH buckets increase lookup time and selective buckets lose recall." />
+  <img src="figures/568/index-frontier.svg" alt="Development recall and query time for full sets, MinHash scans, and LSH at two fixed window and k-mer settings; colors identify methods and runtime uses a logarithmic scale." />
 </p>
 
-_Development query time against prepared indexes, with W and k fixed within each panel.
+_Development query time against prepared indexes on logarithmic horizontal axes, with W and k fixed within each panel.
 MinHash signatures contain 32, 128, or 512 affine64 permutation minima; LSH crosses those sizes with one, two, or four rows per band and rescores the retrieved signatures.
+Colors identify methods; individual sketch sizes and band settings are not encoded, so this plot shows the spread within each method rather than parameter-specific effects.
 Error bars use the same grouped bootstrap; runtime uncertainty was not estimated.
 The full exact baseline matrix, including other window/k settings, determines the recall–runtime frontier._
 
@@ -112,3 +113,4 @@ No genome-scale index, conservation selector, or training comparison was run.
 ## Research record
 
 - [Experiment #568](https://github.com/Open-Athena/marin-dna/issues/568)
+- [Figure source and reproduction](https://github.com/Open-Athena/marin-dna/blob/4db93f0f0f4e5adbaf003bf6a626920dbf6955ad/experiments/kmer_conservation/README.md#rerender-archived-figures), using the unchanged [final metrics](https://github.com/Open-Athena/marin-dna/blob/74e51fdfa6f387d7e5191e3f05bd6d22f29bd770/.agents/artifacts/issue-568-kmer-conservation/final/metrics.json)
