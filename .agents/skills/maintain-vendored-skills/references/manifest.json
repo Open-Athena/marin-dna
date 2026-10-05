@@ -5,7 +5,6 @@
   "unchanged": [
     "writing-style",
     "background-research",
-    "update-docs",
     "wandb-reporting"
   ],
   "adapted": [
@@ -13,21 +12,26 @@
       "name": "file-issue",
       "deviations": [
         "Replace the hard-coded upstream repository target with Open-Athena/marin-dna.",
-        "Replace the unavailable fix-issue style reference with writing-style."
+        "Replace the unavailable fix-issue style reference with writing-style.",
+        "Use MarinDNA's Kind, Topic, and metadata label taxonomy.",
+        "Compose experiment issues with maintain-knowledge-base disposition and run-research closure policy."
       ]
     },
     {
       "name": "run-research",
       "deviations": [
         "Use marin-experiment for MarinDNA long-running training jobs.",
-        "Replace unavailable optional See Also entries with MarinDNA research skills."
+        "Replace unavailable optional See Also entries with MarinDNA research skills.",
+        "Use the branch policy in AGENTS.md.",
+        "Promote accepted interpretations through maintain-knowledge-base and require its disposition before issue closure."
       ]
     },
     {
       "name": "task-logbook",
       "deviations": [
         "Require the robot prefix on every agent-authored GitHub comment.",
-        "Replace the unavailable commit-skill reference with AGENTS.md production commit rules."
+        "Replace the unavailable commit-skill reference with AGENTS.md production commit rules.",
+        "Promote accepted interpretations into MarinDNA's research knowledge base and record the disposition before closure."
       ]
     },
     {
@@ -35,12 +39,30 @@
       "deviations": [
         "Use Open-Athena/marin-dna in the pinned-logbook permalink example."
       ]
+    },
+    {
+      "name": "update-docs",
+      "deviations": [
+        "Route accepted research findings and their provenance through maintain-knowledge-base instead of generic experiment reports."
+      ]
+    },
+    {
+      "name": "review-pr",
+      "deviations": [
+        "Rewrite the description for MarinDNA CI and local invocation.",
+        "Enumerate MarinDNA's quotable AGENTS.md rules for the compliance agents and route figure and Snakemake checks to the local area skills.",
+        "Check PR prose against writing-style plus communicate-on-github instead of Marin's writing-style alone.",
+        "Validate findings from all four review agents, not only the bug agents.",
+        "Require the robot prefix on every posted comment and use Open-Athena/marin-dna permalinks.",
+        "Drop Marin's stats-logging step (no log_stats.py sink here)."
+      ]
     }
   ],
   "local": [
     "access-reference-genomes",
     "communicate-on-github",
     "develop-snakemake-pipelines",
+    "draft-weekly-research-update",
     "evaluate-models",
     "maintain-knowledge-base",
     "maintain-vendored-skills",
