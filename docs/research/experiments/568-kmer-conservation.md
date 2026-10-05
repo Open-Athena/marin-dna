@@ -38,10 +38,11 @@ Complete-set Jaccard scores used an exact inverted index; MinHash scans and comp
 Matched Linclust included its intrinsic alignment filtering, while a separate edit-distance diagnostic measured the loss from requiring a full-window match after exact retrieval.
 
 <p align="center">
-  <img src="figures/568/window-screen.svg" alt="Development recall across five window lengths: k9 performs best, with its highest observed recall at 255 bp; grouped confidence intervals overlap across neighboring widths." />
+  <img src="figures/568/window-screen.svg" alt="Development recall across five window lengths on a logarithmic horizontal axis: k9 performs best, with its highest observed recall at 255 bp; grouped confidence intervals overlap across neighboring widths." />
 </p>
 
 _Development known-pair recall at ten unique candidates; 274 pairs in 87 split groups, complete canonical k-mer sets, and half-window stride.
+Window length is shown on a logarithmic horizontal axis.
 Error bars are 95% percentile intervals from 2,000 split-group bootstrap resamples.
 The selected width is a study choice, not an established optimum._
 
