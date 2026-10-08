@@ -55,5 +55,9 @@ Completion requires `run_progress >= 1` and a reachable permanent final checkpoi
 
 2026-10-08: Two-node pretrained EP8 passed 25 finite, dropless updates, checkpointing, and three-way replay at approximately 297,000 input tokens per second.
 2026-10-08: The scratch default compiler path did not reach an update within one hour; disabling all autotuning restored startup but reduced throughput to approximately 49,000 input tokens per second.
-2026-10-08: Scratch factor-32 drops were receiver-only and transient over the first 25 updates; a 600-update factor-32 control determines whether they settle as they did in experiment 582.
+2026-10-08: Scratch factor-32 drops were receiver-only and transient over the first 25 updates, so an accelerated longer control tested whether they settled as they did in experiment 582.
 2026-10-08: Receiver factor 64 is rejected after allocating 84.86 GB per H100 and failing first-step NCCL communicator creation with CUDA out of memory.
+2026-10-08: Receiver factor 32 is selected after the accelerated control recorded zero drops for updates 240 through 339 at peak LR; factor 48 was 38% slower while factor 64 did not fit in memory.
+2026-10-08: A direct-logits cross-entropy control for the eight-token scratch head did not improve compile time and initially ran below the fused-loss baseline, so production retains Hero's fused loss. Production omits inline gradient/update watches so they do not enlarge the compiled train step; loss, routing, LR, throughput, and finite-state checks remain inline.
+2026-10-08: The user rejected the autotuning-disabled scratch fallback after production exposed an approximately fivefold throughput penalty. Scratch production uses the default XLA compiler settings, matching exp582; do not add condition-specific compiler flags merely to shorten startup.
+2026-10-08: Default XLA on the newer exp586 stack produced no scratch update after 31 minutes; exp582's exact pinned Marin package set and vendored Hero runtime replace it for subsequent dispatches. The exp582 scratch control reached its first update in approximately 33 seconds with no condition-specific compiler flags.

@@ -20,6 +20,7 @@ import jmp
 import numpy as np
 from fray.cluster import ResourceConfig
 from fray.current_client import current_client
+from fray.device_flops import device_flops_for_jax_device
 from fray.types import Entrypoint, JobRequest, create_environment
 from iris.rpc.proto_display import priority_band_value
 from jax.experimental import multihost_utils
@@ -73,6 +74,7 @@ from experiments.grug.moe_hero_ep.model import Transformer, apply_qb_betas
 from experiments.grug.moe_hero_ep.train import (
     MasterParamMode,
     _apply_hero_ep_runtime_defaults,
+    _compute_flops,
     _make_train_step,
     grug_trainer_mesh_config,
 )
@@ -82,6 +84,41 @@ BATCH_SIZE = GLOBAL_BATCH_SIZE
 COOLDOWN_UPDATE = PEAK_CHECKPOINT_UPDATE
 VALIDATION_EXAMPLES = 512
 ARTIFACT_DATE = "2026.10.08"
+
+
+def theoretical_flops(device_kind: str, device_count: int) -> tuple[float, float]:
+    """Return the standard dense-BF16 peak for one device and the whole mesh."""
+    if device_count <= 0:
+        raise ValueError("Device count must be positive")
+    per_device = device_flops_for_jax_device(device_kind)
+    if per_device is None:
+        raise ValueError(f"Unknown theoretical FLOPs for {device_kind}")
+    return float(per_device), float(per_device * device_count)
+
+
+def throughput_flop_metrics(
+    *,
+    flops_per_example: float,
+    completed_examples: int,
+    batch_size: int,
+    elapsed_seconds: float,
+    theoretical_flops_total: float,
+) -> dict[str, float]:
+    """Match Levanter's analytic MFU convention using the durable example clock."""
+    if (
+        flops_per_example <= 0
+        or completed_examples < 0
+        or batch_size <= 0
+        or elapsed_seconds <= 0
+        or theoretical_flops_total <= 0
+    ):
+        raise ValueError("FLOP metrics require positive rates and a nonnegative clock")
+    model_flops_per_second = flops_per_example * batch_size / elapsed_seconds
+    return {
+        "throughput/gflops_per_second": model_flops_per_second / 1e9,
+        "throughput/mfu": model_flops_per_second / theoretical_flops_total * 100.0,
+        "throughput/total_gflops": flops_per_example * completed_examples / 1e9,
+    }
 
 
 @dataclasses.dataclass(frozen=True)
@@ -392,10 +429,22 @@ def _run_training(config: TrainingConfig) -> None:
     trainer.initialize()
     assert jax.device_count() == 8 * config.nodes
     assert all("H100" in d.device_kind for d in jax.devices())
+    device_kind = jax.devices()[0].device_kind
+    flops_per_example, flops_summary = _compute_flops(model_config=config.model)
+    flops_per_device, flops_total = theoretical_flops(device_kind, jax.device_count())
     log_offset = wandb_history_offset()
     tracker.log_configuration(config)
     tracker.log_summary(
-        {"training/phase": "loading", "gpu_type": "H100", "nodes": config.nodes}
+        {
+            "training/phase": "loading",
+            "gpu_type": "H100",
+            "nodes": config.nodes,
+            **flops_summary,
+            "throughput/flops_per_example": flops_per_example,
+            "throughput/device_kind": device_kind,
+            "throughput/theoretical_flops_per_device": flops_per_device,
+            "throughput/theoretical_flops": flops_total,
+        }
     )
     tokenizer = (
         scratch_tokenizer()
@@ -477,12 +526,7 @@ def _run_training(config: TrainingConfig) -> None:
             ema_beta=None,
             offload_opt_state=True,
             master_param_mode=MasterParamMode.FP32_PINNED_HOST,
-            watch_config=WatchConfig(
-                watch_targets=["grads", "updates"],
-                include_per_parameter_norms=False,
-                split_scan_layers=False,
-                include_histograms=False,
-            ),
+            watch_config=None,
         )
         last_save = time.monotonic()
         while clock.input_tokens < TRAINING_TOKENS:
@@ -533,6 +577,15 @@ def _run_training(config: TrainingConfig) -> None:
                     "throughput/loading_seconds": loading_time,
                     "throughput/tokens_per_second": TOKENS_PER_UPDATE / elapsed,
                 }
+            )
+            values.update(
+                throughput_flop_metrics(
+                    flops_per_example=flops_per_example,
+                    completed_examples=clock.examples,
+                    batch_size=BATCH_SIZE,
+                    elapsed_seconds=elapsed,
+                    theoretical_flops_total=flops_total,
+                )
             )
             for key in ("bytes_in_use", "peak_bytes_in_use", "bytes_limit"):
                 memory = jax.local_devices()[0].memory_stats() or {}
@@ -643,7 +696,7 @@ def run_training(config: TrainingConfig) -> None:
 
 def dispatch(config: TrainingConfig) -> None:
     _apply_hero_ep_runtime_defaults(
-        inline_watch_enabled=True,
+        inline_watch_enabled=False,
         moe_implementation=config.model.moe_implementation,
         remat_mode="recompute_all",
         processes_per_task=8,

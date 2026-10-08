@@ -1,6 +1,6 @@
 {
   "repository": "https://github.com/marin-community/marin",
-  "commit": "33efc10f13319ae88d4bd71d0b3451b2971615c1",
+  "commit": "187a34fa46cfe8feedc9d4573a2886e293d1e643",
   "files": {
     "experiments/__init__.py": "6026bc6a357ca0c546cdd33ed000e6fd8ee02fb6cff84e030e30f3e15ee9040d",
     "experiments/grug/__init__.py": "7e2ae587f5452a7c90c8c40305f58864d4f57603c3dba2f150f17e5e35657953",
@@ -11,12 +11,12 @@
     "experiments/grug/moe_hero_ep/coordinated_gc.py": "571e1449534239b51e600538206090b55fc3f6c6f161526e84c5327893743a19",
     "experiments/grug/moe_hero_ep/grugmuon_hero.py": "c6c1c09904b3349d57c2a2d6b3de912320cc3f1b504211f653ad6ed4b333a646",
     "experiments/grug/moe_hero_ep/heuristic.py": "341e698dca3ffc8f6408719a8f4546a1f0797dbae8ddf38bc0fe9e132e760621",
-    "experiments/grug/moe_hero_ep/model.py": "7a7bef4ee09ec16f901af4951a54b658bc64b224fe98cf6bdd353ce2334dd2ee",
+    "experiments/grug/moe_hero_ep/model.py": "8fdfd89cf6814da05683f134f154525916728370368a2493843195d9a489859c",
     "experiments/grug/moe_hero_ep/ops/__init__.py": "58b7d6f4326a8c4ac53e1e78aa630f2c3a48bfc44578ea691f268666f9ce2695",
     "experiments/grug/moe_hero_ep/ops/vibe_check/__init__.py": "5cca151271a633a11f84ce34e422333549e6f3a3e3ec069e11ad8f97852b9844",
     "experiments/grug/moe_hero_ep/ops/vibe_check/completions.py": "c5b027047714309a62123ce3c9b6e341fcdd538ae074a44976a546a459e84964",
     "experiments/grug/moe_hero_ep/optimizer.py": "50dddad265e18974e8529f7a9df26d37e44430ffc5442d5c93e58cb2e924ae0e",
-    "experiments/grug/moe_hero_ep/train.py": "5522a7e4e315af5f5fa3b307cc36fd46c254abf3661ea742c1f63e4a1ed2e98e",
+    "experiments/grug/moe_hero_ep/train.py": "12df3d9015e82846d1942415d4fd3eeae949d3d863cacf38bad4689caf2583d7",
     "experiments/grug/moe_hero_ep/weights.py": "495de05281ce1cd01d2ad187aafd43e7d89833d42109c63fe63db3d80d21f231",
     "experiments/grug/sharding_dump.py": "786cd97dd34a3f49f41c50291bd204a1e515720a8527a45fd2e45ffbfdc6c1b8"
   },
@@ -27,7 +27,7 @@
     },
     "experiments/grug/moe_hero_ep/model.py": {
       "reason": "Pin the aligned hybrid KV output sharding on JAX 0.11.1; a singleton batch loses size-one axis annotations during broadcast. Two-or-more example padding tests pass; singleton segmented attention has an additional upstream limitation.",
-      "sha256": "3c4f720d811aae144834064e176a128c3573fb6016faf2d35628d183bc2584ba"
+      "sha256": "21599cad615db665df917b01ba58dd5e5aadbfd3ddecb8943c2bc3109ebf3263"
     }
   }
 }

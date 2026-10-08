@@ -20,7 +20,7 @@ Checkpoints are stored under `s3://marin-us-east-02a/MarinDNA/exp586_plantcad2_m
 
 ## Runtime
 
-The project uses the coherent Marin `0.2.149.dev37775727576` package set published on 2026-10-08 and vendors the required Hero experiment modules from Marin commit `33efc10f13319ae88d4bd71d0b3451b2971615c1`.
+The project uses the exp582-proven Marin `0.2.141.dev37311598536` package set and vendors the required Hero experiment modules from Marin commit `187a34fa46cfe8feedc9d4573a2886e293d1e643`. A newer stack compiled d768 scratch for more than 30 minutes without an update, while this pinned stack started exp582 scratch in about 33 seconds.
 The permanent language source is `s3://marin-us-east-02a/marin/grug/rav-ladder-d768-v2/2026.08.18/checkpoints/step-11420`.
 
 ```bash

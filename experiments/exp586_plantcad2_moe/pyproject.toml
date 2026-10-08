@@ -8,12 +8,12 @@ version = "0.1.0"
 description = "MarinDNA d768 adaptation and validation"
 requires-python = ">=3.12,<3.13"
 dependencies = [
-    "marin-core==0.2.149.dev37775727576",
-    "marin-iris==0.2.149.dev37775727576",
-    "marin-levanter==0.2.149.dev37775727576",
-    "marin-fray==0.2.149.dev37775727576",
-    "marin-rigging[secrets]==0.2.149.dev37775727576",
-    "marin-zephyr==0.2.149.dev37775727576",
+    "marin-core==0.2.141.dev37311598536",
+    "marin-iris==0.2.141.dev37311598536",
+    "marin-levanter==0.2.141.dev37311598536",
+    "marin-fray==0.2.141.dev37311598536",
+    "marin-rigging[secrets]==0.2.141.dev37311598536",
+    "marin-zephyr==0.2.141.dev37311598536",
     # Current Marin training imports its tokenization/datakit path at module load.
     "marin-dupekit",
     "tokenizers",
@@ -33,13 +33,13 @@ eval = [
     "marindna-exp582-evals @ git+https://github.com/eric-czech/plantcad2.git@ee4eb4f1618bd70c0140f9de24a07431f055722e#subdirectory=zero-shot-leaderboard/marindna_exp582",
 ]
 cpu = [
-    "marin-core[cpu]==0.2.149.dev37775727576",
+    "marin-core[cpu]==0.2.141.dev37311598536",
     "torch==2.11.0",
     "torchvision==0.26.0+cpu; platform_machine == 'x86_64'",
     "torchvision==0.26.0; platform_machine == 'aarch64'",
 ]
 gpu = [
-    "marin-core[gpu]==0.2.149.dev37775727576",
+    "marin-core[gpu]==0.2.141.dev37311598536",
     "torch==2.11.0",
     "torchvision==0.26.0",
     "jax-cuda13-pjrt==0.11.1",

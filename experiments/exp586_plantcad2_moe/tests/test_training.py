@@ -11,7 +11,7 @@ from levanter.checkpoint import load_checkpoint, save_checkpoint
 from levanter.grug.sharding import compact_grug_mesh
 from levanter.tensorstore_serialization import TensorStoreWriteConfig
 
-from exp586_moe.config import PEAK_CHECKPOINT_UPDATE, TOTAL_UPDATES
+from exp586_moe.config import PEAK_CHECKPOINT_UPDATE, TOTAL_UPDATES, TRAINING_TOKENS
 from exp586_moe.schedule import TokenClock
 from exp586_moe.train import (
     BATCH_SIZE,
@@ -25,7 +25,10 @@ from exp586_moe.train import (
     prepare_checkpoint,
     primary_json,
     scientific_config,
+    theoretical_flops,
+    throughput_flop_metrics,
 )
+from experiments.grug.moe_hero_ep.train import _compute_flops
 
 
 def test_trial_catalog_and_placement_do_not_change_science():
@@ -78,6 +81,66 @@ def test_complete_clock_contract():
             check_clock(
                 dataclasses.replace(clock, **{field: getattr(clock, field) + 1})
             )
+
+
+def test_mfu_and_total_gflops_match_levanter_convention_and_resume_clock():
+    expected = {
+        "pretrained": (1_220_124_672.0, 9_995_261_313_024.0),
+        "scratch": (629_157_888.0, 5_154_061_418_496.0),
+    }
+    per_device, peak_16 = theoretical_flops("NVIDIA H100 80GB HBM3", 16)
+    assert per_device == 989_500_000_000_000.0
+    assert theoretical_flops("NVIDIA H100 80GB HBM3", 64) == (
+        per_device,
+        4 * peak_16,
+    )
+
+    for condition, (training_flops_per_token, expected_per_example) in expected.items():
+        config = TrainingConfig(condition, 1.0, "cw-rno2a", 2)
+        flops_per_example, summary = _compute_flops(model_config=config.model)
+        assert flops_per_example == expected_per_example
+        assert (
+            3 * summary["throughput/flops_per_token_analytic"]
+            == training_flops_per_token
+        )
+
+        completed_examples = 25 * BATCH_SIZE
+        metrics = throughput_flop_metrics(
+            flops_per_example=flops_per_example,
+            completed_examples=completed_examples,
+            batch_size=BATCH_SIZE,
+            elapsed_seconds=2.0,
+            theoretical_flops_total=peak_16,
+        )
+        assert metrics["throughput/mfu"] == pytest.approx(
+            flops_per_example * BATCH_SIZE / 2.0 / peak_16 * 100.0
+        )
+        assert metrics["throughput/total_gflops"] == pytest.approx(
+            flops_per_example * completed_examples / 1e9
+        )
+
+        resumed = throughput_flop_metrics(
+            flops_per_example=flops_per_example,
+            completed_examples=completed_examples + BATCH_SIZE,
+            batch_size=BATCH_SIZE,
+            elapsed_seconds=0.5,
+            theoretical_flops_total=4 * peak_16,
+        )
+        assert resumed["throughput/mfu"] == pytest.approx(metrics["throughput/mfu"])
+        assert resumed["throughput/total_gflops"] - metrics[
+            "throughput/total_gflops"
+        ] == pytest.approx(flops_per_example * BATCH_SIZE / 1e9)
+
+        final = throughput_flop_metrics(
+            flops_per_example=flops_per_example,
+            completed_examples=TOTAL_UPDATES * BATCH_SIZE,
+            batch_size=BATCH_SIZE,
+            elapsed_seconds=2.0,
+            theoretical_flops_total=peak_16,
+        )
+        assert final["throughput/total_gflops"] == pytest.approx(
+            TRAINING_TOKENS * training_flops_per_token / 1e9
+        )
 
 
 def _metadata(step: int, digest: str, *, temporary: bool) -> dict:
