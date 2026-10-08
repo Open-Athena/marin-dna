@@ -549,7 +549,7 @@ def _availability(
     held: list[tuple[str, int]],
 ) -> dict[str, object]:
     return {
-        "version": "2",
+        "version": "3",
         "observation_epoch_ms": str(observed_ms),
         "amounts": {gpu: str(free)},
         "total_amounts": {gpu: str(total)},
@@ -610,7 +610,8 @@ def _utilization_response(observed_at: datetime) -> dict[str, object]:
                 476,
                 804,
                 [
-                    ("PRIORITY_BAND_PRODUCTION", 320),
+                    ("PRIORITY_BAND_SYSTEM", 256),
+                    ("PRIORITY_BAND_PRODUCTION", 64),
                     ("PRIORITY_BAND_INTERACTIVE", 4),
                     ("PRIORITY_BAND_BATCH", 4),
                 ],
@@ -631,7 +632,8 @@ def test_utilization_summarizes_all_production_peers() -> None:
             "held_by_band": {
                 "PRIORITY_BAND_BATCH": 4,
                 "PRIORITY_BAND_INTERACTIVE": 4,
-                "PRIORITY_BAND_PRODUCTION": 320,
+                "PRIORITY_BAND_PRODUCTION": 64,
+                "PRIORITY_BAND_SYSTEM": 256,
             },
         },
         "H100": {
@@ -666,6 +668,15 @@ def test_utilization_rejects_stale_and_inconsistent_capacity() -> None:
     inconsistent["peers"][1]["backends"][0]["availability"]["amounts"]["h100"] = "111"
     with pytest.raises(utilization.SnapshotError, match="accounting disagrees"):
         utilization.summarize(inconsistent, observed_at)
+
+
+@pytest.mark.parametrize("version", [1, 2, 4])
+def test_utilization_rejects_unsupported_capacity_versions(version: int) -> None:
+    observed_at = datetime(2026, 10, 5, 13, tzinfo=UTC)
+    response = _utilization_response(observed_at)
+    response["peers"][0]["backends"][0]["availability"]["version"] = version
+    with pytest.raises(utilization.SnapshotError, match="expected 3"):
+        utilization.summarize(response, observed_at)
 
 
 def test_utilization_requires_reachable_selected_peers() -> None:

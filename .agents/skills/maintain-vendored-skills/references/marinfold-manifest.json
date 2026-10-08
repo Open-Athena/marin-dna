@@ -14,6 +14,7 @@
         "Compose tracked Operations and task-logbook chronology with immutable SQLite backups under a declared durable owner.",
         "Add transactional trial, dispatch-intent, confirmation, observation, terminal, completion, and backup commands with intent-before-submit recovery tests; normalize timestamps to UTC and reject non-finite progress.",
         "Clarify that the sweep deadline is a whole-sweep stop condition distinct from reslice and restart recovery thresholds.",
+        "Require Iris capacity metric v3, account for SYSTEM-priority holds without treating them as free batch capacity, and reject unsupported metric versions.",
         "Apply MarinDNA's Python lint/format and one-sentence-per-line Markdown rules; gate bundled helper tests in the root pytest suite."
       ]
     },
