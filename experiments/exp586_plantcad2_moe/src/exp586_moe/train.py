@@ -84,6 +84,19 @@ BATCH_SIZE = GLOBAL_BATCH_SIZE
 COOLDOWN_UPDATE = PEAK_CHECKPOINT_UPDATE
 VALIDATION_EXAMPLES = 512
 ARTIFACT_DATE = "2026.10.08"
+PERMANENT_CHECKPOINT_COUNT = 8
+PERMANENT_CHECKPOINT_UPDATES = frozenset(
+    {
+        math.ceil(
+            TRAINING_TOKENS
+            * checkpoint_index
+            / (PERMANENT_CHECKPOINT_COUNT - 1)
+            / TOKENS_PER_UPDATE
+        )
+        for checkpoint_index in range(1, PERMANENT_CHECKPOINT_COUNT - 1)
+    }
+    | {PEAK_CHECKPOINT_UPDATE, TOTAL_UPDATES}
+)
 
 
 def theoretical_flops(device_kind: str, device_count: int) -> tuple[float, float]:
@@ -231,10 +244,15 @@ def checkpoint_due(
 ) -> bool:
     """Bound replay after every restore as well as during uninterrupted training."""
     return (
-        update in (peak_update, TOTAL_UPDATES)
+        is_permanent_checkpoint(update, peak_update)
         or update == initial_update + 25
         or seconds_since_save >= interval_seconds
     )
+
+
+def is_permanent_checkpoint(update: int, peak_update: int = COOLDOWN_UPDATE) -> bool:
+    """Retain the LR peak, six horizon milestones, and the final state."""
+    return update == peak_update or update in PERMANENT_CHECKPOINT_UPDATES
 
 
 def primary_json(action: Callable[[], Any]) -> Any:
@@ -594,7 +612,9 @@ def _run_training(config: TrainingConfig) -> None:
             history_step = log_offset + clock.updates - initial_update
             tracker.log(values, step=history_step)
             tracker.log_summary({"training/phase": "training"})
-            permanent = clock.updates in (schedule.peak_update, TOTAL_UPDATES)
+            permanent = is_permanent_checkpoint(
+                clock.updates, peak_update=schedule.peak_update
+            )
             due = int(
                 multihost_utils.broadcast_one_to_all(
                     np.asarray(
@@ -640,6 +660,10 @@ def _run_training(config: TrainingConfig) -> None:
                         "training/checkpoint_seconds": last_save - save_start,
                     }
                 )
+                if permanent:
+                    tracker.log_summary(
+                        {"training/latest_permanent_checkpoint": checkpoint}
+                    )
                 if clock.updates == schedule.peak_update:
                     tracker.log_summary({"training/peak_checkpoint": checkpoint})
             if clock.updates == 25 or clock.updates % 2000 == 0 or permanent:

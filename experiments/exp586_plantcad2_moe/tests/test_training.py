@@ -15,6 +15,8 @@ from exp586_moe.config import PEAK_CHECKPOINT_UPDATE, TOTAL_UPDATES, TRAINING_TO
 from exp586_moe.schedule import TokenClock
 from exp586_moe.train import (
     BATCH_SIZE,
+    PERMANENT_CHECKPOINT_COUNT,
+    PERMANENT_CHECKPOINT_UPDATES,
     TOKENS_PER_UPDATE,
     TrainingConfig,
     bind_and_discover,
@@ -22,6 +24,7 @@ from exp586_moe.train import (
     checkpoint_due,
     commit_and_prune,
     config_json,
+    is_permanent_checkpoint,
     prepare_checkpoint,
     primary_json,
     scientific_config,
@@ -71,6 +74,26 @@ def test_recovery_checkpoint_after_resuming_without_waiting_full_interval():
     assert checkpoint_due(25, 0, 80, 900)
     assert checkpoint_due(PEAK_CHECKPOINT_UPDATE, 344, 1, 900)
     assert checkpoint_due(TOTAL_UPDATES, 344, 1, 900)
+
+
+def test_eight_permanent_checkpoints_span_the_training_horizon():
+    regular = sorted(
+        PERMANENT_CHECKPOINT_UPDATES - {PEAK_CHECKPOINT_UPDATE, TOTAL_UPDATES}
+    )
+    expected_boundaries = [
+        TRAINING_TOKENS * checkpoint_index / (PERMANENT_CHECKPOINT_COUNT - 1)
+        for checkpoint_index in range(1, PERMANENT_CHECKPOINT_COUNT - 1)
+    ]
+    assert len(PERMANENT_CHECKPOINT_UPDATES) == PERMANENT_CHECKPOINT_COUNT
+    assert len(regular) == len(expected_boundaries) == 6
+    for update, boundary in zip(regular, expected_boundaries, strict=True):
+        assert (update - 1) * TOKENS_PER_UPDATE < boundary
+        assert update * TOKENS_PER_UPDATE >= boundary
+        assert is_permanent_checkpoint(update)
+        assert checkpoint_due(update, 0, 0, 900)
+    assert is_permanent_checkpoint(PEAK_CHECKPOINT_UPDATE)
+    assert is_permanent_checkpoint(TOTAL_UPDATES)
+    assert not is_permanent_checkpoint(regular[0] - 1)
 
 
 def test_complete_clock_contract():

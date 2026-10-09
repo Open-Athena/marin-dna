@@ -10,7 +10,7 @@ It compares the permanent language-pretrained checkpoint with the same architect
 - Scratch training uses the historical eight-entry DNA tokenizer, including EOS in the vocabulary without inserting EOS into examples.
 - Train for exactly 216,158,699,520 input tokens: ten corpus epochs and 412,290 updates at global batch 64.
 - Match the Hero text-run schedule: linear warmup for 4,122 updates, then immediate linear decay to 5% of peak through the end of training.
-- Save a permanent checkpoint at update 4,123, after the one exact peak-LR update, and another at update 412,290.
+- Keep eight permanent checkpoints: update 4,123 at peak LR, six evenly spaced token milestones, and update 412,290 at the end.
 - Use the Hero MuonH/Adam heuristic evaluated at the actual training budget, width 768, and 524,288 tokens per global update.
 - Use zero weight decay and pooled EP8 with receiver capacity 32 and sender transport capacity 8.
 
