@@ -1,0 +1,100 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "exp586-plantcad2-moe"
+version = "0.1.0"
+description = "MarinDNA d768 adaptation and validation"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "marin-core==0.2.141.dev37311598536",
+    "marin-iris==0.2.141.dev37311598536",
+    "marin-levanter==0.2.141.dev37311598536",
+    "marin-fray==0.2.141.dev37311598536",
+    "marin-rigging[secrets]==0.2.141.dev37311598536",
+    "marin-zephyr==0.2.141.dev37311598536",
+    # Current Marin training imports its tokenization/datakit path at module load.
+    "marin-dupekit",
+    "tokenizers",
+    "huggingface-hub",
+    "pyarrow",
+    "s3fs",
+    "wandb",
+    # aiobotocore imports httpx.TimeoutException, removed by the 1.0 prereleases.
+    "httpx>=0.28.1,<1",
+    "fire>=0.7.1",
+    "scikit-learn>=1.9.1",
+    "boto3>=1.43.106",
+]
+
+[project.optional-dependencies]
+eval = [
+    "marindna-exp582-evals @ git+https://github.com/eric-czech/plantcad2.git@ee4eb4f1618bd70c0140f9de24a07431f055722e#subdirectory=zero-shot-leaderboard/marindna_exp582",
+]
+cpu = [
+    "marin-core[cpu]==0.2.141.dev37311598536",
+    "torch==2.11.0",
+    "torchvision==0.26.0+cpu; platform_machine == 'x86_64'",
+    "torchvision==0.26.0; platform_machine == 'aarch64'",
+]
+gpu = [
+    "marin-core[gpu]==0.2.141.dev37311598536",
+    "torch==2.11.0",
+    "torchvision==0.26.0",
+    "jax-cuda13-pjrt==0.11.1",
+    "nvidia-cutlass-dsl[cu13]==4.6.2",
+    # Match upstream Marin's lock: b33 inserts mOlo before its positional stream argument.
+    "flash-attn-4[cu13]==4.0.0b28",
+]
+
+[dependency-groups]
+dev = ["pytest>=8", "ruff", "scipy", "scikit-learn"]
+
+[tool.uv]
+required-version = ">=0.10.3,<0.12"
+prerelease = "allow"
+environments = ["sys_platform == 'linux'"]
+conflicts = [[{ extra = "cpu" }, { extra = "gpu" }]]
+
+[tool.uv.sources]
+torch = [{ index = "pytorch-cpu", extra = "cpu" }, { index = "pytorch-cu128", extra = "gpu" }]
+torchvision = [{ index = "pytorch-cpu", extra = "cpu" }, { index = "pytorch-cu128", extra = "gpu" }]
+jax-cuda13-pjrt = { url = "https://github.com/marin-community/xla/releases/download/marin-xla-pjrt-20260915-708c3a4ec79c/jax_cuda13_pjrt-0.11.1%2Bmarin.708c3a4ec79c-py3-none-manylinux_2_27_aarch64.whl", extra = "gpu", marker = "platform_machine == 'aarch64'" }
+nvidia-cutlass-dsl = { index = "nvidia" }
+nvidia-cutlass-dsl-libs-base = { index = "nvidia" }
+nvidia-cutlass-dsl-libs-cu13 = { index = "nvidia" }
+resiliparse = { index = "marin-resiliparse" }
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
+
+[[tool.uv.index]]
+name = "nvidia"
+url = "https://pypi.nvidia.com"
+explicit = true
+
+[[tool.uv.index]]
+name = "marin-resiliparse"
+url = "https://marin-community.github.io/chatnoir-resiliparse/simple"
+explicit = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/exp586_moe", "src/experiments"]
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["gpu: requires an explicitly authorized GPU validation job", "network: reads pinned external artifacts"]
+
+[tool.ruff]
+extend-exclude = ["src/experiments"]
