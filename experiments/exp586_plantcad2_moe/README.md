@@ -12,7 +12,7 @@ It compares the permanent language-pretrained checkpoint with the same architect
 - Match the Hero text-run schedule: linear warmup for 4,122 updates, then immediate linear decay to 5% of peak through the end of training.
 - Keep eight permanent checkpoints: update 4,123 at peak LR, six evenly spaced token milestones, and update 412,290 at the end.
 - Use the Hero MuonH/Adam heuristic evaluated at the actual training budget, width 768, and 524,288 tokens per global update.
-- Use zero weight decay and pooled EP8 with receiver capacity 32 and sender transport capacity 8.
+- Use zero weight decay and EP8: pooled-wave routing with receiver capacity 32 and sender transport capacity 8 for pretrained runs, and ring routing with capacity 32 for scratch runs.
 
 The six seed-zero trials use pretrained LR multipliers 0.5, 1, and 2, and scratch multipliers 1, 3, and 10.
 Their W&B IDs follow `exp586-plantcad2-d768-{pretrained|scratch}-lrm{multiplier}-seed0-v1`.

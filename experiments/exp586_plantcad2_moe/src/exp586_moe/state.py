@@ -106,6 +106,7 @@ def save_dna_checkpoint(
     data_seed: int,
     tokenizer_sha256: str | None = None,
     scientific_config_sha256: str | None = None,
+    runtime_moe_implementation: str | None = None,
     is_temporary: bool = False,
 ) -> None:
     if int(state.step) != clock.updates:
@@ -130,6 +131,7 @@ def save_dna_checkpoint(
             "exp586_schema": 1,
             "tokenizer_sha256": tokenizer_sha256,
             "scientific_config_sha256": scientific_config_sha256,
+            "runtime_moe_implementation": runtime_moe_implementation,
         },
     )
 

@@ -45,6 +45,20 @@ def test_trial_catalog_and_placement_do_not_change_science():
     assert a.context_axis_size == b.context_axis_size == 1
     assert a.model.capacity_factor == 32
     assert a.model.pooled_transport_capacity_factor == 8
+    scratch_ring = TrainingConfig("scratch", 1.0, "cw-rno2a", 2)
+    scratch_pooled = dataclasses.replace(scratch_ring, moe_backend="pooled")
+    assert scratch_ring.run_id == scratch_pooled.run_id
+    assert scratch_ring.checkpoint_root == scratch_pooled.checkpoint_root
+    assert scratch_ring.model.moe_implementation == "ring"
+    assert scratch_ring.resolved_moe_backend == "ring"
+    assert scratch_ring.model.pooled_transport_capacity_factor is None
+    assert (
+        scratch_ring.scientific_model.moe_implementation
+        == "fixed_pooled_wave_all_to_all"
+    )
+    assert scientific_config(scratch_ring, "digest") == scientific_config(
+        scratch_pooled, "digest"
+    )
     assert TOTAL_UPDATES == 412_290
     assert a.schedule.peak_update == PEAK_CHECKPOINT_UPDATE == 4_123
     ids = {
@@ -64,6 +78,8 @@ def test_trial_catalog_and_placement_do_not_change_science():
         dataclasses.replace(a, nodes=16)
     with pytest.raises(ValueError, match="interval"):
         dataclasses.replace(a, checkpoint_interval_seconds=0)
+    with pytest.raises(ValueError, match="backend"):
+        dataclasses.replace(a, moe_backend="ring")
 
 
 def test_recovery_checkpoint_after_resuming_without_waiting_full_interval():

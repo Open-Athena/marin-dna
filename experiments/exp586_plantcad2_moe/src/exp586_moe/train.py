@@ -142,6 +142,7 @@ class TrainingConfig:
     nodes: int
     seed: int = 0
     checkpoint_interval_seconds: int = 900
+    moe_backend: Literal["pooled", "fixed", "ring"] | None = None
 
     def __post_init__(self) -> None:
         multipliers = {
@@ -163,6 +164,10 @@ class TrainingConfig:
             raise ValueError("Training requires an 8-, 16-, 32- or 64-H100 placement")
         if self.checkpoint_interval_seconds <= 0:
             raise ValueError("Checkpoint interval must be positive")
+        if self.moe_backend not in (None, "pooled", "fixed", "ring") or (
+            self.condition == "pretrained" and self.moe_backend not in (None, "pooled")
+        ):
+            raise ValueError("Select an approved MoE runtime backend")
 
     @property
     def context_axis_size(self) -> int:
@@ -186,12 +191,32 @@ class TrainingConfig:
         return HeroTokenSchedule()
 
     @property
-    def model(self) -> Any:
+    def scientific_model(self) -> Any:
+        """Stable logical model contract shared by transport-compatible resumes."""
         return dataclasses.replace(
             d768_config(self.condition),
             capacity_factor=32.0,
             pooled_transport_capacity_factor=8.0,
             expert_chunks=1,
+        )
+
+    @property
+    def resolved_moe_backend(self) -> Literal["pooled", "fixed", "ring"]:
+        return self.moe_backend or ("ring" if self.condition == "scratch" else "pooled")
+
+    @property
+    def model(self) -> Any:
+        implementation = {
+            "pooled": "fixed_pooled_wave_all_to_all",
+            "fixed": "fixed_all_to_all",
+            "ring": "ring",
+        }[self.resolved_moe_backend]
+        return dataclasses.replace(
+            self.scientific_model,
+            moe_implementation=implementation,
+            pooled_transport_capacity_factor=(
+                8.0 if self.resolved_moe_backend == "pooled" else None
+            ),
         )
 
 
@@ -202,7 +227,7 @@ def scientific_config(config: TrainingConfig, tokenizer_sha256: str) -> dict[str
         "condition": config.condition,
         "seed": config.seed,
         "batch_size": BATCH_SIZE,
-        "model": dataclasses.asdict(config.model),
+        "model": dataclasses.asdict(config.scientific_model),
         "optimizer": dataclasses.asdict(
             optimizer_config(
                 reference_tokens_per_update=TOKENS_PER_UPDATE,
@@ -455,6 +480,7 @@ def _run_training(config: TrainingConfig) -> None:
     tracker.log_summary(
         {
             "training/phase": "loading",
+            "training/moe_runtime_backend": config.model.moe_implementation,
             "gpu_type": "H100",
             "nodes": config.nodes,
             **flops_summary,
@@ -644,6 +670,7 @@ def _run_training(config: TrainingConfig) -> None:
                     data_seed=config.seed,
                     tokenizer_sha256=tokenizer_sha256,
                     scientific_config_sha256=digest,
+                    runtime_moe_implementation=config.model.moe_implementation,
                     is_temporary=not permanent,
                 )
                 primary_json(
@@ -769,6 +796,9 @@ def main() -> None:
     )
     parser.add_argument("--nodes", type=int, choices=[1, 2, 4, 8], required=True)
     parser.add_argument("--checkpoint-interval-seconds", type=int, default=900)
+    parser.add_argument(
+        "--moe-backend", choices=["pooled", "fixed", "ring"], default=None
+    )
     dispatch(TrainingConfig(**vars(parser.parse_args())))
 
 
