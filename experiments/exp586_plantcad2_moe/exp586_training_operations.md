@@ -20,7 +20,7 @@ Use the permanent source checkpoint pinned there and the unchanged experiment 58
 
 ## Operator Choices
 
-The user authorized the complete six-trial H100 sweep on 2026-10-08 with a maximum of 96 submitted H100s, allowing one 16-GPU placement per trial.
+The user authorized the complete six-trial H100 sweep on 2026-10-08 and directed aggressive use of free capacity on 2026-10-09. Use up to 384 submitted H100s, allowing one 64-GPU placement per trial when live capacity admits it.
 Both `cw-rno2a` and `cw-us-east-02a` are approved.
 There is no user-requested sweep deadline; continue until all trials complete or the user stops the sweep.
 Cross-family reslicing is disabled.
@@ -46,11 +46,11 @@ Completion requires `run_progress >= 1` and a reachable permanent final checkpoi
 | `cw-rno2a` | H100 | 1 | 8 | unvalidated | — |
 | `cw-rno2a` | H100 | 2 | 16 | eligible | Scratch EP8 control reached finite updates on 2026-10-08. |
 | `cw-rno2a` | H100 | 4 | 32 | unvalidated | — |
-| `cw-rno2a` | H100 | 8 | 64 | unvalidated | — |
+| `cw-rno2a` | H100 | 8 | 64 | eligible | Training accepts eight nodes; global batch 64 gives one example per H100, EP8 is unchanged, and checkpoint state is placement-independent. |
 | `cw-us-east-02a` | H100 | 1 | 8 | unvalidated | — |
 | `cw-us-east-02a` | H100 | 2 | 16 | eligible | Pretrained EP8 smoke completed checkpoint and replay on 2026-10-08. |
 | `cw-us-east-02a` | H100 | 4 | 32 | unvalidated | — |
-| `cw-us-east-02a` | H100 | 8 | 64 | unvalidated | — |
+| `cw-us-east-02a` | H100 | 8 | 64 | eligible | Training accepts eight nodes; global batch 64 gives one example per H100, EP8 is unchanged, and checkpoint state is placement-independent. |
 
 ## Change Record
 
@@ -62,4 +62,5 @@ Completion requires `run_progress >= 1` and a reachable permanent final checkpoi
 2026-10-08: A direct-logits cross-entropy control for the eight-token scratch head did not improve compile time and initially ran below the fused-loss baseline, so production retains Hero's fused loss. Production omits inline gradient/update watches so they do not enlarge the compiled train step; loss, routing, LR, throughput, and finite-state checks remain inline.
 2026-10-08: The user rejected the autotuning-disabled scratch fallback after production exposed an approximately fivefold throughput penalty. Scratch production uses the default XLA compiler settings, matching exp582; do not add condition-specific compiler flags merely to shorten startup.
 2026-10-08: Default XLA on the newer exp586 stack produced no scratch update after 31 minutes; exp582's exact pinned Marin package set and vendored Hero runtime replace it for subsequent dispatches. The exp582 scratch control reached its first update in approximately 33 seconds with no condition-specific compiler flags.
-2026-10-09: The user made minimum wall-clock completion time the operating priority. With more than 300 H100s free and the 96-H100 sweep cap unchanged, `pending_target_limit` increases temporarily from 1 to 2 so the three scratch production trials can attempt default-compiler startup concurrently across the two approved clusters.
+2026-10-09: The user made minimum wall-clock completion time the operating priority. With more than 300 H100s free, `pending_target_limit` increases temporarily from 1 to 2 so the three scratch production trials can attempt default-compiler startup concurrently across the two approved clusters.
+2026-10-09: The user explicitly removed the conservative 96-H100 ceiling and directed use of available H100 capacity. The operating ceiling is now 384 H100s, and 64-H100 placements are eligible without a separate scaling experiment; production reslices supply the runtime evidence.

@@ -100,15 +100,19 @@ def test_replay_recovery_requires_matching_endpoint_and_data_cursor():
 
 def test_probe_changes_dispatch_without_changing_architecture():
     control = RoutingProbeConfig("scratch", "exp586-test-smoke", "cw-us-east-02a")
-    candidate = dataclasses.replace(control, backend="dropless")
-    left, right = (
-        dataclasses.asdict(probe_model_config(control)),
-        dataclasses.asdict(probe_model_config(candidate)),
-    )
-    assert left.pop("moe_implementation") == "fixed_pooled_wave_all_to_all"
-    assert right.pop("moe_implementation") == "scatter"
-    assert left == right
-    assert candidate.expert_axis_size == 1
+    left = dataclasses.asdict(probe_model_config(control))
+    implementation = left.pop("moe_implementation")
+    assert implementation == "fixed_pooled_wave_all_to_all"
+    for backend, expected, expert_axis_size in (
+        ("fixed", "fixed_all_to_all", 8),
+        ("ring", "ring", 8),
+        ("dropless", "scatter", 1),
+    ):
+        candidate = dataclasses.replace(control, backend=backend)
+        right = dataclasses.asdict(probe_model_config(candidate))
+        assert right.pop("moe_implementation") == expected
+        assert right == left
+        assert candidate.expert_axis_size == expert_axis_size
     with pytest.raises(ValueError, match="Bounded"):
         dataclasses.replace(control, steps=1001)
 

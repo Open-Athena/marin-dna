@@ -66,7 +66,7 @@ from experiments.grug.moe_hero_ep.weights import restore_weights
 
 @dataclasses.dataclass(frozen=True)
 class RoutingProbeConfig(SmokeConfig):
-    backend: Literal["pooled", "dropless"] = "pooled"
+    backend: Literal["pooled", "fixed", "ring", "dropless"] = "pooled"
     capacity_factor: float = 1.15
     transport_capacity_factor: float | None = None
     batch_size: int = 8
@@ -83,7 +83,10 @@ class RoutingProbeConfig(SmokeConfig):
 
     def __post_init__(self) -> None:
         super().__post_init__()
-        if self.backend not in ("pooled", "dropless") or self.capacity_factor <= 0:
+        if (
+            self.backend not in ("pooled", "fixed", "ring", "dropless")
+            or self.capacity_factor <= 0
+        ):
             raise ValueError("Invalid routing backend or capacity")
         if not math.isfinite(self.capacity_factor):
             raise ValueError("Capacity must be finite")
@@ -139,10 +142,13 @@ class RoutingProbeConfig(SmokeConfig):
 
     @property
     def implementation(self) -> str:
-        # Existing portable grouped GEMM; no expert-capacity clipping with EP=1.
-        return (
-            "scatter" if self.backend == "dropless" else "fixed_pooled_wave_all_to_all"
-        )
+        return {
+            "pooled": "fixed_pooled_wave_all_to_all",
+            "fixed": "fixed_all_to_all",
+            "ring": "ring",
+            # Existing portable grouped GEMM; no expert-capacity clipping with EP=1.
+            "dropless": "scatter",
+        }[self.backend]
 
     @property
     def expert_axis_size(self) -> int:
@@ -578,7 +584,9 @@ def main() -> None:
         "--cluster", choices=["cw-us-east-02a", "cw-rno2a"], required=True
     )
     parser.add_argument("--nodes", type=int, choices=[1, 2, 4, 8], default=1)
-    parser.add_argument("--backend", choices=["pooled", "dropless"], default="pooled")
+    parser.add_argument(
+        "--backend", choices=["pooled", "fixed", "ring", "dropless"], default="pooled"
+    )
     parser.add_argument("--capacity-factor", type=float, default=1.15)
     parser.add_argument("--transport-capacity-factor", type=float)
     parser.add_argument("--batch-size", type=int, default=8)
