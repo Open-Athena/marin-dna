@@ -33,7 +33,8 @@ Create backups with the skill helper, upload through authenticated CoreWeave S3,
 ## Operating Policy
 
 Use a 30-minute heartbeat after W&B proves at least one trial per initialization is advancing.
-Use `reslice_after=1h`, `restart_after=3h`, and `pending_target_limit=1`.
+Use `reslice_after=1h`, `restart_after=3h`, and `pending_target_limit=2` while scratch production startup remains unresolved.
+Return `pending_target_limit` to 1 after a default-compiler scratch dispatch proves recent W&B progress.
 Before that point, monitor startup continuously enough to diagnose compilation, restore, data, dependency, or numerical failures promptly.
 Recheck live H100 utilization before every submission, stop, or reslice.
 Do not replace jobs merely because Iris reports preemption or confusing task state; require W&B evidence under the recovery policy.
@@ -61,3 +62,4 @@ Completion requires `run_progress >= 1` and a reachable permanent final checkpoi
 2026-10-08: A direct-logits cross-entropy control for the eight-token scratch head did not improve compile time and initially ran below the fused-loss baseline, so production retains Hero's fused loss. Production omits inline gradient/update watches so they do not enlarge the compiled train step; loss, routing, LR, throughput, and finite-state checks remain inline.
 2026-10-08: The user rejected the autotuning-disabled scratch fallback after production exposed an approximately fivefold throughput penalty. Scratch production uses the default XLA compiler settings, matching exp582; do not add condition-specific compiler flags merely to shorten startup.
 2026-10-08: Default XLA on the newer exp586 stack produced no scratch update after 31 minutes; exp582's exact pinned Marin package set and vendored Hero runtime replace it for subsequent dispatches. The exp582 scratch control reached its first update in approximately 33 seconds with no condition-specific compiler flags.
+2026-10-09: The user made minimum wall-clock completion time the operating priority. With more than 300 H100s free and the 96-H100 sweep cap unchanged, `pending_target_limit` increases temporarily from 1 to 2 so the three scratch production trials can attempt default-compiler startup concurrently across the two approved clusters.
