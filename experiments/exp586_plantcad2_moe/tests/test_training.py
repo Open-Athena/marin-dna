@@ -37,7 +37,11 @@ from experiments.grug.moe_hero_ep.train import _compute_flops
 def test_trial_catalog_and_placement_do_not_change_science():
     a = TrainingConfig("pretrained", 1.0, "cw-rno2a", 2)
     b = dataclasses.replace(
-        a, cluster="cw-us-east-02a", nodes=1, checkpoint_interval_seconds=300
+        a,
+        cluster="cw-us-east-02a",
+        nodes=1,
+        checkpoint_interval_seconds=300,
+        recovery_checkpoint_delay_updates=26,
     )
     assert a.run_id == b.run_id
     assert a.checkpoint_root == b.checkpoint_root
@@ -78,6 +82,8 @@ def test_trial_catalog_and_placement_do_not_change_science():
         dataclasses.replace(a, nodes=16)
     with pytest.raises(ValueError, match="interval"):
         dataclasses.replace(a, checkpoint_interval_seconds=0)
+    with pytest.raises(ValueError, match="Recovery checkpoint delay"):
+        dataclasses.replace(a, recovery_checkpoint_delay_updates=0)
     with pytest.raises(ValueError, match="backend"):
         dataclasses.replace(a, moe_backend="ring")
 
@@ -88,6 +94,8 @@ def test_recovery_checkpoint_after_resuming_without_waiting_full_interval():
     assert checkpoint_due(460, 344, 300, 300)
     assert not checkpoint_due(460, 344, 300, 900)
     assert checkpoint_due(25, 0, 80, 900)
+    assert not checkpoint_due(25, 0, 80, 900, recovery_delay_updates=26)
+    assert checkpoint_due(26, 0, 80, 900, recovery_delay_updates=26)
     assert checkpoint_due(PEAK_CHECKPOINT_UPDATE, 344, 1, 900)
     assert checkpoint_due(TOTAL_UPDATES, 344, 1, 900)
 

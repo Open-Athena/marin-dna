@@ -142,6 +142,7 @@ class TrainingConfig:
     nodes: int
     seed: int = 0
     checkpoint_interval_seconds: int = 900
+    recovery_checkpoint_delay_updates: int = 25
     moe_backend: Literal["pooled", "fixed", "ring"] | None = None
 
     def __post_init__(self) -> None:
@@ -164,6 +165,8 @@ class TrainingConfig:
             raise ValueError("Training requires an 8-, 16-, 32- or 64-H100 placement")
         if self.checkpoint_interval_seconds <= 0:
             raise ValueError("Checkpoint interval must be positive")
+        if self.recovery_checkpoint_delay_updates <= 0:
+            raise ValueError("Recovery checkpoint delay must be positive")
         if self.moe_backend not in (None, "pooled", "fixed", "ring") or (
             self.condition == "pretrained" and self.moe_backend not in (None, "pooled")
         ):
@@ -266,11 +269,12 @@ def checkpoint_due(
     seconds_since_save: float,
     interval_seconds: int,
     peak_update: int = COOLDOWN_UPDATE,
+    recovery_delay_updates: int = 25,
 ) -> bool:
     """Bound replay after every restore as well as during uninterrupted training."""
     return (
         is_permanent_checkpoint(update, peak_update)
-        or update == initial_update + 25
+        or update == initial_update + recovery_delay_updates
         or seconds_since_save >= interval_seconds
     )
 
@@ -650,6 +654,7 @@ def _run_training(config: TrainingConfig) -> None:
                             time.monotonic() - last_save,
                             config.checkpoint_interval_seconds,
                             peak_update=schedule.peak_update,
+                            recovery_delay_updates=config.recovery_checkpoint_delay_updates,
                         ),
                         dtype=np.int32,
                     )
@@ -796,6 +801,7 @@ def main() -> None:
     )
     parser.add_argument("--nodes", type=int, choices=[1, 2, 4, 8], required=True)
     parser.add_argument("--checkpoint-interval-seconds", type=int, default=900)
+    parser.add_argument("--recovery-checkpoint-delay-updates", type=int, default=25)
     parser.add_argument(
         "--moe-backend", choices=["pooled", "fixed", "ring"], default=None
     )
