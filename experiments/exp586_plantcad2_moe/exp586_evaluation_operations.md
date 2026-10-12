@@ -53,3 +53,4 @@ W&B run IDs begin with `exp586-plantcad2-d768-scratch-lrm1-seed0-` and identify 
 2026-10-12: The first method-validation dispatch failed before restoration because the raw file SHA-256 was supplied where restoration requires Marin's canonical JSON digest.
 2026-10-12: Sonic versus ring parity had mean absolute probability error 0.00201, p99 0.02055, 98.96% argmax agreement, NLL delta 0.00121, and accuracy delta 0.00521, but one value at 0.05868 exceeded the copied 0.05 maximum.
 2026-10-12: The parity gate now requires maximum error at most 0.075 and p99 at most 0.025 while retaining the original mean, argmax, NLL, and accuracy limits.
+2026-10-12: The first full worker on each H100 cluster reached W&B inference with numeric progress. The remaining immutable shards may then be admitted concurrently when a fresh snapshot shows capacity; the one-pending-dispatch exploration limit no longer applies to these proven, identical one-node workers.
