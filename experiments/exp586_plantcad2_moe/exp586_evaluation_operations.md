@@ -18,7 +18,8 @@ Publish code and cumulative results in the PlantCAD2 `codex/exp586` pull request
 
 The first model is `exp586-plantcad2-d768-scratch-lrm1-seed0-v1` at permanent update 412,290.
 Its checkpoint is `s3://marin-us-east-02a/MarinDNA/exp586_plantcad2_moe/checkpoints/exp586-plantcad2-d768-scratch-lrm1-seed0-v1/2026.10.08/checkpoints/step-412290`.
-The checkpoint metadata SHA-256 is `e887cd81dc658f46aee76faebb3313943733d889210b47f4c562ac450418162e`.
+The raw checkpoint metadata SHA-256 is `e887cd81dc658f46aee76faebb3313943733d889210b47f4c562ac450418162e`.
+Marin's canonical checkpoint metadata digest used by restoration is `737fa99f7998a31ca2a27aacf82ac3f292d9ff62a49742847e4037ad3cd372d9`.
 The checkpoint records the eight-token DNA tokenizer and the `ring` training backend.
 The evaluation uses dropless Sonic inference only after Sonic agrees with the recorded ring backend on bounded real genomic inputs.
 
@@ -49,3 +50,4 @@ W&B run IDs begin with `exp586-plantcad2-d768-scratch-lrm1-seed0-` and identify 
 
 2026-10-12: The final scratch 1× checkpoint was selected as the only completed experiment 586 model.
 2026-10-12: Checkpoint metadata showed that scratch training finished with ring EP, correcting the copied pooled-EP parity assumption before GPU evaluation.
+2026-10-12: The first method-validation dispatch failed before restoration because the raw file SHA-256 was supplied where restoration requires Marin's canonical JSON digest.

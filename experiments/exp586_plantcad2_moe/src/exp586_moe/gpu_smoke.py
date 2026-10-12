@@ -96,7 +96,9 @@ class SmokeConfig:
         if not self.run_id.startswith("exp586-") or not any(
             marker in self.run_id for marker in evaluation_markers
         ):
-            raise ValueError("Validation requires a separate exp586 evaluation identity")
+            raise ValueError(
+                "Validation requires a separate exp586 evaluation identity"
+            )
 
     @property
     def checkpoint_root(self) -> str:
