@@ -68,7 +68,7 @@ def test_scratch_parity_retains_completed_run_ring_backend():
 def test_method_validation_uses_its_durable_output_for_wandb_artifacts():
     config = MethodValidationConfig(
         condition="pretrained",
-        run_id="exp586-method-validation-smoke-test",
+        run_id="exp586-plantcad2-d768-scratch-lrm1-seed0-methods-v1",
         cluster="cw-rno2a",
         checkpoint="s3://example/checkpoint",
         checkpoint_metadata_digest="a" * 64,

@@ -23,7 +23,7 @@ def test_full_worker_plan_includes_both_contexts_and_only_full_sv():
 def test_full_config_and_center_crop_are_explicit():
     config = FullEvalConfig(
         condition="scratch",
-        run_id="exp586-final-eval-smoke-worker-00",
+        run_id="exp586-plantcad2-d768-scratch-lrm1-seed0-final-eval-w00-v1",
         cluster="cw-rno2a",
         checkpoint="s3://example/checkpoint",
         checkpoint_metadata_digest="a" * 64,

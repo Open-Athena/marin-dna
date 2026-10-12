@@ -92,8 +92,11 @@ class SmokeConfig:
             raise ValueError("Invalid condition or whole-node H100 shape")
         if self.cluster not in ("cw-us-east-02a", "cw-rno2a"):
             raise ValueError("Unapproved H100 cluster")
-        if not self.run_id.startswith("exp586-") or "smoke" not in self.run_id:
-            raise ValueError("Validation requires a separate exp586 smoke identity")
+        evaluation_markers = ("smoke", "methods", "pilot", "final-eval")
+        if not self.run_id.startswith("exp586-") or not any(
+            marker in self.run_id for marker in evaluation_markers
+        ):
+            raise ValueError("Validation requires a separate exp586 evaluation identity")
 
     @property
     def checkpoint_root(self) -> str:
