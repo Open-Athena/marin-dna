@@ -65,11 +65,31 @@ def test_legacy_scratch_requires_exact_binding():
         "checkpoint_metadata_digest": LEGACY_SCRATCH_DIGEST,
         "checkpoint": LEGACY_SCRATCH_CHECKPOINT,
         "allow_legacy_scratch": True,
+        "output_prefix": (
+            "s3://marin-us-east-02a/MarinDNA/exp586_plantcad2_moe/"
+            "evaluations/final-v1/validation/legacy-test"
+        ),
     }
     RealEvalConfig(**args)
     args["condition"] = "pretrained"
     with pytest.raises(ValueError, match="Legacy"):
         RealEvalConfig(**args)
+
+
+def test_real_pilot_uses_explicit_durable_output():
+    config = RealEvalConfig(
+        condition="scratch",
+        run_id="exp586-real-pilot-test",
+        cluster="cw-rno2a",
+        requests_sha256="a" * 64,
+        checkpoint_metadata_digest="b" * 64,
+        checkpoint="s3://example/checkpoint",
+        output_prefix=(
+            "s3://marin-us-east-02a/MarinDNA/exp586_plantcad2_moe/"
+            "evaluations/final-v1/validation/scratch-lrm1-seed0/pilot-v1"
+        ),
+    )
+    assert config.artifact_root.endswith("scratch-lrm1-seed0/pilot-v1")
 
 
 def test_startup_error_is_not_masked(monkeypatch):

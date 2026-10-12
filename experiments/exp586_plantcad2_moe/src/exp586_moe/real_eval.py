@@ -58,13 +58,14 @@ class RealEvalConfig(SmokeConfig):
     checkpoint_metadata_digest: str = ""
     requests_uri: str = ""
     requests_sha256: str = ""
+    output_prefix: str = ""
     allow_legacy_scratch: bool = False
     checkpoint_role: CheckpointRole = "dna-trained"
     stop_after_chunks: int = 0
 
     @property
     def artifact_root(self) -> str:
-        return self.checkpoint_root.removesuffix("/checkpoints") + "/real-evaluation"
+        return self.output_prefix.rstrip("/")
 
     def __post_init__(self) -> None:
         super().__post_init__()
@@ -72,6 +73,10 @@ class RealEvalConfig(SmokeConfig):
             self.nodes != 1
             or len(self.requests_sha256) != 64
             or len(self.checkpoint_metadata_digest) != 64
+            or not self.output_prefix.startswith(
+                "s3://marin-us-east-02a/MarinDNA/exp586_plantcad2_moe/"
+                "evaluations/final-v1/validation/"
+            )
         ):
             raise ValueError(
                 "One-node pilot requires pinned request/checkpoint digests"
@@ -510,6 +515,7 @@ def main() -> None:
         "checkpoint-metadata-digest",
         "requests-uri",
         "requests-sha256",
+        "output-prefix",
     ]:
         parser.add_argument("--" + name, required=True)
     parser.add_argument("--allow-legacy-scratch", action="store_true")
