@@ -53,8 +53,10 @@ def test_language_base_rejects_other_source_bindings(field, value):
 
 
 def test_dna_trained_checkpoint_still_requires_tokenizer_fingerprint():
-    metadata = json.dumps({"tokenizer_sha256": "a" * 64}).encode()
-    validate_checkpoint_binding(
+    metadata = json.dumps(
+        {"tokenizer_sha256": "a" * 64, "runtime_moe_implementation": "ring"}
+    ).encode()
+    binding = validate_checkpoint_binding(
         checkpoint_role="dna-trained",
         condition="pretrained",
         checkpoint="s3://example/checkpoint",
@@ -62,6 +64,7 @@ def test_dna_trained_checkpoint_still_requires_tokenizer_fingerprint():
         metadata_blob=metadata,
         tokenizer_sha256="a" * 64,
     )
+    assert binding["runtime_moe_implementation"] == "ring"
     with pytest.raises(ValueError, match="tokenizer"):
         validate_checkpoint_binding(
             checkpoint_role="dna-trained",
@@ -70,4 +73,17 @@ def test_dna_trained_checkpoint_still_requires_tokenizer_fingerprint():
             checkpoint_metadata_digest="b" * 64,
             metadata_blob=metadata,
             tokenizer_sha256="c" * 64,
+        )
+
+
+def test_dna_trained_checkpoint_requires_runtime_backend_binding():
+    metadata = json.dumps({"tokenizer_sha256": "a" * 64}).encode()
+    with pytest.raises(ValueError, match="runtime MoE backend"):
+        validate_checkpoint_binding(
+            checkpoint_role="dna-trained",
+            condition="scratch",
+            checkpoint="s3://example/checkpoint",
+            checkpoint_metadata_digest="b" * 64,
+            metadata_blob=metadata,
+            tokenizer_sha256="a" * 64,
         )

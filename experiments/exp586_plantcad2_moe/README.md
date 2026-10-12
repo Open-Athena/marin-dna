@@ -36,3 +36,8 @@ python -m exp586_moe.train --condition pretrained --lr-multiplier 1 --cluster cw
 
 CoreWeave placement is operational and does not change the W&B or checkpoint identity.
 Every GPU request uses whole eight-H100 nodes at batch priority.
+
+## Evaluation
+
+Final PlantCAD2 evaluation follows the appendable workflow in [`exp586_evaluation_operations.md`](exp586_evaluation_operations.md).
+It reuses the exp582 benchmark protocol and historical results while binding every new artifact to an exact exp586 checkpoint, tokenizer, input manifest, and evaluation wheel.

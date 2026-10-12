@@ -331,9 +331,11 @@ def pooled_inference_config(
 
 
 def parity_reference_config(
-    condition: Literal["pretrained", "scratch"], checkpoint_role: CheckpointRole
+    condition: Literal["pretrained", "scratch"],
+    checkpoint_role: CheckpointRole,
+    runtime_moe_implementation: str | None = None,
 ) -> tuple[Any, str, int]:
-    """Select a capacity-safe independent backend for score parity.
+    """Recreate the checkpoint's training backend for score parity.
 
     The language-only router has never adapted to DNA and can send most DNA
     assignments to a few experts. A bounded-capacity EP backend would then test
@@ -350,7 +352,33 @@ def parity_reference_config(
             "scatter",
             1,
         )
-    return pooled_inference_config(condition), "pooled-ep", 8
+    if runtime_moe_implementation == "ring":
+        return (
+            dataclasses.replace(
+                d768_config(condition),
+                moe_implementation="ring",
+                capacity_factor=32.0,
+                pooled_transport_capacity_factor=None,
+                expert_chunks=1,
+            ),
+            "ring",
+            8,
+        )
+    if runtime_moe_implementation == "fixed_pooled_wave_all_to_all":
+        return pooled_inference_config(condition), "pooled-ep", 8
+    if runtime_moe_implementation == "fixed_all_to_all":
+        return (
+            dataclasses.replace(
+                d768_config(condition),
+                moe_implementation="fixed_all_to_all",
+                capacity_factor=32.0,
+                pooled_transport_capacity_factor=None,
+                expert_chunks=1,
+            ),
+            "fixed-ep",
+            8,
+        )
+    raise ValueError("DNA-trained checkpoint has no supported runtime MoE backend")
 
 
 def write_report(prefix: str, report: dict[str, Any]) -> tuple[str, str]:
@@ -447,7 +475,9 @@ def run_validation(config: MethodValidationConfig) -> None:
         }
     )
     reference_config, reference_backend, expert_axis_size = parity_reference_config(
-        config.condition, config.checkpoint_role
+        config.condition,
+        config.checkpoint_role,
+        checkpoint_binding.get("runtime_moe_implementation"),
     )
     tracker.log_summary(
         {"validation/phase": f"loading_{reference_backend.replace('-', '_')}"}
@@ -520,7 +550,7 @@ def run_validation(config: MethodValidationConfig) -> None:
     tracker.log_summary({"validation/backend_parity": parity})
     if not accepted:
         raise ValueError(
-            "Sonic and pooled-EP inference differ beyond tolerance: "
+            f"Sonic and {reference_backend} inference differ beyond tolerance: "
             f"max_abs={parity['max_abs']:.8f}, "
             f"mean_abs={parity['mean_abs']:.8f}, "
             f"argmax_agreement={parity['argmax_agreement']:.8f}, "

@@ -45,12 +45,23 @@ def test_language_base_parity_uses_dropless_scatter_reference():
 
 def test_dna_trained_parity_retains_completed_run_ep_backend():
     config, backend, expert_axis_size = parity_reference_config(
-        "pretrained", "dna-trained"
+        "pretrained", "dna-trained", "fixed_pooled_wave_all_to_all"
     )
     assert config.moe_implementation == "fixed_pooled_wave_all_to_all"
     assert config.capacity_factor == 32
     assert config.pooled_transport_capacity_factor == 8
     assert backend == "pooled-ep"
+    assert expert_axis_size == 8
+
+
+def test_scratch_parity_retains_completed_run_ring_backend():
+    config, backend, expert_axis_size = parity_reference_config(
+        "scratch", "dna-trained", "ring"
+    )
+    assert config.moe_implementation == "ring"
+    assert config.capacity_factor == 32
+    assert config.pooled_transport_capacity_factor is None
+    assert backend == "ring"
     assert expert_axis_size == 8
 
 

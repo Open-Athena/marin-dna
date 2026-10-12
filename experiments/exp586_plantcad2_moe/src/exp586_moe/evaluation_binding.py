@@ -56,11 +56,19 @@ def validate_checkpoint_binding(
             "evaluation_tokenizer_sha256": tokenizer_sha256,
         }
     if metadata.get("tokenizer_sha256") == tokenizer_sha256:
+        runtime_moe_implementation = metadata.get("runtime_moe_implementation")
+        if runtime_moe_implementation not in {
+            "ring",
+            "fixed_all_to_all",
+            "fixed_pooled_wave_all_to_all",
+        }:
+            raise ValueError("Checkpoint runtime MoE backend is missing or unsupported")
         return {
             "checkpoint_role": checkpoint_role,
             "checkpoint_metadata_raw_sha256": raw_digest,
             "checkpoint_tokenizer_sha256": tokenizer_sha256,
             "evaluation_tokenizer_sha256": tokenizer_sha256,
+            "runtime_moe_implementation": runtime_moe_implementation,
         }
     if (
         allow_legacy_scratch
