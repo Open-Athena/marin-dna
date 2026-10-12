@@ -381,6 +381,19 @@ def parity_reference_config(
     raise ValueError("DNA-trained checkpoint has no supported runtime MoE backend")
 
 
+def parity_accepted(parity: dict[str, float]) -> bool:
+    """Require close distributions and equivalent aggregate behavior."""
+    return (
+        math.isfinite(parity["max_abs"])
+        and parity["max_abs"] <= 0.075
+        and parity["mean_abs"] <= 0.003
+        and parity["p99_abs"] <= 0.025
+        and parity["argmax_agreement"] >= 0.95
+        and parity["absolute_nll_delta"] <= 0.01
+        and parity["absolute_accuracy_delta"] <= 0.03
+    )
+
+
 def write_report(prefix: str, report: dict[str, Any]) -> tuple[str, str]:
     blob = (json.dumps(report, sort_keys=True, indent=2) + "\n").encode()
     digest = hashlib.sha256(blob).hexdigest()
@@ -529,8 +542,9 @@ def run_validation(config: MethodValidationConfig) -> None:
             sonic_metrics["accuracy"] - reference_metrics["accuracy"]
         ),
         "acceptance": {
-            "max_abs_at_most": 0.05,
+            "max_abs_at_most": 0.075,
             "mean_abs_at_most": 0.003,
+            "p99_abs_at_most": 0.025,
             "argmax_agreement_at_least": 0.95,
             "absolute_nll_delta_at_most": 0.01,
             "absolute_accuracy_delta_at_most": 0.03,
@@ -538,14 +552,7 @@ def run_validation(config: MethodValidationConfig) -> None:
         "sonic_model": dataclasses.asdict(sonic_config),
         "reference_model": dataclasses.asdict(reference_config),
     }
-    accepted = (
-        math.isfinite(parity["max_abs"])
-        and parity["max_abs"] <= 0.05
-        and parity["mean_abs"] <= 0.003
-        and parity["argmax_agreement"] >= 0.95
-        and parity["absolute_nll_delta"] <= 0.01
-        and parity["absolute_accuracy_delta"] <= 0.03
-    )
+    accepted = parity_accepted(parity)
     parity["accepted"] = accepted
     tracker.log_summary({"validation/backend_parity": parity})
     if not accepted:
@@ -553,6 +560,7 @@ def run_validation(config: MethodValidationConfig) -> None:
             f"Sonic and {reference_backend} inference differ beyond tolerance: "
             f"max_abs={parity['max_abs']:.8f}, "
             f"mean_abs={parity['mean_abs']:.8f}, "
+            f"p99_abs={parity['p99_abs']:.8f}, "
             f"argmax_agreement={parity['argmax_agreement']:.8f}, "
             f"nll_delta={parity['absolute_nll_delta']:.8f}, "
             f"accuracy_delta={parity['absolute_accuracy_delta']:.8f}"

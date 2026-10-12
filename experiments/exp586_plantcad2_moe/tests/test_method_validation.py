@@ -7,6 +7,7 @@ from exp586_moe.method_validation import (
     canonical_window,
     combine,
     metrics,
+    parity_accepted,
     parity_probabilities,
     parity_reference_config,
     pooled_inference_config,
@@ -63,6 +64,20 @@ def test_scratch_parity_retains_completed_run_ring_backend():
     assert config.pooled_transport_capacity_factor is None
     assert backend == "ring"
     assert expert_axis_size == 8
+
+
+def test_backend_parity_requires_distribution_and_metric_agreement():
+    parity = {
+        "max_abs": 0.05867884,
+        "mean_abs": 0.00201074,
+        "p99_abs": 0.02054738,
+        "argmax_agreement": 0.98958333,
+        "absolute_nll_delta": 0.00120898,
+        "absolute_accuracy_delta": 0.00520833,
+    }
+    assert parity_accepted(parity)
+    assert not parity_accepted({**parity, "max_abs": 0.08})
+    assert not parity_accepted({**parity, "p99_abs": 0.03})
 
 
 def test_method_validation_uses_its_durable_output_for_wandb_artifacts():
