@@ -42,12 +42,13 @@ A broad swarm or target-scale launch is not justified until rank stability, repe
 <details>
 <summary>Related experiments</summary>
 
-- [4B uniform five-region continuation](../experiments/535-4b-five-region-continuation.md) improved development-set zero-shot and probe macro scores over earlier continuation checkpoints.
-  Additional training, a new learning-rate cycle, mixture changes, and the proportional-three-region parent history remain confounded, so this supplies a measured baseline rather than a mixture-selection method.
 - [#232](https://github.com/Open-Athena/marin-dna/issues/232) trained six region specialists and a background arm.
   Home-region specialists won their matched Mendelian classes, showing that biological-domain components can have distinct downstream utility; the experiment did not optimize a combined mixture.
 - [#255](https://github.com/Open-Athena/marin-dna/issues/255) compared 108-family and 19-order mammalian cohorts at matched compute across five regions.
   Species density was neutral for some regions and harmful for others, showing an interaction between taxonomic mixture and biological domain; one seed and different epoch counts limit surrogate use.
+- [4B uniform five-region continuation](../experiments/535-4b-five-region-continuation.md) improved development-set zero-shot and probe macro scores over earlier continuation checkpoints.
+  Additional training, a new learning-rate cycle, mixture changes, and the proportional-three-region parent history remain confounded, so this supplies a measured baseline rather than a mixture-selection method.
+
 
 </details>
 
