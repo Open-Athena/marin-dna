@@ -14,6 +14,8 @@ The intended outcome is a reproducible selection method, not a single set of wei
 No validated method for optimizing genomic pretraining mixtures exists yet.
 The current evidence shows that mixture components matter: region specialists differ sharply by downstream class, and mammalian species density affects some regions but not others.
 It does not show how to select a joint mixture.
+The [4B five-region continuation](../experiments/535-4b-five-region-continuation.md) reached a final Mendelian zero-shot macro AUPRC numerically close to the 1B m5.1 reference, while its linear probe remained lower.
+Its single lineage and unmatched training histories do not identify a mixture or model-scale advantage.
 
 Proxy-swarm regression is a plausible candidate.
 Its usefulness depends on four unverified conditions: the downstream objective must have measurable signal in small models; mixture rankings must transfer to target scale; finite high-value components must tolerate the repetitions implied by target weights; and the component manifest, overlap policy, and leakage rules must remain fixed.
@@ -40,6 +42,8 @@ A broad swarm or target-scale launch is not justified until rank stability, repe
 <details>
 <summary>Related experiments</summary>
 
+- [4B uniform five-region continuation](../experiments/535-4b-five-region-continuation.md) improved development-set zero-shot and probe macro scores over earlier continuation checkpoints.
+  Additional training, a new learning-rate cycle, mixture changes, and the proportional-three-region parent history remain confounded, so this supplies a measured baseline rather than a mixture-selection method.
 - [#232](https://github.com/Open-Athena/marin-dna/issues/232) trained six region specialists and a background arm.
   Home-region specialists won their matched Mendelian classes, showing that biological-domain components can have distinct downstream utility; the experiment did not optimize a combined mixture.
 - [#255](https://github.com/Open-Athena/marin-dna/issues/255) compared 108-family and 19-order mammalian cohorts at matched compute across five regions.

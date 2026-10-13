@@ -15,6 +15,7 @@ The answer may be task-dependent: sequence evolving approximately neutrally may 
 
 No experiment identifies one universally optimal genomic training footprint.
 Current MarinDNA results and external ablations support task-aware enrichment at modest scale: region specialists beat mismatched specialists, clean enhancer curation fixes a large VEP failure, and the conservation-filtered footprint covers Mendelian positives much better than complex-trait positives.
+The [4B five-region continuation](../experiments/535-4b-five-region-continuation.md) improved Mendelian development scores over earlier checkpoints, with large late zero-shot gains in 3′ UTR and Distal, but did not isolate the effect of adding regions from extra training or the learning-rate cycle.
 
 The design has three separable controls.
 Locus selection decides which sequence is present; sampling decides exposure frequency; per-base loss weights decide which observations shape the fitted distribution.
@@ -74,6 +75,8 @@ It should retain a background arm so gains on functional VEP can be weighed agai
 <details>
 <summary>Related experiments</summary>
 
+- [4B uniform five-region continuation](../experiments/535-4b-five-region-continuation.md) continued a proportional-three-region parent on equally sampled CDS, upstream, downstream, ncRNA exon, and non-promoter cCRE.
+  Final zero-shot macro AUPRC was numerically close to 1B m5.1 and the probe remained lower; unmatched histories and the absence of an unchanged-mixture control prevent a causal footprint or scaling claim.
 - [#8](https://github.com/Open-Athena/marin-dna/issues/8) established functional-versus-background likelihood gaps as a training diagnostic.
   It provides a readout for footprint experiments but also shows that likelihood gaps need not track VEP under contamination.
 - [#87](https://github.com/Open-Athena/marin-dna/issues/87) scopes repeat and loss-weighting ablations across FLOP budgets.
