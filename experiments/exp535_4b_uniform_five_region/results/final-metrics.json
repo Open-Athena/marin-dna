@@ -1,0 +1,524 @@
+[
+  {
+    "file": "probe-255573.parquet",
+    "sha256": "63d19a5dfb3814d7d84cedd6fb58f78f79c567158ef82051cb207ff3842d10ba",
+    "rows": [
+      {
+        "model": "exp535-4b-uniform-five-region-step-255573",
+        "dataset": "mendelian_traits",
+        "split": "train",
+        "score_type": "probe_score",
+        "subset": "splicing",
+        "value": 0.5877104631592843,
+        "se": 0.035638063850852435
+      },
+      {
+        "model": "exp535-4b-uniform-five-region-step-255573",
+        "dataset": "mendelian_traits",
+        "split": "train",
+        "score_type": "probe_score",
+        "subset": "missense_variant",
+        "value": 0.5436739339691529,
+        "se": 0.01683347217953165
+      },
+      {
+        "model": "exp535-4b-uniform-five-region-step-255573",
+        "dataset": "mendelian_traits",
+        "split": "train",
+        "score_type": "probe_score",
+        "subset": "synonymous_variant",
+        "value": 0.41006610524626497,
+        "se": 0.06695214702822087
+      },
+      {
+        "model": "exp535-4b-uniform-five-region-step-255573",
+        "dataset": "mendelian_traits",
+        "split": "train",
+        "score_type": "probe_score",
+        "subset": "5_prime_UTR_variant",
+        "value": 0.33950903375399993,
+        "se": 0.07763751674159299
+      },
+      {
+        "model": "exp535-4b-uniform-five-region-step-255573",
+        "dataset": "mendelian_traits",
+        "split": "train",
+        "score_type": "probe_score",
+        "subset": "tss_proximal",
+        "value": 0.36550285509572217,
+        "se": 0.0775517156304144
+      },
+      {
+        "model": "exp535-4b-uniform-five-region-step-255573",
+        "dataset": "mendelian_traits",
+        "split": "train",
+        "score_type": "probe_score",
+        "subset": "3_prime_UTR_variant",
+        "value": 0.37407377572332073,
+        "se": 0.08567714545464356
+      },
+      {
+        "model": "exp535-4b-uniform-five-region-step-255573",
+        "dataset": "mendelian_traits",
+        "split": "train",
+        "score_type": "probe_score",
+        "subset": "distal",
+        "value": 0.4027754046895027,
+        "se": 0.09308421580878479
+      },
+      {
+        "model": "exp535-4b-uniform-five-region-step-255573",
+        "dataset": "mendelian_traits",
+        "split": "train",
+        "score_type": "probe_score",
+        "subset": "non_coding_transcript_exon_variant",
+        "value": 0.33346723198972633,
+        "se": 0.05756562329736953
+      },
+      {
+        "model": "exp535-4b-uniform-five-region-step-255573",
+        "dataset": "mendelian_traits",
+        "split": "train",
+        "score_type": "probe_score",
+        "subset": "_macro_avg_",
+        "value": 0.41959735045337176,
+        "se": 0.02401043253381151
+      }
+    ]
+  },
+  {
+    "file": "probe-final.parquet",
+    "sha256": "6bbdee1ba879e86cfdfb54b3d8ab02eb1446b9ef326fa2e743d1ff97a7c38b67",
+    "rows": [
+      {
+        "model": "exp535-4b-uniform-five-region-step-375573",
+        "dataset": "mendelian_traits",
+        "split": "train",
+        "score_type": "probe_score",
+        "subset": "splicing",
+        "value": 0.6169667783520894,
+        "se": 0.03463653321698935
+      },
+      {
+        "model": "exp535-4b-uniform-five-region-step-375573",
+        "dataset": "mendelian_traits",
+        "split": "train",
+        "score_type": "probe_score",
+        "subset": "missense_variant",
+        "value": 0.5622678712135616,
+        "se": 0.01425280546319282
+      },
+      {
+        "model": "exp535-4b-uniform-five-region-step-375573",
+        "dataset": "mendelian_traits",
+        "split": "train",
+        "score_type": "probe_score",
+        "subset": "synonymous_variant",
+        "value": 0.48891062399664637,
+        "se": 0.0675019229706458
+      },
+      {
+        "model": "exp535-4b-uniform-five-region-step-375573",
+        "dataset": "mendelian_traits",
+        "split": "train",
+        "score_type": "probe_score",
+        "subset": "5_prime_UTR_variant",
+        "value": 0.35624497830101476,
+        "se": 0.06587373148276453
+      },
+      {
+        "model": "exp535-4b-uniform-five-region-step-375573",
+        "dataset": "mendelian_traits",
+        "split": "train",
+        "score_type": "probe_score",
+        "subset": "tss_proximal",
+        "value": 0.27689736530622244,
+        "se": 0.02366838505612143
+      },
+      {
+        "model": "exp535-4b-uniform-five-region-step-375573",
+        "dataset": "mendelian_traits",
+        "split": "train",
+        "score_type": "probe_score",
+        "subset": "3_prime_UTR_variant",
+        "value": 0.31533051404160706,
+        "se": 0.04418765870753939
+      },
+      {
+        "model": "exp535-4b-uniform-five-region-step-375573",
+        "dataset": "mendelian_traits",
+        "split": "train",
+        "score_type": "probe_score",
+        "subset": "distal",
+        "value": 0.4912189122256874,
+        "se": 0.0844327852499172
+      },
+      {
+        "model": "exp535-4b-uniform-five-region-step-375573",
+        "dataset": "mendelian_traits",
+        "split": "train",
+        "score_type": "probe_score",
+        "subset": "non_coding_transcript_exon_variant",
+        "value": 0.4281161785942538,
+        "se": 0.07331758095899191
+      },
+      {
+        "model": "exp535-4b-uniform-five-region-step-375573",
+        "dataset": "mendelian_traits",
+        "split": "train",
+        "score_type": "probe_score",
+        "subset": "_macro_avg_",
+        "value": 0.4419941527538853,
+        "se": 0.027662350403335617
+      }
+    ]
+  },
+  {
+    "file": "probe-m51.parquet",
+    "sha256": "94a7b6efe48da242a67b8ea9727e192b86c9d31623c2e2c127f376a67f1178cf",
+    "rows": [
+      {
+        "model": "mix-v0.9-p1B-i24-exp135-m5.1-step-59158",
+        "dataset": "mendelian_traits",
+        "split": "train",
+        "score_type": "probe_score",
+        "subset": "splicing",
+        "value": 0.5518594512252359,
+        "se": 0.03228421923086123
+      },
+      {
+        "model": "mix-v0.9-p1B-i24-exp135-m5.1-step-59158",
+        "dataset": "mendelian_traits",
+        "split": "train",
+        "score_type": "probe_score",
+        "subset": "missense_variant",
+        "value": 0.5386670619630075,
+        "se": 0.018247841377070646
+      },
+      {
+        "model": "mix-v0.9-p1B-i24-exp135-m5.1-step-59158",
+        "dataset": "mendelian_traits",
+        "split": "train",
+        "score_type": "probe_score",
+        "subset": "synonymous_variant",
+        "value": 0.4822607490918955,
+        "se": 0.055184210256569256
+      },
+      {
+        "model": "mix-v0.9-p1B-i24-exp135-m5.1-step-59158",
+        "dataset": "mendelian_traits",
+        "split": "train",
+        "score_type": "probe_score",
+        "subset": "5_prime_UTR_variant",
+        "value": 0.5105011997161351,
+        "se": 0.06571003229753813
+      },
+      {
+        "model": "mix-v0.9-p1B-i24-exp135-m5.1-step-59158",
+        "dataset": "mendelian_traits",
+        "split": "train",
+        "score_type": "probe_score",
+        "subset": "tss_proximal",
+        "value": 0.32323459196900856,
+        "se": 0.08920271830390122
+      },
+      {
+        "model": "mix-v0.9-p1B-i24-exp135-m5.1-step-59158",
+        "dataset": "mendelian_traits",
+        "split": "train",
+        "score_type": "probe_score",
+        "subset": "3_prime_UTR_variant",
+        "value": 0.5103252273136804,
+        "se": 0.06960659062474553
+      },
+      {
+        "model": "mix-v0.9-p1B-i24-exp135-m5.1-step-59158",
+        "dataset": "mendelian_traits",
+        "split": "train",
+        "score_type": "probe_score",
+        "subset": "distal",
+        "value": 0.5035854907978553,
+        "se": 0.07073361261630248
+      },
+      {
+        "model": "mix-v0.9-p1B-i24-exp135-m5.1-step-59158",
+        "dataset": "mendelian_traits",
+        "split": "train",
+        "score_type": "probe_score",
+        "subset": "non_coding_transcript_exon_variant",
+        "value": 0.40240698446269246,
+        "se": 0.07840365191219084
+      },
+      {
+        "model": "mix-v0.9-p1B-i24-exp135-m5.1-step-59158",
+        "dataset": "mendelian_traits",
+        "split": "train",
+        "score_type": "probe_score",
+        "subset": "_macro_avg_",
+        "value": 0.47785509456743885,
+        "se": 0.021645666051990833
+      }
+    ]
+  },
+  {
+    "file": "zero-275573.parquet",
+    "sha256": "cd4975b137ef5935acae666ecf357a6840c1c28a9d545aff4597357eccfbcda4",
+    "rows": [
+      {
+        "model": "exp535-4b-uniform-five-region-step-275573",
+        "dataset": "mendelian_traits",
+        "split": "train",
+        "score_type": "minus_llr_avg",
+        "subset": "splicing",
+        "value": 0.4730971687959373,
+        "se": 0.028118553891766943
+      },
+      {
+        "model": "exp535-4b-uniform-five-region-step-275573",
+        "dataset": "mendelian_traits",
+        "split": "train",
+        "score_type": "minus_llr_avg",
+        "subset": "missense_variant",
+        "value": 0.4186815466306532,
+        "se": 0.0192288382554063
+      },
+      {
+        "model": "exp535-4b-uniform-five-region-step-275573",
+        "dataset": "mendelian_traits",
+        "split": "train",
+        "score_type": "minus_llr_avg",
+        "subset": "synonymous_variant",
+        "value": 0.3559096829968239,
+        "se": 0.06454959272980011
+      },
+      {
+        "model": "exp535-4b-uniform-five-region-step-275573",
+        "dataset": "mendelian_traits",
+        "split": "train",
+        "score_type": "minus_llr_avg",
+        "subset": "5_prime_UTR_variant",
+        "value": 0.4130891812437269,
+        "se": 0.034364857094273595
+      },
+      {
+        "model": "exp535-4b-uniform-five-region-step-275573",
+        "dataset": "mendelian_traits",
+        "split": "train",
+        "score_type": "minus_llr_avg",
+        "subset": "tss_proximal",
+        "value": 0.2606232884998162,
+        "se": 0.029041861426560445
+      },
+      {
+        "model": "exp535-4b-uniform-five-region-step-275573",
+        "dataset": "mendelian_traits",
+        "split": "train",
+        "score_type": "minus_llr_avg",
+        "subset": "3_prime_UTR_variant",
+        "value": 0.17872016080772998,
+        "se": 0.028386885359984373
+      },
+      {
+        "model": "exp535-4b-uniform-five-region-step-275573",
+        "dataset": "mendelian_traits",
+        "split": "train",
+        "score_type": "minus_llr_avg",
+        "subset": "distal",
+        "value": 0.30869270496756424,
+        "se": 0.05394814139332482
+      },
+      {
+        "model": "exp535-4b-uniform-five-region-step-275573",
+        "dataset": "mendelian_traits",
+        "split": "train",
+        "score_type": "minus_llr_avg",
+        "subset": "non_coding_transcript_exon_variant",
+        "value": 0.37918677778694193,
+        "se": 0.03837319320392653
+      },
+      {
+        "model": "exp535-4b-uniform-five-region-step-275573",
+        "dataset": "mendelian_traits",
+        "split": "train",
+        "score_type": "minus_llr_avg",
+        "subset": "_macro_avg_",
+        "value": 0.3485000639661492,
+        "se": 0.013997847775601391
+      }
+    ]
+  },
+  {
+    "file": "zero-final.parquet",
+    "sha256": "61ea7af81184efdbc99db418d23fb3d86463108bff01d04975f13c13a3e0b3ad",
+    "rows": [
+      {
+        "model": "exp535-4b-uniform-five-region-step-375573",
+        "dataset": "mendelian_traits",
+        "split": "train",
+        "score_type": "minus_llr_avg",
+        "subset": "splicing",
+        "value": 0.5193459781640515,
+        "se": 0.027761998312681217
+      },
+      {
+        "model": "exp535-4b-uniform-five-region-step-375573",
+        "dataset": "mendelian_traits",
+        "split": "train",
+        "score_type": "minus_llr_avg",
+        "subset": "missense_variant",
+        "value": 0.4019966881672061,
+        "se": 0.018390009780942098
+      },
+      {
+        "model": "exp535-4b-uniform-five-region-step-375573",
+        "dataset": "mendelian_traits",
+        "split": "train",
+        "score_type": "minus_llr_avg",
+        "subset": "synonymous_variant",
+        "value": 0.36146893510334466,
+        "se": 0.06234521445008441
+      },
+      {
+        "model": "exp535-4b-uniform-five-region-step-375573",
+        "dataset": "mendelian_traits",
+        "split": "train",
+        "score_type": "minus_llr_avg",
+        "subset": "5_prime_UTR_variant",
+        "value": 0.4218142441551801,
+        "se": 0.0342864697423994
+      },
+      {
+        "model": "exp535-4b-uniform-five-region-step-375573",
+        "dataset": "mendelian_traits",
+        "split": "train",
+        "score_type": "minus_llr_avg",
+        "subset": "tss_proximal",
+        "value": 0.2753030341752602,
+        "se": 0.031060212162728914
+      },
+      {
+        "model": "exp535-4b-uniform-five-region-step-375573",
+        "dataset": "mendelian_traits",
+        "split": "train",
+        "score_type": "minus_llr_avg",
+        "subset": "3_prime_UTR_variant",
+        "value": 0.34615989055439156,
+        "se": 0.054683706421610884
+      },
+      {
+        "model": "exp535-4b-uniform-five-region-step-375573",
+        "dataset": "mendelian_traits",
+        "split": "train",
+        "score_type": "minus_llr_avg",
+        "subset": "distal",
+        "value": 0.38151856903557546,
+        "se": 0.0679714917444103
+      },
+      {
+        "model": "exp535-4b-uniform-five-region-step-375573",
+        "dataset": "mendelian_traits",
+        "split": "train",
+        "score_type": "minus_llr_avg",
+        "subset": "non_coding_transcript_exon_variant",
+        "value": 0.4079544629208854,
+        "se": 0.04899171400574886
+      },
+      {
+        "model": "exp535-4b-uniform-five-region-step-375573",
+        "dataset": "mendelian_traits",
+        "split": "train",
+        "score_type": "minus_llr_avg",
+        "subset": "_macro_avg_",
+        "value": 0.3894452252844869,
+        "se": 0.016368207102995875
+      }
+    ]
+  },
+  {
+    "file": "zero-m51.parquet",
+    "sha256": "dc686c6bee7bf736cc92d799e0cbac77a2cd1aca761fb2f132cb8ccfbc578cfe",
+    "rows": [
+      {
+        "model": "mix-v0.9-p1B-i24-exp135-m5.1-step-59158",
+        "dataset": "mendelian_traits",
+        "split": "train",
+        "score_type": "minus_llr_avg",
+        "subset": "splicing",
+        "value": 0.47792352308962044,
+        "se": 0.028947457851994818
+      },
+      {
+        "model": "mix-v0.9-p1B-i24-exp135-m5.1-step-59158",
+        "dataset": "mendelian_traits",
+        "split": "train",
+        "score_type": "minus_llr_avg",
+        "subset": "missense_variant",
+        "value": 0.43778064336513034,
+        "se": 0.018952763390026526
+      },
+      {
+        "model": "mix-v0.9-p1B-i24-exp135-m5.1-step-59158",
+        "dataset": "mendelian_traits",
+        "split": "train",
+        "score_type": "minus_llr_avg",
+        "subset": "synonymous_variant",
+        "value": 0.32270093189207827,
+        "se": 0.0627933420695481
+      },
+      {
+        "model": "mix-v0.9-p1B-i24-exp135-m5.1-step-59158",
+        "dataset": "mendelian_traits",
+        "split": "train",
+        "score_type": "minus_llr_avg",
+        "subset": "5_prime_UTR_variant",
+        "value": 0.42655137115021047,
+        "se": 0.03371970247553704
+      },
+      {
+        "model": "mix-v0.9-p1B-i24-exp135-m5.1-step-59158",
+        "dataset": "mendelian_traits",
+        "split": "train",
+        "score_type": "minus_llr_avg",
+        "subset": "tss_proximal",
+        "value": 0.27971078474465266,
+        "se": 0.03265708846767223
+      },
+      {
+        "model": "mix-v0.9-p1B-i24-exp135-m5.1-step-59158",
+        "dataset": "mendelian_traits",
+        "split": "train",
+        "score_type": "minus_llr_avg",
+        "subset": "3_prime_UTR_variant",
+        "value": 0.4454889748820382,
+        "se": 0.052178176053414314
+      },
+      {
+        "model": "mix-v0.9-p1B-i24-exp135-m5.1-step-59158",
+        "dataset": "mendelian_traits",
+        "split": "train",
+        "score_type": "minus_llr_avg",
+        "subset": "distal",
+        "value": 0.33791778691750474,
+        "se": 0.05917130821950025
+      },
+      {
+        "model": "mix-v0.9-p1B-i24-exp135-m5.1-step-59158",
+        "dataset": "mendelian_traits",
+        "split": "train",
+        "score_type": "minus_llr_avg",
+        "subset": "non_coding_transcript_exon_variant",
+        "value": 0.42816418263864653,
+        "se": 0.043459573831126044
+      },
+      {
+        "model": "mix-v0.9-p1B-i24-exp135-m5.1-step-59158",
+        "dataset": "mendelian_traits",
+        "split": "train",
+        "score_type": "minus_llr_avg",
+        "subset": "_macro_avg_",
+        "value": 0.3945297748349852,
+        "se": 0.015540376069768845
+      }
+    ]
+  }
+]

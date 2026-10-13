@@ -139,3 +139,37 @@ Observed result: The coordinator holds the fresh artifact lock.
 The child is pending with zero failures and zero preemptions because the scheduler reports zero of four requested v5p chips available.
 
 Next action: Verify 20 W&B step rows through 215593, native checkpoint `step-215593`, an HF export under `hf/step-215593`, and clean configuration serialization before dispatching production.
+
+### 2026-10-13 - Completed training and final Mendelian evaluation
+
+The production continuation reached completed step 375573, adding 160,000 updates and 62,914,560,000 tokens from the native parent at 215573.
+Training used one preemptible v5p-8, uniform five-region weights, and no online validation.
+The earlier queued-smoke and undispatched-production entries above are historical.
+W&B: https://wandb.ai/gonzalobenegas/marin/runs/dna-exp535-4b-uniform-five-region.
+
+Verified GCS checkpoint root: `gs://marin-us-east5/checkpoints/dna-exp535-4b-uniform-five-region/2026.08.31/`.
+The final `hf/step-375573/` contains configuration, tokenizer, weight index, and all four weight shards.
+Native `checkpoints/step-343573/` and `checkpoints/step-375573/` retain manifests, metadata, and OCDBT data directories for later continuation.
+No further training or Hub publication is part of this wrap-up.
+
+Final evaluation code: `ce278dca7ecee8834ab3d6db64d00b373c340959`, registered in PR #588.
+The exact-target remote dry-run passed with five jobs, then job 2 on SkyPilot cluster `exp535-final-375573` executed on one AWS A10G on-demand fallback after spot stockouts.
+Reproduction from that code snapshot: `sky exec exp535-final-375573 snakemake/analysis/evals_v2/sky/run.yaml --env 'SNAKEMAKE_ARGS=--cores 1 -- results/metrics/exp535-4b-uniform-five-region-step-375573/mendelian_traits.parquet results/probe_metrics/exp535-4b-uniform-five-region-step-375573/mendelian_traits.parquet'` after provisioning the registered `sky/run.yaml` with a dry-run and `-i 30 --down`.
+Inference completed at 20:50 UTC, probe predictions and classifiers at 21:39 UTC, probe metrics at 21:40 UTC, and zero-shot metrics at 21:41 UTC.
+All requested artifacts are durable; `sky status -o json` returned an empty inventory after automatic teardown.
+
+Canonical result prefix: `s3://oa-bolinas/snakemake/analysis/evals_v2/results/`.
+For model `exp535-4b-uniform-five-region-step-375573`, artifacts are `scores/<model>/mendelian_traits.parquet`, `metrics/<model>/mendelian_traits.parquet`, `probe/<model>/mendelian_traits.parquet`, `probe/<model>/mendelian_traits.joblib`, and `probe_metrics/<model>/mendelian_traits.parquet`.
+The committed `experiments/exp535_4b_uniform_five_region/results/final-metrics.json` snapshots all eight supported subsets plus macro for the six compared metric files, with SHA-256 hashes of the canonical Parquet downloads.
+
+All reported rows use the Mendelian development split, exclude mature-miRNA groups, and cover 16,100 variants with 1,610 positives.
+The broad training scope supports eight consequence subsets.
+Final zero-shot matched-pair macro AUPRC is 0.389445 ± 0.016368 SE, versus 0.348500 ± 0.013998 at 275573 and 0.394530 ± 0.015540 for m5.1.
+Final chromosome-weighted probe macro AUPRC is 0.441994 ± 0.027662, versus 0.419597 ± 0.024010 at 255573 and 0.477855 ± 0.021646 for m5.1.
+The two evaluation protocols have different weighting; comparisons are within protocol.
+These are exploratory single-lineage measurements without a paired comparison test, held-out-test evaluation, validation LM loss, or unchanged-mixture control.
+Additional training, the new WSD cycle, mixture weighting, and parent history remain confounded.
+
+Conclusion: the final checkpoint improves over the measured earlier continuation checkpoints but does not establish an advantage over the 1B m5.1 reference or a causal mixture/scaling effect.
+Next action: review and merge the interpretation PR and registration PR before considering issue closure.
+Knowledge-base disposition: interpretation PR open once published; the issue remains open pending review.
