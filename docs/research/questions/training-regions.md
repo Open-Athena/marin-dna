@@ -15,6 +15,7 @@ The answer may be task-dependent: sequence evolving approximately neutrally may 
 
 No experiment identifies one universally optimal genomic training footprint.
 Current MarinDNA results and external ablations support task-aware enrichment at modest scale: region specialists beat mismatched specialists, clean enhancer curation fixes a large VEP failure, and the conservation-filtered footprint covers Mendelian positives much better than complex-trait positives.
+The [4B five-region continuation](../experiments/535-4b-five-region-continuation.md) improved Mendelian development scores over earlier checkpoints, with large late zero-shot gains in 3′ UTR and Distal, but did not isolate the effect of adding regions from extra training or the learning-rate cycle.
 
 The design has three separable controls.
 Locus selection decides which sequence is present; sampling decides exposure frequency; per-base loss weights decide which observations shape the fitted distribution.
@@ -102,6 +103,9 @@ It should retain a background arm so gains on functional VEP can be weighed agai
   All four loss-ranked half-token objectives harmed Mendelian missense-plus-splicing AUPRC, while pure final-checkpoint teacher KL beat uniform CE at step 200 within the paired evaluation records; one seed, privileged later-lineage supervision, and unmatched per-step compute limit the inference.
 - [Anchor-free clustering of mammalian genome windows](../experiments/521-linclust-conservation.md) tested Linclust, exhaustive alignment controls, longer windows, hash ensembles, denser seeds, DECIPHER, and a source-aware seed graph against projected homology.
   The tested symmetric short-window recipes missed too many known pairs or admitted too many genomic decoys, and the single-database workflow failed at the exact 20-genome scale without a distributed path to all animals or eukaryotes, so this path was stopped without a phyloP selector or training run.
+- [4B uniform five-region continuation](../experiments/535-4b-five-region-continuation.md) continued a proportional-three-region parent on equally sampled CDS, upstream, downstream, ncRNA exon, and non-promoter cCRE.
+  Final zero-shot macro AUPRC was numerically close to 1B m5.1 and the probe remained lower; unmatched histories and the absence of an unchanged-mixture control prevent a causal footprint or scaling claim.
+
 - [Local k-mer retrieval of mammalian homologs](../experiments/568-kmer-conservation.md) found strong complete-set similarity on a bounded human/mouse/armadillo fixture, recovering 97.1% of held-out pairs at ten unique candidate loci.
   Sampled MinHash/LSH settings failed to improve the recall–runtime frontier over exact indexes, and projected homology, weak complexity controls, and independently sampled backgrounds did not establish conservation enrichment or training value.
 - [Local conservation scores from species k-mer prevalence](../experiments/577-local-conservation.md) measures repeat-excluded conservation enrichment at 100 bp resolution, with little MinHash gain over dense fixed-rate sampling.
