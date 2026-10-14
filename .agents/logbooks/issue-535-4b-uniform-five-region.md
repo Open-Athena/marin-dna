@@ -173,3 +173,18 @@ Additional training, the new WSD cycle, mixture weighting, and parent history re
 Conclusion: the final checkpoint improves over the measured earlier continuation checkpoints but does not establish an advantage over the 1B m5.1 reference or a causal mixture/scaling effect.
 Next action: review and merge the interpretation PR and registration PR before considering issue closure.
 Knowledge-base disposition: interpretation PR open once published; the issue remains open pending review.
+
+### 2026-10-14 - Accepted interpretation merged and experiment sealed
+
+The user approved merging both PRs and closing out the experiment issue.
+PR #588 merged as `5997dd31db316c9af767ef71c7014b3e5500a51c`, registering the final checkpoint without a README run description.
+PR #589 merged as `cd45a510f83209ec11aa9b17f42738dc9ee63853` after updating its branch with #588 and rerunning passing CI.
+Independent review covered both PRs and rechecked the interpretation fixes; no actionable findings remained.
+The GitHub review prompted explicit cooldown confounding, sparse evaluated-checkpoint coverage, and commit-pinned evidence links.
+
+Verified main contains the final model and probe registrations plus `docs/research/experiments/535-4b-five-region-continuation.md` and its reciprocal data-mixture/training-region links.
+Knowledge-base disposition: interpretation page merged.
+The final result remains descriptive: 0.3894 zero-shot and 0.4420 probe macro AUPRC on the Mendelian development split, with no causal mixture/scaling or held-out-performance claim.
+Training, requested evaluations, durable artifacts, review, and interpretation promotion are complete.
+Close #535 with the merged page and question links; no further compute, evaluation, or Hub publication is scheduled.
+Preserve this permanent research branch, the metric snapshot, and checkpoint artifacts.
