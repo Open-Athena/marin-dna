@@ -613,6 +613,39 @@ def test_run_inference_padding_roundtrip(tmp_path):
     np.testing.assert_allclose(no_pad["fwd"], with_pad["fwd"], rtol=1e-5, atol=1e-6)
 
 
+def test_run_inference_preserves_singleton_batch_dimension():
+    """A batch size of one must not flatten per-example tensor predictions."""
+
+    class _PassthroughModel(nn.Module):
+        def forward(self, **kwargs):
+            return SimpleNamespace()
+
+    def _compute(_model, input_ids):
+        return input_ids[:, :2].float()
+
+    dataset = datasets.Dataset.from_dict(
+        {"input_ids": [[0, 1, 2], [3, 4, 5], [6, 7, 8], [9, 10, 11]]}
+    )
+    predictions = run_inference(
+        _PassthroughModel(),
+        tokenizer=None,
+        dataset=dataset,
+        compute_fn=_compute,
+        inference_kwargs={
+            "per_device_eval_batch_size": 1,
+            "dataloader_num_workers": 0,
+            "remove_unused_columns": False,
+            "report_to": "none",
+        },
+    )
+
+    assert predictions.shape == (4, 2)
+    np.testing.assert_array_equal(
+        predictions,
+        np.array([[0, 1], [3, 4], [6, 7], [9, 10]], dtype=np.float32),
+    )
+
+
 class _ContentIndependentCausalLM(nn.Module):
     """Test double whose forward returns logits independent of input_ids
     content (only depends on absolute position and vocab indices). Used to

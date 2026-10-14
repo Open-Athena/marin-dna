@@ -471,7 +471,18 @@ class _ModelComputeFnWrapper(nn.Module):
         self.compute_fn = compute_fn
 
     def forward(self, *args: Any, **kwargs: Any) -> Any:
-        return self.compute_fn(self.model, *args, **kwargs)
+        output = self.compute_fn(self.model, *args, **kwargs)
+        # Trainer treats any output with len(output) == 1 as a one-item tuple
+        # and unwraps it, which drops the batch dimension for [1, ...] tensors.
+        # Add a temporary non-batch dimension so singleton batches follow the
+        # same collation path as larger batches.
+        if (
+            isinstance(output, torch.Tensor)
+            and output.ndim >= 1
+            and output.shape[0] == 1
+        ):
+            return output.unsqueeze(1)
+        return output
 
 
 def _process_dataset(
