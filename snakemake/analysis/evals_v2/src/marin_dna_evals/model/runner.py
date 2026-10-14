@@ -454,6 +454,11 @@ def _run_inference(
             **(kwargs or {}),
         )
         trainer = Trainer(model=model, args=training_args)
+        # Accelerate enables TF32 while constructing its compilation state,
+        # after TrainingArguments has already applied an explicit tf32=False.
+        if kwargs.get("tf32") is not None:
+            torch.backends.cuda.matmul.allow_tf32 = kwargs["tf32"]
+            torch.backends.cudnn.allow_tf32 = kwargs["tf32"]
         predictions = trainer.predict(test_dataset=dataset).predictions
 
     if pad_n > 0:

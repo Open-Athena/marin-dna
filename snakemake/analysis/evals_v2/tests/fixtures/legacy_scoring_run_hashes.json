@@ -1,0 +1,17 @@
+{
+  "source_commit": "922e41149c8f9bdb3130f780f66163a0241ff045",
+  "run_blocks": {
+    "inference.smk": [
+      "91b1043f513d95e53cdc0213cd32af267b19fda07f27e328b5cd46f281ff48e4"
+    ],
+    "ll_gap.smk": [
+      "6a4356e889e7a1d7ecf1abb74d96ad97676baf6938b3047753b66debf08516dd",
+      "fe4f1b76aa27ea4673f8b09e84b98b5bc15c6763015c9e450cc79a9b3978aff1"
+    ],
+    "embedding_umap.smk": [
+      "10073a29d8c44db047c7bdce51d1cd5bd47fe8dc38b7da847e374ac08138246a",
+      "58eddc76fd1ffb83e10218b591ac7ccf10cc38a66b840fa94d0ee036fc9f060d",
+      "88c9e1c4f75e20e9ca02156b9a86016343db9eca6f06daebae6e365a569cc203"
+    ]
+  }
+}
