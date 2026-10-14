@@ -33,15 +33,20 @@ Use the targets intended for the task. Put pipeline-wide defaults such as cores,
 - Treat existing rules and the shared Python code paths they invoke as immutable when their artifacts share underlying data or storage on S3.
 - Add task-specific rules, modules, tests, configuration, targets, and output namespaces instead of editing an existing path. Copy code when that is the clearest way to keep the new execution path isolated.
 - Preserve existing rule names, inputs, outputs, parameters, and transitive behavior. Do not rely on producer-keyed paths alone to make an in-place change safe.
-- If the requested outcome cannot be implemented additively, stop and obtain explicit user approval before modifying a legacy rule or shared execution path.
+- If the requested outcome cannot be implemented additively, check existing task authorization for modifying the legacy rule or shared execution path.
+  Resolve any missing approval during initial preflight before making that change.
 
 ## Inspect Before Executing
 
 1. Run the owning project's tests.
 2. Dry-run before every real Snakemake invocation.
 3. Inspect the planned jobs, inputs, outputs, resources, and rerun reasons.
-4. Stop and ask before executing if the plan includes an unintended upstream, unrelated, expensive, or destructive job. Timestamp changes and default rerun triggers do not establish intent.
-5. Follow inherited compute-safety rules before local heavy work. Obtain explicit user approval before launching paid remote compute, including SkyPilot resources.
+4. Correct the plan before executing if it includes unintended jobs or work outside the approved scope or budget.
+   Ask only if resolving the mismatch requires new authority or a material user decision.
+   Timestamp changes and default rerun triggers do not establish intent.
+5. Follow inherited compute-safety rules before local heavy work and [Task Authorization](../../../AGENTS.md#task-authorization) for paid remote compute, including SkyPilot resources.
+   Reuse existing approval for launches and recovery within the cumulative budget.
+   For unattended execution, complete [execution-permissions preflight](../../../docs/operations/unattended-codex.md) before dependent resource launches.
 6. Monitor a new script, configuration, or compute combination during its first minutes. Check progress rate, expected devices, mounts, authentication, and early failures.
 
 ## Create A Pipeline
