@@ -52,7 +52,7 @@ gpu = [
 dev = ["pytest>=8", "ruff", "scipy", "scikit-learn"]
 
 [tool.uv]
-required-version = ">=0.10.3,<0.12"
+required-version = ">=0.10.3,<0.13"
 prerelease = "allow"
 environments = ["sys_platform == 'linux'"]
 conflicts = [[{ extra = "cpu" }, { extra = "gpu" }]]
