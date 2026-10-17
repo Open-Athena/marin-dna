@@ -16,7 +16,9 @@ PRODUCTION_PEERS = {
     "cw-us-east-02a": "h100",
     "cw-us-east-08a": "gb200",
 }
-AVAILABILITY_VERSION = 2
+# Iris v3 uses explicit priority ranks, including SYSTEM, rather than wire values.
+# Batch placement consumes only reported free capacity; held capacity is accounting.
+AVAILABILITY_VERSION = 3
 
 
 class SnapshotError(RuntimeError):
