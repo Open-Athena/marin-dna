@@ -103,6 +103,8 @@ jobs:
                   or path == ".github/workflows/quality.yml"
                   or path.startswith("src/marin_dna/")
                   or path.startswith("tests/")
+                  or path.startswith("infra/")
+                  or path.startswith(".agents/")
                   for path in changed
               )
               if core_changed:

@@ -11,15 +11,9 @@ Treat each runnable pipeline as an independent Python project and execution boun
 
 1. Find the nearest pipeline root containing `pyproject.toml`, `uv.lock`, `README.md`, `src/`, `tests/`, and `workflow/Snakefile`.
 2. Read its README, manifest, and `workflow/profiles/default/config.yaml` before changing or running it.
-3. Run commands from that project root through its committed environment:
+3. Run the per-workflow setup, test, and dry-run commands from `AGENTS.md` (Development Setup) from that project root, with the targets intended for the task.
 
-```bash
-uv sync --locked --group dev
-uv run --locked pytest
-uv run --locked snakemake -n <targets>
-```
-
-Use the targets intended for the task. Put pipeline-wide defaults such as cores, Conda use, and storage providers in the checked-in profile. Keep external bioinformatics tools in rule-specific Conda environments.
+Put pipeline-wide defaults such as cores, Conda use, and storage providers in the checked-in profile. Keep external bioinformatics tools in rule-specific Conda environments.
 
 ## Keep Python Testable
 
@@ -52,4 +46,4 @@ Do not keep a runnable template project on `main`. If pipeline creation becomes 
 
 ## Document Changes
 
-Update the owning README when behavior, configuration, dependencies, execution, outputs, or recovery procedures change. Keep run results and research findings in the tracking issue or research record.
+Follow the README and research-record rules in `AGENTS.md` (Verification And Documentation) when behavior, configuration, dependencies, execution, outputs, or recovery procedures change.

@@ -1,6 +1,6 @@
 ---
 name: draft-weekly-research-update
-description: Create a reviewable weekly MarinDNA public-research draft as a temporary Markdown file from experiment interpretation pages first added to main. Use for the scheduled Monday research update or an explicit request for that draft; do not use for issue activity, infrastructure, bugs, or edits to existing experiment pages.
+description: Create a reviewable weekly MarinDNA public-research draft as a temporary Markdown file from experiment interpretation pages first added to main. Use only from its scheduler (the Monday research update) or an explicit request for that draft; do not use for issue activity, infrastructure, bugs, or edits to existing experiment pages.
 ---
 
 # Draft Weekly Research Update
