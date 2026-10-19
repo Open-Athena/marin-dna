@@ -35,6 +35,7 @@ from levanter.grug.sharding import compact_grug_mesh
 from levanter.tracker.wandb import WandbConfig
 from levanter.trainer import TrainerConfig
 from marin.training.training import resolve_training_env
+from rigging.filesystem.s3_compat import fsspec_s3_conf
 from rigging.filesystem.storage_path import StoragePath
 from rigging.timing import Duration
 
@@ -93,6 +94,19 @@ BATCH_SIZE = GLOBAL_BATCH_SIZE
 COOLDOWN_UPDATE = PEAK_CHECKPOINT_UPDATE
 VALIDATION_EXAMPLES = 512
 ARTIFACT_DATE = "2026.10.08"
+
+
+def checkpoint_storage_env() -> dict[str, str]:
+    """Optionally bypass the in-cluster LOTA cache for checkpoint I/O."""
+    endpoint = os.environ.get("EXP586_CHECKPOINT_S3_ENDPOINT")
+    if not endpoint:
+        return {}
+    return {
+        "AWS_ENDPOINT_URL": endpoint,
+        "FSSPEC_S3": json.dumps(fsspec_s3_conf(endpoint), sort_keys=True),
+    }
+
+
 CONTINUATION_ARTIFACT_DATE = "2026.10.19"
 PERMANENT_CHECKPOINT_COUNT = 8
 
@@ -948,6 +962,7 @@ def dispatch(config: TrainingConfig) -> None:
     env = resolve_training_env(
         {
             **_forwarded_env_vars(),
+            **checkpoint_storage_env(),
             "MARIN_PREFIX": "s3://marin-us-east-02a/marin",
             "WANDB_API_KEY": os.environ["WANDB_API_KEY"],
             "WANDB_ENTITY": "eric-czech",
