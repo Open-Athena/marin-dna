@@ -30,7 +30,6 @@ from exp586_moe.train import (
     build_permanent_checkpoint_updates,
     check_clock,
     checkpoint_due,
-    checkpoint_storage_env,
     commit_and_prune,
     config_json,
     is_permanent_checkpoint,
@@ -265,18 +264,6 @@ def test_mfu_and_total_gflops_match_levanter_convention_and_resume_clock():
         assert final["throughput/total_gflops"] == pytest.approx(
             TRAINING_TOKENS * training_flops_per_token / 1e9
         )
-
-
-def test_checkpoint_storage_env_configures_direct_coreweave_endpoint(monkeypatch):
-    monkeypatch.delenv("EXP586_CHECKPOINT_S3_ENDPOINT", raising=False)
-    assert checkpoint_storage_env() == {}
-
-    monkeypatch.setenv("EXP586_CHECKPOINT_S3_ENDPOINT", "https://cwobject.com")
-    env = checkpoint_storage_env()
-    assert env["AWS_ENDPOINT_URL"] == "https://cwobject.com"
-    fsspec_config = json.loads(env["FSSPEC_S3"])
-    assert fsspec_config["endpoint_url"] == "https://cwobject.com"
-    assert fsspec_config["config_kwargs"]["s3"] == {"addressing_style": "virtual"}
 
 
 def _metadata(step: int, digest: str, *, temporary: bool) -> dict:
