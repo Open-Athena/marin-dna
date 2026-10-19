@@ -626,6 +626,7 @@ def test_utilization_summarizes_all_production_peers() -> None:
 
     assert result["fleet_by_gpu"] == {
         "GB200": {
+            "accounting_delta_gpus": 0,
             "free_gpus": 476,
             "held_gpus": 328,
             "total_gpus": 804,
@@ -637,6 +638,7 @@ def test_utilization_summarizes_all_production_peers() -> None:
             },
         },
         "H100": {
+            "accounting_delta_gpus": 0,
             "free_gpus": 112,
             "held_gpus": 656,
             "total_gpus": 768,
@@ -655,7 +657,7 @@ def test_utilization_summarizes_all_production_peers() -> None:
     assert all(target["observation_age_seconds"] == 20 for target in result["targets"])
 
 
-def test_utilization_rejects_stale_and_inconsistent_capacity() -> None:
+def test_utilization_rejects_stale_capacity_and_preserves_accounting_drift() -> None:
     observed_at = datetime(2026, 8, 16, 13, tzinfo=UTC)
     stale = _utilization_response(observed_at)
     stale["peers"][0]["backends"][0]["availability"]["observation_epoch_ms"] = str(
@@ -666,8 +668,23 @@ def test_utilization_rejects_stale_and_inconsistent_capacity() -> None:
 
     inconsistent = _utilization_response(observed_at)
     inconsistent["peers"][1]["backends"][0]["availability"]["amounts"]["h100"] = "111"
-    with pytest.raises(utilization.SnapshotError, match="accounting disagrees"):
-        utilization.summarize(inconsistent, observed_at)
+    result = utilization.summarize(inconsistent, observed_at)
+    east = next(x for x in result["targets"] if x["cluster"] == "cw-us-east-02a")
+    assert east["free_gpus"] == 111
+    assert east["accounting_delta_gpus"] == 1
+
+    # Preemption handoff can briefly count admitted replacements and terminating
+    # pods at the same time. The independently reported free amount remains the
+    # safe placement value.
+    overcommitted = _utilization_response(observed_at)
+    overcommitted["peers"][0]["backends"][0]["availability"]["held_by_band"][1][
+        "amounts"
+    ]["h100"] = "424"
+    result = utilization.summarize(overcommitted, observed_at)
+    reno = next(x for x in result["targets"] if x["cluster"] == "cw-rno2a")
+    assert reno["free_gpus"] == 0
+    assert reno["held_gpus"] == 536
+    assert reno["accounting_delta_gpus"] == -24
 
 
 @pytest.mark.parametrize("version", [1, 2, 4])
