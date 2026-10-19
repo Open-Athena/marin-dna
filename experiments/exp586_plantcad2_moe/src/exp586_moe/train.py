@@ -9,6 +9,7 @@ import logging
 import math
 import os
 import time
+import uuid
 from collections.abc import Callable
 from enum import Enum
 from typing import Any, Literal
@@ -450,11 +451,12 @@ def bind_and_discover(
 
 
 def prepare_checkpoint(config: TrainingConfig, clock: TokenClock) -> str:
-    """Clear an interrupted save before its destination is reused.
+    """Choose an append-only destination for this checkpoint state.
 
     Call through primary_json with exactly one active dispatch for this trial.
     Levanter publishes metadata.json only after every shard commits. Partial
-    arrays can retain incompatible chunk shapes after a GPU gang resize.
+    OCDBT writes are never reopened: a prior native TensorStore commit failure
+    can leave a prefix that is unsafe to reuse even after object deletion.
     """
     check_clock(
         clock,
@@ -468,12 +470,14 @@ def prepare_checkpoint(config: TrainingConfig, clock: TokenClock) -> str:
         raise ValueError("Refusing to overwrite a committed checkpoint")
     if fs.exists(path):
         logging.getLogger(__name__).warning(
-            "Removing incomplete checkpoint before retry: %s", checkpoint
+            "Leaving incomplete checkpoint untouched and selecting a fresh retry prefix: %s",
+            checkpoint,
         )
-        fs.rm(path, recursive=True)
+        checkpoint = f"{checkpoint}-retry-{uuid.uuid4().hex[:12]}"
+        fs, path = fsspec.core.url_to_fs(checkpoint)
         fs.invalidate_cache(path)
         if fs.exists(path):
-            raise RuntimeError("Incomplete checkpoint cleanup failed")
+            raise RuntimeError("Fresh checkpoint retry prefix already exists")
     return checkpoint
 
 
@@ -487,7 +491,8 @@ def commit_and_prune(
         or metadata.get("scientific_config_sha256") != digest
     ):
         raise ValueError("Checkpoint commit readback mismatch")
-    if checkpoint != f"{config.checkpoint_root}/step-{clock.updates}":
+    expected = f"{config.checkpoint_root}/step-{clock.updates}"
+    if checkpoint != expected and not checkpoint.startswith(expected + "-retry-"):
         raise ValueError("Checkpoint is outside the active trial")
     pointer = StoragePath(config.checkpoint_root) / "latest.json"
     payload = json.dumps(

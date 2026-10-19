@@ -43,13 +43,13 @@ Completion requires `run_progress >= 1` and a reachable permanent final checkpoi
 | --- | --- | ---: | ---: | --- | --- |
 | `cw-rno2a` | H100 | 1 | 8 | unvalidated | — |
 | `cw-rno2a` | H100 | 2 | 16 | eligible | The original pretrained run and continuation restore smoke use this placement contract. |
-| `cw-rno2a` | H100 | 4 | 32 | unvalidated | — |
+| `cw-rno2a` | H100 | 4 | 32 | eligible | The validated 16- and 64-H100 endpoints use the same EP8-per-node mesh and fixed global batch; this intermediate whole-node replica count lowers per-GPU batch and preserves optimizer semantics. |
 | `cw-rno2a` | H100 | 8 | 64 | eligible | The completed pretrained sweep validated this placement with unchanged global batch and EP8. |
 | `cw-us-east-02a` | H100 | 1 | 8 | unvalidated | — |
 | `cw-us-east-02a` | H100 | 2 | 16 | eligible | The original pretrained sweep validated this placement contract. |
-| `cw-us-east-02a` | H100 | 4 | 32 | unvalidated | — |
+| `cw-us-east-02a` | H100 | 4 | 32 | eligible | The validated 16- and 64-H100 endpoints use the same EP8-per-node mesh and fixed global batch; this intermediate whole-node replica count lowers per-GPU batch and preserves optimizer semantics. |
 | `cw-us-east-02a` | H100 | 8 | 64 | eligible | The completed pretrained sweep validated this placement with unchanged global batch and EP8. |
 
 ## Change Record
 
-None.
+2026-10-19: The permanent LR-peak checkpoint at update 418,887 was restored and written to a fresh TTL prefix on 16 H100s, then reloaded with exact model, optimizer, router, and clock equality. Three later restores crashed inside TensorStore OCDBT when they reused the same incomplete update-418,912 prefix; direct object-store transport produced the same failure. Checkpoint retries therefore leave incomplete prefixes untouched and write an append-only retry prefix for the same metadata-bound update. Production then committed `step-418912-retry-2a1e02a49318`, verified its metadata and latest pointer directly from S3, and resumed training beyond it on 32 H100s.

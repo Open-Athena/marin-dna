@@ -352,9 +352,26 @@ def test_primary_io_broadcasts_failure():
         primary_json(lambda: 1 / 0)
 
 
-def test_retry_clears_partial_layout_and_preserves_committed_saves(
-    tmp_path, monkeypatch
-):
+def test_commit_accepts_metadata_bound_retry_prefix(tmp_path, monkeypatch):
+    monkeypatch.setattr(
+        TrainingConfig, "checkpoint_root", property(lambda self: str(tmp_path))
+    )
+    config = TrainingConfig("scratch", 1.0, "cw-rno2a", 2)
+    digest = "science"
+    retry = tmp_path / "step-1-retry-0123456789ab"
+    retry.mkdir()
+    (retry / "metadata.json").write_text(
+        json.dumps(_metadata(1, digest, temporary=True))
+    )
+    clock = TokenClock(TOKENS_PER_UPDATE, BATCH_SIZE * 8191, BATCH_SIZE, 1)
+
+    commit_and_prune(config, str(retry), digest, clock)
+
+    latest = json.loads((tmp_path / "latest.json").read_text())
+    assert latest["checkpoint"] == str(retry)
+
+
+def test_retry_uses_fresh_prefix_and_preserves_existing_saves(tmp_path, monkeypatch):
     monkeypatch.setattr(
         TrainingConfig, "checkpoint_root", property(lambda self: str(tmp_path))
     )
@@ -375,15 +392,17 @@ def test_retry_clears_partial_layout_and_preserves_committed_saves(
         sibling = Path(config.checkpoint_root) / "step-0"
         sibling.mkdir()
         (sibling / "metadata.json").write_text("committed checkpoint marker")
-        assert primary_json(lambda: prepare_checkpoint(config, clock)) == path
-        assert not Path(path).exists()
+        retry_path = primary_json(lambda: prepare_checkpoint(config, clock))
+        assert retry_path.startswith(path + "-retry-")
+        assert Path(path).exists()
+        assert not Path(retry_path).exists()
         assert (sibling / "metadata.json").read_text() == "committed checkpoint marker"
         save_checkpoint(
-            new, 1, path, write_config=TensorStoreWriteConfig(max_chunk_bytes=32)
+            new, 1, retry_path, write_config=TensorStoreWriteConfig(max_chunk_bytes=32)
         )
-        restored = load_checkpoint(new, path, mesh=jax.sharding.get_mesh())
+        restored = load_checkpoint(new, retry_path, mesh=jax.sharding.get_mesh())
         np.testing.assert_array_equal(restored["weights"], new["weights"])
-        marker = (Path(path) / "metadata.json").read_bytes()
+        marker = (Path(retry_path) / "metadata.json").read_bytes()
         with pytest.raises(RuntimeError, match="Refusing to overwrite"):
-            primary_json(lambda: prepare_checkpoint(config, clock))
-        assert (Path(path) / "metadata.json").read_bytes() == marker
+            primary_json(lambda: prepare_checkpoint(config, TokenClock()))
+        assert (Path(retry_path) / "metadata.json").read_bytes() == marker
