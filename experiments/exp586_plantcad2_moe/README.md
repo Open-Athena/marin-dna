@@ -34,6 +34,17 @@ An individual production driver is selected explicitly:
 python -m exp586_moe.train --condition pretrained --lr-multiplier 1 --cluster cw-rno2a --nodes 2
 ```
 
+## Pretrained 1x continuation
+
+Stage `s02` restores the complete evaluated pretrained 1x `step-412290` state and continues its absolute data and optimizer clocks to exactly 562,022,055,936 input tokens.
+It linearly rewarms from 5% to the original peak learning rates over 6,596 updates, then immediately decays linearly to the same 5% endpoint at update 1,071,972.
+The optimizer heuristic remains bound to the original 216,158,699,520-token stage so only the two injected learning-rate scalars change after restore.
+Stage `s02` has a separate W&B identity and checkpoint root and retains eight continuation checkpoints, including the rewarm peak and final state.
+
+```bash
+python -m exp586_moe.train --condition pretrained --lr-multiplier 1 --stage s02 --cluster cw-rno2a --nodes 8
+```
+
 CoreWeave placement is operational and does not change the W&B or checkpoint identity.
 Every GPU request uses whole eight-H100 nodes at batch priority.
 

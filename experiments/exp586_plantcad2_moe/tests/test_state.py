@@ -22,6 +22,7 @@ from exp586_moe.state import (
     state_all_finite,
     state_error_by_group,
     state_max_abs_error,
+    validate_restored_training_state,
 )
 from experiments.grug.moe_hero_ep.model import Transformer, apply_qb_betas
 from experiments.grug.moe_hero_ep.train import GrugTrainState
@@ -50,6 +51,14 @@ def test_transfer_retains_pending_bias_and_checkpoint_retains_exact_clock(tmp_pa
         clock = TokenClock(216_158_699_517, 216_158_699_500, 17, 0)
         path = str(tmp_path / "checkpoint")
         save_dna_checkpoint(state, clock, path, data_seed=0, tokenizer_sha256="a" * 64)
+        with pytest.raises(ValueError, match="metadata digest mismatch"):
+            restore_dna_checkpoint(
+                state,
+                path,
+                jax.sharding.get_mesh(),
+                data_seed=0,
+                metadata_sha256="0" * 64,
+            )
         with pytest.raises(ValueError, match="tokenizer digest mismatch"):
             restore_dna_checkpoint(
                 state,
@@ -62,6 +71,11 @@ def test_transfer_retains_pending_bias_and_checkpoint_retains_exact_clock(tmp_pa
             state, path, jax.sharding.get_mesh(), data_seed=0, tokenizer_sha256="a" * 64
         )
         assert restored_clock == clock
+        summary = validate_restored_training_state(
+            restored, restored_clock, require_master_params=False
+        )
+        assert summary["step"] == summary["optimizer_count"] == 0
+        assert summary["state_array_leaves"] > summary["optimizer_array_leaves"] > 0
         assert float(state_max_abs_error(state, restored)) == 0
         assert all(
             float(value) == 0

@@ -11,7 +11,14 @@ from levanter.checkpoint import load_checkpoint, save_checkpoint
 from levanter.grug.sharding import compact_grug_mesh
 from levanter.tensorstore_serialization import TensorStoreWriteConfig
 
-from exp586_moe.config import PEAK_CHECKPOINT_UPDATE, TOTAL_UPDATES, TRAINING_TOKENS
+from exp586_moe.config import (
+    CONTINUATION_PEAK_CHECKPOINT_UPDATE,
+    CONTINUATION_SOURCE_UPDATES,
+    CONTINUATION_TOTAL_UPDATES,
+    PEAK_CHECKPOINT_UPDATE,
+    TOTAL_UPDATES,
+    TRAINING_TOKENS,
+)
 from exp586_moe.schedule import TokenClock
 from exp586_moe.train import (
     BATCH_SIZE,
@@ -20,6 +27,7 @@ from exp586_moe.train import (
     TOKENS_PER_UPDATE,
     TrainingConfig,
     bind_and_discover,
+    build_permanent_checkpoint_updates,
     check_clock,
     checkpoint_due,
     commit_and_prune,
@@ -32,6 +40,13 @@ from exp586_moe.train import (
     throughput_flop_metrics,
 )
 from experiments.grug.moe_hero_ep.train import _compute_flops
+
+SOURCE_TOKENIZER_SHA256 = (
+    "d1cf7a63f3e0e0778a7ef137020e6f39d04be1e6da14fe22d6283eb36cddae5e"
+)
+SOURCE_SCIENTIFIC_CONFIG_SHA256 = (
+    "a3cfc9b89e36c79ef68b8abf4a19af62b7d1c4486ff59147acc544cd8facdc71"
+)
 
 
 def test_trial_catalog_and_placement_do_not_change_science():
@@ -88,6 +103,58 @@ def test_trial_catalog_and_placement_do_not_change_science():
         dataclasses.replace(a, moe_backend="ring")
 
 
+def test_stage_two_has_one_identity_and_preserves_stage_one_science():
+    stage_one = TrainingConfig("pretrained", 1.0, "cw-rno2a", 8)
+    stage_two = dataclasses.replace(stage_one, stage="s02")
+    assert stage_one.run_id == "exp586-plantcad2-d768-pretrained-lrm1-seed0-v1"
+    assert stage_two.run_id == ("exp586-plantcad2-d768-pretrained-lrm1-seed0-s02-v1")
+    assert stage_one.checkpoint_root != stage_two.checkpoint_root
+    assert stage_two.start_update == CONTINUATION_SOURCE_UPDATES
+    assert stage_two.target_updates == CONTINUATION_TOTAL_UPDATES
+    assert stage_two.schedule.peak_update == CONTINUATION_PEAK_CHECKPOINT_UPDATE
+    assert stage_two.execution_stop_update == CONTINUATION_TOTAL_UPDATES
+    assert len(stage_two.permanent_checkpoint_updates) == 8
+    assert CONTINUATION_PEAK_CHECKPOINT_UPDATE in (
+        stage_two.permanent_checkpoint_updates
+    )
+    assert CONTINUATION_TOTAL_UPDATES in stage_two.permanent_checkpoint_updates
+    assert scientific_config(stage_one, "digest")["schema"] == 1
+    stage_two_binding = scientific_config(stage_two, "digest")
+    assert stage_two_binding["schema"] == 2
+    assert stage_two_binding["optimizer_reference_tokens"] == TRAINING_TOKENS
+    with pytest.raises(ValueError, match="only for pretrained 1x"):
+        TrainingConfig("pretrained", 2.0, "cw-rno2a", 8, stage="s02")
+    with pytest.raises(ValueError, match="only for pretrained 1x"):
+        TrainingConfig("scratch", 1.0, "cw-rno2a", 8, stage="s02")
+
+
+def test_stage_one_binding_exactly_matches_the_source_checkpoint():
+    config = TrainingConfig("pretrained", 1.0, "cw-rno2a", 8)
+    serialized = config_json(scientific_config(config, SOURCE_TOKENIZER_SHA256))
+    assert hashlib.sha256(serialized.encode()).hexdigest() == (
+        SOURCE_SCIENTIFIC_CONFIG_SHA256
+    )
+
+
+def test_stage_two_validation_uses_production_schedule_and_temporary_identity():
+    smoke = TrainingConfig(
+        "pretrained",
+        1.0,
+        "cw-rno2a",
+        2,
+        stage="s02",
+        validation_updates=2,
+        validation_id="restore-a",
+    )
+    assert smoke.execution_stop_update == CONTINUATION_SOURCE_UPDATES + 2
+    assert smoke.permanent_checkpoint_updates == frozenset(
+        {CONTINUATION_SOURCE_UPDATES + 2}
+    )
+    assert "tmp/ttl=7d" in smoke.checkpoint_root
+    assert smoke.run_id.endswith("-smoke-restore-a")
+    assert smoke.schedule.factor(smoke.start_input_tokens) == pytest.approx(0.05)
+
+
 def test_recovery_checkpoint_after_resuming_without_waiting_full_interval():
     assert not checkpoint_due(368, 344, 80, 300)
     assert checkpoint_due(369, 344, 83, 300)
@@ -118,6 +185,15 @@ def test_eight_permanent_checkpoints_span_the_training_horizon():
     assert is_permanent_checkpoint(PEAK_CHECKPOINT_UPDATE)
     assert is_permanent_checkpoint(TOTAL_UPDATES)
     assert not is_permanent_checkpoint(regular[0] - 1)
+
+    continuation = build_permanent_checkpoint_updates(
+        start_update=CONTINUATION_SOURCE_UPDATES,
+        total_updates=CONTINUATION_TOTAL_UPDATES,
+        peak_update=CONTINUATION_PEAK_CHECKPOINT_UPDATE,
+    )
+    assert len(continuation) == 8
+    assert CONTINUATION_PEAK_CHECKPOINT_UPDATE in continuation
+    assert CONTINUATION_TOTAL_UPDATES in continuation
 
 
 def test_complete_clock_contract():

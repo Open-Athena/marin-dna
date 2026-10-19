@@ -2,6 +2,9 @@
 
 import dataclasses
 import faulthandler
+import hashlib
+import json
+import math
 import os
 
 import equinox as eqx
@@ -143,10 +146,16 @@ def restore_dna_checkpoint(
     *,
     data_seed: int,
     tokenizer_sha256: str | None = None,
+    scientific_config_sha256: str | None = None,
+    metadata_sha256: str | None = None,
 ) -> tuple[GrugTrainState, TokenClock]:
-    import json
-
-    metadata = json.loads((StoragePath(path) / "metadata.json").read_text())
+    metadata_blob = (StoragePath(path) / "metadata.json").read_bytes()
+    if (
+        metadata_sha256 is not None
+        and hashlib.sha256(metadata_blob).hexdigest() != metadata_sha256
+    ):
+        raise ValueError("Checkpoint metadata digest mismatch")
+    metadata = json.loads(metadata_blob)
     if (
         tokenizer_sha256 is not None
         and metadata.get("tokenizer_sha256") != tokenizer_sha256
@@ -154,6 +163,11 @@ def restore_dna_checkpoint(
         raise ValueError("Checkpoint tokenizer digest mismatch")
     if metadata.get("exp586_schema") != 1 or metadata.get("data_seed") != data_seed:
         raise ValueError("Checkpoint schema or data seed mismatch")
+    if (
+        scientific_config_sha256 is not None
+        and metadata.get("scientific_config_sha256") != scientific_config_sha256
+    ):
+        raise ValueError("Checkpoint scientific configuration digest mismatch")
     clock = TokenClock(**metadata["exp586_clock"])
     if metadata["step"] != clock.updates:
         raise ValueError("Checkpoint step and token clock disagree")
@@ -171,3 +185,40 @@ def restore_dna_checkpoint(
     if int(restored.step) != clock.updates:
         raise ValueError("Restored step and metadata disagree")
     return restored, clock
+
+
+def validate_restored_training_state(
+    state: GrugTrainState,
+    clock: TokenClock,
+    *,
+    require_master_params: bool = True,
+) -> dict[str, float | int]:
+    """Reject a restore that omitted optimizer or mixed-precision training state."""
+    step = int(state.step)
+    optimizer_count = int(state.opt_state.count)
+    if step != clock.updates or optimizer_count != clock.updates:
+        raise ValueError("Restored model, optimizer, and token clocks disagree")
+    if require_master_params and state.master_params is None:
+        raise ValueError("Restored checkpoint is missing FP32 master parameters")
+    if state.ema_params is not None:
+        raise ValueError("Unexpected EMA parameters in exp586 checkpoint")
+    hyperparams = state.opt_state.hyperparams
+    missing = {"learning_rate", "adam_lr"} - set(hyperparams)
+    if missing:
+        raise ValueError(f"Restored optimizer hyperparameters are missing: {missing}")
+    learning_rate = float(hyperparams["learning_rate"])
+    adam_lr = float(hyperparams["adam_lr"])
+    if not math.isfinite(learning_rate) or not math.isfinite(adam_lr):
+        raise ValueError("Restored optimizer learning rates are nonfinite")
+    return {
+        "step": step,
+        "optimizer_count": optimizer_count,
+        "stored_muon_lr": learning_rate,
+        "stored_adam_lr": adam_lr,
+        "state_array_leaves": sum(
+            isinstance(value, jax.Array) for value in jax.tree.leaves(state)
+        ),
+        "optimizer_array_leaves": sum(
+            isinstance(value, jax.Array) for value in jax.tree.leaves(state.opt_state)
+        ),
+    }

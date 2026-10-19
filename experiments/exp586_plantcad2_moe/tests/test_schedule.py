@@ -8,6 +8,12 @@ import optax
 import pytest
 
 from exp586_moe.config import (
+    CONTINUATION_PEAK_CHECKPOINT_UPDATE,
+    CONTINUATION_SOURCE_TOKENS,
+    CONTINUATION_SOURCE_UPDATES,
+    CONTINUATION_TARGET_TOKENS,
+    CONTINUATION_TOTAL_UPDATES,
+    CONTINUATION_WARMUP_UPDATES,
     PEAK_CHECKPOINT_UPDATE,
     TOKENS_PER_UPDATE,
     TOTAL_UPDATES,
@@ -15,6 +21,7 @@ from exp586_moe.config import (
     WARMUP_UPDATES,
 )
 from exp586_moe.schedule import (
+    ContinuationTokenSchedule,
     HeroTokenSchedule,
     TokenClock,
     optimizer_config,
@@ -53,6 +60,26 @@ def test_hero_schedule_uses_ten_epoch_budget_and_one_percent_warmup():
         schedule.factor(1)
     with pytest.raises(ValueError, match="nonnegative"):
         schedule.factor(-TOKENS_PER_UPDATE)
+
+
+def test_continuation_schedule_exactly_matches_dense_token_horizon():
+    schedule = ContinuationTokenSchedule()
+    assert CONTINUATION_SOURCE_TOKENS == 216_158_699_520
+    assert CONTINUATION_TARGET_TOKENS == 562_022_055_936
+    assert CONTINUATION_SOURCE_UPDATES == 412_290
+    assert CONTINUATION_TOTAL_UPDATES == 1_071_972
+    assert CONTINUATION_WARMUP_UPDATES == 6_596
+    assert CONTINUATION_PEAK_CHECKPOINT_UPDATE == 418_887
+    warmup_end_tokens = (
+        CONTINUATION_SOURCE_UPDATES + CONTINUATION_WARMUP_UPDATES
+    ) * TOKENS_PER_UPDATE
+    assert schedule.factor(CONTINUATION_SOURCE_TOKENS) == pytest.approx(0.05)
+    assert schedule.factor(warmup_end_tokens) == pytest.approx(1.0)
+    assert schedule.factor(CONTINUATION_TARGET_TOKENS) == pytest.approx(0.05)
+    assert schedule.factor((CONTINUATION_TOTAL_UPDATES - 1) * TOKENS_PER_UPDATE) > 0.05
+    assert schedule.factor(390_819_479_552) == pytest.approx(0.525)
+    with pytest.raises(ValueError, match="precedes"):
+        schedule.factor(CONTINUATION_SOURCE_TOKENS - TOKENS_PER_UPDATE)
 
 
 def test_dna_optimizer_uses_actual_training_budget_and_d768_width():
@@ -104,6 +131,13 @@ def test_injected_lr_is_used_inside_norm_preserving_update():
         schedule,
         TokenClock(input_tokens=200),
     )
+    assert int(peak.count) == int(initial.count)
+    for before, after in zip(
+        jax.tree.leaves(initial.inner_state),
+        jax.tree.leaves(peak.inner_state),
+        strict=True,
+    ):
+        np.testing.assert_array_equal(before, after)
     updates, after = tx.update(grads, peak, params)
     moved = optax.apply_updates(params, updates)
     assert not np.allclose(moved["output_proj"], params["output_proj"])

@@ -5,6 +5,10 @@ from dataclasses import dataclass, replace
 import optax
 
 from exp586_moe.config import (
+    CONTINUATION_PEAK_CHECKPOINT_UPDATE,
+    CONTINUATION_SOURCE_UPDATES,
+    CONTINUATION_TOTAL_UPDATES,
+    CONTINUATION_WARMUP_UPDATES,
     PEAK_CHECKPOINT_UPDATE,
     TOKENS_PER_UPDATE,
     TOTAL_UPDATES,
@@ -45,6 +49,57 @@ class HeroTokenSchedule:
             return update / self.warmup_updates
         decay_updates = self.total_updates - self.warmup_updates
         decay_progress = min(1.0, (update - self.warmup_updates) / decay_updates)
+        return 1.0 - (1.0 - self.min_lr_ratio) * decay_progress
+
+
+@dataclass(frozen=True)
+class ContinuationTokenSchedule:
+    """Rewarm a cooled checkpoint, then resume Hero's linear decay."""
+
+    start_update: int = CONTINUATION_SOURCE_UPDATES
+    total_updates: int = CONTINUATION_TOTAL_UPDATES
+    warmup_updates: int = CONTINUATION_WARMUP_UPDATES
+    tokens_per_update: int = TOKENS_PER_UPDATE
+    min_lr_ratio: float = 0.05
+    peak_update: int = CONTINUATION_PEAK_CHECKPOINT_UPDATE
+    revision: str = "hero-linear-rewarm-v1"
+
+    def __post_init__(self) -> None:
+        if not 0 <= self.start_update < self.total_updates:
+            raise ValueError("Continuation start must precede its target")
+        if not 0 < self.warmup_updates < self.total_updates - self.start_update:
+            raise ValueError("Continuation warmup must fit inside the stage")
+        if self.tokens_per_update <= 0:
+            raise ValueError("Tokens per update must be positive")
+        if self.peak_update != self.start_update + self.warmup_updates + 1:
+            raise ValueError("Peak checkpoint must follow the exact peak-LR update")
+        if not 0 <= self.min_lr_ratio < 1:
+            raise ValueError("Minimum LR ratio must be in [0, 1)")
+
+    @property
+    def start_tokens(self) -> int:
+        return self.start_update * self.tokens_per_update
+
+    @property
+    def target_tokens(self) -> int:
+        return self.total_updates * self.tokens_per_update
+
+    @property
+    def warmup_end_update(self) -> int:
+        return self.start_update + self.warmup_updates
+
+    def factor(self, tokens: int) -> float:
+        """Return the LR factor at the start of the next absolute update."""
+        if tokens < 0 or tokens % self.tokens_per_update:
+            raise ValueError("Token clock must be a nonnegative whole update")
+        update = tokens // self.tokens_per_update
+        if update < self.start_update:
+            raise ValueError("Continuation token clock precedes its source checkpoint")
+        if update < self.warmup_end_update:
+            progress = (update - self.start_update) / self.warmup_updates
+            return self.min_lr_ratio + (1.0 - self.min_lr_ratio) * progress
+        decay_updates = self.total_updates - self.warmup_end_update
+        decay_progress = min(1.0, (update - self.warmup_end_update) / decay_updates)
         return 1.0 - (1.0 - self.min_lr_ratio) * decay_progress
 
 

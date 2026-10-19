@@ -39,6 +39,13 @@ from rigging.filesystem.storage_path import StoragePath
 from rigging.timing import Duration
 
 from exp586_moe.config import (
+    CONTINUATION_SOURCE_CHECKPOINT,
+    CONTINUATION_SOURCE_METADATA_SHA256,
+    CONTINUATION_SOURCE_SCIENTIFIC_CONFIG_SHA256,
+    CONTINUATION_SOURCE_TOKENS,
+    CONTINUATION_SOURCE_UPDATES,
+    CONTINUATION_TARGET_TOKENS,
+    CONTINUATION_TOTAL_UPDATES,
     EPOCH_TOKENS,
     GLOBAL_BATCH_SIZE,
     PEAK_CHECKPOINT_UPDATE,
@@ -57,6 +64,7 @@ from exp586_moe.data import (
 )
 from exp586_moe.routing_probe import routing_diagnostics
 from exp586_moe.schedule import (
+    ContinuationTokenSchedule,
     HeroTokenSchedule,
     TokenClock,
     optimizer_config,
@@ -67,6 +75,7 @@ from exp586_moe.state import (
     restore_dna_checkpoint,
     save_dna_checkpoint,
     state_all_finite,
+    validate_restored_training_state,
 )
 from exp586_moe.tracking import wandb_history_offset
 from experiments.grug.dispatch import _forwarded_env_vars
@@ -84,18 +93,32 @@ BATCH_SIZE = GLOBAL_BATCH_SIZE
 COOLDOWN_UPDATE = PEAK_CHECKPOINT_UPDATE
 VALIDATION_EXAMPLES = 512
 ARTIFACT_DATE = "2026.10.08"
+CONTINUATION_ARTIFACT_DATE = "2026.10.19"
 PERMANENT_CHECKPOINT_COUNT = 8
-PERMANENT_CHECKPOINT_UPDATES = frozenset(
-    {
-        math.ceil(
-            TRAINING_TOKENS
-            * checkpoint_index
-            / (PERMANENT_CHECKPOINT_COUNT - 1)
-            / TOKENS_PER_UPDATE
-        )
+
+
+def build_permanent_checkpoint_updates(
+    *, start_update: int, total_updates: int, peak_update: int
+) -> frozenset[int]:
+    """Retain the LR peak, six evenly spaced stage milestones, and the end."""
+    span = total_updates - start_update
+    if span <= 0 or not start_update < peak_update <= total_updates:
+        raise ValueError("Invalid permanent-checkpoint stage boundaries")
+    milestones = {
+        start_update
+        + math.ceil(span * checkpoint_index / (PERMANENT_CHECKPOINT_COUNT - 1))
         for checkpoint_index in range(1, PERMANENT_CHECKPOINT_COUNT - 1)
     }
-    | {PEAK_CHECKPOINT_UPDATE, TOTAL_UPDATES}
+    result = frozenset(milestones | {peak_update, total_updates})
+    if len(result) != PERMANENT_CHECKPOINT_COUNT:
+        raise ValueError("Permanent-checkpoint milestones overlap")
+    return result
+
+
+PERMANENT_CHECKPOINT_UPDATES = build_permanent_checkpoint_updates(
+    start_update=0,
+    total_updates=TOTAL_UPDATES,
+    peak_update=PEAK_CHECKPOINT_UPDATE,
 )
 
 
@@ -140,10 +163,13 @@ class TrainingConfig:
     lr_multiplier: float
     cluster: str
     nodes: int
+    stage: Literal["s01", "s02"] = "s01"
     seed: int = 0
     checkpoint_interval_seconds: int = 900
     recovery_checkpoint_delay_updates: int = 25
     moe_backend: Literal["pooled", "fixed", "ring"] | None = None
+    validation_updates: int | None = None
+    validation_id: str | None = None
 
     def __post_init__(self) -> None:
         multipliers = {
@@ -156,6 +182,12 @@ class TrainingConfig:
             or self.seed != 0
         ):
             raise ValueError("Select one of the six authorized trials")
+        if self.stage not in ("s01", "s02"):
+            raise ValueError("Unknown training stage")
+        if self.stage == "s02" and (
+            self.condition != "pretrained" or self.lr_multiplier != 1.0
+        ):
+            raise ValueError("Stage 2 is authorized only for pretrained 1x")
         if self.cluster not in ("cw-rno2a", "cw-us-east-02a") or self.nodes not in (
             1,
             2,
@@ -171,6 +203,18 @@ class TrainingConfig:
             self.condition == "pretrained" and self.moe_backend not in (None, "pooled")
         ):
             raise ValueError("Select an approved MoE runtime backend")
+        if (self.validation_updates is None) != (self.validation_id is None):
+            raise ValueError("Validation updates and ID must be set together")
+        if self.validation_updates is not None:
+            if self.stage != "s02" or not 1 <= self.validation_updates <= 25:
+                raise ValueError("Stage-2 validation must run 1 through 25 updates")
+            if (
+                not self.validation_id
+                or not self.validation_id.replace("-", "").isalnum()
+            ):
+                raise ValueError(
+                    "Validation ID must contain only letters, digits, and hyphens"
+                )
 
     @property
     def context_axis_size(self) -> int:
@@ -181,17 +225,70 @@ class TrainingConfig:
         multiplier = {0.5: "0p5", 1.0: "1", 2.0: "2", 3.0: "3", 10.0: "10"}[
             self.lr_multiplier
         ]
-        return (
+        base = (
             f"exp586-plantcad2-d768-{self.condition}-lrm{multiplier}-seed{self.seed}-v1"
         )
+        if self.stage == "s02":
+            base = base.removesuffix("-v1") + "-s02-v1"
+        if self.validation_id is not None:
+            base += f"-smoke-{self.validation_id}"
+        return base
 
     @property
     def checkpoint_root(self) -> str:
-        return f"s3://marin-us-east-02a/MarinDNA/exp586_plantcad2_moe/checkpoints/{self.run_id}/{ARTIFACT_DATE}/checkpoints"
+        if self.validation_id is not None:
+            return (
+                "s3://marin-us-east-02a/tmp/ttl=7d/MarinDNA/"
+                f"exp586_plantcad2_moe/{self.run_id}/checkpoints"
+            )
+        artifact_date = (
+            CONTINUATION_ARTIFACT_DATE if self.stage == "s02" else ARTIFACT_DATE
+        )
+        return f"s3://marin-us-east-02a/MarinDNA/exp586_plantcad2_moe/checkpoints/{self.run_id}/{artifact_date}/checkpoints"
 
     @property
-    def schedule(self) -> HeroTokenSchedule:
-        return HeroTokenSchedule()
+    def schedule(self) -> HeroTokenSchedule | ContinuationTokenSchedule:
+        return (
+            ContinuationTokenSchedule() if self.stage == "s02" else HeroTokenSchedule()
+        )
+
+    @property
+    def start_update(self) -> int:
+        return CONTINUATION_SOURCE_UPDATES if self.stage == "s02" else 0
+
+    @property
+    def start_input_tokens(self) -> int:
+        return CONTINUATION_SOURCE_TOKENS if self.stage == "s02" else 0
+
+    @property
+    def target_updates(self) -> int:
+        return CONTINUATION_TOTAL_UPDATES if self.stage == "s02" else TOTAL_UPDATES
+
+    @property
+    def target_input_tokens(self) -> int:
+        return CONTINUATION_TARGET_TOKENS if self.stage == "s02" else TRAINING_TOKENS
+
+    @property
+    def execution_stop_update(self) -> int:
+        if self.validation_updates is not None:
+            return self.start_update + self.validation_updates
+        return self.target_updates
+
+    @property
+    def continuation_source_checkpoint(self) -> str | None:
+        return CONTINUATION_SOURCE_CHECKPOINT if self.stage == "s02" else None
+
+    @property
+    def permanent_checkpoint_updates(self) -> frozenset[int]:
+        if self.validation_updates is not None:
+            return frozenset({self.execution_stop_update})
+        if self.stage == "s01":
+            return PERMANENT_CHECKPOINT_UPDATES
+        return build_permanent_checkpoint_updates(
+            start_update=self.start_update,
+            total_updates=self.target_updates,
+            peak_update=self.schedule.peak_update,
+        )
 
     @property
     def scientific_model(self) -> Any:
@@ -225,7 +322,7 @@ class TrainingConfig:
 
 def scientific_config(config: TrainingConfig, tokenizer_sha256: str) -> dict[str, Any]:
     """Immutable science and lineage; placement remains operational."""
-    return {
+    stage_one = {
         "schema": 1,
         "condition": config.condition,
         "seed": config.seed,
@@ -252,6 +349,22 @@ def scientific_config(config: TrainingConfig, tokenizer_sha256: str) -> dict[str
         "precision": "native-bf16-fp32-pinned-host-master",
         "z_loss_weight": 1e-4,
     }
+    if config.stage == "s01":
+        return stage_one
+    return {
+        **stage_one,
+        "schema": 2,
+        "stage": config.stage,
+        "schedule": dataclasses.asdict(config.schedule),
+        "source_checkpoint": CONTINUATION_SOURCE_CHECKPOINT,
+        "source_metadata_sha256": CONTINUATION_SOURCE_METADATA_SHA256,
+        "source_scientific_config_sha256": (
+            CONTINUATION_SOURCE_SCIENTIFIC_CONFIG_SHA256
+        ),
+        "start_input_tokens": config.start_input_tokens,
+        "target_input_tokens": config.target_input_tokens,
+        "validation_updates": config.validation_updates,
+    }
 
 
 def config_json(value: dict[str, Any]) -> str:
@@ -270,18 +383,23 @@ def checkpoint_due(
     interval_seconds: int,
     peak_update: int = COOLDOWN_UPDATE,
     recovery_delay_updates: int = 25,
+    permanent_updates: frozenset[int] = PERMANENT_CHECKPOINT_UPDATES,
 ) -> bool:
     """Bound replay after every restore as well as during uninterrupted training."""
     return (
-        is_permanent_checkpoint(update, peak_update)
+        is_permanent_checkpoint(update, peak_update, permanent_updates)
         or update == initial_update + recovery_delay_updates
         or seconds_since_save >= interval_seconds
     )
 
 
-def is_permanent_checkpoint(update: int, peak_update: int = COOLDOWN_UPDATE) -> bool:
+def is_permanent_checkpoint(
+    update: int,
+    peak_update: int = COOLDOWN_UPDATE,
+    permanent_updates: frozenset[int] = PERMANENT_CHECKPOINT_UPDATES,
+) -> bool:
     """Retain the LR peak, six horizon milestones, and the final state."""
-    return update == peak_update or update in PERMANENT_CHECKPOINT_UPDATES
+    return update == peak_update or update in permanent_updates
 
 
 def primary_json(action: Callable[[], Any]) -> Any:
@@ -338,7 +456,11 @@ def prepare_checkpoint(config: TrainingConfig, clock: TokenClock) -> str:
     Levanter publishes metadata.json only after every shard commits. Partial
     arrays can retain incompatible chunk shapes after a GPU gang resize.
     """
-    check_clock(clock)
+    check_clock(
+        clock,
+        min_updates=config.start_update,
+        max_updates=config.execution_stop_update,
+    )
     checkpoint = f"{config.checkpoint_root}/step-{clock.updates}"
     fs, path = fsspec.core.url_to_fs(checkpoint)
     fs.invalidate_cache(path)
@@ -390,9 +512,11 @@ def commit_and_prune(
         fs.rm(path, recursive=True)
 
 
-def check_clock(clock: TokenClock) -> None:
+def check_clock(
+    clock: TokenClock, *, min_updates: int = 0, max_updates: int = TOTAL_UPDATES
+) -> None:
     if (
-        not 0 <= clock.updates <= TOTAL_UPDATES
+        not 0 <= min_updates <= clock.updates <= max_updates
         or clock.examples != clock.updates * BATCH_SIZE
         or clock.input_tokens != clock.updates * TOKENS_PER_UPDATE
         or clock.loss_targets != clock.examples * 8191
@@ -456,7 +580,7 @@ def _run_training(config: TrainingConfig) -> None:
         id=config.run_id,
         seed=config.seed,
         train_batch_size=BATCH_SIZE,
-        num_train_steps=TOTAL_UPDATES,
+        num_train_steps=config.execution_stop_update,
         require_accelerator=True,
         mp=mp,
         use_explicit_mesh_axes=True,
@@ -466,8 +590,18 @@ def _run_training(config: TrainingConfig) -> None:
             entity="eric-czech",
             project="marin",
             name=config.run_id,
-            group="exp586-plantcad2-moe-sweep",
-            tags=["dna-exp586", "H100", config.cluster, config.condition],
+            group=(
+                "exp586-plantcad2-moe-continuation"
+                if config.stage == "s02"
+                else "exp586-plantcad2-moe-sweep"
+            ),
+            tags=[
+                "dna-exp586",
+                "H100",
+                config.cluster,
+                config.condition,
+                f"stage={config.stage}",
+            ],
             save_code=False,
             background=False,
             replicate_path=config.checkpoint_root,
@@ -513,15 +647,20 @@ def _run_training(config: TrainingConfig) -> None:
     opt_config = optimizer_config(
         reference_tokens_per_update=TOKENS_PER_UPDATE, multiplier=config.lr_multiplier
     )
-    optimizer = opt_config.build(TOTAL_UPDATES)
+    optimizer = opt_config.build(config.target_updates)
     schedule = config.schedule
     mesh = training_mesh(config)
     with jax.set_mesh(mesh):
+        is_fresh_stage_one_pretrained = (
+            config.stage == "s01"
+            and config.condition == "pretrained"
+            and checkpoint is None
+        )
         weights = (
             restore_weights(
                 SOURCE_CHECKPOINT, SOURCE_METADATA_DIGEST, config.model, mesh
             )
-            if config.condition == "pretrained" and checkpoint is None
+            if is_fresh_stage_one_pretrained
             else eqx.filter_jit(Transformer.init)(
                 config.model, key=jax.random.key(config.seed)
             )
@@ -531,24 +670,57 @@ def _run_training(config: TrainingConfig) -> None:
         )
         del weights
         clock = TokenClock()
-        if checkpoint is not None:
+        resume_checkpoint = checkpoint or config.continuation_source_checkpoint
+        restore_summary: dict[str, float | int] | None = None
+        if resume_checkpoint is not None:
             state, clock = restore_dna_checkpoint(
                 state,
-                checkpoint,
+                resume_checkpoint,
                 mesh,
                 data_seed=config.seed,
                 tokenizer_sha256=tokenizer_sha256,
+                scientific_config_sha256=(
+                    digest
+                    if checkpoint is not None
+                    else CONTINUATION_SOURCE_SCIENTIFIC_CONFIG_SHA256
+                ),
+                metadata_sha256=(
+                    CONTINUATION_SOURCE_METADATA_SHA256
+                    if checkpoint is None and config.stage == "s02"
+                    else None
+                ),
             )
+            restore_summary = validate_restored_training_state(state, clock)
+            if not bool(state_all_finite(state)):
+                raise ValueError("Restored training state is nonfinite")
             gc.collect()
-        check_clock(clock)
+        check_clock(
+            clock,
+            min_updates=config.start_update,
+            max_updates=config.execution_stop_update,
+        )
         initial_update = clock.updates
+        next_factor = schedule.factor(clock.input_tokens)
         tracker.log_summary(
             {
-                "training/resumed_checkpoint": checkpoint,
+                "training/resumed_checkpoint": resume_checkpoint,
                 "training/resumed_input_tokens": clock.input_tokens,
+                "training/restored_state": restore_summary,
+                **(
+                    {
+                        f"training/restored_{key}": value
+                        for key, value in restore_summary.items()
+                    }
+                    if restore_summary is not None
+                    else {}
+                ),
                 "training/schedule_revision": schedule.revision,
-                "training/target_input_tokens": TRAINING_TOKENS,
+                "training/start_input_tokens": config.start_input_tokens,
+                "training/target_input_tokens": config.target_input_tokens,
+                "training/execution_stop_update": config.execution_stop_update,
                 "training/peak_update": schedule.peak_update,
+                "training/next_muon_lr": opt_config.learning_rate * next_factor,
+                "training/next_adam_lr": opt_config.adam_lr * next_factor,
                 "training/phase": "compiling",
             }
         )
@@ -577,7 +749,7 @@ def _run_training(config: TrainingConfig) -> None:
             watch_config=None,
         )
         last_save = time.monotonic()
-        while clock.input_tokens < TRAINING_TOKENS:
+        while clock.updates < config.execution_stop_update:
             start = time.monotonic()
             batch = distributed_batch(
                 dataset, tokenizer, mesh, clock.examples, BATCH_SIZE, augment=True
@@ -612,7 +784,13 @@ def _run_training(config: TrainingConfig) -> None:
                 raise ValueError("Nonfinite loss, routing, gradient or update metrics")
             values.update(
                 {
-                    "run_progress": min(clock.input_tokens / TRAINING_TOKENS, 0.999999),
+                    "run_progress": min(
+                        (clock.updates - config.start_update)
+                        / (config.execution_stop_update - config.start_update),
+                        0.999999,
+                    ),
+                    "train/total_progress": clock.input_tokens
+                    / config.target_input_tokens,
                     "train/step": clock.updates,
                     "train/input_tokens": clock.input_tokens,
                     "train/loss_targets": clock.loss_targets,
@@ -643,7 +821,9 @@ def _run_training(config: TrainingConfig) -> None:
             tracker.log(values, step=history_step)
             tracker.log_summary({"training/phase": "training"})
             permanent = is_permanent_checkpoint(
-                clock.updates, peak_update=schedule.peak_update
+                clock.updates,
+                peak_update=schedule.peak_update,
+                permanent_updates=config.permanent_checkpoint_updates,
             )
             due = int(
                 multihost_utils.broadcast_one_to_all(
@@ -655,6 +835,7 @@ def _run_training(config: TrainingConfig) -> None:
                             config.checkpoint_interval_seconds,
                             peak_update=schedule.peak_update,
                             recovery_delay_updates=config.recovery_checkpoint_delay_updates,
+                            permanent_updates=config.permanent_checkpoint_updates,
                         ),
                         dtype=np.int32,
                     )
@@ -703,7 +884,7 @@ def _run_training(config: TrainingConfig) -> None:
                 tracker.log(
                     evaluate(state, validation, tokenizer, mesh), step=history_step
                 )
-        if initial_update == TOTAL_UPDATES:
+        if initial_update == config.execution_stop_update:
             primary_json(lambda: commit_and_prune(config, checkpoint, digest, clock))
             tracker.log(
                 evaluate(state, validation, tokenizer, mesh), step=log_offset + 1
@@ -712,7 +893,11 @@ def _run_training(config: TrainingConfig) -> None:
             {"run_progress": 1.0}, step=log_offset + clock.updates - initial_update + 2
         )
         tracker.log_summary(
-            {"training/phase": "complete", "training/final_checkpoint": checkpoint}
+            {
+                "training/phase": "complete",
+                "training/final_checkpoint": checkpoint,
+                "training/validation_run": config.validation_updates is not None,
+            }
         )
     tracker.current_tracker().finish()
 
@@ -800,11 +985,14 @@ def main() -> None:
         "--cluster", choices=["cw-rno2a", "cw-us-east-02a"], required=True
     )
     parser.add_argument("--nodes", type=int, choices=[1, 2, 4, 8], required=True)
+    parser.add_argument("--stage", choices=["s01", "s02"], default="s01")
     parser.add_argument("--checkpoint-interval-seconds", type=int, default=900)
     parser.add_argument("--recovery-checkpoint-delay-updates", type=int, default=25)
     parser.add_argument(
         "--moe-backend", choices=["pooled", "fixed", "ring"], default=None
     )
+    parser.add_argument("--validation-updates", type=int, default=None)
+    parser.add_argument("--validation-id", default=None)
     dispatch(TrainingConfig(**vars(parser.parse_args())))
 
 
