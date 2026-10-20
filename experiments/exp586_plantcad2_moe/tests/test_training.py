@@ -15,6 +15,10 @@ from exp586_moe.config import (
     CONTINUATION_PEAK_CHECKPOINT_UPDATE,
     CONTINUATION_SOURCE_UPDATES,
     CONTINUATION_TOTAL_UPDATES,
+    ONE_TRILLION_PEAK_CHECKPOINT_UPDATE,
+    ONE_TRILLION_TARGET_TOKENS,
+    ONE_TRILLION_TOTAL_UPDATES,
+    ONE_TRILLION_WARMUP_UPDATES,
     PEAK_CHECKPOINT_UPDATE,
     TOTAL_UPDATES,
     TRAINING_TOKENS,
@@ -22,6 +26,7 @@ from exp586_moe.config import (
 from exp586_moe.schedule import TokenClock
 from exp586_moe.train import (
     BATCH_SIZE,
+    ONE_TRILLION_PERMANENT_CHECKPOINT_COUNT,
     PERMANENT_CHECKPOINT_COUNT,
     PERMANENT_CHECKPOINT_UPDATES,
     TOKENS_PER_UPDATE,
@@ -126,6 +131,47 @@ def test_stage_two_has_one_identity_and_preserves_stage_one_science():
         TrainingConfig("pretrained", 2.0, "cw-rno2a", 8, stage="s02")
     with pytest.raises(ValueError, match="only for pretrained 1x"):
         TrainingConfig("scratch", 1.0, "cw-rno2a", 8, stage="s02")
+
+
+def test_one_trillion_stage_is_fresh_pretrained_and_keeps_twelve_checkpoints():
+    config = TrainingConfig("pretrained", 1.0, "cw-rno2a", 8, stage="t1")
+    assert config.run_id == "exp586-plantcad2-d768-pretrained-lrm1-seed0-1t-v1"
+    assert config.start_update == config.start_input_tokens == 0
+    assert config.target_updates == ONE_TRILLION_TOTAL_UPDATES
+    assert config.target_input_tokens == ONE_TRILLION_TARGET_TOKENS
+    assert config.optimizer_reference_tokens == ONE_TRILLION_TARGET_TOKENS
+    assert config.continuation_source_checkpoint is None
+    assert config.schedule.warmup_updates == ONE_TRILLION_WARMUP_UPDATES
+    assert config.schedule.peak_update == ONE_TRILLION_PEAK_CHECKPOINT_UPDATE
+    assert config.schedule.revision == "hero-linear-1t-v1"
+    assert len(config.permanent_checkpoint_updates) == (
+        ONE_TRILLION_PERMANENT_CHECKPOINT_COUNT
+    )
+    assert ONE_TRILLION_PEAK_CHECKPOINT_UPDATE in config.permanent_checkpoint_updates
+    assert ONE_TRILLION_TOTAL_UPDATES in config.permanent_checkpoint_updates
+
+    binding = scientific_config(config, SOURCE_TOKENIZER_SHA256)
+    assert binding["schema"] == 3
+    assert binding["stage"] == "t1"
+    assert binding["source_checkpoint"].endswith("step-11420")
+    assert binding["source_metadata_sha256"] is not None
+    assert binding["start_input_tokens"] == 0
+    assert binding["target_input_tokens"] == ONE_TRILLION_TARGET_TOKENS
+    assert binding["optimizer_reference_tokens"] == ONE_TRILLION_TARGET_TOKENS
+    assert binding["optimizer"]["learning_rate"] == pytest.approx(0.0019538660550705964)
+
+    smoke = dataclasses.replace(
+        config, nodes=2, validation_updates=2, validation_id="fresh-a"
+    )
+    assert smoke.execution_stop_update == 2
+    assert smoke.run_id.endswith("-1t-v1-smoke-fresh-a")
+    assert smoke.permanent_checkpoint_updates == frozenset({2})
+    assert "tmp/ttl=7d" in smoke.checkpoint_root
+
+    with pytest.raises(ValueError, match="only for pretrained 1x"):
+        TrainingConfig("pretrained", 2.0, "cw-rno2a", 8, stage="t1")
+    with pytest.raises(ValueError, match="only for pretrained 1x"):
+        TrainingConfig("scratch", 1.0, "cw-rno2a", 8, stage="t1")
 
 
 def test_stage_one_binding_exactly_matches_the_source_checkpoint():

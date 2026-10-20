@@ -49,6 +49,10 @@ from exp586_moe.config import (
     CONTINUATION_TOTAL_UPDATES,
     EPOCH_TOKENS,
     GLOBAL_BATCH_SIZE,
+    ONE_TRILLION_PEAK_CHECKPOINT_UPDATE,
+    ONE_TRILLION_TARGET_TOKENS,
+    ONE_TRILLION_TOTAL_UPDATES,
+    ONE_TRILLION_WARMUP_UPDATES,
     PEAK_CHECKPOINT_UPDATE,
     SOURCE_CHECKPOINT,
     SOURCE_METADATA_DIGEST,
@@ -95,23 +99,28 @@ COOLDOWN_UPDATE = PEAK_CHECKPOINT_UPDATE
 VALIDATION_EXAMPLES = 512
 ARTIFACT_DATE = "2026.10.08"
 CONTINUATION_ARTIFACT_DATE = "2026.10.19"
+ONE_TRILLION_ARTIFACT_DATE = "2026.10.20"
 PERMANENT_CHECKPOINT_COUNT = 8
+ONE_TRILLION_PERMANENT_CHECKPOINT_COUNT = 12
 
 
 def build_permanent_checkpoint_updates(
-    *, start_update: int, total_updates: int, peak_update: int
+    *,
+    start_update: int,
+    total_updates: int,
+    peak_update: int,
+    count: int = PERMANENT_CHECKPOINT_COUNT,
 ) -> frozenset[int]:
-    """Retain the LR peak, six evenly spaced stage milestones, and the end."""
+    """Retain the LR peak, evenly spaced stage milestones, and the end."""
     span = total_updates - start_update
-    if span <= 0 or not start_update < peak_update <= total_updates:
+    if count < 3 or span <= 0 or not start_update < peak_update <= total_updates:
         raise ValueError("Invalid permanent-checkpoint stage boundaries")
     milestones = {
-        start_update
-        + math.ceil(span * checkpoint_index / (PERMANENT_CHECKPOINT_COUNT - 1))
-        for checkpoint_index in range(1, PERMANENT_CHECKPOINT_COUNT - 1)
+        start_update + math.ceil(span * checkpoint_index / (count - 1))
+        for checkpoint_index in range(1, count - 1)
     }
     result = frozenset(milestones | {peak_update, total_updates})
-    if len(result) != PERMANENT_CHECKPOINT_COUNT:
+    if len(result) != count:
         raise ValueError("Permanent-checkpoint milestones overlap")
     return result
 
@@ -164,7 +173,7 @@ class TrainingConfig:
     lr_multiplier: float
     cluster: str
     nodes: int
-    stage: Literal["s01", "s02"] = "s01"
+    stage: Literal["s01", "s02", "t1"] = "s01"
     seed: int = 0
     checkpoint_interval_seconds: int = 900
     recovery_checkpoint_delay_updates: int = 25
@@ -183,12 +192,12 @@ class TrainingConfig:
             or self.seed != 0
         ):
             raise ValueError("Select one of the six authorized trials")
-        if self.stage not in ("s01", "s02"):
+        if self.stage not in ("s01", "s02", "t1"):
             raise ValueError("Unknown training stage")
-        if self.stage == "s02" and (
+        if self.stage in ("s02", "t1") and (
             self.condition != "pretrained" or self.lr_multiplier != 1.0
         ):
-            raise ValueError("Stage 2 is authorized only for pretrained 1x")
+            raise ValueError("This stage is authorized only for pretrained 1x")
         if self.cluster not in ("cw-rno2a", "cw-us-east-02a") or self.nodes not in (
             1,
             2,
@@ -207,8 +216,11 @@ class TrainingConfig:
         if (self.validation_updates is None) != (self.validation_id is None):
             raise ValueError("Validation updates and ID must be set together")
         if self.validation_updates is not None:
-            if self.stage != "s02" or not 1 <= self.validation_updates <= 25:
-                raise ValueError("Stage-2 validation must run 1 through 25 updates")
+            if (
+                self.stage not in ("s02", "t1")
+                or not 1 <= self.validation_updates <= 25
+            ):
+                raise ValueError("Validation must run 1 through 25 updates")
             if (
                 not self.validation_id
                 or not self.validation_id.replace("-", "").isalnum()
@@ -231,6 +243,8 @@ class TrainingConfig:
         )
         if self.stage == "s02":
             base = base.removesuffix("-v1") + "-s02-v1"
+        elif self.stage == "t1":
+            base = base.removesuffix("-v1") + "-1t-v1"
         if self.validation_id is not None:
             base += f"-smoke-{self.validation_id}"
         return base
@@ -242,16 +256,25 @@ class TrainingConfig:
                 "s3://marin-us-east-02a/tmp/ttl=7d/MarinDNA/"
                 f"exp586_plantcad2_moe/{self.run_id}/checkpoints"
             )
-        artifact_date = (
-            CONTINUATION_ARTIFACT_DATE if self.stage == "s02" else ARTIFACT_DATE
-        )
+        artifact_date = {
+            "s01": ARTIFACT_DATE,
+            "s02": CONTINUATION_ARTIFACT_DATE,
+            "t1": ONE_TRILLION_ARTIFACT_DATE,
+        }[self.stage]
         return f"s3://marin-us-east-02a/MarinDNA/exp586_plantcad2_moe/checkpoints/{self.run_id}/{artifact_date}/checkpoints"
 
     @property
     def schedule(self) -> HeroTokenSchedule | ContinuationTokenSchedule:
-        return (
-            ContinuationTokenSchedule() if self.stage == "s02" else HeroTokenSchedule()
-        )
+        if self.stage == "s02":
+            return ContinuationTokenSchedule()
+        if self.stage == "t1":
+            return HeroTokenSchedule(
+                total_updates=ONE_TRILLION_TOTAL_UPDATES,
+                warmup_updates=ONE_TRILLION_WARMUP_UPDATES,
+                peak_update=ONE_TRILLION_PEAK_CHECKPOINT_UPDATE,
+                revision="hero-linear-1t-v1",
+            )
+        return HeroTokenSchedule()
 
     @property
     def start_update(self) -> int:
@@ -263,11 +286,23 @@ class TrainingConfig:
 
     @property
     def target_updates(self) -> int:
-        return CONTINUATION_TOTAL_UPDATES if self.stage == "s02" else TOTAL_UPDATES
+        return {
+            "s01": TOTAL_UPDATES,
+            "s02": CONTINUATION_TOTAL_UPDATES,
+            "t1": ONE_TRILLION_TOTAL_UPDATES,
+        }[self.stage]
 
     @property
     def target_input_tokens(self) -> int:
-        return CONTINUATION_TARGET_TOKENS if self.stage == "s02" else TRAINING_TOKENS
+        return {
+            "s01": TRAINING_TOKENS,
+            "s02": CONTINUATION_TARGET_TOKENS,
+            "t1": ONE_TRILLION_TARGET_TOKENS,
+        }[self.stage]
+
+    @property
+    def optimizer_reference_tokens(self) -> int:
+        return ONE_TRILLION_TARGET_TOKENS if self.stage == "t1" else TRAINING_TOKENS
 
     @property
     def execution_stop_update(self) -> int:
@@ -289,6 +324,11 @@ class TrainingConfig:
             start_update=self.start_update,
             total_updates=self.target_updates,
             peak_update=self.schedule.peak_update,
+            count=(
+                ONE_TRILLION_PERMANENT_CHECKPOINT_COUNT
+                if self.stage == "t1"
+                else PERMANENT_CHECKPOINT_COUNT
+            ),
         )
 
     @property
@@ -332,11 +372,12 @@ def scientific_config(config: TrainingConfig, tokenizer_sha256: str) -> dict[str
         "optimizer": dataclasses.asdict(
             optimizer_config(
                 reference_tokens_per_update=TOKENS_PER_UPDATE,
+                training_tokens=config.optimizer_reference_tokens,
                 multiplier=config.lr_multiplier,
             )
         ),
         "schedule": dataclasses.asdict(config.schedule),
-        "optimizer_reference_tokens": TRAINING_TOKENS,
+        "optimizer_reference_tokens": config.optimizer_reference_tokens,
         "source_checkpoint": SOURCE_CHECKPOINT
         if config.condition == "pretrained"
         else None,
@@ -352,6 +393,15 @@ def scientific_config(config: TrainingConfig, tokenizer_sha256: str) -> dict[str
     }
     if config.stage == "s01":
         return stage_one
+    if config.stage == "t1":
+        return {
+            **stage_one,
+            "schema": 3,
+            "stage": config.stage,
+            "start_input_tokens": config.start_input_tokens,
+            "target_input_tokens": config.target_input_tokens,
+            "validation_updates": config.validation_updates,
+        }
     return {
         **stage_one,
         "schema": 2,
@@ -598,7 +648,11 @@ def _run_training(config: TrainingConfig) -> None:
             group=(
                 "exp586-plantcad2-moe-continuation"
                 if config.stage == "s02"
-                else "exp586-plantcad2-moe-sweep"
+                else (
+                    "exp586-plantcad2-moe-1t"
+                    if config.stage == "t1"
+                    else "exp586-plantcad2-moe-sweep"
+                )
             ),
             tags=[
                 "dna-exp586",
@@ -650,14 +704,16 @@ def _run_training(config: TrainingConfig) -> None:
     )
     dataset, validation = open_dataset("train", config.seed), ValidationSample()
     opt_config = optimizer_config(
-        reference_tokens_per_update=TOKENS_PER_UPDATE, multiplier=config.lr_multiplier
+        reference_tokens_per_update=TOKENS_PER_UPDATE,
+        training_tokens=config.optimizer_reference_tokens,
+        multiplier=config.lr_multiplier,
     )
     optimizer = opt_config.build(config.target_updates)
     schedule = config.schedule
     mesh = training_mesh(config)
     with jax.set_mesh(mesh):
-        is_fresh_stage_one_pretrained = (
-            config.stage == "s01"
+        is_fresh_pretrained = (
+            config.stage in ("s01", "t1")
             and config.condition == "pretrained"
             and checkpoint is None
         )
@@ -665,7 +721,7 @@ def _run_training(config: TrainingConfig) -> None:
             restore_weights(
                 SOURCE_CHECKPOINT, SOURCE_METADATA_DIGEST, config.model, mesh
             )
-            if is_fresh_stage_one_pretrained
+            if is_fresh_pretrained
             else eqx.filter_jit(Transformer.init)(
                 config.model, key=jax.random.key(config.seed)
             )
@@ -969,7 +1025,7 @@ def dispatch(config: TrainingConfig) -> None:
             processes_per_task=8,
             environment=create_environment(env_vars=env, extras=["gpu"]),
             priority=priority_band_value("batch"),
-            timeout=Duration.from_hours(14 * 24),
+            timeout=Duration.from_hours((45 if config.stage == "t1" else 14) * 24),
             max_retries_failure=0,
             max_task_failures=0,
         )
@@ -990,7 +1046,7 @@ def main() -> None:
         "--cluster", choices=["cw-rno2a", "cw-us-east-02a"], required=True
     )
     parser.add_argument("--nodes", type=int, choices=[1, 2, 4, 8], required=True)
-    parser.add_argument("--stage", choices=["s01", "s02"], default="s01")
+    parser.add_argument("--stage", choices=["s01", "s02", "t1"], default="s01")
     parser.add_argument("--checkpoint-interval-seconds", type=int, default=900)
     parser.add_argument("--recovery-checkpoint-delay-updates", type=int, default=25)
     parser.add_argument(

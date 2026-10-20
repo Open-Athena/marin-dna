@@ -144,23 +144,28 @@ class TokenOptimizerConfig(GrugMoeMuonHConfig):
 
 
 def optimizer_config(
-    *, reference_tokens_per_update: int, multiplier: float = 1.0
+    *,
+    reference_tokens_per_update: int,
+    training_tokens: int = TRAINING_TOKENS,
+    multiplier: float = 1.0,
 ) -> TokenOptimizerConfig:
-    if reference_tokens_per_update <= 0 or multiplier <= 0:
-        raise ValueError("Positive reference batch and LR multiplier required")
+    if reference_tokens_per_update <= 0 or training_tokens <= 0 or multiplier <= 0:
+        raise ValueError(
+            "Positive reference batch, token budget, and LR multiplier required"
+        )
     heuristic = MoeHeuristic()
     return TokenOptimizerConfig(
         learning_rate=multiplier
         * heuristic._learning_rate(
-            reference_tokens_per_update, TRAINING_TOKENS, hidden_dim=768
+            reference_tokens_per_update, training_tokens, hidden_dim=768
         ),
         adam_lr=multiplier
         * heuristic._adam_lr(
-            reference_tokens_per_update, TRAINING_TOKENS, hidden_dim=768
+            reference_tokens_per_update, training_tokens, hidden_dim=768
         ),
         beta1=heuristic.beta1,
         beta2=heuristic._beta2(reference_tokens_per_update),
-        epsilon=heuristic._epsilon(reference_tokens_per_update, TRAINING_TOKENS),
+        epsilon=heuristic._epsilon(reference_tokens_per_update, training_tokens),
         min_lr_ratio=heuristic.min_lr_ratio,
         lr_schedule=heuristic.lr_schedule,
         weight_decay=0.0,

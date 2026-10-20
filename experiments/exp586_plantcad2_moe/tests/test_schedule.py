@@ -14,6 +14,10 @@ from exp586_moe.config import (
     CONTINUATION_TARGET_TOKENS,
     CONTINUATION_TOTAL_UPDATES,
     CONTINUATION_WARMUP_UPDATES,
+    ONE_TRILLION_PEAK_CHECKPOINT_UPDATE,
+    ONE_TRILLION_TARGET_TOKENS,
+    ONE_TRILLION_TOTAL_UPDATES,
+    ONE_TRILLION_WARMUP_UPDATES,
     PEAK_CHECKPOINT_UPDATE,
     TOKENS_PER_UPDATE,
     TOTAL_UPDATES,
@@ -91,6 +95,31 @@ def test_dna_optimizer_uses_actual_training_budget_and_d768_width():
     assert optimizer_config(
         reference_tokens_per_update=TOKENS_PER_UPDATE, multiplier=10
     ).learning_rate == pytest.approx(0.033199380421085104, rel=1e-14)
+
+
+def test_one_trillion_hero_schedule_and_heuristic_are_recomputed_for_its_horizon():
+    schedule = HeroTokenSchedule(
+        total_updates=ONE_TRILLION_TOTAL_UPDATES,
+        warmup_updates=ONE_TRILLION_WARMUP_UPDATES,
+        peak_update=ONE_TRILLION_PEAK_CHECKPOINT_UPDATE,
+        revision="hero-linear-1t-v1",
+    )
+    assert ONE_TRILLION_TOTAL_UPDATES == 1_907_349
+    assert ONE_TRILLION_TARGET_TOKENS == 1_000_000_192_512
+    assert ONE_TRILLION_WARMUP_UPDATES == 19_073
+    assert ONE_TRILLION_PEAK_CHECKPOINT_UPDATE == 19_074
+    assert schedule.factor(0) == 0
+    assert schedule.factor(ONE_TRILLION_WARMUP_UPDATES * TOKENS_PER_UPDATE) == 1
+    assert schedule.factor(ONE_TRILLION_TARGET_TOKENS) == pytest.approx(0.05)
+
+    config = optimizer_config(
+        reference_tokens_per_update=TOKENS_PER_UPDATE,
+        training_tokens=ONE_TRILLION_TARGET_TOKENS,
+    )
+    assert config.learning_rate == pytest.approx(0.0019538660550705964, rel=1e-14)
+    assert config.adam_lr == pytest.approx(0.00045089216655475305, rel=1e-14)
+    assert config.beta2 == pytest.approx(0.996005996001, rel=1e-14)
+    assert config.epsilon == pytest.approx(1.3363214596369542e-14, rel=1e-14)
 
 
 def test_clock_retains_integer_precision():

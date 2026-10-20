@@ -45,6 +45,16 @@ Stage `s02` has a separate W&B identity and checkpoint root and retains eight co
 python -m exp586_moe.train --condition pretrained --lr-multiplier 1 --stage s02 --cluster cw-rno2a --nodes 8
 ```
 
+## Fresh pretrained 1T run
+
+Stage `t1` starts a new DNA token clock from the same permanent `d768` language checkpoint and full tokenizer as the original pretrained condition.
+It trains for 1,000,000,192,512 input tokens at global batch 64, recomputes the Hero optimizer heuristic for that horizon, warms up for 1% of the run, and linearly decays to 5% of peak.
+Its separate W&B and checkpoint identity retains 12 permanent checkpoints, including the peak and final state.
+
+```bash
+python -m exp586_moe.train --condition pretrained --lr-multiplier 1 --stage t1 --cluster cw-rno2a --nodes 8
+```
+
 CoreWeave placement is operational and does not change the W&B or checkpoint identity.
 Every GPU request uses whole eight-H100 nodes at batch priority.
 
