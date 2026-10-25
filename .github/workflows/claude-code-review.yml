@@ -57,7 +57,7 @@ jobs:
       # Pinned by commit like every other action in this repo.
       - name: Run Claude review
         id: claude
-        uses: marin-community/marin-style/actions/consult-agent@4b2fc2b0ec0bb9ad1304ef76936eb68e97f893cb # 2026-08-24
+        uses: marin-community/marin-style/actions/consult-agent@727f180cd423246ca1a6164163a5883cda5bf52b # 2026-08-24
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN_OA }}
           allowed_bots: 'claude[bot]'
