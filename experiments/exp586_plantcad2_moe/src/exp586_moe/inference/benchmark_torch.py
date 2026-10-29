@@ -58,6 +58,7 @@ def benchmark(
     tokenizer_batch: bool = False,
     profile_path: str | None = None,
     fp8_moe: bool = False,
+    fp8_moe_ptpc: bool = False,
     results_prefix: str | None = None,
 ) -> None:
     """Measure complete batched scoring, including tokenization and host output."""
@@ -89,6 +90,7 @@ def benchmark(
         specialized_topk=specialized_topk,
         sconv_backend=sconv_backend,
         fp8_moe=fp8_moe,
+        fp8_moe_ptpc=fp8_moe_ptpc,
     )
 
     def forward(token_ids: torch.Tensor) -> torch.Tensor:
@@ -285,6 +287,7 @@ def benchmark(
         "tokenizer_batch": tokenizer_batch,
         "profile_path": profile_path,
         "fp8_moe": fp8_moe,
+        "fp8_moe_ptpc": fp8_moe_ptpc,
     }
     output_path = Path(output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -311,7 +314,7 @@ def benchmark(
                 f"; specialized_topk={specialized_topk}"
                 f"; sconv_backend={sconv_backend}"
                 f"; tokenizer_batch={tokenizer_batch}"
-                f"; fp8_moe={fp8_moe}"
+                f"; fp8_moe={fp8_moe}; fp8_moe_ptpc={fp8_moe_ptpc}"
             ),
             tokens_per_sequence=tokens_per_sequence,
             batch_size=batch_size,

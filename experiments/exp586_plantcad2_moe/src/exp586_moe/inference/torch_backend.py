@@ -254,6 +254,7 @@ class EagerGrugMoE(torch.nn.Module):
         specialized_topk: bool = False,
         sconv_backend: TorchSconvBackend = "conv1d",
         fp8_moe: bool = False,
+        fp8_moe_ptpc: bool = False,
     ) -> None:
         super().__init__()
         if attention_backend not in {
@@ -270,6 +271,8 @@ class EagerGrugMoE(torch.nn.Module):
                 f"Unknown global attention backend: {global_attention_backend}"
             )
         self.config = TorchConfig.load(directory)
+        if fp8_moe_ptpc and not fp8_moe:
+            raise ValueError("fp8_moe_ptpc requires fp8_moe")
         weights = load_weights(directory, device)
         routed_expert_weights = {
             f"model.layers.{layer}.mlp.experts.{projection}_proj.weight"
@@ -297,20 +300,22 @@ class EagerGrugMoE(torch.nn.Module):
                     w2 = weights[f"{prefix}.down_proj.weight"].contiguous()
                     fp8_dtype = torch.float8_e4m3fn
                     fp8_max = torch.finfo(fp8_dtype).max
-                    w1_scale = (
-                        w1.float().abs().amax(dim=(1, 2)) / fp8_max
-                    ).clamp_min(torch.finfo(torch.float32).tiny)
-                    w2_scale = (
-                        w2.float().abs().amax(dim=(1, 2)) / fp8_max
-                    ).clamp_min(torch.finfo(torch.float32).tiny)
+                    scale_dims = 2 if fp8_moe_ptpc else (1, 2)
+                    w1_scale = (w1.float().abs().amax(dim=scale_dims) / fp8_max).clamp_min(
+                        torch.finfo(torch.float32).tiny
+                    )
+                    w2_scale = (w2.float().abs().amax(dim=scale_dims) / fp8_max).clamp_min(
+                        torch.finfo(torch.float32).tiny
+                    )
+                    scale_view = (..., None) if fp8_moe_ptpc else (..., None, None)
                     self.register_buffer(
                         f"vllm_fp8_w1_{layer}",
-                        (w1.float() / w1_scale[:, None, None]).to(fp8_dtype),
+                        (w1.float() / w1_scale[scale_view]).to(fp8_dtype),
                         persistent=False,
                     )
                     self.register_buffer(
                         f"vllm_fp8_w2_{layer}",
-                        (w2.float() / w2_scale[:, None, None]).to(fp8_dtype),
+                        (w2.float() / w2_scale[scale_view]).to(fp8_dtype),
                         persistent=False,
                     )
                     self.register_buffer(
@@ -336,6 +341,7 @@ class EagerGrugMoE(torch.nn.Module):
         self.specialized_topk = specialized_topk
         self.sconv_backend = sconv_backend
         self.fp8_moe = fp8_moe
+        self.fp8_moe_ptpc = fp8_moe_ptpc
         self.flex_kernel_options: dict[str, object] = {}
         positions = torch.arange(8192, device=device)
         self.local_mask = (positions[None, :] <= positions[:, None]) & (
@@ -536,6 +542,8 @@ class EagerGrugMoE(torch.nn.Module):
                 quant_config = _fp8_w8a8_moe_quant_config(
                     self.get_buffer(f"vllm_fp8_w1_scale_{layer}"),
                     self.get_buffer(f"vllm_fp8_w2_scale_{layer}"),
+                    per_act_token_quant=self.fp8_moe_ptpc,
+                    per_out_ch_quant=self.fp8_moe_ptpc,
                 )
                 w1 = self.get_buffer(f"vllm_fp8_w1_{layer}")
                 w2 = self.get_buffer(f"vllm_fp8_w2_{layer}")
