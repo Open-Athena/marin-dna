@@ -358,18 +358,22 @@ class EagerGrugMoE(torch.nn.Module):
                         persistent=False,
                     )
                 if fused_shared_experts:
-                    if self.config.num_shared_experts != 1:
-                        raise ValueError(
-                            "Fused shared-expert inference currently requires one expert"
-                        )
-                    shared = f"model.layers.{layer}.shared_experts.0"
-                    shared_w1 = torch.cat(
-                        (
-                            weights[f"{shared}.gate_proj.weight"],
-                            weights[f"{shared}.up_proj.weight"],
-                        ),
-                        dim=0,
-                    ).unsqueeze(0)
+                    shared_prefixes = [
+                        f"model.layers.{layer}.shared_experts.{expert}"
+                        for expert in range(self.config.num_shared_experts)
+                    ]
+                    shared_w1 = torch.stack(
+                        [
+                            torch.cat(
+                                (
+                                    weights[f"{shared}.gate_proj.weight"],
+                                    weights[f"{shared}.up_proj.weight"],
+                                ),
+                                dim=0,
+                            )
+                            for shared in shared_prefixes
+                        ]
+                    )
                     self.register_buffer(
                         f"vllm_shared_w1_{layer}",
                         shared_w1.contiguous(),
@@ -377,7 +381,12 @@ class EagerGrugMoE(torch.nn.Module):
                     )
                     self.register_buffer(
                         f"vllm_shared_w2_{layer}",
-                        weights[f"{shared}.down_proj.weight"].unsqueeze(0).contiguous(),
+                        torch.stack(
+                            [
+                                weights[f"{shared}.down_proj.weight"]
+                                for shared in shared_prefixes
+                            ]
+                        ).contiguous(),
                         persistent=False,
                     )
         if concatenated_shared_w1:
@@ -702,17 +711,18 @@ class EagerGrugMoE(torch.nn.Module):
             if _vllm_fused_experts is None:
                 raise RuntimeError("The vLLM fused MoE kernel is unavailable")
             flat = x.reshape(-1, self.config.hidden_dim).contiguous()
-            combine = torch.ones((flat.shape[0], 1), device=x.device)
-            selected = torch.zeros(
-                (flat.shape[0], 1), device=x.device, dtype=torch.int32
-            )
+            shared_experts = self.config.num_shared_experts
+            combine = torch.ones((flat.shape[0], shared_experts), device=x.device)
+            selected = torch.arange(
+                shared_experts, device=x.device, dtype=torch.int32
+            ).expand(flat.shape[0], -1)
             output = _vllm_fused_experts(
                 flat,
                 self.get_buffer(f"vllm_shared_w1_{layer}"),
                 self.get_buffer(f"vllm_shared_w2_{layer}"),
                 combine,
                 selected,
-                global_num_experts=1,
+                global_num_experts=shared_experts,
                 quant_config=None,
             )
             return output.reshape_as(x)
