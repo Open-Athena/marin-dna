@@ -61,6 +61,7 @@ def benchmark(
     profile_path: str | None = None,
     fp8_moe: bool = False,
     fp8_moe_ptpc: bool = False,
+    cuda_graph: bool = False,
     results_prefix: str | None = None,
 ) -> None:
     """Measure complete batched scoring, including tokenization and host output."""
@@ -123,6 +124,9 @@ def benchmark(
         if compile_model
         else forward
     )
+    graph: torch.cuda.CUDAGraph | None = None
+    graph_input: torch.Tensor | None = None
+    graph_output: torch.Tensor | None = None
     moe_config = (
         json.loads(moe_config_json)
         if isinstance(moe_config_json, str)
@@ -152,6 +156,7 @@ def benchmark(
         return token_ids, time.perf_counter() - began
 
     def forward_output(token_ids: torch.Tensor) -> tuple[np.ndarray, float]:
+        nonlocal graph, graph_input, graph_output
         began = time.perf_counter()
         token_ids = token_ids.to(device)
         config_context = (
@@ -160,7 +165,22 @@ def benchmark(
             else nullcontext()
         )
         with torch.inference_mode(), config_context:
-            result = model_forward(token_ids)
+            if cuda_graph:
+                if graph is None:
+                    # Compile and populate stable allocations before capture.
+                    for _ in range(3):
+                        model_forward(token_ids)
+                    torch.cuda.synchronize()
+                    graph_input = token_ids.clone()
+                    graph = torch.cuda.CUDAGraph()
+                    with torch.cuda.graph(graph):
+                        graph_output = model_forward(graph_input)
+                assert graph_input is not None and graph_output is not None
+                graph_input.copy_(token_ids)
+                graph.replay()
+                result = graph_output
+            else:
+                result = model_forward(token_ids)
         if output_transfer_dtype == "float32":
             output = result.float().cpu().numpy()
         else:
@@ -305,6 +325,7 @@ def benchmark(
         "profile_path": profile_path,
         "fp8_moe": fp8_moe,
         "fp8_moe_ptpc": fp8_moe_ptpc,
+        "cuda_graph": cuda_graph,
     }
     output_path = Path(output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -332,6 +353,7 @@ def benchmark(
                 f"; sconv_backend={sconv_backend}"
                 f"; tokenizer_batch={tokenizer_batch}"
                 f"; fp8_moe={fp8_moe}; fp8_moe_ptpc={fp8_moe_ptpc}"
+                f"; cuda_graph={cuda_graph}"
             ),
             tokens_per_sequence=tokens_per_sequence,
             batch_size=batch_size,
