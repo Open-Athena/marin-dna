@@ -1,0 +1,39 @@
+{
+  "backend": "torch",
+  "variant": "full_head",
+  "name": "full-vocab-eager-validated",
+  "batch_size": 1,
+  "sequence_length": 8192,
+  "iterations": 4,
+  "latency_seconds": [
+    0.40319477021694183,
+    0.47022867389023304,
+    0.4615394379943609,
+    0.4461130667477846
+  ],
+  "median_latency_seconds": 0.45382625237107277,
+  "tokens_per_sequence": 8192,
+  "input_tokens_per_second": 18050.961038943555,
+  "sequences_per_second": 2.2034864549491644,
+  "productive_seconds": 8.84286380559206,
+  "parity": {
+    "positions": 65536,
+    "raw_max_abs_error": 1.7238187789916992,
+    "raw_mean_abs_error": 0.02190312370657921,
+    "raw_p99_abs_error": 0.16279573738574982,
+    "probability_max_abs_error": 0.5113940238952637,
+    "probability_mean_abs_error": 0.002494105603545904,
+    "probability_p99_abs_error": 0.027490917593240738,
+    "argmax_agreement": 0.9900360107421875,
+    "actual_next_base_nll": 0.9306712746620178,
+    "expected_next_base_nll": 0.9305505156517029,
+    "next_base_nll_abs_delta": 0.0001207590103149414,
+    "actual_next_base_accuracy": 0.5802710291783665,
+    "expected_next_base_accuracy": 0.5805457209131974,
+    "next_base_accuracy_abs_delta": 0.0002746917348309674,
+    "accepted": true
+  },
+  "accepted": true,
+  "torch_version": "2.11.0+cu128",
+  "device": "NVIDIA H100 80GB HBM3"
+}

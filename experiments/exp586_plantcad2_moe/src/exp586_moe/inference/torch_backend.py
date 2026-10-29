@@ -9,7 +9,7 @@ import torch
 import torch.nn.functional as F
 from safetensors.torch import load_file
 
-TorchVariant = Literal["full_head", "acgt_head"]
+TorchVariant = Literal["full_head", "acgt_head", "acgt_grouped_moe"]
 
 
 @dataclass(frozen=True)
@@ -96,8 +96,7 @@ def fused_half_rope(x: torch.Tensor, theta: float) -> torch.Tensor:
     half = rotary_dim // 2
     positions = torch.arange(sequence_length, device=x.device, dtype=torch.float32)
     inv_freq = 1.0 / (
-        theta
-        ** (torch.arange(half, device=x.device, dtype=torch.float32) / half)
+        theta ** (torch.arange(half, device=x.device, dtype=torch.float32) / half)
     )
     angles = positions[:, None] * inv_freq[None, :]
     cos = torch.cos(angles).repeat_interleave(2, dim=-1)
@@ -110,12 +109,56 @@ def fused_half_rope(x: torch.Tensor, theta: float) -> torch.Tensor:
     return torch.cat((rotated, x[..., rotary_dim:]), dim=-1)
 
 
-class EagerGrugMoE:
+def grouped_experts(
+    routed: torch.Tensor,
+    selected: torch.Tensor,
+    combine: torch.Tensor,
+    gate_weights: torch.Tensor,
+    up_weights: torch.Tensor,
+    down_weights: torch.Tensor,
+) -> torch.Tensor:
+    """Run all routed assignments with three native grouped GEMMs."""
+    tokens, top_k = selected.shape
+    assignment_experts = selected.reshape(-1)
+    assignment_tokens = (
+        torch.arange(tokens, device=routed.device)[:, None]
+        .expand(tokens, top_k)
+        .reshape(-1)
+    )
+    order = torch.argsort(assignment_experts, stable=True)
+    sorted_experts = assignment_experts[order]
+    sorted_tokens = assignment_tokens[order]
+    offsets = (
+        torch.bincount(sorted_experts, minlength=gate_weights.shape[0]).cumsum(0).int()
+    )
+    inputs = routed[sorted_tokens]
+    gate = torch._grouped_mm(inputs, gate_weights.transpose(1, 2), offs=offsets)
+    up = torch._grouped_mm(inputs, up_weights.transpose(1, 2), offs=offsets)
+    outputs = torch._grouped_mm(
+        F.silu(gate) * up,
+        down_weights.transpose(1, 2),
+        offs=offsets,
+    )
+    weights = combine.reshape(-1)[order, None].to(outputs.dtype)
+    result = torch.zeros_like(routed)
+    result.index_add_(0, sorted_tokens, outputs * weights)
+    return result
+
+
+class EagerGrugMoE(torch.nn.Module):
     """Plain PyTorch operations with no vLLM engine, EP, or custom MoE kernel."""
 
     def __init__(self, directory: Path, device: torch.device) -> None:
+        super().__init__()
         self.config = TorchConfig.load(directory)
-        self.weights = load_weights(directory, device)
+        weights = load_weights(directory, device)
+        self._weight_names: dict[str, str] = {}
+        for index, (name, value) in enumerate(weights.items()):
+            buffer_name = f"checkpoint_weight_{index}"
+            # Own the storage rather than retaining safetensors' mmap-backed weakref;
+            # AOTAutograd needs stable buffer storage during graph compilation.
+            self.register_buffer(buffer_name, value.clone(), persistent=False)
+            self._weight_names[name] = buffer_name
         self.device = device
         positions = torch.arange(8192, device=device)
         self.local_mask = (positions[None, :] <= positions[:, None]) & (
@@ -123,7 +166,7 @@ class EagerGrugMoE:
         )
 
     def _weight(self, name: str) -> torch.Tensor:
-        return self.weights[name]
+        return self.get_buffer(self._weight_names[name])
 
     def _gated_norm(self, prefix: str, x: torch.Tensor) -> torch.Tensor:
         hidden = F.linear(x, self._weight(f"{prefix}.down_proj.weight"))
@@ -132,7 +175,9 @@ class EagerGrugMoE:
         )
         return x * gate.to(x.dtype)
 
-    def _attention(self, layer: int, x: torch.Tensor, *, is_global: bool) -> torch.Tensor:
+    def _attention(
+        self, layer: int, x: torch.Tensor, *, is_global: bool
+    ) -> torch.Tensor:
         cfg = self.config
         prefix = f"model.layers.{layer}.self_attn"
         q = F.linear(x, self._weight(f"{prefix}.q_proj.weight"))
@@ -151,8 +196,12 @@ class EagerGrugMoE:
         q = q * cfg.qk_mult
         if cfg.num_heads != cfg.num_kv_heads:
             repeat = cfg.num_heads // cfg.num_kv_heads
-            k = k[:, :, None].expand(batch, cfg.num_kv_heads, repeat, sequence, cfg.head_dim)
-            v = v[:, :, None].expand(batch, cfg.num_kv_heads, repeat, sequence, cfg.head_dim)
+            k = k[:, :, None].expand(
+                batch, cfg.num_kv_heads, repeat, sequence, cfg.head_dim
+            )
+            v = v[:, :, None].expand(
+                batch, cfg.num_kv_heads, repeat, sequence, cfg.head_dim
+            )
             k = k.reshape(batch, cfg.num_heads, sequence, cfg.head_dim)
             v = v.reshape(batch, cfg.num_heads, sequence, cfg.head_dim)
         output = F.scaled_dot_product_attention(
@@ -172,7 +221,7 @@ class EagerGrugMoE:
         output = output.transpose(1, 2).reshape(batch, sequence, cfg.hidden_dim)
         return F.linear(output, self._weight(f"{prefix}.o_proj.weight"))
 
-    def _moe(self, layer: int, x: torch.Tensor) -> torch.Tensor:
+    def _moe(self, layer: int, x: torch.Tensor, *, grouped: bool) -> torch.Tensor:
         cfg = self.config
         prefix = f"model.layers.{layer}.mlp"
         flat = x.reshape(-1, cfg.hidden_dim)
@@ -197,19 +246,29 @@ class EagerGrugMoE:
         gate_weights = self._weight(f"{prefix}.experts.gate_proj.weight")
         up_weights = self._weight(f"{prefix}.experts.up_proj.weight")
         down_weights = self._weight(f"{prefix}.experts.down_proj.weight")
-        for expert in range(cfg.num_experts):
-            rows, slots = torch.where(selected == expert)
-            if rows.numel() == 0:
-                continue
-            expert_input = routed[rows]
-            gate = F.linear(expert_input, gate_weights[expert])
-            up = F.linear(expert_input, up_weights[expert])
-            expert_output = F.linear(F.silu(gate) * up, down_weights[expert])
-            weighted = expert_output * combine[rows, slots, None].to(expert_output.dtype)
-            output.index_add_(0, rows, weighted)
-        output = F.linear(
-            output, self._weight(f"{prefix}.latent_up_proj.weight")
-        )
+        if grouped:
+            output = grouped_experts(
+                routed,
+                selected,
+                combine,
+                gate_weights,
+                up_weights,
+                down_weights,
+            )
+        else:
+            for expert in range(cfg.num_experts):
+                rows, slots = torch.where(selected == expert)
+                if rows.numel() == 0:
+                    continue
+                expert_input = routed[rows]
+                gate = F.linear(expert_input, gate_weights[expert])
+                up = F.linear(expert_input, up_weights[expert])
+                expert_output = F.linear(F.silu(gate) * up, down_weights[expert])
+                weighted = expert_output * combine[rows, slots, None].to(
+                    expert_output.dtype
+                )
+                output.index_add_(0, rows, weighted)
+        output = F.linear(output, self._weight(f"{prefix}.latent_up_proj.weight"))
         return output.reshape_as(x)
 
     def _shared_experts(self, layer: int, x: torch.Tensor) -> torch.Tensor:
@@ -223,19 +282,22 @@ class EagerGrugMoE:
             )
         return output
 
-    @torch.inference_mode()
-    def __call__(
+    def forward(
         self, token_ids: torch.Tensor, base_ids: list[int], *, variant: TorchVariant
     ) -> torch.Tensor:
         cfg = self.config
         hidden = F.embedding(token_ids, self._weight("model.embed_tokens.weight"))
         hidden = self._gated_norm(
             "model.embed_gated_norm",
-            rms_norm(hidden, self._weight("model.embed_norm.weight"), cfg.layer_norm_eps),
+            rms_norm(
+                hidden, self._weight("model.embed_norm.weight"), cfg.layer_norm_eps
+            ),
         )
         for layer in range(cfg.num_layers):
             prefix = f"model.layers.{layer}"
-            is_global = (layer + 1) % cfg.global_every == 0 or layer == cfg.num_layers - 1
+            is_global = (
+                layer + 1
+            ) % cfg.global_every == 0 or layer == cfg.num_layers - 1
             attn_input = self._gated_norm(
                 f"{prefix}.attn_gated_norm",
                 rms_norm(
@@ -256,15 +318,20 @@ class EagerGrugMoE:
                     cfg.layer_norm_eps,
                 ),
             )
-            mlp = self._moe(layer, mlp_input) + self._shared_experts(layer, mlp_input)
-            hidden = hidden + short_conv(mlp, self._weight(f"{prefix}.sconv_mlp.weight"))
+            mlp = self._moe(
+                layer,
+                mlp_input,
+                grouped=variant == "acgt_grouped_moe",
+            ) + self._shared_experts(layer, mlp_input)
+            hidden = hidden + short_conv(
+                mlp, self._weight(f"{prefix}.sconv_mlp.weight")
+            )
         hidden = self._gated_norm(
             "model.final_gated_norm",
             rms_norm(hidden, self._weight("model.norm.weight"), cfg.layer_norm_eps),
         )
         head = self._weight("lm_head.weight")
-        if variant == "acgt_head":
+        if variant != "full_head":
             head = head[base_ids]
         logits = F.linear(hidden, head)
         return logits[..., base_ids] if variant == "full_head" else logits
-
