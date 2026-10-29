@@ -1,0 +1,233 @@
+"""Measure prompt-only vLLM inference on one H100."""
+
+import json
+import os
+import time
+import types
+from pathlib import Path
+from typing import Literal
+
+import numpy as np
+from tokenizers import Tokenizer
+
+from exp586_moe.inference.correctness import acgt_parity
+from exp586_moe.inference.fixtures import load_fixture
+from exp586_moe.inference.ledger import Trial, append_trial
+from exp586_moe.inference.tokenizer import encode_dna, reduced_dna_tokenizer
+
+VllmVariant = Literal["full_head", "acgt_head"]
+TokenizerVariant = Literal["full", "reduced"]
+
+
+def _install_capture(worker, base_ids: list[int], variant: VllmVariant) -> bool:
+    """Capture all-position logits from real vLLM prompt-prefill forwards."""
+    import torch
+    from torch.nn import functional
+
+    model = worker.model_runner.model
+    original_forward = model.forward
+    head = model.lm_head.weight[base_ids].detach()
+    model._exp586_captures = []
+
+    def capturing_forward(self, *args, **kwargs):
+        hidden = original_forward(*args, **kwargs)
+        tensor = hidden[0] if isinstance(hidden, tuple) else hidden
+        if isinstance(tensor, torch.Tensor) and tensor.shape[0] >= 8192:
+            states = tensor[:8192]
+            if variant == "full_head":
+                selected = functional.linear(states, self.lm_head.weight)[..., base_ids]
+            else:
+                selected = functional.linear(states, head)
+            self._exp586_captures.append(selected.float().cpu().numpy())
+        return hidden
+
+    model.forward = types.MethodType(capturing_forward, model)
+    return True
+
+
+def _clear_captures(worker) -> int:
+    captures = worker.model_runner.model._exp586_captures
+    count = len(captures)
+    captures.clear()
+    return count
+
+
+def _save_captures(worker, output: str) -> int:
+    captures = worker.model_runner.model._exp586_captures
+    values = np.stack(captures)
+    np.savez_compressed(output, logits=values)
+    return len(captures)
+
+
+def benchmark(
+    model_dir: str,
+    fixture: str,
+    ledger: str,
+    output: str,
+    *,
+    variant: VllmVariant = "full_head",
+    name: str = "baseline",
+    reference: str,
+    tokenizer_variant: TokenizerVariant = "full",
+    compile_engine: bool = False,
+    gpu_memory_utilization: float = 0.2,
+    moe_backend: str = "auto",
+) -> None:
+    """Run batch-one 8,192-token prefill trials and return dense A/C/G/T logits."""
+    os.environ.setdefault("CUDA_VISIBLE_DEVICES", "0")
+    os.environ.setdefault("VLLM_WORKER_MULTIPROC_METHOD", "spawn")
+    os.environ.setdefault("VLLM_USE_FLASHINFER_SAMPLER", "0")
+    os.environ.setdefault("VLLM_ALLOW_INSECURE_SERIALIZATION", "1")
+    # vLLM reserves one generated token to trigger a standard engine prefill. The
+    # model never evaluates position 8192; only the requested 8,192-token prompt.
+    os.environ.setdefault("VLLM_ALLOW_LONG_MAX_MODEL_LEN", "1")
+
+    from vllm import LLM, SamplingParams
+
+    began_productive = time.perf_counter()
+    sequences = load_fixture(Path(fixture))
+    tokenizer = Tokenizer.from_file(str(Path(model_dir) / "tokenizer.json"))
+    if tokenizer_variant == "reduced":
+        tokenizer = reduced_dna_tokenizer(tokenizer)
+    elif tokenizer_variant != "full":
+        raise ValueError(f"Unknown tokenizer variant: {tokenizer_variant}")
+    base_ids = [tokenizer.token_to_id(base.lower()) for base in "ACGT"]
+    if any(token_id is None for token_id in base_ids):
+        raise ValueError("Tokenizer lacks isolated A/C/G/T tokens")
+    resolved_base_ids = [int(token_id) for token_id in base_ids]
+
+    llm = LLM(
+        model=model_dir,
+        dtype="bfloat16",
+        tensor_parallel_size=1,
+        enforce_eager=not compile_engine,
+        max_model_len=8193,
+        max_num_batched_tokens=8193,
+        max_num_seqs=1,
+        gpu_memory_utilization=gpu_memory_utilization,
+        enable_prefix_caching=False,
+        enable_chunked_prefill=False,
+        disable_log_stats=True,
+        moe_backend=moe_backend,
+    )
+    installed = llm.llm_engine.collective_rpc(
+        _install_capture, args=(resolved_base_ids, variant)
+    )
+    if installed != [True]:
+        raise RuntimeError(f"Capture hook was not installed: {installed}")
+    sampling = SamplingParams(max_tokens=1, temperature=0, ignore_eos=True)
+
+    def run(sequence: str) -> None:
+        token_ids = encode_dna(tokenizer, sequence).tolist()
+        llm.generate(
+            [{"prompt_token_ids": token_ids}],
+            sampling,
+            use_tqdm=False,
+        )
+
+    run(sequences[0])
+    llm.llm_engine.collective_rpc(_clear_captures)
+
+    latencies: list[float] = []
+    for sequence in sequences:
+        began = time.perf_counter()
+        run(sequence)
+        latencies.append(time.perf_counter() - began)
+
+    capture_path = str(Path(output).with_suffix(".reference.npz"))
+    captured = llm.llm_engine.collective_rpc(_save_captures, args=(capture_path,))
+    if captured != [len(sequences)]:
+        raise RuntimeError(f"Expected {len(sequences)} captures, got {captured}")
+    actual = np.load(capture_path)["logits"]
+    expected = np.load(reference)["logits"]
+    parity = acgt_parity(actual, expected, sequences)
+
+    elapsed = time.perf_counter() - began_productive
+    median = float(np.median(latencies))
+    sequences_per_second = 1 / median
+    tokens_per_sequence = 8192
+    payload = {
+        "backend": "vllm",
+        "variant": variant,
+        "name": name,
+        "batch_size": 1,
+        "sequence_length": tokens_per_sequence,
+        "iterations": len(sequences),
+        "latency_seconds": latencies,
+        "median_latency_seconds": median,
+        "tokens_per_sequence": tokens_per_sequence,
+        "input_tokens_per_second": sequences_per_second * tokens_per_sequence,
+        "sequences_per_second": sequences_per_second,
+        "productive_seconds": elapsed,
+        "parity": parity,
+        "accepted": bool(parity["accepted"]),
+        "compiled": compile_engine,
+        "tokenizer_variant": tokenizer_variant,
+        "moe_backend": moe_backend,
+    }
+    output_path = Path(output)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(json.dumps(payload, indent=2) + "\n")
+    append_trial(
+        Path(ledger),
+        Trial.now(
+            backend="vllm",
+            name=name,
+            productive_seconds=elapsed,
+            sequences_per_second=sequences_per_second,
+            median_latency_seconds=median,
+            accepted=bool(payload["accepted"]),
+            correctness_max_abs_error=float(parity["raw_max_abs_error"]),
+            notes=(
+                f"{variant}; compiled={compile_engine}; tokenizer={tokenizer_variant}; "
+                f"moe={moe_backend}"
+            ),
+            tokens_per_sequence=tokens_per_sequence,
+        ),
+    )
+    print(json.dumps(payload, indent=2))
+
+
+if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--model-dir", required=True)
+    parser.add_argument("--fixture", required=True)
+    parser.add_argument("--ledger", required=True)
+    parser.add_argument("--output", required=True)
+    parser.add_argument("--reference", required=True)
+    parser.add_argument(
+        "--variant", choices=("full_head", "acgt_head"), default="full_head"
+    )
+    parser.add_argument("--name", default="baseline")
+    parser.add_argument(
+        "--tokenizer-variant", choices=("full", "reduced"), default="full"
+    )
+    parser.add_argument("--compile-engine", action="store_true")
+    parser.add_argument("--gpu-memory-utilization", type=float, default=0.2)
+    parser.add_argument(
+        "--moe-backend",
+        choices=(
+            "auto",
+            "triton",
+            "batched_triton",
+            "flashinfer_trtllm",
+            "flashinfer_cutlass",
+        ),
+        default="auto",
+    )
+    arguments = parser.parse_args()
+    benchmark(
+        arguments.model_dir,
+        arguments.fixture,
+        arguments.ledger,
+        arguments.output,
+        variant=arguments.variant,
+        name=arguments.name,
+        reference=arguments.reference,
+        tokenizer_variant=arguments.tokenizer_variant,
+        compile_engine=arguments.compile_engine,
+        gpu_memory_utilization=arguments.gpu_memory_utilization,
+        moe_backend=arguments.moe_backend,
+    )

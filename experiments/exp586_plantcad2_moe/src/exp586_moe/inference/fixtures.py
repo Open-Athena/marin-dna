@@ -4,8 +4,6 @@ import hashlib
 import json
 from pathlib import Path
 
-import pyarrow.parquet as pq
-
 from exp586_moe.inference.contract import (
     FIXTURE_MANIFEST_SHA256,
     FIXTURE_SOURCE,
@@ -33,6 +31,8 @@ def materialize_fixture(
     expected_rows: int = FIXTURE_SOURCE_ROWS,
 ) -> dict[str, object]:
     """Select the first unique valid windows from a content-addressed shard."""
+    import pyarrow.parquet as pq
+
     if count < 1:
         raise ValueError("Fixture count must be positive")
     actual_sha256 = sha256_file(source)

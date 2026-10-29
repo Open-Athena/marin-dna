@@ -1,0 +1,43 @@
+{
+  "backend": "vllm",
+  "variant": "acgt_head",
+  "name": "exact-acgt-head-compiled",
+  "batch_size": 1,
+  "sequence_length": 8192,
+  "iterations": 8,
+  "latency_seconds": [
+    0.031215811148285866,
+    0.027741314843297005,
+    0.03210340440273285,
+    0.027803393080830574,
+    0.02701536752283573,
+    0.027213584631681442,
+    0.027150366455316544,
+    0.026972420513629913
+  ],
+  "median_latency_seconds": 0.027477449737489223,
+  "tokens_per_sequence": 8192,
+  "input_tokens_per_second": 298135.3829508834,
+  "sequences_per_second": 36.39347936412151,
+  "productive_seconds": 48.944173980504274,
+  "parity": {
+    "positions": 65536,
+    "raw_max_abs_error": 0.828125,
+    "raw_mean_abs_error": 0.018632739782333374,
+    "raw_p99_abs_error": 0.140625,
+    "probability_max_abs_error": 0.2682267427444458,
+    "probability_mean_abs_error": 0.002197825815528631,
+    "probability_p99_abs_error": 0.023106340318918228,
+    "argmax_agreement": 0.9911956787109375,
+    "actual_next_base_nll": 0.9305925965309143,
+    "expected_next_base_nll": 0.9305431842803955,
+    "next_base_nll_abs_delta": 4.941225051879883e-05,
+    "actual_next_base_accuracy": 0.5802557685264315,
+    "expected_next_base_accuracy": 0.5805304602612623,
+    "next_base_accuracy_abs_delta": 0.0002746917348308564,
+    "accepted": true
+  },
+  "accepted": true,
+  "compiled": true,
+  "tokenizer_variant": "full"
+}

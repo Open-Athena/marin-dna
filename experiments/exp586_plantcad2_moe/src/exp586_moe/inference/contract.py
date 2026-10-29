@@ -5,8 +5,6 @@ from enum import StrEnum
 
 from tokenizers import Tokenizer
 
-from exp586_moe.data import WINDOW_BASES
-
 RUN_ID = "exp586-plantcad2-d768-pretrained-lrm1-seed0-v1"
 CHECKPOINT = (
     "s3://marin-us-east-02a/MarinDNA/exp586_plantcad2_moe/checkpoints/"
@@ -37,6 +35,7 @@ INPUT_ALPHABET = "ACGTN"
 OUTPUT_ALPHABET = "ACGT"
 TOTAL_PARAMETERS = 1_591_848_448
 ACTIVE_PARAMETERS = 60_555_264
+WINDOW_BASES = 8192
 
 
 class OutputMode(StrEnum):
