@@ -204,6 +204,7 @@ def benchmark(
     specialized_topk: bool = False,
     direct_sconv: bool = False,
     moe_config_json: str | None = None,
+    chunked_prefill: bool = False,
     in_process: bool = False,
     omp_threads: int | None = None,
     results_prefix: str | None = None,
@@ -259,7 +260,7 @@ def benchmark(
         gpu_memory_utilization=gpu_memory_utilization,
         kv_cache_memory_bytes=kv_cache_memory_bytes,
         enable_prefix_caching=False,
-        enable_chunked_prefill=False,
+        enable_chunked_prefill=chunked_prefill,
         disable_log_stats=True,
         moe_backend=moe_backend,
         attention_config=(
@@ -419,6 +420,7 @@ def benchmark(
         "specialized_topk": specialized_topk,
         "direct_sconv": direct_sconv,
         "moe_config": moe_config,
+        "chunked_prefill": chunked_prefill,
         "in_process": in_process,
         "omp_threads": omp_threads,
         **runtime[0],
@@ -448,6 +450,7 @@ def benchmark(
                 f"; minimal_sampling_head={minimal_sampling_head}"
                 f"; specialized_topk={specialized_topk}; direct_sconv={direct_sconv}"
                 f"; moe_config={moe_config}"
+                f"; chunked_prefill={chunked_prefill}"
                 f"; in_process={in_process}; omp_threads={omp_threads}"
             ),
             tokens_per_sequence=tokens_per_sequence,
@@ -518,6 +521,7 @@ if __name__ == "__main__":
     parser.add_argument("--specialized-topk", action="store_true")
     parser.add_argument("--direct-sconv", action="store_true")
     parser.add_argument("--moe-config-json")
+    parser.add_argument("--chunked-prefill", action="store_true")
     parser.add_argument("--in-process", action="store_true")
     parser.add_argument("--omp-threads", type=int)
     arguments = parser.parse_args()
@@ -547,6 +551,7 @@ if __name__ == "__main__":
         specialized_topk=arguments.specialized_topk,
         direct_sconv=arguments.direct_sconv,
         moe_config_json=arguments.moe_config_json,
+        chunked_prefill=arguments.chunked_prefill,
         in_process=arguments.in_process,
         omp_threads=arguments.omp_threads,
         results_prefix=arguments.results_prefix,
