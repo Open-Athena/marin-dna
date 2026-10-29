@@ -180,6 +180,7 @@ def benchmark(
     compile_engine: bool = False,
     gpu_memory_utilization: float = 0.2,
     kv_cache_memory_bytes: int | None = None,
+    quantization: str | None = None,
     moe_backend: str = "auto",
     attention_backend: str | None = None,
     flash_attention_version: int | None = None,
@@ -227,6 +228,7 @@ def benchmark(
     llm = LLM(
         model=model_dir,
         dtype="bfloat16",
+        quantization=quantization,
         tensor_parallel_size=1,
         enforce_eager=not compile_engine,
         max_model_len=8193,
@@ -380,6 +382,7 @@ def benchmark(
         "compiled": compile_engine,
         "gpu_memory_utilization": gpu_memory_utilization,
         "kv_cache_memory_bytes": kv_cache_memory_bytes,
+        "quantization": quantization,
         "model_dir": model_dir,
         "model_vocab_size": tokenizer.get_vocab_size(),
         "tokenizer_variant": tokenizer_variant,
@@ -411,6 +414,7 @@ def benchmark(
                 f"{variant}; compiled={compile_engine}; tokenizer={tokenizer_variant}; "
                 f"gpu_memory_utilization={gpu_memory_utilization}; "
                 f"kv_cache_memory_bytes={kv_cache_memory_bytes}; "
+                f"quantization={quantization}; "
                 f"moe={moe_backend}; attention={attention_backend or 'auto'}; "
                 f"flash_attention_version={flash_attention_version or 'auto'}; "
                 f"output_transfer_dtype={output_transfer_dtype}; batch={batch_size}"
@@ -446,6 +450,7 @@ if __name__ == "__main__":
     parser.add_argument("--compile-engine", action="store_true")
     parser.add_argument("--gpu-memory-utilization", type=float, default=0.2)
     parser.add_argument("--kv-cache-memory-bytes", type=int)
+    parser.add_argument("--quantization", choices=("fp8",))
     parser.add_argument("--batch-size", type=int, default=1)
     parser.add_argument("--iterations", type=int, default=8)
     parser.add_argument("--validation-fixture")
@@ -495,6 +500,7 @@ if __name__ == "__main__":
         compile_engine=arguments.compile_engine,
         gpu_memory_utilization=arguments.gpu_memory_utilization,
         kv_cache_memory_bytes=arguments.kv_cache_memory_bytes,
+        quantization=arguments.quantization,
         moe_backend=arguments.moe_backend,
         attention_backend=arguments.attention_backend,
         flash_attention_version=arguments.flash_attention_version,
