@@ -92,3 +92,19 @@ def test_model_parameter_shapes_do_not_depend_on_context_length():
     assert full_count - scratch_count == 2 * 768 * (128256 - 8)
     assert cfg.rope.theta == 10000
     assert cfg.rope_fused and cfg.qk_mult == 1.3
+
+
+def test_disabling_router_metrics_preserves_inference_hidden_states():
+    cfg = tiny_config()
+    tokens = jnp.asarray([[3, 4, 5, 6] * 4], dtype=jnp.int32)
+    with jax.set_mesh(compact_grug_mesh()):
+        model = Transformer.init(cfg, key=jax.random.key(2))
+        with_metrics, metrics = model(tokens, AttentionMask.causal())
+        without_metrics, inference_metrics = model(
+            tokens,
+            AttentionMask.causal(),
+            collect_router_metrics=False,
+        )
+    np.testing.assert_array_equal(without_metrics, with_metrics)
+    assert metrics
+    assert inference_metrics == {}

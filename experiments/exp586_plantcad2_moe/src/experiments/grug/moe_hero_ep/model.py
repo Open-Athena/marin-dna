@@ -1000,6 +1000,8 @@ class MoEMLP(eqx.Module):
         self,
         x: Float[Array, "B S D"],
         token_valid: Bool[Array, "B S"],
+        *,
+        collect_router_stats: bool = True,
     ) -> tuple[Float[Array, "B S D"], dict[str, jax.Array]]:
         b, s, _ = x.shape
         x_flat = reshard(rearrange(x, "b s d -> (b s) d"), _token_spec())
@@ -1007,12 +1009,14 @@ class MoEMLP(eqx.Module):
         # Keep the router path in fp32 before top-k, softmax, and QB statistics.
         router_logits = jnp.einsum("td,de->te", x_flat, reshard(self.router, P(None, None))).astype(jnp.float32)
         biased_logits = router_logits + jax.lax.stop_gradient(self.router_bias)
-        router_probs = jax.nn.softmax(router_logits, axis=-1)
-        # Select top-(K+1) on biased logits; the (K+1)-th is the QB threshold alpha.
-        selected_experts = top_k_indices(biased_logits, self.cfg.num_experts_per_token + 1)
-        _topk_logits = jnp.take_along_axis(biased_logits, selected_experts, axis=-1)
-        qb_alpha = _topk_logits[:, -1:]
-        selected_experts = selected_experts[:, :-1]
+        selection_width = self.cfg.num_experts_per_token + int(collect_router_stats)
+        selected_experts = top_k_indices(biased_logits, selection_width)
+        if collect_router_stats:
+            # Training's QB estimator needs the (K+1)-th threshold; inference only
+            # needs the K experts that participate in the forward pass.
+            _topk_logits = jnp.take_along_axis(biased_logits, selected_experts, axis=-1)
+            qb_alpha = _topk_logits[:, -1:]
+            selected_experts = selected_experts[:, :-1]
         # Sigmoid combine weights on unbiased logits for selected experts.
         unbiased_topk = jnp.take_along_axis(router_logits, selected_experts, axis=-1)
         combine_weights_f = jax.nn.sigmoid(unbiased_topk)
@@ -1020,64 +1024,67 @@ class MoEMLP(eqx.Module):
         denom = jnp.sum(combine_weights_f, axis=-1, keepdims=True)
         combine_weights_f = combine_weights_f * (_ROUTING_RENORM_SUM / (denom + 1e-9))
         combine_weights = combine_weights_f.astype(x.dtype)
-        mesh = get_abstract_mesh()
-        # Per-shard partials only; the cross-device reduction happens once after the layer scan.
-        router_stats = moe_routing_stats_local(
-            reshard(selected_experts, _token_spec()),
-            reshard(router_probs, _token_spec()),
-            reshard(router_logits, _token_spec()),
-            reshard(token_valid_flat, _token_spec()),
-            mesh,
-            batch_axes=_token_axes(mesh),
-            num_experts=self.cfg.num_experts,
-        )
-        # Sharded QB: estimate each expert's threshold beta from the margins `s - alpha`.
-        s_minus_alpha = reshard(router_logits - qb_alpha, _token_spec())
-        if self.cfg.qb_estimator == QbEstimator.HIST:
-            beta, margin_min, margin_max = _qb_beta_hist(
-                s_minus_alpha,
+        router_stats: dict[str, jax.Array] = {}
+        if collect_router_stats:
+            router_probs = jax.nn.softmax(router_logits, axis=-1)
+            mesh = get_abstract_mesh()
+            # Per-shard partials only; the cross-device reduction happens once after the layer scan.
+            router_stats = moe_routing_stats_local(
+                reshard(selected_experts, _token_spec()),
+                reshard(router_probs, _token_spec()),
+                reshard(router_logits, _token_spec()),
                 reshard(token_valid_flat, _token_spec()),
                 mesh,
-                num_experts_per_token=self.cfg.num_experts_per_token,
+                batch_axes=_token_axes(mesh),
                 num_experts=self.cfg.num_experts,
-                n_bins=self.cfg.qb_hist_bins,
             )
-            router_stats["qb_beta"] = beta
-            router_stats["margin_min"] = margin_min
-            router_stats["margin_max"] = margin_max
-        else:
-            token_axes = _token_axes(mesh)
-
-            def _local_qb_beta(s_ma, valid):
-                qb_count = qb_topk_physical_count(
-                    s_ma.shape[0],
+            # Sharded QB: estimate each expert's threshold beta from the margins `s - alpha`.
+            s_minus_alpha = reshard(router_logits - qb_alpha, _token_spec())
+            if self.cfg.qb_estimator == QbEstimator.HIST:
+                beta, margin_min, margin_max = _qb_beta_hist(
+                    s_minus_alpha,
+                    reshard(token_valid_flat, _token_spec()),
+                    mesh,
                     num_experts_per_token=self.cfg.num_experts_per_token,
                     num_experts=self.cfg.num_experts,
+                    n_bins=self.cfg.qb_hist_bins,
                 )
-                # The cross-shard weighted mean is deferred to `reduce_moe_routing_stats`, and beta is
-                # not read until the next step.
-                beta, valid_count = qb_beta_topk_shard(
-                    s_ma,
-                    valid,
-                    physical_count=qb_count,
-                    num_experts_per_token=self.cfg.num_experts_per_token,
-                    num_experts=self.cfg.num_experts,
-                )
-                return beta[None, :], valid_count[None]
+                router_stats["qb_beta"] = beta
+                router_stats["margin_min"] = margin_min
+                router_stats["margin_max"] = margin_max
+            else:
+                token_axes = _token_axes(mesh)
 
-            router_stats["qb_beta_local"], router_stats["qb_beta_weight_local"] = shard_map(
-                _local_qb_beta,
-                mesh=mesh,
-                in_specs=(P(token_axes, None), P(token_axes)),
-                out_specs=(P(token_axes, None), P(token_axes)),
-            )(s_minus_alpha, reshard(token_valid_flat, _token_spec()))
-            # TOPK has no histogram grid, so no live margin range to surface. Reshard the
-            # placeholder onto the run's mesh: a bare constant carries an empty-mesh sharding,
-            # and stacking that through the router stats leaves the train step's inputs placed
-            # inconsistently with the compiled executable under offloaded pinned-host state.
-            zero = reshard(jnp.zeros((), dtype=jnp.float32), P())
-            router_stats["margin_min"] = zero
-            router_stats["margin_max"] = zero
+                def _local_qb_beta(s_ma, valid):
+                    qb_count = qb_topk_physical_count(
+                        s_ma.shape[0],
+                        num_experts_per_token=self.cfg.num_experts_per_token,
+                        num_experts=self.cfg.num_experts,
+                    )
+                    # The cross-shard weighted mean is deferred to `reduce_moe_routing_stats`, and beta is
+                    # not read until the next step.
+                    beta, valid_count = qb_beta_topk_shard(
+                        s_ma,
+                        valid,
+                        physical_count=qb_count,
+                        num_experts_per_token=self.cfg.num_experts_per_token,
+                        num_experts=self.cfg.num_experts,
+                    )
+                    return beta[None, :], valid_count[None]
+
+                router_stats["qb_beta_local"], router_stats["qb_beta_weight_local"] = shard_map(
+                    _local_qb_beta,
+                    mesh=mesh,
+                    in_specs=(P(token_axes, None), P(token_axes)),
+                    out_specs=(P(token_axes, None), P(token_axes)),
+                )(s_minus_alpha, reshard(token_valid_flat, _token_spec()))
+                # TOPK has no histogram grid, so no live margin range to surface. Reshard the
+                # placeholder onto the run's mesh: a bare constant carries an empty-mesh sharding,
+                # and stacking that through the router stats leaves the train step's inputs placed
+                # inconsistently with the compiled executable under offloaded pinned-host state.
+                zero = reshard(jnp.zeros((), dtype=jnp.float32), P())
+                router_stats["margin_min"] = zero
+                router_stats["margin_max"] = zero
 
         # LatentMoE: compress before dispatch so the expert-parallel all-to-all carries
         # `latent_dim`-wide rows in both directions. The router above already read the full-width
@@ -1112,10 +1119,11 @@ class MoEMLP(eqx.Module):
             sender_dropped_assignments = _zero_dropped_assignments()
             receiver_dropped_assignments = _zero_dropped_assignments()
             skipped_assignments = padding_skipped_assignments(token_valid_flat, topk=self.cfg.num_experts_per_token)
-        router_stats["capacity_overflow"] = dropped_assignments
-        router_stats["sender_capacity_overflow"] = sender_dropped_assignments
-        router_stats["receiver_capacity_overflow"] = receiver_dropped_assignments
-        router_stats["skipped_assignments"] = skipped_assignments
+        if collect_router_stats:
+            router_stats["capacity_overflow"] = dropped_assignments
+            router_stats["sender_capacity_overflow"] = sender_dropped_assignments
+            router_stats["receiver_capacity_overflow"] = receiver_dropped_assignments
+            router_stats["skipped_assignments"] = skipped_assignments
 
         # Expand after the combine: `expert_mlp` already returns the weight-summed expert output,
         # which is the vector the paper's W_up acts on.
@@ -1180,6 +1188,7 @@ class Block(eqx.Module):
         mask: AttentionMask | jax.Array,
         disable_rope: bool | jax.Array = False,
         is_global: bool | jax.Array = False,
+        collect_router_stats: bool = True,
     ) -> tuple[Float[Array, "B S D"], dict[str, jax.Array]]:
         # A remat policy acts on named intermediates, and a block argument is not one. This
         # reassignment routes every use below through the name, which lets the policy offload it.
@@ -1195,7 +1204,9 @@ class Block(eqx.Module):
         x = x + attn_out
         mlp_in = self.mlp_gated_norm(self.rms_mlp(x))
         token_valid = token_validity_from_attention_mask(mask, batch_size=x.shape[0], sequence_length=x.shape[1])
-        mlp_out, router_stats = self.mlp(mlp_in, token_valid)
+        mlp_out, router_stats = self.mlp(
+            mlp_in, token_valid, collect_router_stats=collect_router_stats
+        )
         if self.shared is not None:
             for shared_expert in self.shared:
                 mlp_out = mlp_out + shared_expert(mlp_in, activation=ActivationFunctionEnum.silu)
@@ -1270,6 +1281,8 @@ class Transformer(eqx.Module):
         self,
         token_ids: Int[Array, "B S"],
         mask: AttentionMask | jax.Array | None = None,
+        *,
+        collect_router_metrics: bool = True,
     ) -> tuple[Float[Array, "B S D"], dict[str, jax.Array]]:
         if mask is None:
             mask = AttentionMask.causal()
@@ -1341,6 +1354,7 @@ class Transformer(eqx.Module):
                 layer_mask,
                 use_long,
                 use_long,
+                collect_router_metrics,
             )
 
         hidden, stacked_router_stats = jax.lax.scan(
@@ -1348,24 +1362,26 @@ class Transformer(eqx.Module):
         )
         # One cross-device reduction for the whole stack of layers, instead of one inside every
         # scan iteration. See `moe_routing_stats_local`.
-        reduced_router_stats = reduce_moe_routing_stats(
-            stacked_router_stats,
-            num_experts=cfg.num_experts,
-            num_experts_per_token=cfg.num_experts_per_token,
-        )
-        router_metrics = {
-            "routing_entropy_per_layer": reduced_router_stats["routing_entropy"],
-            "routing_counts_per_layer": reduced_router_stats["routing_counts"],
-            "load_balancing_loss_per_layer": reduced_router_stats["load_balancing_loss"],
-            "router_z_loss_per_layer": reduced_router_stats["router_z_loss"],
-            "qb_beta_per_layer": reduced_router_stats["qb_beta"],
-            "capacity_overflow_per_layer": stacked_router_stats["capacity_overflow"],
-            "sender_capacity_overflow_per_layer": stacked_router_stats["sender_capacity_overflow"],
-            "receiver_capacity_overflow_per_layer": stacked_router_stats["receiver_capacity_overflow"],
-            "skipped_assignments_per_layer": stacked_router_stats["skipped_assignments"],
-            "margin_min_per_layer": stacked_router_stats["margin_min"],
-            "margin_max_per_layer": stacked_router_stats["margin_max"],
-        }
+        router_metrics: dict[str, jax.Array] = {}
+        if collect_router_metrics:
+            reduced_router_stats = reduce_moe_routing_stats(
+                stacked_router_stats,
+                num_experts=cfg.num_experts,
+                num_experts_per_token=cfg.num_experts_per_token,
+            )
+            router_metrics = {
+                "routing_entropy_per_layer": reduced_router_stats["routing_entropy"],
+                "routing_counts_per_layer": reduced_router_stats["routing_counts"],
+                "load_balancing_loss_per_layer": reduced_router_stats["load_balancing_loss"],
+                "router_z_loss_per_layer": reduced_router_stats["router_z_loss"],
+                "qb_beta_per_layer": reduced_router_stats["qb_beta"],
+                "capacity_overflow_per_layer": stacked_router_stats["capacity_overflow"],
+                "sender_capacity_overflow_per_layer": stacked_router_stats["sender_capacity_overflow"],
+                "receiver_capacity_overflow_per_layer": stacked_router_stats["receiver_capacity_overflow"],
+                "skipped_assignments_per_layer": stacked_router_stats["skipped_assignments"],
+                "margin_min_per_layer": stacked_router_stats["margin_min"],
+                "margin_max_per_layer": stacked_router_stats["margin_max"],
+            }
         hidden = self.final_gated_norm(self.final_norm(hidden))
         return hidden, router_metrics
 
