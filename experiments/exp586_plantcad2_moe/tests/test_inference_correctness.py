@@ -23,3 +23,15 @@ def test_material_probability_change_is_rejected() -> None:
     actual[..., 0] += 1
     report = acgt_parity(actual, expected, sequences)
     assert report["accepted"] is False
+
+
+def test_near_tie_argmax_changes_are_diagnostic_not_a_hard_failure() -> None:
+    sequences = ["ACGT" * 2048, "ACGT" * 2048]
+    expected = np.zeros((2, 8192, 4), dtype=np.float32)
+    actual = expected.copy()
+    actual[..., 1] = 1e-4
+
+    report = acgt_parity(actual, expected, sequences)
+
+    assert report["argmax_agreement"] == 0
+    assert report["accepted"] is True

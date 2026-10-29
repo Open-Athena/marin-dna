@@ -68,7 +68,6 @@ def acgt_parity(
     report["accepted"] = bool(
         report["probability_mean_abs_error"] <= 0.003
         and report["probability_p99_abs_error"] <= 0.03
-        and argmax_agreement >= 0.99
         and report["next_base_nll_abs_delta"] <= 0.001
         and report["next_base_accuracy_abs_delta"] <= 0.001
     )

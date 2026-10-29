@@ -33,7 +33,9 @@ def export_hf(output: str = DEFAULT_EXPORT) -> None:
     tokenizer = pretrained_dna_tokenizer()
     actual_tokenizer_digest = tokenizer_digest(tokenizer)
     if actual_tokenizer_digest != TOKENIZER_SHA256:
-        raise ValueError("Pretrained DNA tokenizer differs from the pinned training tokenizer")
+        raise ValueError(
+            "Pretrained DNA tokenizer differs from the pinned training tokenizer"
+        )
     config = dataclasses.replace(
         d768_config("pretrained"), moe_implementation="sonic", expert_chunks=1
     )

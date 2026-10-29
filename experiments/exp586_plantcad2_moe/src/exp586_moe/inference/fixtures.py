@@ -78,11 +78,12 @@ def load_fixture(path: Path) -> list[str]:
     """Load a materialized fixture and revalidate its content hashes."""
     payload = json.loads(path.read_text())
     sequences = payload["sequences"]
-    if not isinstance(sequences, list) or not all(isinstance(x, str) for x in sequences):
+    if not isinstance(sequences, list) or not all(
+        isinstance(x, str) for x in sequences
+    ):
         raise ValueError("Fixture sequences have an invalid schema")
     validate_sequences(sequences)
     hashes = [hashlib.sha256(sequence.encode()).hexdigest() for sequence in sequences]
     if hashes != payload.get("sequence_sha256"):
         raise ValueError("Fixture sequence digest differs")
     return sequences
-

@@ -72,11 +72,13 @@ def benchmark(
     tokenizer_variant: TokenizerVariant = "full",
     compile_engine: bool = False,
     gpu_memory_utilization: float = 0.2,
+    kv_cache_memory_bytes: int | None = None,
     moe_backend: str = "auto",
     attention_backend: str | None = None,
     flash_attention_version: int | None = None,
     batch_size: int = 1,
     iterations: int = 8,
+    validation_fixture: str | None = None,
 ) -> None:
     """Measure batched 8,192-token prefills and return dense A/C/G/T logits."""
     os.environ.setdefault("CUDA_VISIBLE_DEVICES", "0")
@@ -91,6 +93,9 @@ def benchmark(
 
     began_productive = time.perf_counter()
     sequences = load_fixture(Path(fixture))
+    validation_sequences = load_fixture(
+        Path(validation_fixture) if validation_fixture is not None else Path(fixture)
+    )
     if batch_size < 1 or batch_size > len(sequences):
         raise ValueError("Batch size must fit the unique-sequence fixture")
     if iterations < 2:
@@ -114,6 +119,7 @@ def benchmark(
         max_num_batched_tokens=batch_size * 8193,
         max_num_seqs=batch_size,
         gpu_memory_utilization=gpu_memory_utilization,
+        kv_cache_memory_bytes=kv_cache_memory_bytes,
         enable_prefix_caching=False,
         enable_chunked_prefill=False,
         disable_log_stats=True,
@@ -164,16 +170,23 @@ def benchmark(
         run(batch_at(index))
         latencies.append(time.perf_counter() - began)
 
+    # Discard timed captures and validate every batch size on the same complete
+    # fixture. This keeps throughput batch size separate from sample coverage.
+    llm.llm_engine.collective_rpc(_clear_captures)
+    validation_batch_size = min(batch_size, len(validation_sequences))
+    for start in range(0, len(validation_sequences), validation_batch_size):
+        run(validation_sequences[start : start + validation_batch_size])
+
     capture_path = str(Path(output).with_suffix(".reference.npz"))
     captured = llm.llm_engine.collective_rpc(_save_captures, args=(capture_path,))
-    expected_captures = iterations * batch_size
+    expected_captures = len(validation_sequences)
     if captured != [expected_captures]:
         raise RuntimeError(f"Expected {expected_captures} captures, got {captured}")
-    actual = np.load(capture_path)["logits"][:batch_size]
+    actual = np.load(capture_path)["logits"]
     expected = np.load(reference)["logits"]
-    if expected.shape[0] < batch_size:
-        raise ValueError("Correctness reference is smaller than the measured batch")
-    parity = acgt_parity(actual, expected[:batch_size], sequences[:batch_size])
+    if expected.shape[0] != len(validation_sequences):
+        raise ValueError("Correctness reference must cover the complete fixture")
+    parity = acgt_parity(actual, expected, validation_sequences)
 
     elapsed = time.perf_counter() - began_productive
     median = float(np.median(latencies))
@@ -195,6 +208,8 @@ def benchmark(
         "parity": parity,
         "accepted": bool(parity["accepted"]),
         "compiled": compile_engine,
+        "gpu_memory_utilization": gpu_memory_utilization,
+        "kv_cache_memory_bytes": kv_cache_memory_bytes,
         "tokenizer_variant": tokenizer_variant,
         "moe_backend": moe_backend,
         "attention_backend": attention_backend,
@@ -215,6 +230,8 @@ def benchmark(
             correctness_max_abs_error=float(parity["raw_max_abs_error"]),
             notes=(
                 f"{variant}; compiled={compile_engine}; tokenizer={tokenizer_variant}; "
+                f"gpu_memory_utilization={gpu_memory_utilization}; "
+                f"kv_cache_memory_bytes={kv_cache_memory_bytes}; "
                 f"moe={moe_backend}; attention={attention_backend or 'auto'}; "
                 f"flash_attention_version={flash_attention_version or 'auto'}; "
                 f"batch={batch_size}"
@@ -244,8 +261,10 @@ if __name__ == "__main__":
     )
     parser.add_argument("--compile-engine", action="store_true")
     parser.add_argument("--gpu-memory-utilization", type=float, default=0.2)
+    parser.add_argument("--kv-cache-memory-bytes", type=int)
     parser.add_argument("--batch-size", type=int, default=1)
     parser.add_argument("--iterations", type=int, default=8)
+    parser.add_argument("--validation-fixture")
     parser.add_argument(
         "--moe-backend",
         choices=(
@@ -280,9 +299,11 @@ if __name__ == "__main__":
         tokenizer_variant=arguments.tokenizer_variant,
         compile_engine=arguments.compile_engine,
         gpu_memory_utilization=arguments.gpu_memory_utilization,
+        kv_cache_memory_bytes=arguments.kv_cache_memory_bytes,
         moe_backend=arguments.moe_backend,
         attention_backend=arguments.attention_backend,
         flash_attention_version=arguments.flash_attention_version,
         batch_size=arguments.batch_size,
         iterations=arguments.iterations,
+        validation_fixture=arguments.validation_fixture,
     )

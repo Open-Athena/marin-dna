@@ -39,6 +39,7 @@ def benchmark(
     global_attention_backend: TorchGlobalAttentionBackend = "auto",
     global_attention_gqa: bool = False,
     batch_size: int = 1,
+    validation_fixture: str | None = None,
 ) -> None:
     """Measure complete batched scoring, including tokenization and host output."""
     if iterations < 2:
@@ -47,6 +48,9 @@ def benchmark(
     device = torch.device("cuda:0")
     directory = Path(model_dir)
     sequences = load_fixture(Path(fixture))
+    validation_sequences = load_fixture(
+        Path(validation_fixture) if validation_fixture is not None else Path(fixture)
+    )
     if batch_size < 1 or batch_size > len(sequences):
         raise ValueError("Batch size must fit the unique-sequence fixture")
     tokenizer = PreTrainedTokenizerFast.from_pretrained(directory)
@@ -102,15 +106,25 @@ def benchmark(
     torch.cuda.synchronize()
     torch.cuda.reset_peak_memory_stats(device)
     latencies: list[float] = []
-    representative: np.ndarray | None = None
     for index in range(iterations):
         began = time.perf_counter()
-        result = run(batch_at(index))
+        run(batch_at(index))
         torch.cuda.synchronize()
         latencies.append(time.perf_counter() - began)
-        if representative is None:
-            representative = result
-    assert representative is not None
+
+    # Correctness always uses the complete fixture so acceptance cannot change
+    # merely because a throughput trial used a larger validation sample.
+    validation_parts = [
+        run(
+            validation_sequences[
+                start : start + min(batch_size, len(validation_sequences))
+            ]
+        )
+        for start in range(
+            0, len(validation_sequences), min(batch_size, len(validation_sequences))
+        )
+    ]
+    representative = np.concatenate(validation_parts, axis=0)
 
     parity: dict[str, float | bool | int] = {
         "accepted": True,
@@ -118,11 +132,9 @@ def benchmark(
     }
     if reference is not None:
         expected = np.load(reference)["logits"]
-        if expected.shape[0] < batch_size:
-            raise ValueError("Correctness reference is smaller than the measured batch")
+        if expected.shape[0] != len(validation_sequences):
+            raise ValueError("Correctness reference must cover the complete fixture")
         actual = representative
-        expected = expected[:batch_size]
-        validation_sequences = sequences[:batch_size]
         parity = acgt_parity(actual, expected, validation_sequences)
         np.savez_compressed(Path(output).with_suffix(".reference.npz"), logits=actual)
     effective_accepted = bool(accepted) and bool(parity["accepted"])

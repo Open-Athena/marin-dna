@@ -11,7 +11,9 @@ from exp586_moe.inference.fixtures import load_fixture, materialize_fixture, sha
 def test_materialize_fixture_binds_source_and_sequences(tmp_path: Path) -> None:
     source = tmp_path / "source.parquet"
     sequence = "ACGTN" * 1_638 + "AC"
-    pq.write_table(pa.table({"sequence": [sequence.lower(), sequence, "T" * 8192]}), source)
+    pq.write_table(
+        pa.table({"sequence": [sequence.lower(), sequence, "T" * 8192]}), source
+    )
     digest = hashlib.sha256(source.read_bytes()).hexdigest()
     output = tmp_path / "fixture.json"
 
@@ -31,5 +33,6 @@ def test_materialize_fixture_rejects_changed_source(tmp_path: Path) -> None:
     source = tmp_path / "source.parquet"
     pq.write_table(pa.table({"sequence": ["A" * 8192]}), source)
     with pytest.raises(ValueError, match="digest"):
-        materialize_fixture(source, tmp_path / "fixture.json", expected_source_sha256="0" * 64)
-
+        materialize_fixture(
+            source, tmp_path / "fixture.json", expected_source_sha256="0" * 64
+        )

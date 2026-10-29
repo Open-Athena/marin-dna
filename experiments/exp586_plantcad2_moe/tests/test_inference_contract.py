@@ -25,4 +25,3 @@ def test_sequences_are_unique_complete_windows() -> None:
         validate_sequences(["A" * 8192, "A" * 8192])
     with pytest.raises(ValueError, match="outside ACGTN"):
         validate_sequences(["X" * 8192])
-

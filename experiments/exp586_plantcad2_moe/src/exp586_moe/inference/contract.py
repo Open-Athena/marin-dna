@@ -84,4 +84,3 @@ def validate_sequences(sequences: list[str]) -> None:
             raise ValueError(f"Sequence {index} is not {WINDOW_BASES} bases")
         if set(sequence) - allowed:
             raise ValueError(f"Sequence {index} contains a character outside ACGTN")
-

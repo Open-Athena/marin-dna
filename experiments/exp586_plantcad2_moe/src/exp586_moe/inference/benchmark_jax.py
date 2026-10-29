@@ -27,12 +27,16 @@ def benchmark(
     reference: str | None = None,
     tokenizer_variant: str = "full",
     batch_size: int = 1,
+    validation_fixture: str | None = None,
 ) -> None:
     """Measure complete batched scoring, including tokenization and host output."""
     if iterations < 2:
         raise ValueError("Use at least two timed iterations")
     began_productive = time.perf_counter()
     sequences = load_fixture(Path(fixture))
+    validation_sequences = load_fixture(
+        Path(validation_fixture) if validation_fixture is not None else Path(fixture)
+    )
     if batch_size < 1 or batch_size > len(sequences):
         raise ValueError("Batch size must fit the unique-sequence fixture")
     tokenizer = pretrained_dna_tokenizer()
@@ -55,7 +59,6 @@ def benchmark(
     del warmup
 
     latencies: list[float] = []
-    representative: np.ndarray | None = None
     for index in range(iterations):
         batch = batch_at(index)
         began = time.perf_counter()
@@ -63,10 +66,19 @@ def benchmark(
         logits = np.asarray(forward(jax.device_put(token_ids)))
         result = logits[..., base_ids] if variant == "full_head" else logits
         latencies.append(time.perf_counter() - began)
-        if representative is None:
-            representative = np.asarray(result, dtype=np.float32)
         del logits, result
-    assert representative is not None
+
+    # Use the same complete fixture for every batch-size correctness decision.
+    validation_parts = []
+    validation_batch_size = min(batch_size, len(validation_sequences))
+    for start in range(0, len(validation_sequences), validation_batch_size):
+        token_ids = encode(
+            tokenizer, validation_sequences[start : start + validation_batch_size]
+        )
+        logits = np.asarray(forward(jax.device_put(token_ids)))
+        result = logits[..., base_ids] if variant == "full_head" else logits
+        validation_parts.append(np.asarray(result, dtype=np.float32))
+    representative = np.concatenate(validation_parts, axis=0)
 
     parity: dict[str, float | bool | int] = {
         "accepted": True,
@@ -74,12 +86,12 @@ def benchmark(
     }
     if reference is not None:
         expected = np.load(reference)["logits"]
-        if expected.shape[0] < batch_size:
-            raise ValueError("Correctness reference is smaller than the measured batch")
+        if expected.shape[0] != len(validation_sequences):
+            raise ValueError("Correctness reference must cover the complete fixture")
         parity = acgt_parity(
             representative,
-            expected[:batch_size],
-            sequences[:batch_size],
+            expected,
+            validation_sequences,
         )
     else:
         reference_path = Path(output).with_suffix(".reference.npz")
