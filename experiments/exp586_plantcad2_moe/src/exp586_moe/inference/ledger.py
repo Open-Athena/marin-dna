@@ -100,9 +100,11 @@ def progress(trials: list[Trial]) -> list[tuple[Trial, float, float]]:
 
 def productive_seconds_since_gain(trials: list[Trial]) -> float:
     """Measure only available-H100 experiment time after the last accepted gain."""
+    best = 0.0
     elapsed = 0.0
-    for trial in reversed(trials):
-        if trial.accepted:
-            break
+    for trial in trials:
         elapsed += trial.productive_seconds
+        if trial.accepted and trial.sequences_per_second > best:
+            best = trial.sequences_per_second
+            elapsed = 0.0
     return elapsed

@@ -6,6 +6,8 @@ from pathlib import Path
 
 import jax
 import numpy as np
+from levanter.grug.attention import GrugAttentionImplementation
+from levanter.grug.grug_moe import MoeImplementation
 
 from exp586_moe.data import pretrained_dna_tokenizer
 from exp586_moe.inference.correctness import acgt_parity
@@ -29,6 +31,9 @@ def benchmark(
     batch_size: int = 1,
     validation_fixture: str | None = None,
     compact_vocab: bool = False,
+    moe_implementation: MoeImplementation = "sonic",
+    attention_implementation: GrugAttentionImplementation = "gpu_fa4_cute",
+    expert_chunks: int = 1,
 ) -> None:
     """Measure complete batched scoring, including tokenization and host output."""
     if iterations < 2:
@@ -47,7 +52,12 @@ def benchmark(
         raise ValueError(f"Unknown tokenizer variant: {tokenizer_variant}")
     if compact_vocab and variant != "acgt_head":
         raise ValueError("Compact vocabulary requires the A/C/G/T output head")
-    model, mesh, base_ids = load_model(compact_vocab=compact_vocab)
+    model, mesh, base_ids = load_model(
+        compact_vocab=compact_vocab,
+        moe_implementation=moe_implementation,
+        attention_implementation=attention_implementation,
+        expert_chunks=expert_chunks,
+    )
     forward = compile_forward(model, mesh, base_ids, variant=variant)  # type: ignore[arg-type]
 
     def batch_at(index: int) -> list[str]:
@@ -123,6 +133,9 @@ def benchmark(
         "device": jax.devices()[0].device_kind,
         "tokenizer_variant": tokenizer_variant,
         "compact_vocab": compact_vocab,
+        "moe_implementation": moe_implementation,
+        "attention_implementation": attention_implementation,
+        "expert_chunks": expert_chunks,
     }
     output_path = Path(output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -139,7 +152,9 @@ def benchmark(
             correctness_max_abs_error=float(parity["raw_max_abs_error"]),
             notes=(
                 f"{variant}; tokenizer={tokenizer_variant}; "
-                f"compact_vocab={compact_vocab}; batch={batch_size}"
+                f"compact_vocab={compact_vocab}; moe={moe_implementation}; "
+                f"attention={attention_implementation}; expert_chunks={expert_chunks}; "
+                f"batch={batch_size}"
             ),
             tokens_per_sequence=tokens_per_sequence,
             batch_size=batch_size,

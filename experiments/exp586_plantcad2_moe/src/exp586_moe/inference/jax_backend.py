@@ -10,7 +10,8 @@ import jax.numpy as jnp
 import jmp
 import numpy as np
 from jax.sharding import PartitionSpec as P
-from levanter.grug.attention import AttentionMask
+from levanter.grug.attention import AttentionMask, GrugAttentionImplementation
+from levanter.grug.grug_moe import MoeImplementation
 from levanter.grug.sharding import compact_grug_mesh
 from rigging.filesystem.s3_compat import configure_coreweave_s3
 from tokenizers import Tokenizer
@@ -31,7 +32,11 @@ JaxVariant = Literal["full_head", "acgt_head"]
 
 
 def load_model(
-    *, compact_vocab: bool = False
+    *,
+    compact_vocab: bool = False,
+    moe_implementation: MoeImplementation = "sonic",
+    attention_implementation: GrugAttentionImplementation = "gpu_fa4_cute",
+    expert_chunks: int = 1,
 ) -> tuple[Transformer, jax.sharding.Mesh, list[int]]:
     """Restore one-device BF16 inference weights and authoritative ACGT IDs."""
     configure_coreweave_s3()
@@ -42,7 +47,10 @@ def load_model(
         raise ValueError("Tokenizer differs from the trained checkpoint binding")
     contract = token_contract(tokenizer)
     config = dataclasses.replace(
-        d768_config("pretrained"), moe_implementation="sonic", expert_chunks=1
+        d768_config("pretrained"),
+        moe_implementation=moe_implementation,
+        attention_implementation=attention_implementation,
+        expert_chunks=expert_chunks,
     )
     mesh = compact_grug_mesh(expert_axis_size=1, replica_axis_size=1)
     policy = jmp.get_policy("params=bfloat16,compute=bfloat16,output=bfloat16")

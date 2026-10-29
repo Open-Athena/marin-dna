@@ -31,15 +31,16 @@ def test_ledger_tracks_frontier_and_stagnation(tmp_path: Path) -> None:
         trial("baseline", accepted=True, rate=1),
         trial("rejected", accepted=False, rate=0.9, seconds=100),
         trial("gain", accepted=True, rate=1.2, seconds=200),
+        trial("valid-but-slower", accepted=True, rate=1.15, seconds=150),
         trial("later", accepted=False, rate=1.1, seconds=300),
     ]
     for record in records:
         append_trial(path, record)
 
     loaded = load_trials(path)
-    assert [best for _, _, best in progress(loaded)] == [1, 1, 1.2, 1.2]
+    assert [best for _, _, best in progress(loaded)] == [1, 1, 1.2, 1.2, 1.2]
     assert loaded[0].input_tokens_per_second == 8192
-    assert productive_seconds_since_gain(loaded) == 300
+    assert productive_seconds_since_gain(loaded) == 450
     output = tmp_path / "torch.png"
     plot_backend("torch", path, output)
     assert output.stat().st_size > 1_000
