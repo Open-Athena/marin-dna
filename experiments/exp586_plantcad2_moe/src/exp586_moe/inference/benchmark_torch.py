@@ -20,8 +20,8 @@ from exp586_moe.inference.results_store import upload_trial_artifacts
 from exp586_moe.inference.tokenizer import (
     encode_dna,
     encode_dna_batch,
-    reduced_dna_bpe_tokenizer,
     reduced_dna_tokenizer,
+    reduced_dna_unigram_tokenizer,
 )
 from exp586_moe.inference.torch_backend import (
     EagerGrugMoE,
@@ -75,13 +75,13 @@ def benchmark(
     if batch_size < 1 or batch_size > len(sequences):
         raise ValueError("Batch size must fit the unique-sequence fixture")
     tokenizer = PreTrainedTokenizerFast.from_pretrained(directory)
-    if tokenizer_variant not in {"wrapper", "backend", "reduced", "reduced_bpe"}:
+    if tokenizer_variant not in {"wrapper", "backend", "reduced", "reduced_unigram"}:
         raise ValueError(f"Unknown tokenizer variant: {tokenizer_variant}")
     backend_tokenizer = tokenizer.backend_tokenizer
     if tokenizer_variant == "reduced":
         backend_tokenizer = reduced_dna_tokenizer(backend_tokenizer)
-    elif tokenizer_variant == "reduced_bpe":
-        backend_tokenizer = reduced_dna_bpe_tokenizer(backend_tokenizer)
+    elif tokenizer_variant == "reduced_unigram":
+        backend_tokenizer = reduced_dna_unigram_tokenizer(backend_tokenizer)
     contract = token_contract(tokenizer.backend_tokenizer)
     base_ids = [contract.output_ids[base] for base in "ACGT"]
     model = EagerGrugMoE(

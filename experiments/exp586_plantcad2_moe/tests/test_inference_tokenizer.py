@@ -2,13 +2,13 @@ import numpy as np
 from tokenizers import Tokenizer, models, normalizers, pre_tokenizers
 
 from exp586_moe.inference.tokenizer import (
-    compact_dna_bpe_tokenizer,
     compact_dna_tokenizer,
+    compact_dna_unigram_tokenizer,
     encode_dna,
     encode_dna_batch,
     encode_dna_batch_lists,
-    reduced_dna_bpe_tokenizer,
     reduced_dna_tokenizer,
+    reduced_dna_unigram_tokenizer,
 )
 
 
@@ -44,19 +44,19 @@ def test_compact_tokenizer_remaps_acgtn_and_normalizes_case() -> None:
     assert tokenizer.get_vocab_size() == 5
 
 
-def test_character_bpe_matches_split_tokenizers_without_a_pretokenizer() -> None:
+def test_character_unigram_matches_split_tokenizers_without_a_pretokenizer() -> None:
     source = _source_tokenizer()
     sequence = ("ACGTN" * 1640)[:8192]
 
     split_reduced = reduced_dna_tokenizer(source)
-    bpe_reduced = reduced_dna_bpe_tokenizer(source)
-    compact = compact_dna_bpe_tokenizer()
+    unigram_reduced = reduced_dna_unigram_tokenizer(source)
+    compact = compact_dna_unigram_tokenizer()
 
     np.testing.assert_array_equal(
-        encode_dna(bpe_reduced, sequence), encode_dna(split_reduced, sequence)
+        encode_dna(unigram_reduced, sequence), encode_dna(split_reduced, sequence)
     )
     assert compact.encode("ACGTNacgtn").ids == list(range(5)) * 2
-    assert bpe_reduced.pre_tokenizer is None
+    assert unigram_reduced.pre_tokenizer is None
 
 
 def test_batch_encoding_matches_individual_encoding() -> None:

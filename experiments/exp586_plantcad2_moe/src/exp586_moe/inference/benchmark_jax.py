@@ -26,10 +26,10 @@ from exp586_moe.inference.jax_backend import (
 from exp586_moe.inference.ledger import Trial, append_trial
 from exp586_moe.inference.results_store import upload_trial_artifacts
 from exp586_moe.inference.tokenizer import (
-    compact_dna_bpe_tokenizer,
     compact_dna_tokenizer,
-    reduced_dna_bpe_tokenizer,
+    compact_dna_unigram_tokenizer,
     reduced_dna_tokenizer,
+    reduced_dna_unigram_tokenizer,
 )
 
 
@@ -77,17 +77,17 @@ def benchmark(
         raise ValueError("Batch size must fit the unique-sequence fixture")
     if compact_vocab:
         tokenizer = (
-            compact_dna_bpe_tokenizer()
-            if tokenizer_variant == "reduced_bpe"
+            compact_dna_unigram_tokenizer()
+            if tokenizer_variant == "reduced_unigram"
             else compact_dna_tokenizer()
         )
     else:
         tokenizer = pretrained_dna_tokenizer()
     if tokenizer_variant == "reduced" and not compact_vocab:
         tokenizer = reduced_dna_tokenizer(tokenizer)
-    elif tokenizer_variant == "reduced_bpe" and not compact_vocab:
-        tokenizer = reduced_dna_bpe_tokenizer(tokenizer)
-    elif tokenizer_variant not in {"full", "reduced_bpe"}:
+    elif tokenizer_variant == "reduced_unigram" and not compact_vocab:
+        tokenizer = reduced_dna_unigram_tokenizer(tokenizer)
+    elif tokenizer_variant not in {"full", "reduced_unigram"}:
         raise ValueError(f"Unknown tokenizer variant: {tokenizer_variant}")
     if compact_vocab and variant != "acgt_head":
         raise ValueError("Compact vocabulary requires the A/C/G/T output head")

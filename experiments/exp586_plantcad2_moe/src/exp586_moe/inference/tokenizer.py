@@ -6,17 +6,22 @@ from tokenizers import Tokenizer, models, normalizers, pre_tokenizers
 from exp586_moe.inference.contract import validate_sequences
 
 
-def _character_bpe(vocab: dict[str, int]) -> Tokenizer:
-    """Tokenize DNA as characters in the BPE model without a split pass."""
+def _character_unigram(vocab: dict[str, int]) -> Tokenizer:
+    """Tokenize DNA as characters while preserving possibly sparse token IDs."""
     used = set(vocab.values())
-    unknown_id = next(index for index in range(len(used) + 1) if index not in used)
-    tokenizer = Tokenizer(
-        models.BPE(
-            vocab={**vocab, "[UNK]": unknown_id},
-            merges=[],
-            unk_token="[UNK]",
-        )
+    highest_id = max(used)
+    unknown_id = next(
+        (index for index in range(highest_id + 1) if index not in used),
+        highest_id + 1,
     )
+    pieces = [
+        (f"[unused_{index}]", -100.0)
+        for index in range(max(highest_id, unknown_id) + 1)
+    ]
+    for token, token_id in vocab.items():
+        pieces[token_id] = (token, 0.0)
+    pieces[unknown_id] = ("[UNK]", -100.0)
+    tokenizer = Tokenizer(models.Unigram(pieces, unk_id=unknown_id))
     tokenizer.normalizer = normalizers.Lowercase()
     return tokenizer
 
@@ -31,9 +36,9 @@ def compact_dna_tokenizer() -> Tokenizer:
     return tokenizer
 
 
-def compact_dna_bpe_tokenizer() -> Tokenizer:
+def compact_dna_unigram_tokenizer() -> Tokenizer:
     """Build the compact tokenizer without materializing isolated pre-tokens."""
-    return _character_bpe({base: index for index, base in enumerate("acgtn")})
+    return _character_unigram({base: index for index, base in enumerate("acgtn")})
 
 
 def reduced_dna_tokenizer(source: Tokenizer) -> Tokenizer:
@@ -53,12 +58,12 @@ def reduced_dna_tokenizer(source: Tokenizer) -> Tokenizer:
     return tokenizer
 
 
-def reduced_dna_bpe_tokenizer(source: Tokenizer) -> Tokenizer:
+def reduced_dna_unigram_tokenizer(source: Tokenizer) -> Tokenizer:
     """Preserve trained DNA IDs while letting the BPE model split characters."""
     trained_ids = {base.lower(): source.token_to_id(base.lower()) for base in "ACGTN"}
     if any(token_id is None for token_id in trained_ids.values()):
         raise ValueError("Source tokenizer lacks a trained ACGTN token")
-    return _character_bpe(
+    return _character_unigram(
         {base: int(token_id) for base, token_id in trained_ids.items()}
     )
 

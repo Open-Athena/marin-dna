@@ -19,12 +19,12 @@ from exp586_moe.inference.results_store import upload_trial_artifacts
 from exp586_moe.inference.tokenizer import (
     encode_dna,
     encode_dna_batch_lists,
-    reduced_dna_bpe_tokenizer,
     reduced_dna_tokenizer,
+    reduced_dna_unigram_tokenizer,
 )
 
 VllmVariant = Literal["full_head", "acgt_head"]
-TokenizerVariant = Literal["full", "reduced", "reduced_bpe"]
+TokenizerVariant = Literal["full", "reduced", "reduced_unigram"]
 
 
 def _install_capture(
@@ -219,8 +219,8 @@ def benchmark(
     tokenizer = Tokenizer.from_file(str(Path(model_dir) / "tokenizer.json"))
     if tokenizer_variant == "reduced":
         tokenizer = reduced_dna_tokenizer(tokenizer)
-    elif tokenizer_variant == "reduced_bpe":
-        tokenizer = reduced_dna_bpe_tokenizer(tokenizer)
+    elif tokenizer_variant == "reduced_unigram":
+        tokenizer = reduced_dna_unigram_tokenizer(tokenizer)
     elif tokenizer_variant != "full":
         raise ValueError(f"Unknown tokenizer variant: {tokenizer_variant}")
     base_ids = [tokenizer.token_to_id(base.lower()) for base in "ACGT"]
