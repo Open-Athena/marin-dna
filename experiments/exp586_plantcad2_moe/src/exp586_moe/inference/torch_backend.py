@@ -271,6 +271,7 @@ class EagerGrugMoE(torch.nn.Module):
         compact_input_ids: list[int] | None = None,
         fused_shared_experts: bool = False,
         precomputed_rope: bool = False,
+        concatenated_shared_w1: bool = False,
     ) -> None:
         super().__init__()
         if attention_backend not in {
@@ -289,6 +290,10 @@ class EagerGrugMoE(torch.nn.Module):
         self.config = TorchConfig.load(directory)
         if fp8_moe_ptpc and not fp8_moe:
             raise ValueError("fp8_moe_ptpc requires fp8_moe")
+        if fused_shared_experts and concatenated_shared_w1:
+            raise ValueError(
+                "Choose either fused_shared_experts or concatenated_shared_w1"
+            )
         weights = load_weights(directory, device)
         routed_expert_weights = {
             f"model.layers.{layer}.mlp.experts.{projection}_proj.weight"
@@ -375,6 +380,21 @@ class EagerGrugMoE(torch.nn.Module):
                         weights[f"{shared}.down_proj.weight"].unsqueeze(0).contiguous(),
                         persistent=False,
                     )
+        if concatenated_shared_w1:
+            for layer in range(self.config.num_layers):
+                for expert in range(self.config.num_shared_experts):
+                    shared = f"model.layers.{layer}.shared_experts.{expert}"
+                    self.register_buffer(
+                        f"shared_w1_{layer}_{expert}",
+                        torch.cat(
+                            (
+                                weights[f"{shared}.gate_proj.weight"],
+                                weights[f"{shared}.up_proj.weight"],
+                            ),
+                            dim=0,
+                        ).contiguous(),
+                        persistent=False,
+                    )
         self.device = device
         self.attention_backend = attention_backend
         self.global_attention_backend = global_attention_backend
@@ -385,6 +405,7 @@ class EagerGrugMoE(torch.nn.Module):
         self.fp8_moe_ptpc = fp8_moe_ptpc
         self.fused_shared_experts = fused_shared_experts
         self.precomputed_rope = precomputed_rope
+        self.concatenated_shared_w1 = concatenated_shared_w1
         if precomputed_rope:
             rotary_dim = self.config.head_dim // 2
             half = rotary_dim // 2
@@ -698,8 +719,13 @@ class EagerGrugMoE(torch.nn.Module):
         output = torch.zeros_like(x)
         for expert in range(self.config.num_shared_experts):
             prefix = f"model.layers.{layer}.shared_experts.{expert}"
-            gate = F.linear(x, self._weight(f"{prefix}.gate_proj.weight"))
-            up = F.linear(x, self._weight(f"{prefix}.up_proj.weight"))
+            if self.concatenated_shared_w1:
+                gate, up = F.linear(
+                    x, self.get_buffer(f"shared_w1_{layer}_{expert}")
+                ).chunk(2, dim=-1)
+            else:
+                gate = F.linear(x, self._weight(f"{prefix}.gate_proj.weight"))
+                up = F.linear(x, self._weight(f"{prefix}.up_proj.weight"))
             output = output + F.linear(
                 F.silu(gate) * up, self._weight(f"{prefix}.down_proj.weight")
             )
