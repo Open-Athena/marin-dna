@@ -94,6 +94,7 @@ def benchmark(
         backend_tokenizer = compact_dna_unigram_tokenizer()
     contract = token_contract(tokenizer.backend_tokenizer)
     base_ids = [contract.output_ids[base] for base in "ACGT"]
+    base_ids_tensor = torch.tensor(base_ids, device=device)
     model = EagerGrugMoE(
         directory,
         device,
@@ -112,7 +113,7 @@ def benchmark(
     )
 
     def forward(token_ids: torch.Tensor) -> torch.Tensor:
-        return model(token_ids, base_ids, variant=variant)
+        return model(token_ids, base_ids_tensor, variant=variant)
 
     compile_modes = torch._inductor.list_mode_options()
     if compile_model and compile_mode not in compile_modes:

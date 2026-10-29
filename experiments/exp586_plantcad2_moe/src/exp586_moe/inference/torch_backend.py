@@ -608,7 +608,11 @@ class EagerGrugMoE(torch.nn.Module):
         return output
 
     def forward(
-        self, token_ids: torch.Tensor, base_ids: list[int], *, variant: TorchVariant
+        self,
+        token_ids: torch.Tensor,
+        base_ids: list[int] | torch.Tensor,
+        *,
+        variant: TorchVariant,
     ) -> torch.Tensor:
         cfg = self.config
         hidden = F.embedding(token_ids, self._weight("model.embed_tokens.weight"))
