@@ -32,6 +32,8 @@ def _install_capture(
     variant: VllmVariant,
     output_transfer_dtype: Literal["float32", "bfloat16"],
     minimal_sampling_head: bool,
+    specialized_topk: bool = False,
+    direct_sconv: bool = False,
 ) -> bool:
     """Capture all-position logits from real vLLM prompt-prefill forwards."""
     import torch
@@ -41,6 +43,65 @@ def _install_capture(
     original_forward = model.forward
     head = model.lm_head.weight[base_ids].detach()
     model._exp586_captures = []
+
+    if specialized_topk:
+        from vllm.model_executor.models.grugmoe import GrugMoeRouter
+
+        from exp586_moe.inference.torch_topk import router_top_k
+
+        def compute_routing(
+            self,
+            hidden_states,
+            router_logits,
+            indices_type,
+            *,
+            input_ids=None,
+        ):
+            del hidden_states, input_ids
+            selected = router_top_k(
+                router_logits.float() + self.bias.float(), self.top_k + 1
+            )[:, : self.top_k]
+            weights = torch.sigmoid(
+                torch.gather(router_logits.float(), dim=-1, index=selected)
+            )
+            weights = weights * (2.5 / (weights.sum(dim=-1, keepdim=True) + 1e-9))
+            return weights, selected.to(
+                torch.int32 if indices_type is None else indices_type
+            )
+
+        GrugMoeRouter._compute_routing = compute_routing
+
+    if direct_sconv:
+        from vllm.forward_context import get_forward_context
+        from vllm.model_executor.models.grugmoe import GrugMoeShortConv
+
+        original_sconv = GrugMoeShortConv.forward_impl
+
+        def direct_sconv_prefill(self, hidden_states, output):
+            metadata_by_layer = get_forward_context().attn_metadata
+            metadata = (
+                metadata_by_layer.get(self.prefix)
+                if isinstance(metadata_by_layer, dict)
+                else None
+            )
+            if (
+                metadata is None
+                or metadata.num_decode_tokens != 0
+                or metadata.num_prefills == 0
+                or metadata.num_prefill_tokens != metadata.num_prefills * 8192
+            ):
+                return original_sconv(self, hidden_states, output)
+            count = metadata.num_prefill_tokens
+            values = hidden_states[:count].view(metadata.num_prefills, 8192, -1)
+            result = values * self.weight[0]
+            for lag in range(1, self.kernel_size):
+                result = result + functional.pad(
+                    values[:, :-lag] * self.weight[lag],
+                    (0, 0, lag, 0),
+                )
+            output[:count].copy_(result.reshape(count, -1))
+
+        GrugMoeShortConv.forward_impl = direct_sconv_prefill
 
     def capturing_forward(self, *args, **kwargs):
         hidden = original_forward(*args, **kwargs)
@@ -134,6 +195,8 @@ def benchmark(
     tokenizer_batch: bool = False,
     prefetch_tokenization: bool = False,
     minimal_sampling_head: bool = False,
+    specialized_topk: bool = False,
+    direct_sconv: bool = False,
     results_prefix: str | None = None,
 ) -> None:
     """Measure batched 8,192-token prefills and return dense A/C/G/T logits."""
@@ -200,6 +263,8 @@ def benchmark(
             variant,
             output_transfer_dtype,
             minimal_sampling_head,
+            specialized_topk,
+            direct_sconv,
         ),
     )
     if installed != [True]:
@@ -332,6 +397,8 @@ def benchmark(
         "tokenizer_batch": tokenizer_batch,
         "prefetch_tokenization": prefetch_tokenization,
         "minimal_sampling_head": minimal_sampling_head,
+        "specialized_topk": specialized_topk,
+        "direct_sconv": direct_sconv,
         **runtime[0],
     }
     output_path = Path(output)
@@ -356,6 +423,7 @@ def benchmark(
                 f"output_transfer_dtype={output_transfer_dtype}; batch={batch_size}"
                 f"; tokenizer_batch={tokenizer_batch}; prefetch={prefetch_tokenization}"
                 f"; minimal_sampling_head={minimal_sampling_head}"
+                f"; specialized_topk={specialized_topk}; direct_sconv={direct_sconv}"
             ),
             tokens_per_sequence=tokens_per_sequence,
             batch_size=batch_size,
@@ -419,6 +487,8 @@ if __name__ == "__main__":
     parser.add_argument("--tokenizer-batch", action="store_true")
     parser.add_argument("--prefetch-tokenization", action="store_true")
     parser.add_argument("--minimal-sampling-head", action="store_true")
+    parser.add_argument("--specialized-topk", action="store_true")
+    parser.add_argument("--direct-sconv", action="store_true")
     arguments = parser.parse_args()
     benchmark(
         arguments.model_dir,
@@ -442,5 +512,7 @@ if __name__ == "__main__":
         tokenizer_batch=arguments.tokenizer_batch,
         prefetch_tokenization=arguments.prefetch_tokenization,
         minimal_sampling_head=arguments.minimal_sampling_head,
+        specialized_topk=arguments.specialized_topk,
+        direct_sconv=arguments.direct_sconv,
         results_prefix=arguments.results_prefix,
     )
