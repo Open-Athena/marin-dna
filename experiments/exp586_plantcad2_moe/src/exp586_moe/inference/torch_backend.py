@@ -272,6 +272,8 @@ class EagerGrugMoE(torch.nn.Module):
         fused_shared_experts: bool = False,
         precomputed_rope: bool = False,
         concatenated_shared_w1: bool = False,
+        concatenated_attention_projections: bool = False,
+        concatenated_router_down: bool = False,
     ) -> None:
         super().__init__()
         if attention_backend not in {
@@ -324,12 +326,12 @@ class EagerGrugMoE(torch.nn.Module):
                     fp8_dtype = torch.float8_e4m3fn
                     fp8_max = torch.finfo(fp8_dtype).max
                     scale_dims = 2 if fp8_moe_ptpc else (1, 2)
-                    w1_scale = (w1.float().abs().amax(dim=scale_dims) / fp8_max).clamp_min(
-                        torch.finfo(torch.float32).tiny
-                    )
-                    w2_scale = (w2.float().abs().amax(dim=scale_dims) / fp8_max).clamp_min(
-                        torch.finfo(torch.float32).tiny
-                    )
+                    w1_scale = (
+                        w1.float().abs().amax(dim=scale_dims) / fp8_max
+                    ).clamp_min(torch.finfo(torch.float32).tiny)
+                    w2_scale = (
+                        w2.float().abs().amax(dim=scale_dims) / fp8_max
+                    ).clamp_min(torch.finfo(torch.float32).tiny)
                     scale_view = (..., None) if fp8_moe_ptpc else (..., None, None)
                     self.register_buffer(
                         f"vllm_fp8_w1_{layer}",
@@ -391,19 +393,58 @@ class EagerGrugMoE(torch.nn.Module):
                     )
         if concatenated_shared_w1:
             for layer in range(self.config.num_layers):
-                for expert in range(self.config.num_shared_experts):
-                    shared = f"model.layers.{layer}.shared_experts.{expert}"
-                    self.register_buffer(
-                        f"shared_w1_{layer}_{expert}",
-                        torch.cat(
-                            (
-                                weights[f"{shared}.gate_proj.weight"],
-                                weights[f"{shared}.up_proj.weight"],
-                            ),
-                            dim=0,
-                        ).contiguous(),
-                        persistent=False,
-                    )
+                shared_prefixes = [
+                    f"model.layers.{layer}.shared_experts.{expert}"
+                    for expert in range(self.config.num_shared_experts)
+                ]
+                self.register_buffer(
+                    f"shared_w1_{layer}",
+                    torch.cat(
+                        [
+                            weights[f"{shared}.{projection}_proj.weight"]
+                            for shared in shared_prefixes
+                            for projection in ("gate", "up")
+                        ],
+                        dim=0,
+                    ).contiguous(),
+                    persistent=False,
+                )
+        self.attention_projection_sizes: tuple[int, ...] | None = None
+        if concatenated_attention_projections:
+            for layer in range(self.config.num_layers):
+                prefix = f"model.layers.{layer}.self_attn"
+                projections = [
+                    weights[f"{prefix}.{projection}.weight"]
+                    for projection in ("q_proj", "k_proj", "v_proj", "attn_gate")
+                ]
+                sizes = tuple(projection.shape[0] for projection in projections)
+                if self.attention_projection_sizes is None:
+                    self.attention_projection_sizes = sizes
+                elif self.attention_projection_sizes != sizes:
+                    raise ValueError("Attention projection sizes vary by layer")
+                self.register_buffer(
+                    f"attention_projections_{layer}",
+                    torch.cat(projections, dim=0).contiguous(),
+                    persistent=False,
+                )
+        self.router_down_sizes: tuple[int, int] | None = None
+        if concatenated_router_down:
+            for layer in range(self.config.num_layers):
+                prefix = f"model.layers.{layer}.mlp"
+                projections = [
+                    weights[f"{prefix}.router.weight"],
+                    weights[f"{prefix}.latent_down_proj.weight"],
+                ]
+                sizes = tuple(projection.shape[0] for projection in projections)
+                if self.router_down_sizes is None:
+                    self.router_down_sizes = sizes
+                elif self.router_down_sizes != sizes:
+                    raise ValueError("Router projection sizes vary by layer")
+                self.register_buffer(
+                    f"router_down_{layer}",
+                    torch.cat(projections, dim=0).contiguous(),
+                    persistent=False,
+                )
         self.device = device
         self.attention_backend = attention_backend
         self.global_attention_backend = global_attention_backend
@@ -415,6 +456,8 @@ class EagerGrugMoE(torch.nn.Module):
         self.fused_shared_experts = fused_shared_experts
         self.precomputed_rope = precomputed_rope
         self.concatenated_shared_w1 = concatenated_shared_w1
+        self.concatenated_attention_projections = concatenated_attention_projections
+        self.concatenated_router_down = concatenated_router_down
         if precomputed_rope:
             rotary_dim = self.config.head_dim // 2
             half = rotary_dim // 2
@@ -478,9 +521,18 @@ class EagerGrugMoE(torch.nn.Module):
     ) -> torch.Tensor:
         cfg = self.config
         prefix = f"model.layers.{layer}.self_attn"
-        q = F.linear(x, self._weight(f"{prefix}.q_proj.weight"))
-        k = F.linear(x, self._weight(f"{prefix}.k_proj.weight"))
-        v = F.linear(x, self._weight(f"{prefix}.v_proj.weight"))
+        attention_gate: torch.Tensor | None = None
+        if self.concatenated_attention_projections:
+            assert self.attention_projection_sizes is not None
+            q, k, v, attention_gate = torch.split(
+                F.linear(x, self.get_buffer(f"attention_projections_{layer}")),
+                self.attention_projection_sizes,
+                dim=-1,
+            )
+        else:
+            q = F.linear(x, self._weight(f"{prefix}.q_proj.weight"))
+            k = F.linear(x, self._weight(f"{prefix}.k_proj.weight"))
+            v = F.linear(x, self._weight(f"{prefix}.v_proj.weight"))
         k = short_conv(
             k,
             self._weight(f"{prefix}.sconv_k.weight"),
@@ -590,9 +642,9 @@ class EagerGrugMoE(torch.nn.Module):
         dot = torch.sum(output * v, dim=-1, keepdim=True)
         norm = torch.sum(v * v, dim=-1, keepdim=True)
         output = output - (dot / (norm + 1e-6)) * v
-        gate = 2 * torch.sigmoid(
-            F.linear(x, self._weight(f"{prefix}.attn_gate.weight"))
-        )
+        if attention_gate is None:
+            attention_gate = F.linear(x, self._weight(f"{prefix}.attn_gate.weight"))
+        gate = 2 * torch.sigmoid(attention_gate)
         output = output * gate.transpose(1, 2).unsqueeze(-1).to(output.dtype)
         output = output.transpose(1, 2).reshape(batch, sequence, cfg.hidden_dim)
         return F.linear(output, self._weight(f"{prefix}.o_proj.weight"))
@@ -602,13 +654,10 @@ class EagerGrugMoE(torch.nn.Module):
         half = rotary_dim // 2
         rotated = x[..., :rotary_dim]
         flipped = (
-            rotated.reshape(*rotated.shape[:-1], half, 2)
-            .flip(-1)
-            .reshape_as(rotated)
+            rotated.reshape(*rotated.shape[:-1], half, 2).flip(-1).reshape_as(rotated)
         )
         rotated = (
-            self.rope_cos[None, None] * rotated
-            + self.rope_sin[None, None] * flipped
+            self.rope_cos[None, None] * rotated + self.rope_sin[None, None] * flipped
         ).to(x.dtype)
         return torch.cat((rotated, x[..., rotary_dim:]), dim=-1)
 
@@ -624,9 +673,19 @@ class EagerGrugMoE(torch.nn.Module):
         flat = x.reshape(-1, cfg.hidden_dim)
         # The Hero router dot has the hidden dtype, then casts to FP32 before
         # bias, top-k and sigmoid. The accumulation order can change routing.
-        router = F.linear(
-            flat, self._weight(f"{prefix}.router.weight").to(flat.dtype)
-        ).float()
+        routed: torch.Tensor | None = None
+        if self.concatenated_router_down:
+            assert self.router_down_sizes is not None
+            router, routed = torch.split(
+                F.linear(flat, self.get_buffer(f"router_down_{layer}")),
+                self.router_down_sizes,
+                dim=-1,
+            )
+            router = router.float()
+        else:
+            router = F.linear(
+                flat, self._weight(f"{prefix}.router.weight").to(flat.dtype)
+            ).float()
         biased = router + self._weight(f"{prefix}.router.bias").float()
         if self.specialized_topk:
             if router_top_k is None:
@@ -640,7 +699,8 @@ class EagerGrugMoE(torch.nn.Module):
             ).indices
         combine = torch.sigmoid(torch.gather(router, 1, selected))
         combine = combine * (2.5 / (combine.sum(dim=-1, keepdim=True) + 1e-9))
-        routed = F.linear(flat, self._weight(f"{prefix}.latent_down_proj.weight"))
+        if routed is None:
+            routed = F.linear(flat, self._weight(f"{prefix}.latent_down_proj.weight"))
         routed = rms_norm(
             routed,
             self._weight(f"{prefix}.latent_norm.weight"),
@@ -713,9 +773,11 @@ class EagerGrugMoE(torch.nn.Module):
             flat = x.reshape(-1, self.config.hidden_dim).contiguous()
             shared_experts = self.config.num_shared_experts
             combine = torch.ones((flat.shape[0], shared_experts), device=x.device)
-            selected = torch.arange(
-                shared_experts, device=x.device, dtype=torch.int32
-            ).expand(flat.shape[0], -1).contiguous()
+            selected = (
+                torch.arange(shared_experts, device=x.device, dtype=torch.int32)
+                .expand(flat.shape[0], -1)
+                .contiguous()
+            )
             output = _vllm_fused_experts(
                 flat,
                 self.get_buffer(f"vllm_shared_w1_{layer}"),
@@ -727,15 +789,19 @@ class EagerGrugMoE(torch.nn.Module):
             )
             return output.reshape_as(x)
         output = torch.zeros_like(x)
+        shared_chunks: tuple[torch.Tensor, ...] | None = None
+        if self.concatenated_shared_w1:
+            shared_chunks = F.linear(x, self.get_buffer(f"shared_w1_{layer}")).chunk(
+                2 * self.config.num_shared_experts, dim=-1
+            )
         for expert in range(self.config.num_shared_experts):
             prefix = f"model.layers.{layer}.shared_experts.{expert}"
-            if self.concatenated_shared_w1:
-                gate, up = F.linear(
-                    x, self.get_buffer(f"shared_w1_{layer}_{expert}")
-                ).chunk(2, dim=-1)
-            else:
+            if shared_chunks is None:
                 gate = F.linear(x, self._weight(f"{prefix}.gate_proj.weight"))
                 up = F.linear(x, self._weight(f"{prefix}.up_proj.weight"))
+            else:
+                gate = shared_chunks[2 * expert]
+                up = shared_chunks[2 * expert + 1]
             output = output + F.linear(
                 F.silu(gate) * up, self._weight(f"{prefix}.down_proj.weight")
             )

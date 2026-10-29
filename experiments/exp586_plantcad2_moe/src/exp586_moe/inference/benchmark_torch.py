@@ -65,6 +65,8 @@ def benchmark(
     fused_shared_experts: bool = False,
     precomputed_rope: bool = False,
     concatenated_shared_w1: bool = False,
+    concatenated_attention_projections: bool = False,
+    concatenated_router_down: bool = False,
     results_prefix: str | None = None,
 ) -> None:
     """Measure complete batched scoring, including tokenization and host output."""
@@ -116,6 +118,8 @@ def benchmark(
         fused_shared_experts=fused_shared_experts,
         precomputed_rope=precomputed_rope,
         concatenated_shared_w1=concatenated_shared_w1,
+        concatenated_attention_projections=concatenated_attention_projections,
+        concatenated_router_down=concatenated_router_down,
     )
 
     def forward(token_ids: torch.Tensor) -> torch.Tensor:
@@ -336,6 +340,8 @@ def benchmark(
         "fused_shared_experts": fused_shared_experts,
         "precomputed_rope": precomputed_rope,
         "concatenated_shared_w1": concatenated_shared_w1,
+        "concatenated_attention_projections": concatenated_attention_projections,
+        "concatenated_router_down": concatenated_router_down,
     }
     output_path = Path(output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -367,6 +373,9 @@ def benchmark(
                 f"; fused_shared_experts={fused_shared_experts}"
                 f"; precomputed_rope={precomputed_rope}"
                 f"; concatenated_shared_w1={concatenated_shared_w1}"
+                f"; concatenated_attention_projections="
+                f"{concatenated_attention_projections}"
+                f"; concatenated_router_down={concatenated_router_down}"
             ),
             tokens_per_sequence=tokens_per_sequence,
             batch_size=batch_size,
