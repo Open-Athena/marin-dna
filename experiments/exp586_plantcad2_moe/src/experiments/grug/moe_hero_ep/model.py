@@ -1283,6 +1283,8 @@ class Transformer(eqx.Module):
         mask: AttentionMask | jax.Array | None = None,
         *,
         collect_router_metrics: bool = True,
+        layer_scan_unroll: int = 1,
+        remat_layers: bool = True,
     ) -> tuple[Float[Array, "B S D"], dict[str, jax.Array]]:
         if mask is None:
             mask = AttentionMask.causal()
@@ -1349,7 +1351,8 @@ class Transformer(eqx.Module):
             use_long = jnp.asarray(layer_use_long_mask, dtype=jnp.bool_)
             lower_bounds = jnp.where(use_long, long_lower_bounds, short_lower_bounds)
             layer_mask = long_mask.with_fa4_bounds(lower_bounds, valid)
-            return eqx.filter_checkpoint(layer, policy=remat_policy)(
+            layer_fn = eqx.filter_checkpoint(layer, policy=remat_policy) if remat_layers else layer
+            return layer_fn(
                 carry_hidden,
                 layer_mask,
                 use_long,
@@ -1358,7 +1361,10 @@ class Transformer(eqx.Module):
             )
 
         hidden, stacked_router_stats = jax.lax.scan(
-            _scan_layers, hidden, xs=(self.stacked_blocks.stacked, mask_schedule)
+            _scan_layers,
+            hidden,
+            xs=(self.stacked_blocks.stacked, mask_schedule),
+            unroll=layer_scan_unroll,
         )
         # One cross-device reduction for the whole stack of layers, instead of one inside every
         # scan iteration. See `moe_routing_stats_local`.

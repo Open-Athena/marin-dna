@@ -149,6 +149,8 @@ def compile_forward(
     *,
     variant: JaxVariant,
     output_dtype: JaxOutputDtype = "float32",
+    layer_scan_unroll: int = 1,
+    remat_layers: bool = True,
 ) -> Callable[[jax.Array], jax.Array]:
     """Compile either the deliberately naive full head or exact reduced head."""
     selected = np.asarray(base_ids, dtype=np.int32)
@@ -165,6 +167,8 @@ def compile_forward(
                 token_ids,
                 AttentionMask.causal(),
                 collect_router_metrics=False,
+                layer_scan_unroll=layer_scan_unroll,
+                remat_layers=remat_layers,
             )
             full = jnp.einsum(
                 "bsh,hv->bsv",
@@ -183,6 +187,8 @@ def compile_forward(
                 token_ids,
                 AttentionMask.causal(),
                 collect_router_metrics=False,
+                layer_scan_unroll=layer_scan_unroll,
+                remat_layers=remat_layers,
             )
             head = model.output_proj.at[:, selected].get(out_sharding=P(None, None))
             logits = jnp.einsum(
