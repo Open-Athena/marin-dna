@@ -89,7 +89,7 @@ TorchAttentionBackend = Literal[
     "vllm_fa3",
 ]
 TorchGlobalAttentionBackend = Literal["auto", "cudnn", "flash", "efficient", "math"]
-TorchSconvBackend = Literal["conv1d", "direct"]
+TorchSconvBackend = Literal["conv1d", "direct", "triton"]
 
 
 @dataclass(frozen=True)
@@ -168,6 +168,19 @@ def short_conv(
     backend: TorchSconvBackend = "conv1d",
 ) -> torch.Tensor:
     """Apply Marin's lag-zero-first depthwise causal convolution."""
+    if backend == "triton":
+        from exp586_moe.inference.torch_sconv import short_conv_prefill_out
+
+        output = torch.empty_like(x)
+        flattened = x.reshape(-1, x.shape[-1])
+        short_conv_prefill_out(
+            flattened,
+            weight,
+            output.reshape_as(flattened),
+            flattened.shape[0],
+            x.shape[-2],
+        )
+        return output
     if backend == "direct":
         result = x * weight[0]
         for lag in range(1, weight.shape[0]):

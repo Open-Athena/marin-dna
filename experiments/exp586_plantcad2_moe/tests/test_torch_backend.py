@@ -18,6 +18,19 @@ def test_short_conv_uses_lag_zero_first(backend: str) -> None:
     assert torch.equal(actual, torch.tensor([[[2.0], [7.0], [12.0], [17.0]]]))
 
 
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="Triton requires CUDA")
+def test_triton_short_conv_uses_lag_zero_first() -> None:
+    values = torch.tensor(
+        [[[1.0], [2.0], [3.0], [4.0]]], device="cuda", dtype=torch.bfloat16
+    )
+    weights = torch.tensor([[2.0], [3.0]], device="cuda", dtype=torch.bfloat16)
+    actual = short_conv(values, weights, backend="triton")
+    expected = torch.tensor(
+        [[[2.0], [7.0], [12.0], [17.0]]], device="cuda", dtype=torch.bfloat16
+    )
+    assert torch.equal(actual, expected)
+
+
 def test_rms_norm_preserves_input_dtype() -> None:
     values = torch.tensor([[1.0, 2.0]], dtype=torch.bfloat16)
     actual = rms_norm(values, torch.ones(2), 1e-5)
