@@ -81,7 +81,7 @@ def compile_forward(
         @eqx.filter_jit
         def forward(model: Transformer, token_ids: jax.Array) -> jax.Array:
             hidden, _ = model(token_ids, AttentionMask.causal())
-            head = model.output_proj[:, selected]
+            head = model.output_proj.at[:, selected].get(out_sharding=P(None, None))
             return jnp.einsum(
                 "bsh,hv->bsv",
                 hidden,
