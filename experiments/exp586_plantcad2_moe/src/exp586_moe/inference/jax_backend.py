@@ -30,7 +30,9 @@ from experiments.grug.moe_hero_ep.weights import restore_weights
 JaxVariant = Literal["full_head", "acgt_head"]
 
 
-def load_model() -> tuple[Transformer, jax.sharding.Mesh, list[int]]:
+def load_model(
+    *, compact_vocab: bool = False
+) -> tuple[Transformer, jax.sharding.Mesh, list[int]]:
     """Restore one-device BF16 inference weights and authoritative ACGT IDs."""
     configure_coreweave_s3()
     if jax.device_count() != 1:
@@ -38,7 +40,7 @@ def load_model() -> tuple[Transformer, jax.sharding.Mesh, list[int]]:
     tokenizer = pretrained_dna_tokenizer()
     if tokenizer_digest(tokenizer) != TOKENIZER_SHA256:
         raise ValueError("Tokenizer differs from the trained checkpoint binding")
-    ids = token_contract(tokenizer).output_ids
+    contract = token_contract(tokenizer)
     config = dataclasses.replace(
         d768_config("pretrained"), moe_implementation="sonic", expert_chunks=1
     )
@@ -49,7 +51,25 @@ def load_model() -> tuple[Transformer, jax.sharding.Mesh, list[int]]:
             restore_weights(CHECKPOINT, CHECKPOINT_METADATA_DIGEST, config, mesh)
         )
         jax.block_until_ready(model)
-    return model, mesh, [ids[base] for base in "ACGT"]
+        if compact_vocab:
+            input_ids = jnp.asarray(
+                [contract.input_ids[base] for base in "ACGTN"], dtype=jnp.int32
+            )
+            output_ids = jnp.asarray(
+                [contract.output_ids[base] for base in "ACGT"], dtype=jnp.int32
+            )
+            model = eqx.tree_at(
+                lambda tree: (tree.token_embed, tree.output_proj),
+                model,
+                (model.token_embed[input_ids], model.output_proj[:, output_ids]),
+            )
+            jax.block_until_ready(model)
+    base_ids = (
+        list(range(4))
+        if compact_vocab
+        else [contract.output_ids[base] for base in "ACGT"]
+    )
+    return model, mesh, base_ids
 
 
 def compile_forward(

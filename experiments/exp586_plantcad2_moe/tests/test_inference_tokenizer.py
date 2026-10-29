@@ -1,7 +1,11 @@
 import numpy as np
 from tokenizers import Tokenizer, models, normalizers, pre_tokenizers
 
-from exp586_moe.inference.tokenizer import encode_dna, reduced_dna_tokenizer
+from exp586_moe.inference.tokenizer import (
+    compact_dna_tokenizer,
+    encode_dna,
+    reduced_dna_tokenizer,
+)
 
 
 def _source_tokenizer() -> Tokenizer:
@@ -26,3 +30,11 @@ def test_reduced_tokenizer_preserves_trained_ids_and_case_normalization() -> Non
     np.testing.assert_array_equal(actual, expected)
     assert reduced.encode("ACGTN").ids == reduced.encode("acgtn").ids
     assert reduced.get_vocab_size() == 84
+
+
+def test_compact_tokenizer_remaps_acgtn_and_normalizes_case() -> None:
+    tokenizer = compact_dna_tokenizer()
+
+    assert tokenizer.encode("ACGTN").ids == [0, 1, 2, 3, 4]
+    assert tokenizer.encode("ACGTN").ids == tokenizer.encode("acgtn").ids
+    assert tokenizer.get_vocab_size() == 5

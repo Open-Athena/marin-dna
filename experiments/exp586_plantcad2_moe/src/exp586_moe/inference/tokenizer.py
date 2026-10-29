@@ -6,6 +6,16 @@ from tokenizers import Tokenizer, models, normalizers, pre_tokenizers
 from exp586_moe.inference.contract import validate_sequences
 
 
+def compact_dna_tokenizer() -> Tokenizer:
+    """Build a five-token ACGTN tokenizer for remapped embedding tables."""
+    tokenizer = Tokenizer(
+        models.WordLevel({base: index for index, base in enumerate("acgtn")})
+    )
+    tokenizer.normalizer = normalizers.Lowercase()
+    tokenizer.pre_tokenizer = pre_tokenizers.Split("", behavior="isolated")
+    return tokenizer
+
+
 def reduced_dna_tokenizer(source: Tokenizer) -> Tokenizer:
     """Build a small HF tokenizer that preserves the trained ACGTN token IDs."""
     trained_ids = {base: source.token_to_id(base.lower()) for base in "ACGTN"}

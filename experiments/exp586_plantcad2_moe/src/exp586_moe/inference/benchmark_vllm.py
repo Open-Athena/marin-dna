@@ -53,6 +53,26 @@ def _clear_captures(worker) -> int:
     return count
 
 
+def _reset_peak_memory(worker) -> bool:
+    import torch
+
+    torch.cuda.reset_peak_memory_stats(worker.model_runner.device)
+    return True
+
+
+def _runtime_info(worker) -> dict[str, str | float]:
+    import torch
+    import vllm
+
+    device = worker.model_runner.device
+    return {
+        "device": torch.cuda.get_device_name(device),
+        "peak_memory_gib": torch.cuda.max_memory_allocated(device) / 2**30,
+        "torch_version": torch.__version__,
+        "vllm_version": vllm.__version__,
+    }
+
+
 def _save_captures(worker, output: str) -> int:
     captures = worker.model_runner.model._exp586_captures
     values = np.concatenate(captures, axis=0)
@@ -163,6 +183,9 @@ def benchmark(
 
     run(batch_at(0))
     llm.llm_engine.collective_rpc(_clear_captures)
+    reset = llm.llm_engine.collective_rpc(_reset_peak_memory)
+    if reset != [True]:
+        raise RuntimeError(f"Peak-memory reset failed: {reset}")
 
     latencies: list[float] = []
     for index in range(iterations):
@@ -187,6 +210,9 @@ def benchmark(
     if expected.shape[0] != len(validation_sequences):
         raise ValueError("Correctness reference must cover the complete fixture")
     parity = acgt_parity(actual, expected, validation_sequences)
+    runtime = llm.llm_engine.collective_rpc(_runtime_info)
+    if len(runtime) != 1:
+        raise RuntimeError(f"Expected one vLLM worker, got {runtime}")
 
     elapsed = time.perf_counter() - began_productive
     median = float(np.median(latencies))
@@ -210,10 +236,13 @@ def benchmark(
         "compiled": compile_engine,
         "gpu_memory_utilization": gpu_memory_utilization,
         "kv_cache_memory_bytes": kv_cache_memory_bytes,
+        "model_dir": model_dir,
+        "model_vocab_size": tokenizer.get_vocab_size(),
         "tokenizer_variant": tokenizer_variant,
         "moe_backend": moe_backend,
         "attention_backend": attention_backend,
         "flash_attention_version": flash_attention_version,
+        **runtime[0],
     }
     output_path = Path(output)
     output_path.parent.mkdir(parents=True, exist_ok=True)

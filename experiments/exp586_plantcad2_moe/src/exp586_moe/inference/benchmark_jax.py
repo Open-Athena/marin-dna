@@ -12,7 +12,7 @@ from exp586_moe.inference.correctness import acgt_parity
 from exp586_moe.inference.fixtures import load_fixture
 from exp586_moe.inference.jax_backend import compile_forward, encode, load_model
 from exp586_moe.inference.ledger import Trial, append_trial
-from exp586_moe.inference.tokenizer import reduced_dna_tokenizer
+from exp586_moe.inference.tokenizer import compact_dna_tokenizer, reduced_dna_tokenizer
 
 
 def benchmark(
@@ -28,6 +28,7 @@ def benchmark(
     tokenizer_variant: str = "full",
     batch_size: int = 1,
     validation_fixture: str | None = None,
+    compact_vocab: bool = False,
 ) -> None:
     """Measure complete batched scoring, including tokenization and host output."""
     if iterations < 2:
@@ -39,12 +40,14 @@ def benchmark(
     )
     if batch_size < 1 or batch_size > len(sequences):
         raise ValueError("Batch size must fit the unique-sequence fixture")
-    tokenizer = pretrained_dna_tokenizer()
-    if tokenizer_variant == "reduced":
+    tokenizer = compact_dna_tokenizer() if compact_vocab else pretrained_dna_tokenizer()
+    if tokenizer_variant == "reduced" and not compact_vocab:
         tokenizer = reduced_dna_tokenizer(tokenizer)
     elif tokenizer_variant != "full":
         raise ValueError(f"Unknown tokenizer variant: {tokenizer_variant}")
-    model, mesh, base_ids = load_model()
+    if compact_vocab and variant != "acgt_head":
+        raise ValueError("Compact vocabulary requires the A/C/G/T output head")
+    model, mesh, base_ids = load_model(compact_vocab=compact_vocab)
     forward = compile_forward(model, mesh, base_ids, variant=variant)  # type: ignore[arg-type]
 
     def batch_at(index: int) -> list[str]:
@@ -119,6 +122,7 @@ def benchmark(
         "jax_version": jax.__version__,
         "device": jax.devices()[0].device_kind,
         "tokenizer_variant": tokenizer_variant,
+        "compact_vocab": compact_vocab,
     }
     output_path = Path(output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -133,7 +137,10 @@ def benchmark(
             median_latency_seconds=median,
             accepted=bool(result_payload["accepted"]),
             correctness_max_abs_error=float(parity["raw_max_abs_error"]),
-            notes=f"{variant}; tokenizer={tokenizer_variant}; batch={batch_size}",
+            notes=(
+                f"{variant}; tokenizer={tokenizer_variant}; "
+                f"compact_vocab={compact_vocab}; batch={batch_size}"
+            ),
             tokens_per_sequence=tokens_per_sequence,
             batch_size=batch_size,
         ),
