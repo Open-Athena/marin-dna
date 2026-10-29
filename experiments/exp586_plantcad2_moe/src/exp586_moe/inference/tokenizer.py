@@ -6,6 +6,21 @@ from tokenizers import Tokenizer, models, normalizers, pre_tokenizers
 from exp586_moe.inference.contract import validate_sequences
 
 
+def _character_bpe(vocab: dict[str, int]) -> Tokenizer:
+    """Tokenize DNA as characters in the BPE model without a split pass."""
+    used = set(vocab.values())
+    unknown_id = next(index for index in range(len(used) + 1) if index not in used)
+    tokenizer = Tokenizer(
+        models.BPE(
+            vocab={**vocab, "[UNK]": unknown_id},
+            merges=[],
+            unk_token="[UNK]",
+        )
+    )
+    tokenizer.normalizer = normalizers.Lowercase()
+    return tokenizer
+
+
 def compact_dna_tokenizer() -> Tokenizer:
     """Build a five-token ACGTN tokenizer for remapped embedding tables."""
     tokenizer = Tokenizer(
@@ -14,6 +29,11 @@ def compact_dna_tokenizer() -> Tokenizer:
     tokenizer.normalizer = normalizers.Lowercase()
     tokenizer.pre_tokenizer = pre_tokenizers.Split("", behavior="isolated")
     return tokenizer
+
+
+def compact_dna_bpe_tokenizer() -> Tokenizer:
+    """Build the compact tokenizer without materializing isolated pre-tokens."""
+    return _character_bpe({base: index for index, base in enumerate("acgtn")})
 
 
 def reduced_dna_tokenizer(source: Tokenizer) -> Tokenizer:
@@ -31,6 +51,16 @@ def reduced_dna_tokenizer(source: Tokenizer) -> Tokenizer:
     tokenizer.normalizer = normalizers.Lowercase()
     tokenizer.pre_tokenizer = pre_tokenizers.Split("", behavior="isolated")
     return tokenizer
+
+
+def reduced_dna_bpe_tokenizer(source: Tokenizer) -> Tokenizer:
+    """Preserve trained DNA IDs while letting the BPE model split characters."""
+    trained_ids = {base.lower(): source.token_to_id(base.lower()) for base in "ACGTN"}
+    if any(token_id is None for token_id in trained_ids.values()):
+        raise ValueError("Source tokenizer lacks a trained ACGTN token")
+    return _character_bpe(
+        {base: int(token_id) for base, token_id in trained_ids.items()}
+    )
 
 
 def encode_dna(tokenizer: Tokenizer, sequence: str) -> np.ndarray:
