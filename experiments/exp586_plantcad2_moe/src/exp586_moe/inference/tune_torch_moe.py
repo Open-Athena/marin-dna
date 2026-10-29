@@ -35,8 +35,15 @@ def tune(
     batch_size: int = 128,
     iterations: int = 7,
     coordinate_passes: int = 2,
+    routing_npz: str | None = None,
 ) -> None:
-    """Run coordinate descent over kernel tiles at the real routed-token shape."""
+    """Run coordinate descent over kernel tiles at the real routed-token shape.
+
+    When ``routing_npz`` is supplied, every candidate replays the selected
+    experts captured from each model layer. This preserves the substantial
+    expert imbalance seen on DNA rather than assuming uniform synthetic
+    routing.
+    """
     if batch_size < 1 or iterations < 2 or coordinate_passes < 1:
         raise ValueError(
             "batch_size, iterations and coordinate_passes must be positive"
@@ -52,9 +59,28 @@ def tune(
     routed = torch.randn(tokens, hidden, dtype=torch.bfloat16) * 0.02
     w1 = torch.randn(experts, 2 * intermediate, hidden, dtype=torch.bfloat16) * 0.02
     w2 = torch.randn(experts, hidden, intermediate, dtype=torch.bfloat16) * 0.02
-    rows = torch.arange(tokens, dtype=torch.int64)[:, None]
-    slots = torch.arange(top_k, dtype=torch.int64)[None, :]
-    selected = ((rows * top_k + slots) % experts).to(torch.int32)
+    if routing_npz is None:
+        rows = torch.arange(tokens, dtype=torch.int64)[:, None]
+        slots = torch.arange(top_k, dtype=torch.int64)[None, :]
+        selected_layers = [((rows * top_k + slots) % experts).to(torch.int32)]
+    else:
+        captured = np.load(routing_npz)
+        layer_names = sorted(
+            captured.files,
+            key=lambda name: int(name.removeprefix("layer_")),
+        )
+        selected_layers = [
+            torch.from_numpy(captured[name].astype(np.int32, copy=False)).cuda()
+            for name in layer_names
+        ]
+        expected_shape = (tokens, top_k)
+        if not selected_layers or any(
+            tuple(selected.shape) != expected_shape for selected in selected_layers
+        ):
+            shapes = [tuple(selected.shape) for selected in selected_layers]
+            raise ValueError(
+                f"Expected captured routing shaped {expected_shape}, got {shapes}"
+            )
     combine = torch.rand(tokens, top_k, dtype=torch.float32)
     combine = combine / combine.sum(dim=-1, keepdim=True)
     trials: list[dict[str, object]] = []
@@ -68,7 +94,7 @@ def tune(
         seen.add(key)
         try:
             with torch.inference_mode(), override_config(config):
-                for _ in range(2):
+                for selected in selected_layers:
                     result = fused_experts(
                         routed,
                         w1,
@@ -83,14 +109,15 @@ def tune(
                     start = torch.cuda.Event(enable_timing=True)
                     end = torch.cuda.Event(enable_timing=True)
                     start.record()
-                    result = fused_experts(
-                        routed,
-                        w1,
-                        w2,
-                        combine,
-                        selected,
-                        global_num_experts=experts,
-                    )
+                    for selected in selected_layers:
+                        result = fused_experts(
+                            routed,
+                            w1,
+                            w2,
+                            combine,
+                            selected,
+                            global_num_experts=experts,
+                        )
                     end.record()
                     end.synchronize()
                     latencies.append(start.elapsed_time(end))
@@ -101,10 +128,15 @@ def tune(
                     "key": key,
                     "config": dict(config),
                     "median_ms": median,
+                    "median_ms_per_layer": median / len(selected_layers),
                     "latency_ms": latencies,
                 }
             )
-            print(f"{median:.3f} ms {config}", flush=True)
+            print(
+                f"{median:.3f} ms total, "
+                f"{median / len(selected_layers):.3f} ms/layer {config}",
+                flush=True,
+            )
             return median
         # Triton reports invalid tile shapes through several backend-specific
         # exception classes. A tuner must record and skip all of them.
@@ -142,6 +174,8 @@ def tune(
     payload = {
         "batch_size": batch_size,
         "tokens": tokens,
+        "routing_npz": routing_npz,
+        "routed_layers": len(selected_layers),
         "shape": {
             "experts": experts,
             "hidden": hidden,
@@ -150,6 +184,7 @@ def tune(
         },
         "best_config": current,
         "best_median_ms": best_ms,
+        "best_median_ms_per_layer": best_ms / len(selected_layers),
         "productive_seconds": time.perf_counter() - began,
         "trials": trials,
     }
