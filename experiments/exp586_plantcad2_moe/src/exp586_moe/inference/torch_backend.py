@@ -27,6 +27,11 @@ try:
 except ImportError:
     _vllm_fused_experts = None
 
+try:
+    from vllm.vllm_flash_attn import flash_attn_varlen_func as _vllm_flash_attn
+except ImportError:
+    _vllm_flash_attn = None
+
 TorchVariant = Literal[
     "full_head",
     "acgt_head",
@@ -39,6 +44,7 @@ TorchAttentionBackend = Literal[
     "sdpa_gqa",
     "flex_expanded",
     "flex_gqa",
+    "vllm_fa3",
 ]
 TorchGlobalAttentionBackend = Literal["auto", "cudnn", "flash", "efficient", "math"]
 TorchSconvBackend = Literal["conv1d", "direct"]
@@ -212,6 +218,7 @@ class EagerGrugMoE(torch.nn.Module):
             "sdpa_gqa",
             "flex_expanded",
             "flex_gqa",
+            "vllm_fa3",
         }:
             raise ValueError(f"Unknown attention backend: {attention_backend}")
         global_backends = {"auto", "cudnn", "flash", "efficient", "math"}
@@ -323,7 +330,43 @@ class EagerGrugMoE(torch.nn.Module):
                 # K/V views lets the Hopper flash-attention kernel consume them.
                 k = k.contiguous()
                 v = v.contiguous()
-        if self.attention_backend in {"flex_expanded", "flex_gqa"} and not is_global:
+        if self.attention_backend == "vllm_fa3":
+            if _vllm_flash_attn is None:
+                raise RuntimeError("vLLM FlashAttention is unavailable")
+            # vLLM's varlen interface accepts native GQA and packed independent
+            # sequences. Keep K/V at one head instead of materializing six copies.
+            q_packed = q.transpose(1, 2).reshape(
+                batch * sequence, cfg.num_heads, cfg.head_dim
+            )
+            k_packed = k.transpose(1, 2).reshape(
+                batch * sequence, cfg.num_kv_heads, cfg.head_dim
+            )
+            v_packed = v.transpose(1, 2).reshape(
+                batch * sequence, cfg.num_kv_heads, cfg.head_dim
+            )
+            cu_seqlens = torch.arange(
+                0,
+                (batch + 1) * sequence,
+                sequence,
+                device=q.device,
+                dtype=torch.int32,
+            )
+            packed_output = _vllm_flash_attn(
+                q_packed,
+                k_packed,
+                v_packed,
+                sequence,
+                cu_seqlens,
+                sequence,
+                cu_seqlens,
+                causal=True,
+                window_size=(None if is_global else [cfg.sliding_window - 1, 0]),
+                fa_version=3,
+            )
+            output = packed_output.reshape(
+                batch, sequence, cfg.num_heads, cfg.head_dim
+            ).transpose(1, 2)
+        elif self.attention_backend in {"flex_expanded", "flex_gqa"} and not is_global:
             assert self.local_block_mask is not None
             output = flex_attention(
                 q,
