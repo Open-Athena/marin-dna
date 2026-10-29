@@ -23,6 +23,7 @@ class Trial:
     notes: str
     timestamp: str
     tokens_per_sequence: int = 8192
+    batch_size: int = 1
 
     @property
     def input_tokens_per_second(self) -> float:
@@ -42,6 +43,7 @@ class Trial:
         correctness_max_abs_error: float,
         notes: str,
         tokens_per_sequence: int = 8192,
+        batch_size: int = 1,
     ) -> "Trial":
         """Create a trial with a stable UTC timestamp."""
         return cls(
@@ -55,6 +57,7 @@ class Trial:
             notes=notes,
             timestamp=datetime.now(UTC).isoformat(),
             tokens_per_sequence=tokens_per_sequence,
+            batch_size=batch_size,
         )
 
 
@@ -66,6 +69,8 @@ def append_trial(path: Path, trial: Trial) -> None:
         raise ValueError("Timing metrics must be positive")
     if trial.tokens_per_sequence <= 0:
         raise ValueError("Tokens per sequence must be positive")
+    if trial.batch_size <= 0:
+        raise ValueError("Batch size must be positive")
     if trial.correctness_max_abs_error < 0:
         raise ValueError("Correctness error cannot be negative")
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -101,4 +106,3 @@ def productive_seconds_since_gain(trials: list[Trial]) -> float:
             break
         elapsed += trial.productive_seconds
     return elapsed
-

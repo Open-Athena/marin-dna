@@ -13,7 +13,12 @@ from exp586_moe.inference.correctness import acgt_parity
 from exp586_moe.inference.fixtures import load_fixture
 from exp586_moe.inference.ledger import Trial, append_trial
 from exp586_moe.inference.tokenizer import encode_dna, reduced_dna_tokenizer
-from exp586_moe.inference.torch_backend import EagerGrugMoE, TorchVariant
+from exp586_moe.inference.torch_backend import (
+    EagerGrugMoE,
+    TorchAttentionBackend,
+    TorchGlobalAttentionBackend,
+    TorchVariant,
+)
 
 
 def benchmark(
@@ -28,15 +33,22 @@ def benchmark(
     iterations: int = 2,
     reference: str | None = None,
     compile_model: bool = False,
+    compile_mode: str = "reduce-overhead",
     tokenizer_variant: str = "wrapper",
+    attention_backend: TorchAttentionBackend = "sdpa_expanded",
+    global_attention_backend: TorchGlobalAttentionBackend = "auto",
+    global_attention_gqa: bool = False,
+    batch_size: int = 1,
 ) -> None:
-    """Run batch-one end-to-end trials, including HF tokenization and host output."""
+    """Measure complete batched scoring, including tokenization and host output."""
     if iterations < 2:
         raise ValueError("Use at least two timed iterations")
     began_productive = time.perf_counter()
     device = torch.device("cuda:0")
     directory = Path(model_dir)
     sequences = load_fixture(Path(fixture))
+    if batch_size < 1 or batch_size > len(sequences):
+        raise ValueError("Batch size must fit the unique-sequence fixture")
     tokenizer = PreTrainedTokenizerFast.from_pretrained(directory)
     if tokenizer_variant not in {"wrapper", "backend", "reduced"}:
         raise ValueError(f"Unknown tokenizer variant: {tokenizer_variant}")
@@ -45,35 +57,55 @@ def benchmark(
         backend_tokenizer = reduced_dna_tokenizer(backend_tokenizer)
     contract = token_contract(tokenizer.backend_tokenizer)
     base_ids = [contract.output_ids[base] for base in "ACGT"]
-    model = EagerGrugMoE(directory, device)
+    model = EagerGrugMoE(
+        directory,
+        device,
+        attention_backend=attention_backend,
+        global_attention_backend=global_attention_backend,
+        global_attention_gqa=global_attention_gqa,
+    )
 
     def forward(token_ids: torch.Tensor) -> torch.Tensor:
         return model(token_ids, base_ids, variant=variant)
 
+    compile_modes = torch._inductor.list_mode_options()
+    if compile_model and compile_mode not in compile_modes:
+        raise ValueError(
+            f"Unknown torch.compile mode {compile_mode!r}; choose from {compile_modes}"
+        )
     model_forward = (
-        torch.compile(forward, fullgraph=True, dynamic=False, mode="reduce-overhead")
+        torch.compile(forward, fullgraph=True, dynamic=False, mode=compile_mode)
         if compile_model
         else forward
     )
 
-    def run(sequence: str) -> np.ndarray:
+    def run(batch: list[str]) -> np.ndarray:
         if tokenizer_variant != "wrapper":
-            ids = encode_dna(backend_tokenizer, sequence)
-            token_ids = torch.from_numpy(ids).to(device).unsqueeze(0)
+            ids = np.stack(
+                [encode_dna(backend_tokenizer, sequence) for sequence in batch]
+            )
+            token_ids = torch.from_numpy(ids).to(device)
         else:
-            encoded = tokenizer(sequence, add_special_tokens=False, return_tensors="pt")
+            encoded = tokenizer(batch, add_special_tokens=False, return_tensors="pt")
             token_ids = encoded["input_ids"].to(device)
         with torch.inference_mode():
             result = model_forward(token_ids)
         return result.float().cpu().numpy()
 
-    run(sequences[0])
+    def batch_at(index: int) -> list[str]:
+        start = (index * batch_size) % len(sequences)
+        return [
+            sequences[(start + offset) % len(sequences)] for offset in range(batch_size)
+        ]
+
+    run(batch_at(0))
     torch.cuda.synchronize()
+    torch.cuda.reset_peak_memory_stats(device)
     latencies: list[float] = []
     representative: np.ndarray | None = None
     for index in range(iterations):
         began = time.perf_counter()
-        result = run(sequences[index % len(sequences)])
+        result = run(batch_at(index))
         torch.cuda.synchronize()
         latencies.append(time.perf_counter() - began)
         if representative is None:
@@ -86,26 +118,23 @@ def benchmark(
     }
     if reference is not None:
         expected = np.load(reference)["logits"]
-        if expected.shape[0] == 1:
-            actual = representative
-            validation_sequences = sequences[:1]
-        elif expected.shape[0] == len(sequences):
-            actual = np.concatenate([run(sequence) for sequence in sequences])
-            validation_sequences = sequences
-        else:
-            raise ValueError("Correctness reference batch differs")
+        if expected.shape[0] < batch_size:
+            raise ValueError("Correctness reference is smaller than the measured batch")
+        actual = representative
+        expected = expected[:batch_size]
+        validation_sequences = sequences[:batch_size]
         parity = acgt_parity(actual, expected, validation_sequences)
         np.savez_compressed(Path(output).with_suffix(".reference.npz"), logits=actual)
     effective_accepted = bool(accepted) and bool(parity["accepted"])
     elapsed = time.perf_counter() - began_productive
     median = float(np.median(latencies))
-    sequences_per_second = 1 / median
+    sequences_per_second = batch_size / median
     tokens_per_sequence = 8192
     payload = {
         "backend": "torch",
         "variant": variant,
         "name": name,
-        "batch_size": 1,
+        "batch_size": batch_size,
         "sequence_length": 8192,
         "iterations": iterations,
         "latency_seconds": latencies,
@@ -117,9 +146,14 @@ def benchmark(
         "parity": parity,
         "accepted": effective_accepted,
         "compiled": compile_model,
+        "compile_mode": compile_mode if compile_model else None,
         "tokenizer_variant": tokenizer_variant,
+        "attention_backend": attention_backend,
+        "global_attention_backend": global_attention_backend,
+        "global_attention_gqa": global_attention_gqa,
         "torch_version": torch.__version__,
         "device": torch.cuda.get_device_name(device),
+        "peak_memory_gib": torch.cuda.max_memory_allocated(device) / 2**30,
     }
     output_path = Path(output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -134,8 +168,15 @@ def benchmark(
             median_latency_seconds=median,
             accepted=effective_accepted,
             correctness_max_abs_error=float(parity["raw_max_abs_error"]),
-            notes=variant,
+            notes=(
+                f"{variant}; compiled={compile_model}; "
+                f"compile_mode={compile_mode if compile_model else None}; "
+                f"tokenizer={tokenizer_variant}; attention={attention_backend}; "
+                f"global_attention={global_attention_backend}; "
+                f"global_gqa={global_attention_gqa}; batch={batch_size}"
+            ),
             tokens_per_sequence=tokens_per_sequence,
+            batch_size=batch_size,
         ),
     )
     print(json.dumps(payload, indent=2))

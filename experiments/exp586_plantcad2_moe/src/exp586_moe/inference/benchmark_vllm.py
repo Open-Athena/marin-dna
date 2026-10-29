@@ -33,7 +33,8 @@ def _install_capture(worker, base_ids: list[int], variant: VllmVariant) -> bool:
         hidden = original_forward(*args, **kwargs)
         tensor = hidden[0] if isinstance(hidden, tuple) else hidden
         if isinstance(tensor, torch.Tensor) and tensor.shape[0] >= 8192:
-            states = tensor[:8192]
+            prompt_tokens = (tensor.shape[0] // 8192) * 8192
+            states = tensor[:prompt_tokens].reshape(-1, 8192, tensor.shape[-1])
             if variant == "full_head":
                 selected = functional.linear(states, self.lm_head.weight)[..., base_ids]
             else:
@@ -54,9 +55,9 @@ def _clear_captures(worker) -> int:
 
 def _save_captures(worker, output: str) -> int:
     captures = worker.model_runner.model._exp586_captures
-    values = np.stack(captures)
+    values = np.concatenate(captures, axis=0)
     np.savez_compressed(output, logits=values)
-    return len(captures)
+    return values.shape[0]
 
 
 def benchmark(
@@ -72,8 +73,10 @@ def benchmark(
     compile_engine: bool = False,
     gpu_memory_utilization: float = 0.2,
     moe_backend: str = "auto",
+    batch_size: int = 1,
+    iterations: int = 8,
 ) -> None:
-    """Run batch-one 8,192-token prefill trials and return dense A/C/G/T logits."""
+    """Measure batched 8,192-token prefills and return dense A/C/G/T logits."""
     os.environ.setdefault("CUDA_VISIBLE_DEVICES", "0")
     os.environ.setdefault("VLLM_WORKER_MULTIPROC_METHOD", "spawn")
     os.environ.setdefault("VLLM_USE_FLASHINFER_SAMPLER", "0")
@@ -86,6 +89,10 @@ def benchmark(
 
     began_productive = time.perf_counter()
     sequences = load_fixture(Path(fixture))
+    if batch_size < 1 or batch_size > len(sequences):
+        raise ValueError("Batch size must fit the unique-sequence fixture")
+    if iterations < 2:
+        raise ValueError("Use at least two timed iterations")
     tokenizer = Tokenizer.from_file(str(Path(model_dir) / "tokenizer.json"))
     if tokenizer_variant == "reduced":
         tokenizer = reduced_dna_tokenizer(tokenizer)
@@ -102,8 +109,8 @@ def benchmark(
         tensor_parallel_size=1,
         enforce_eager=not compile_engine,
         max_model_len=8193,
-        max_num_batched_tokens=8193,
-        max_num_seqs=1,
+        max_num_batched_tokens=batch_size * 8193,
+        max_num_seqs=batch_size,
         gpu_memory_utilization=gpu_memory_utilization,
         enable_prefix_caching=False,
         enable_chunked_prefill=False,
@@ -117,42 +124,54 @@ def benchmark(
         raise RuntimeError(f"Capture hook was not installed: {installed}")
     sampling = SamplingParams(max_tokens=1, temperature=0, ignore_eos=True)
 
-    def run(sequence: str) -> None:
-        token_ids = encode_dna(tokenizer, sequence).tolist()
+    def batch_at(index: int) -> list[str]:
+        start = (index * batch_size) % len(sequences)
+        return [
+            sequences[(start + offset) % len(sequences)] for offset in range(batch_size)
+        ]
+
+    def run(batch: list[str]) -> None:
+        prompts = [
+            {"prompt_token_ids": encode_dna(tokenizer, sequence).tolist()}
+            for sequence in batch
+        ]
         llm.generate(
-            [{"prompt_token_ids": token_ids}],
+            prompts,
             sampling,
             use_tqdm=False,
         )
 
-    run(sequences[0])
+    run(batch_at(0))
     llm.llm_engine.collective_rpc(_clear_captures)
 
     latencies: list[float] = []
-    for sequence in sequences:
+    for index in range(iterations):
         began = time.perf_counter()
-        run(sequence)
+        run(batch_at(index))
         latencies.append(time.perf_counter() - began)
 
     capture_path = str(Path(output).with_suffix(".reference.npz"))
     captured = llm.llm_engine.collective_rpc(_save_captures, args=(capture_path,))
-    if captured != [len(sequences)]:
-        raise RuntimeError(f"Expected {len(sequences)} captures, got {captured}")
-    actual = np.load(capture_path)["logits"]
+    expected_captures = iterations * batch_size
+    if captured != [expected_captures]:
+        raise RuntimeError(f"Expected {expected_captures} captures, got {captured}")
+    actual = np.load(capture_path)["logits"][:batch_size]
     expected = np.load(reference)["logits"]
-    parity = acgt_parity(actual, expected, sequences)
+    if expected.shape[0] < batch_size:
+        raise ValueError("Correctness reference is smaller than the measured batch")
+    parity = acgt_parity(actual, expected[:batch_size], sequences[:batch_size])
 
     elapsed = time.perf_counter() - began_productive
     median = float(np.median(latencies))
-    sequences_per_second = 1 / median
+    sequences_per_second = batch_size / median
     tokens_per_sequence = 8192
     payload = {
         "backend": "vllm",
         "variant": variant,
         "name": name,
-        "batch_size": 1,
+        "batch_size": batch_size,
         "sequence_length": tokens_per_sequence,
-        "iterations": len(sequences),
+        "iterations": iterations,
         "latency_seconds": latencies,
         "median_latency_seconds": median,
         "tokens_per_sequence": tokens_per_sequence,
@@ -180,9 +199,10 @@ def benchmark(
             correctness_max_abs_error=float(parity["raw_max_abs_error"]),
             notes=(
                 f"{variant}; compiled={compile_engine}; tokenizer={tokenizer_variant}; "
-                f"moe={moe_backend}"
+                f"moe={moe_backend}; batch={batch_size}"
             ),
             tokens_per_sequence=tokens_per_sequence,
+            batch_size=batch_size,
         ),
     )
     print(json.dumps(payload, indent=2))
@@ -206,6 +226,8 @@ if __name__ == "__main__":
     )
     parser.add_argument("--compile-engine", action="store_true")
     parser.add_argument("--gpu-memory-utilization", type=float, default=0.2)
+    parser.add_argument("--batch-size", type=int, default=1)
+    parser.add_argument("--iterations", type=int, default=8)
     parser.add_argument(
         "--moe-backend",
         choices=(
@@ -230,4 +252,6 @@ if __name__ == "__main__":
         compile_engine=arguments.compile_engine,
         gpu_memory_utilization=arguments.gpu_memory_utilization,
         moe_backend=arguments.moe_backend,
+        batch_size=arguments.batch_size,
+        iterations=arguments.iterations,
     )

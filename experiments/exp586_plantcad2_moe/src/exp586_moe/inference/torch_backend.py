@@ -8,8 +8,34 @@ from typing import Literal
 import torch
 import torch.nn.functional as F
 from safetensors.torch import load_file
+from torch.nn.attention import SDPBackend, sdpa_kernel
+from torch.nn.attention.flex_attention import (
+    BlockMask,
+    create_block_mask,
+    flex_attention,
+)
 
-TorchVariant = Literal["full_head", "acgt_head", "acgt_grouped_moe"]
+try:
+    from vllm.model_executor.layers.fused_moe.fused_moe import (
+        fused_experts as _vllm_fused_experts,
+    )
+except ImportError:
+    _vllm_fused_experts = None
+
+TorchVariant = Literal[
+    "full_head",
+    "acgt_head",
+    "acgt_grouped_moe",
+    "acgt_vllm_moe",
+]
+TorchMoeBackend = Literal["naive", "grouped", "vllm"]
+TorchAttentionBackend = Literal[
+    "sdpa_expanded",
+    "sdpa_gqa",
+    "flex_expanded",
+    "flex_gqa",
+]
+TorchGlobalAttentionBackend = Literal["auto", "cudnn", "flash", "efficient", "math"]
 
 
 @dataclass(frozen=True)
@@ -148,8 +174,28 @@ def grouped_experts(
 class EagerGrugMoE(torch.nn.Module):
     """Plain PyTorch operations with no vLLM engine, EP, or custom MoE kernel."""
 
-    def __init__(self, directory: Path, device: torch.device) -> None:
+    def __init__(
+        self,
+        directory: Path,
+        device: torch.device,
+        *,
+        attention_backend: TorchAttentionBackend = "sdpa_expanded",
+        global_attention_backend: TorchGlobalAttentionBackend = "auto",
+        global_attention_gqa: bool = False,
+    ) -> None:
         super().__init__()
+        if attention_backend not in {
+            "sdpa_expanded",
+            "sdpa_gqa",
+            "flex_expanded",
+            "flex_gqa",
+        }:
+            raise ValueError(f"Unknown attention backend: {attention_backend}")
+        global_backends = {"auto", "cudnn", "flash", "efficient", "math"}
+        if global_attention_backend not in global_backends:
+            raise ValueError(
+                f"Unknown global attention backend: {global_attention_backend}"
+            )
         self.config = TorchConfig.load(directory)
         weights = load_weights(directory, device)
         self._weight_names: dict[str, str] = {}
@@ -159,11 +205,46 @@ class EagerGrugMoE(torch.nn.Module):
             # AOTAutograd needs stable buffer storage during graph compilation.
             self.register_buffer(buffer_name, value.clone(), persistent=False)
             self._weight_names[name] = buffer_name
+        if _vllm_fused_experts is not None:
+            for layer in range(self.config.num_layers):
+                prefix = f"model.layers.{layer}.mlp.experts"
+                gate = weights[f"{prefix}.gate_proj.weight"]
+                up = weights[f"{prefix}.up_proj.weight"]
+                self.register_buffer(
+                    f"vllm_w1_{layer}",
+                    torch.cat((gate, up), dim=1).contiguous(),
+                    persistent=False,
+                )
         self.device = device
+        self.attention_backend = attention_backend
+        self.global_attention_backend = global_attention_backend
+        self.global_attention_gqa = global_attention_gqa
+        self.flex_kernel_options: dict[str, object] = {}
         positions = torch.arange(8192, device=device)
         self.local_mask = (positions[None, :] <= positions[:, None]) & (
             positions[None, :] >= positions[:, None] - (self.config.sliding_window - 1)
         )
+        self.local_block_mask: BlockMask | None = None
+        if attention_backend in {"flex_expanded", "flex_gqa"}:
+            window = self.config.sliding_window
+
+            def local_mask(
+                _batch: torch.Tensor,
+                _head: torch.Tensor,
+                query: torch.Tensor,
+                key_value: torch.Tensor,
+            ) -> torch.Tensor:
+                return (query >= key_value) & (query - key_value < window)
+
+            self.local_block_mask = create_block_mask(
+                local_mask,
+                B=None,
+                H=None,
+                Q_LEN=8192,
+                KV_LEN=8192,
+                device=str(device),
+                _compile=True,
+            )
 
     def _weight(self, name: str) -> torch.Tensor:
         return self.get_buffer(self._weight_names[name])
@@ -194,7 +275,10 @@ class EagerGrugMoE(torch.nn.Module):
             q = fused_half_rope(q, cfg.rope_theta)
             k = fused_half_rope(k, cfg.rope_theta)
         q = q * cfg.qk_mult
-        if cfg.num_heads != cfg.num_kv_heads:
+        expand_kv = self.attention_backend in {"sdpa_expanded", "flex_expanded"}
+        if is_global and self.global_attention_gqa:
+            expand_kv = False
+        if expand_kv and cfg.num_heads != cfg.num_kv_heads:
             repeat = cfg.num_heads // cfg.num_kv_heads
             k = k[:, :, None].expand(
                 batch, cfg.num_kv_heads, repeat, sequence, cfg.head_dim
@@ -204,13 +288,48 @@ class EagerGrugMoE(torch.nn.Module):
             )
             k = k.reshape(batch, cfg.num_heads, sequence, cfg.head_dim)
             v = v.reshape(batch, cfg.num_heads, sequence, cfg.head_dim)
-        output = F.scaled_dot_product_attention(
-            q,
-            k,
-            v,
-            attn_mask=None if is_global else self.local_mask,
-            is_causal=is_global,
-        )
+            if is_global:
+                # The zero-stride GQA expansion makes SDPA fall back to an unfused
+                # FP32 matmul/softmax path. Materializing only the two global-layer
+                # K/V views lets the Hopper flash-attention kernel consume them.
+                k = k.contiguous()
+                v = v.contiguous()
+        if self.attention_backend in {"flex_expanded", "flex_gqa"} and not is_global:
+            assert self.local_block_mask is not None
+            output = flex_attention(
+                q,
+                k,
+                v,
+                block_mask=self.local_block_mask,
+                enable_gqa=self.attention_backend == "flex_gqa",
+                kernel_options=self.flex_kernel_options,
+            )
+        else:
+            backend_map = {
+                "cudnn": SDPBackend.CUDNN_ATTENTION,
+                "flash": SDPBackend.FLASH_ATTENTION,
+                "efficient": SDPBackend.EFFICIENT_ATTENTION,
+                "math": SDPBackend.MATH,
+            }
+
+            def attention() -> torch.Tensor:
+                return F.scaled_dot_product_attention(
+                    q,
+                    k,
+                    v,
+                    attn_mask=None if is_global else self.local_mask,
+                    is_causal=is_global,
+                    enable_gqa=(
+                        self.attention_backend == "sdpa_gqa"
+                        or (is_global and self.global_attention_gqa)
+                    ),
+                )
+
+            if is_global and self.global_attention_backend != "auto":
+                with sdpa_kernel(backend_map[self.global_attention_backend]):
+                    output = attention()
+            else:
+                output = attention()
         dot = torch.sum(output * v, dim=-1, keepdim=True)
         norm = torch.sum(v * v, dim=-1, keepdim=True)
         output = output - (dot / (norm + 1e-6)) * v
@@ -221,7 +340,13 @@ class EagerGrugMoE(torch.nn.Module):
         output = output.transpose(1, 2).reshape(batch, sequence, cfg.hidden_dim)
         return F.linear(output, self._weight(f"{prefix}.o_proj.weight"))
 
-    def _moe(self, layer: int, x: torch.Tensor, *, grouped: bool) -> torch.Tensor:
+    def _moe(
+        self,
+        layer: int,
+        x: torch.Tensor,
+        *,
+        backend: TorchMoeBackend,
+    ) -> torch.Tensor:
         cfg = self.config
         prefix = f"model.layers.{layer}.mlp"
         flat = x.reshape(-1, cfg.hidden_dim)
@@ -246,7 +371,18 @@ class EagerGrugMoE(torch.nn.Module):
         gate_weights = self._weight(f"{prefix}.experts.gate_proj.weight")
         up_weights = self._weight(f"{prefix}.experts.up_proj.weight")
         down_weights = self._weight(f"{prefix}.experts.down_proj.weight")
-        if grouped:
+        if backend == "vllm":
+            if _vllm_fused_experts is None:
+                raise RuntimeError("The vLLM fused MoE kernel is unavailable")
+            output = _vllm_fused_experts(
+                routed.contiguous(),
+                self.get_buffer(f"vllm_w1_{layer}"),
+                down_weights,
+                combine,
+                selected.to(torch.int32),
+                global_num_experts=cfg.num_experts,
+            )
+        elif backend == "grouped":
             output = grouped_experts(
                 routed,
                 selected,
@@ -255,7 +391,7 @@ class EagerGrugMoE(torch.nn.Module):
                 up_weights,
                 down_weights,
             )
-        else:
+        elif backend == "naive":
             for expert in range(cfg.num_experts):
                 rows, slots = torch.where(selected == expert)
                 if rows.numel() == 0:
@@ -268,6 +404,8 @@ class EagerGrugMoE(torch.nn.Module):
                     expert_output.dtype
                 )
                 output.index_add_(0, rows, weighted)
+        else:
+            raise ValueError(f"Unknown MoE backend: {backend}")
         output = F.linear(output, self._weight(f"{prefix}.latent_up_proj.weight"))
         return output.reshape_as(x)
 
@@ -318,10 +456,13 @@ class EagerGrugMoE(torch.nn.Module):
                     cfg.layer_norm_eps,
                 ),
             )
+            moe_backend: TorchMoeBackend = "naive"
+            if variant == "acgt_grouped_moe":
+                moe_backend = "grouped"
+            elif variant == "acgt_vllm_moe":
+                moe_backend = "vllm"
             mlp = self._moe(
-                layer,
-                mlp_input,
-                grouped=variant == "acgt_grouped_moe",
+                layer, mlp_input, backend=moe_backend
             ) + self._shared_experts(layer, mlp_input)
             hidden = hidden + short_conv(
                 mlp, self._weight(f"{prefix}.sconv_mlp.weight")

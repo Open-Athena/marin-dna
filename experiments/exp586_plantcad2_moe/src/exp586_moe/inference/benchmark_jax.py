@@ -8,6 +8,7 @@ import jax
 import numpy as np
 
 from exp586_moe.data import pretrained_dna_tokenizer
+from exp586_moe.inference.correctness import acgt_parity
 from exp586_moe.inference.fixtures import load_fixture
 from exp586_moe.inference.jax_backend import compile_forward, encode, load_model
 from exp586_moe.inference.ledger import Trial, append_trial
@@ -25,12 +26,15 @@ def benchmark(
     iterations: int = 4,
     reference: str | None = None,
     tokenizer_variant: str = "full",
+    batch_size: int = 1,
 ) -> None:
-    """Run batch-one end-to-end trials, including HF tokenization and host output."""
+    """Measure complete batched scoring, including tokenization and host output."""
     if iterations < 2:
         raise ValueError("Use at least two timed iterations")
     began_productive = time.perf_counter()
     sequences = load_fixture(Path(fixture))
+    if batch_size < 1 or batch_size > len(sequences):
+        raise ValueError("Batch size must fit the unique-sequence fixture")
     tokenizer = pretrained_dna_tokenizer()
     if tokenizer_variant == "reduced":
         tokenizer = reduced_dna_tokenizer(tokenizer)
@@ -39,7 +43,13 @@ def benchmark(
     model, mesh, base_ids = load_model()
     forward = compile_forward(model, mesh, base_ids, variant=variant)  # type: ignore[arg-type]
 
-    warmup_ids = encode(tokenizer, [sequences[0]])
+    def batch_at(index: int) -> list[str]:
+        start = (index * batch_size) % len(sequences)
+        return [
+            sequences[(start + offset) % len(sequences)] for offset in range(batch_size)
+        ]
+
+    warmup_ids = encode(tokenizer, batch_at(0))
     warmup = forward(jax.device_put(warmup_ids))
     jax.block_until_ready(warmup)
     del warmup
@@ -47,9 +57,9 @@ def benchmark(
     latencies: list[float] = []
     representative: np.ndarray | None = None
     for index in range(iterations):
-        sequence = sequences[index % len(sequences)]
+        batch = batch_at(index)
         began = time.perf_counter()
-        token_ids = encode(tokenizer, [sequence])
+        token_ids = encode(tokenizer, batch)
         logits = np.asarray(forward(jax.device_put(token_ids)))
         result = logits[..., base_ids] if variant == "full_head" else logits
         latencies.append(time.perf_counter() - began)
@@ -58,25 +68,32 @@ def benchmark(
         del logits, result
     assert representative is not None
 
-    error = 0.0
+    parity: dict[str, float | bool | int] = {
+        "accepted": True,
+        "raw_max_abs_error": 0.0,
+    }
     if reference is not None:
         expected = np.load(reference)["logits"]
-        if expected.shape != representative.shape:
-            raise ValueError("Correctness reference shape differs")
-        error = float(np.max(np.abs(expected - representative)))
+        if expected.shape[0] < batch_size:
+            raise ValueError("Correctness reference is smaller than the measured batch")
+        parity = acgt_parity(
+            representative,
+            expected[:batch_size],
+            sequences[:batch_size],
+        )
     else:
         reference_path = Path(output).with_suffix(".reference.npz")
         np.savez_compressed(reference_path, logits=representative)
 
     elapsed = time.perf_counter() - began_productive
     median = float(np.median(latencies))
-    sequences_per_second = 1 / median
+    sequences_per_second = batch_size / median
     tokens_per_sequence = 8192
     result_payload = {
         "backend": "jax",
         "variant": variant,
         "name": name,
-        "batch_size": 1,
+        "batch_size": batch_size,
         "sequence_length": 8192,
         "iterations": iterations,
         "latency_seconds": latencies,
@@ -85,7 +102,8 @@ def benchmark(
         "input_tokens_per_second": sequences_per_second * tokens_per_sequence,
         "sequences_per_second": sequences_per_second,
         "productive_seconds": elapsed,
-        "correctness_max_abs_error": error,
+        "parity": parity,
+        "accepted": bool(accepted) and bool(parity["accepted"]),
         "jax_version": jax.__version__,
         "device": jax.devices()[0].device_kind,
         "tokenizer_variant": tokenizer_variant,
@@ -101,10 +119,11 @@ def benchmark(
             productive_seconds=elapsed,
             sequences_per_second=sequences_per_second,
             median_latency_seconds=median,
-            accepted=accepted,
-            correctness_max_abs_error=error,
-            notes=variant,
+            accepted=bool(result_payload["accepted"]),
+            correctness_max_abs_error=float(parity["raw_max_abs_error"]),
+            notes=f"{variant}; tokenizer={tokenizer_variant}; batch={batch_size}",
             tokens_per_sequence=tokens_per_sequence,
+            batch_size=batch_size,
         ),
     )
     print(json.dumps(result_payload, indent=2))

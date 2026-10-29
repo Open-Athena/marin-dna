@@ -48,7 +48,8 @@ def plot_backend(backend: Backend, ledger: Path, output: Path) -> None:
             on_right = elapsed >= 0.7 * max_elapsed
             label = _DISPLAY_NAMES.get(trial.name, trial.name.replace("-", " "))
             axis.annotate(
-                f"{label}\n{value:,.0f} tok/s ({trial.sequences_per_second:.2f} seq/s)",
+                f"{label} [B={trial.batch_size}]\n"
+                f"{value:,.0f} tok/s ({trial.sequences_per_second:.2f} seq/s)",
                 (elapsed / 3600, value),
                 xytext=(-7 if on_right else 7, 7 + 17 * cluster_rank),
                 textcoords="offset points",

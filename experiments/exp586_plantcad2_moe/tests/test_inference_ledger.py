@@ -51,3 +51,18 @@ def test_ledger_rejects_impossible_timing(tmp_path: Path) -> None:
     with pytest.raises(ValueError, match="positive"):
         append_trial(tmp_path / "torch.jsonl", invalid)
 
+
+def test_ledger_records_batch_throughput(tmp_path: Path) -> None:
+    batched = Trial.now(
+        backend="torch",
+        name="batched",
+        productive_seconds=1,
+        sequences_per_second=10,
+        median_latency_seconds=0.4,
+        accepted=True,
+        correctness_max_abs_error=0,
+        notes="test",
+        batch_size=4,
+    )
+    append_trial(tmp_path / "torch.jsonl", batched)
+    assert batched.input_tokens_per_second == 81_920
