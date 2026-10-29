@@ -18,7 +18,6 @@ import jax.numpy as jnp
 from einops import rearrange
 from haliax import Axis
 from haliax.jax_utils import named_call, tree_checkpoint_name
-from haliax.nn import ArrayStacked
 from jax import core, random
 from jax.sharding import NamedSharding, get_abstract_mesh, reshard
 from jax.sharding import PartitionSpec as P
@@ -59,6 +58,7 @@ from levanter.grug.grug_moe import (
 )
 from levanter.grug.loss import BlockSizes, fused_linear_softmax_cross_entropy_loss
 from levanter.grug.sharding import unshard
+from levanter.layers.stacked import ArrayStacked
 from levanter.kernels.triton.short_conv import short_conv
 from levanter.tracker.histogram import Histogram, SummaryStats
 from levanter.utils.activation import ActivationFunctionEnum
