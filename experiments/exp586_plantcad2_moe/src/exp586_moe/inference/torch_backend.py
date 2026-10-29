@@ -356,9 +356,11 @@ class EagerGrugMoE(torch.nn.Module):
             flat, self._weight(f"{prefix}.router.weight").to(flat.dtype)
         ).float()
         biased = router + self._weight(f"{prefix}.router.bias").float()
-        selected = torch.topk(biased, k=cfg.experts_per_token + 1, dim=-1).indices[
-            :, : cfg.experts_per_token
-        ]
+        selected = torch.topk(
+            biased,
+            k=cfg.experts_per_token,
+            dim=-1,
+        ).indices
         combine = torch.sigmoid(torch.gather(router, 1, selected))
         combine = combine * (2.5 / (combine.sum(dim=-1, keepdim=True) + 1e-9))
         routed = F.linear(flat, self._weight(f"{prefix}.latent_down_proj.weight"))

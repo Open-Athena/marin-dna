@@ -2,6 +2,8 @@
 
 import json
 import time
+from concurrent.futures import ThreadPoolExecutor
+from itertools import pairwise
 from pathlib import Path
 from typing import Literal
 
@@ -42,6 +44,7 @@ def benchmark(
     batch_size: int = 1,
     validation_fixture: str | None = None,
     output_transfer_dtype: Literal["float32", "bfloat16"] = "float32",
+    prefetch_tokenization: bool = False,
 ) -> None:
     """Measure complete batched scoring, including tokenization and host output."""
     if iterations < 2:
@@ -85,29 +88,32 @@ def benchmark(
         else forward
     )
 
-    def run(
-        batch: list[str],
-        timing: tuple[list[float], list[float]] | None = None,
-    ) -> np.ndarray:
+    def tokenize(batch: list[str]) -> tuple[torch.Tensor, float]:
         began = time.perf_counter()
         if tokenizer_variant != "wrapper":
             ids = np.stack(
                 [encode_dna(backend_tokenizer, sequence) for sequence in batch]
             )
-            token_ids = torch.from_numpy(ids).to(device)
+            token_ids = torch.from_numpy(ids)
         else:
             encoded = tokenizer(batch, add_special_tokens=False, return_tensors="pt")
-            token_ids = encoded["input_ids"].to(device)
-        tokenized = time.perf_counter()
+            token_ids = encoded["input_ids"]
+        return token_ids, time.perf_counter() - began
+
+    def forward_output(token_ids: torch.Tensor) -> tuple[np.ndarray, float]:
+        began = time.perf_counter()
+        token_ids = token_ids.to(device)
         with torch.inference_mode():
             result = model_forward(token_ids)
         if output_transfer_dtype == "float32":
             output = result.float().cpu().numpy()
         else:
             output = result.to(torch.bfloat16).cpu().float().numpy()
-        if timing is not None:
-            timing[0].append(tokenized - began)
-            timing[1].append(time.perf_counter() - tokenized)
+        return output, time.perf_counter() - began
+
+    def run(batch: list[str]) -> np.ndarray:
+        token_ids, _ = tokenize(batch)
+        output, _ = forward_output(token_ids)
         return output
 
     def batch_at(index: int) -> list[str]:
@@ -122,14 +128,34 @@ def benchmark(
     latencies: list[float] = []
     tokenization_latencies: list[float] = []
     forward_output_latencies: list[float] = []
-    for index in range(iterations):
-        began = time.perf_counter()
-        run(
-            batch_at(index),
-            timing=(tokenization_latencies, forward_output_latencies),
-        )
-        torch.cuda.synchronize()
-        latencies.append(time.perf_counter() - began)
+    pipeline_elapsed: float | None = None
+    if prefetch_tokenization:
+        pipeline_began = time.perf_counter()
+        completion_times: list[float] = []
+        with ThreadPoolExecutor(max_workers=1) as pool:
+            pending = pool.submit(tokenize, batch_at(0))
+            for index in range(iterations):
+                token_ids, tokenization_latency = pending.result()
+                if index + 1 < iterations:
+                    pending = pool.submit(tokenize, batch_at(index + 1))
+                _, forward_output_latency = forward_output(token_ids)
+                torch.cuda.synchronize()
+                completion_times.append(time.perf_counter())
+                tokenization_latencies.append(tokenization_latency)
+                forward_output_latencies.append(forward_output_latency)
+        pipeline_elapsed = time.perf_counter() - pipeline_began
+        latencies = [
+            completed - previous for previous, completed in pairwise(completion_times)
+        ]
+    else:
+        for index in range(iterations):
+            began = time.perf_counter()
+            token_ids, tokenization_latency = tokenize(batch_at(index))
+            _, forward_output_latency = forward_output(token_ids)
+            torch.cuda.synchronize()
+            tokenization_latencies.append(tokenization_latency)
+            forward_output_latencies.append(forward_output_latency)
+            latencies.append(time.perf_counter() - began)
 
     # Correctness always uses the complete fixture so acceptance cannot change
     # merely because a throughput trial used a larger validation sample.
@@ -171,6 +197,12 @@ def benchmark(
         "latency_seconds": latencies,
         "tokenization_latency_seconds": tokenization_latencies,
         "forward_output_latency_seconds": forward_output_latencies,
+        "pipeline_elapsed_seconds": pipeline_elapsed,
+        "pipeline_including_fill_tokens_per_second": (
+            batch_size * iterations * 8192 / pipeline_elapsed
+            if pipeline_elapsed is not None
+            else None
+        ),
         "median_latency_seconds": median,
         "tokens_per_sequence": tokens_per_sequence,
         "input_tokens_per_second": sequences_per_second * tokens_per_sequence,
@@ -188,6 +220,7 @@ def benchmark(
         "device": torch.cuda.get_device_name(device),
         "peak_memory_gib": torch.cuda.max_memory_allocated(device) / 2**30,
         "output_transfer_dtype": output_transfer_dtype,
+        "prefetch_tokenization": prefetch_tokenization,
     }
     output_path = Path(output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -208,7 +241,8 @@ def benchmark(
                 f"tokenizer={tokenizer_variant}; attention={attention_backend}; "
                 f"global_attention={global_attention_backend}; "
                 f"global_gqa={global_attention_gqa}; "
-                f"output_transfer_dtype={output_transfer_dtype}; batch={batch_size}"
+                f"output_transfer_dtype={output_transfer_dtype}; "
+                f"prefetch={prefetch_tokenization}; batch={batch_size}"
             ),
             tokens_per_sequence=tokens_per_sequence,
             batch_size=batch_size,

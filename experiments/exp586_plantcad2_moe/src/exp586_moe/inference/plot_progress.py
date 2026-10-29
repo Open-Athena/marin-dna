@@ -136,7 +136,15 @@ def plot_backend(backend: Backend, ledger: Path, output: Path) -> None:
     previous_best = 0.0
     for trial, _, _ in points:
         value = trial.input_tokens_per_second
-        if trial.accepted and value > previous_best and trial.name in _DISPLAY_NAMES:
+        if (
+            trial.accepted
+            and value > previous_best
+            and (
+                trial.name in _DISPLAY_NAMES
+                or previous_best == 0
+                or value >= previous_best * 1.005
+            )
+        ):
             frontier_trials.append(trial)
         if trial.accepted and value > previous_best:
             previous_best = value
