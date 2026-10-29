@@ -180,16 +180,24 @@ def benchmark(
             sequences[(start + offset) % len(sequences)] for offset in range(batch_size)
         ]
 
-    def run(batch: list[str]) -> None:
+    def run(
+        batch: list[str],
+        timing: tuple[list[float], list[float]] | None = None,
+    ) -> None:
+        began = time.perf_counter()
         prompts = [
             {"prompt_token_ids": encode_dna(tokenizer, sequence).tolist()}
             for sequence in batch
         ]
+        tokenized = time.perf_counter()
         llm.generate(
             prompts,
             sampling,
             use_tqdm=False,
         )
+        if timing is not None:
+            timing[0].append(tokenized - began)
+            timing[1].append(time.perf_counter() - tokenized)
 
     run(batch_at(0))
     llm.llm_engine.collective_rpc(_clear_captures)
@@ -198,9 +206,14 @@ def benchmark(
         raise RuntimeError(f"Peak-memory reset failed: {reset}")
 
     latencies: list[float] = []
+    tokenization_latencies: list[float] = []
+    forward_output_latencies: list[float] = []
     for index in range(iterations):
         began = time.perf_counter()
-        run(batch_at(index))
+        run(
+            batch_at(index),
+            timing=(tokenization_latencies, forward_output_latencies),
+        )
         latencies.append(time.perf_counter() - began)
 
     # Discard timed captures and validate every batch size on the same complete
@@ -236,6 +249,8 @@ def benchmark(
         "sequence_length": tokens_per_sequence,
         "iterations": iterations,
         "latency_seconds": latencies,
+        "tokenization_latency_seconds": tokenization_latencies,
+        "forward_output_latency_seconds": forward_output_latencies,
         "median_latency_seconds": median,
         "tokens_per_sequence": tokens_per_sequence,
         "input_tokens_per_second": sequences_per_second * tokens_per_sequence,

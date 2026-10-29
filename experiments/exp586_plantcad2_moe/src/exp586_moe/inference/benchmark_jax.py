@@ -84,13 +84,19 @@ def benchmark(
     del warmup
 
     latencies: list[float] = []
+    tokenization_latencies: list[float] = []
+    forward_output_latencies: list[float] = []
     for index in range(iterations):
         batch = batch_at(index)
         began = time.perf_counter()
         token_ids = encode(tokenizer, batch)
+        tokenized = time.perf_counter()
         logits = np.asarray(forward(jax.device_put(token_ids)))
         result = logits[..., base_ids] if variant == "full_head" else logits
-        latencies.append(time.perf_counter() - began)
+        completed = time.perf_counter()
+        tokenization_latencies.append(tokenized - began)
+        forward_output_latencies.append(completed - tokenized)
+        latencies.append(completed - began)
         del logits, result
 
     # Use the same complete fixture for every batch-size correctness decision.
@@ -135,6 +141,8 @@ def benchmark(
         "sequence_length": 8192,
         "iterations": iterations,
         "latency_seconds": latencies,
+        "tokenization_latency_seconds": tokenization_latencies,
+        "forward_output_latency_seconds": forward_output_latencies,
         "median_latency_seconds": median,
         "tokens_per_sequence": tokens_per_sequence,
         "input_tokens_per_second": sequences_per_second * tokens_per_sequence,

@@ -67,10 +67,16 @@ def load_model(
             output_ids = jnp.asarray(
                 [contract.output_ids[base] for base in "ACGT"], dtype=jnp.int32
             )
+            compact_embed = model.token_embed.at[input_ids].get(
+                out_sharding=P(None, None)
+            )
+            compact_output = model.output_proj.at[:, output_ids].get(
+                out_sharding=P(None, None)
+            )
             model = eqx.tree_at(
                 lambda tree: (tree.token_embed, tree.output_proj),
                 model,
-                (model.token_embed[input_ids], model.output_proj[:, output_ids]),
+                (compact_embed, compact_output),
             )
             jax.block_until_ready(model)
     base_ids = (

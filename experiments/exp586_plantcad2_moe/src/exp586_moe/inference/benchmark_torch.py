@@ -85,7 +85,11 @@ def benchmark(
         else forward
     )
 
-    def run(batch: list[str]) -> np.ndarray:
+    def run(
+        batch: list[str],
+        timing: tuple[list[float], list[float]] | None = None,
+    ) -> np.ndarray:
+        began = time.perf_counter()
         if tokenizer_variant != "wrapper":
             ids = np.stack(
                 [encode_dna(backend_tokenizer, sequence) for sequence in batch]
@@ -94,11 +98,17 @@ def benchmark(
         else:
             encoded = tokenizer(batch, add_special_tokens=False, return_tensors="pt")
             token_ids = encoded["input_ids"].to(device)
+        tokenized = time.perf_counter()
         with torch.inference_mode():
             result = model_forward(token_ids)
         if output_transfer_dtype == "float32":
-            return result.float().cpu().numpy()
-        return result.to(torch.bfloat16).cpu().float().numpy()
+            output = result.float().cpu().numpy()
+        else:
+            output = result.to(torch.bfloat16).cpu().float().numpy()
+        if timing is not None:
+            timing[0].append(tokenized - began)
+            timing[1].append(time.perf_counter() - tokenized)
+        return output
 
     def batch_at(index: int) -> list[str]:
         start = (index * batch_size) % len(sequences)
@@ -110,9 +120,14 @@ def benchmark(
     torch.cuda.synchronize()
     torch.cuda.reset_peak_memory_stats(device)
     latencies: list[float] = []
+    tokenization_latencies: list[float] = []
+    forward_output_latencies: list[float] = []
     for index in range(iterations):
         began = time.perf_counter()
-        run(batch_at(index))
+        run(
+            batch_at(index),
+            timing=(tokenization_latencies, forward_output_latencies),
+        )
         torch.cuda.synchronize()
         latencies.append(time.perf_counter() - began)
 
@@ -154,6 +169,8 @@ def benchmark(
         "sequence_length": 8192,
         "iterations": iterations,
         "latency_seconds": latencies,
+        "tokenization_latency_seconds": tokenization_latencies,
+        "forward_output_latency_seconds": forward_output_latencies,
         "median_latency_seconds": median,
         "tokens_per_sequence": tokens_per_sequence,
         "input_tokens_per_second": sequences_per_second * tokens_per_sequence,
