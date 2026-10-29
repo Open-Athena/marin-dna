@@ -53,8 +53,8 @@ def plot_backend(backend: Backend, ledger: Path, output: Path) -> None:
     axis = fig.add_subplot(grid[0, 0])
     table_axis = fig.add_subplot(grid[0, 1])
     fig.subplots_adjust(left=0.08, right=0.98, bottom=0.15, top=0.88)
-    accepted = [
-        (hour, value)
+    accepted_points = [
+        (trial, hour, value)
         for (trial, _, _), hour, value in zip(points, hours, measured, strict=True)
         if trial.accepted
     ]
@@ -63,10 +63,10 @@ def plot_backend(backend: Backend, ledger: Path, output: Path) -> None:
         for (trial, _, _), hour, value in zip(points, hours, measured, strict=True)
         if not trial.accepted
     ]
-    if accepted:
+    if accepted_points:
         axis.scatter(
-            [elapsed for elapsed, _ in accepted],
-            [value for _, value in accepted],
+            [hour for _, hour, _ in accepted_points],
+            [value for _, _, value in accepted_points],
             color="#218739",
             s=48,
             zorder=3,
@@ -82,6 +82,37 @@ def plot_backend(backend: Backend, ledger: Path, output: Path) -> None:
             zorder=3,
         )
     axis.step(hours, frontier, where="post", color="#1769e0", linewidth=2.2)
+    if accepted_points:
+        _, start_hour, start_value = accepted_points[0]
+        _, best_hour, best_value = max(accepted_points, key=lambda point: point[2])
+        annotations = (
+            ("Start", start_hour, start_value, (8, -32 if backend == "vllm" else 12)),
+            (
+                "Best valid",
+                best_hour,
+                best_value,
+                (-8, 12 if backend == "vllm" else -32),
+            ),
+        )
+        for label, hour, value, offset in annotations:
+            axis.annotate(
+                f"{label}\n{value:,.0f} tok/s",
+                (hour, value),
+                xytext=offset,
+                textcoords="offset points",
+                ha="right" if offset[0] < 0 else "left",
+                va="bottom" if offset[1] >= 0 else "top",
+                fontsize=8.3,
+                fontweight="bold",
+                bbox={
+                    "boxstyle": "round,pad=0.25",
+                    "facecolor": "white",
+                    "edgecolor": "#218739",
+                    "alpha": 0.92,
+                },
+                arrowprops={"arrowstyle": "-", "color": "#218739", "linewidth": 0.8},
+                zorder=4,
+            )
     frontier_trials = []
     previous_best = 0.0
     for trial, _, _ in points:
