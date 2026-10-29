@@ -26,6 +26,8 @@ _DISPLAY_NAMES = {
     "jax-compact-prefetch-steady-b256": "Increase batch",
     "jax-specialized-topk-b224": "Specialized router top-k",
     "jax-no-router-stats-b128": "Inference-only routing",
+    "jax-latest-fa4-64x128-b128": "Hopper FA4 64×128 tile",
+    "jax-latest-fa4-64x128-b352": "Increase batch",
     "full-vocab-eager-validated": "Full-vocabulary eager",
     "native-grouped-moe": "Grouped MoE kernels",
     "compiled-grouped-moe": "Compile model",
