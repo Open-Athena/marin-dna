@@ -194,6 +194,8 @@ def benchmark(
     minimal_sampling_head: bool = False,
     specialized_topk: bool = False,
     direct_sconv: bool = False,
+    in_process: bool = False,
+    omp_threads: int | None = None,
     results_prefix: str | None = None,
 ) -> None:
     """Measure batched 8,192-token prefills and return dense A/C/G/T logits."""
@@ -201,6 +203,12 @@ def benchmark(
     os.environ.setdefault("VLLM_WORKER_MULTIPROC_METHOD", "spawn")
     os.environ.setdefault("VLLM_USE_FLASHINFER_SAMPLER", "0")
     os.environ.setdefault("VLLM_ALLOW_INSECURE_SERIALIZATION", "1")
+    if in_process:
+        os.environ["VLLM_ENABLE_V1_MULTIPROCESSING"] = "0"
+    if omp_threads is not None:
+        if omp_threads < 1:
+            raise ValueError("omp_threads must be positive")
+        os.environ["OMP_NUM_THREADS"] = str(omp_threads)
     # vLLM reserves one generated token to trigger a standard engine prefill. The
     # model never evaluates position 8192; only the requested 8,192-token prompt.
     os.environ.setdefault("VLLM_ALLOW_LONG_MAX_MODEL_LEN", "1")
@@ -398,6 +406,8 @@ def benchmark(
         "minimal_sampling_head": minimal_sampling_head,
         "specialized_topk": specialized_topk,
         "direct_sconv": direct_sconv,
+        "in_process": in_process,
+        "omp_threads": omp_threads,
         **runtime[0],
     }
     output_path = Path(output)
@@ -424,6 +434,7 @@ def benchmark(
                 f"; tokenizer_batch={tokenizer_batch}; prefetch={prefetch_tokenization}"
                 f"; minimal_sampling_head={minimal_sampling_head}"
                 f"; specialized_topk={specialized_topk}; direct_sconv={direct_sconv}"
+                f"; in_process={in_process}; omp_threads={omp_threads}"
             ),
             tokens_per_sequence=tokens_per_sequence,
             batch_size=batch_size,
@@ -492,6 +503,8 @@ if __name__ == "__main__":
     parser.add_argument("--minimal-sampling-head", action="store_true")
     parser.add_argument("--specialized-topk", action="store_true")
     parser.add_argument("--direct-sconv", action="store_true")
+    parser.add_argument("--in-process", action="store_true")
+    parser.add_argument("--omp-threads", type=int)
     arguments = parser.parse_args()
     benchmark(
         arguments.model_dir,
@@ -518,5 +531,7 @@ if __name__ == "__main__":
         minimal_sampling_head=arguments.minimal_sampling_head,
         specialized_topk=arguments.specialized_topk,
         direct_sconv=arguments.direct_sconv,
+        in_process=arguments.in_process,
+        omp_threads=arguments.omp_threads,
         results_prefix=arguments.results_prefix,
     )
