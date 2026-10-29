@@ -52,7 +52,7 @@ gpu = [
 dev = ["matplotlib>=3.10", "pytest>=8", "ruff", "scipy", "scikit-learn"]
 
 [tool.uv]
-required-version = ">=0.10.3,<0.13"
+required-version = ">=0.10.3,<0.14"
 prerelease = "allow"
 environments = [
     "sys_platform == 'linux' and platform_machine == 'x86_64'",
