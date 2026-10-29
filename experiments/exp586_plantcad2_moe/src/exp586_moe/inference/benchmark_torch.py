@@ -56,6 +56,7 @@ def benchmark(
     specialized_topk: bool = False,
     sconv_backend: TorchSconvBackend = "conv1d",
     tokenizer_batch: bool = False,
+    profile_path: str | None = None,
     results_prefix: str | None = None,
 ) -> None:
     """Measure complete batched scoring, including tokenization and host output."""
@@ -163,33 +164,54 @@ def benchmark(
     tokenization_latencies: list[float] = []
     forward_output_latencies: list[float] = []
     pipeline_elapsed: float | None = None
-    if prefetch_tokenization:
-        pipeline_began = time.perf_counter()
-        completion_times: list[float] = []
-        with ThreadPoolExecutor(max_workers=1) as pool:
-            pending = pool.submit(tokenize, batch_at(0))
+    profiler = (
+        torch.profiler.profile(
+            activities=[
+                torch.profiler.ProfilerActivity.CPU,
+                torch.profiler.ProfilerActivity.CUDA,
+            ],
+            record_shapes=False,
+            profile_memory=False,
+            with_stack=False,
+        )
+        if profile_path is not None
+        else nullcontext()
+    )
+    with profiler as active_profiler:
+        if prefetch_tokenization:
+            pipeline_began = time.perf_counter()
+            completion_times: list[float] = []
+            with ThreadPoolExecutor(max_workers=1) as pool:
+                pending = pool.submit(tokenize, batch_at(0))
+                for index in range(iterations):
+                    token_ids, tokenization_latency = pending.result()
+                    if index + 1 < iterations:
+                        pending = pool.submit(tokenize, batch_at(index + 1))
+                    _, forward_output_latency = forward_output(token_ids)
+                    torch.cuda.synchronize()
+                    completion_times.append(time.perf_counter())
+                    tokenization_latencies.append(tokenization_latency)
+                    forward_output_latencies.append(forward_output_latency)
+                    if profile_path is not None:
+                        active_profiler.step()
+            pipeline_elapsed = time.perf_counter() - pipeline_began
+            latencies = [
+                completed - previous
+                for previous, completed in pairwise(completion_times)
+            ]
+        else:
             for index in range(iterations):
-                token_ids, tokenization_latency = pending.result()
-                if index + 1 < iterations:
-                    pending = pool.submit(tokenize, batch_at(index + 1))
+                began = time.perf_counter()
+                token_ids, tokenization_latency = tokenize(batch_at(index))
                 _, forward_output_latency = forward_output(token_ids)
                 torch.cuda.synchronize()
-                completion_times.append(time.perf_counter())
                 tokenization_latencies.append(tokenization_latency)
                 forward_output_latencies.append(forward_output_latency)
-        pipeline_elapsed = time.perf_counter() - pipeline_began
-        latencies = [
-            completed - previous for previous, completed in pairwise(completion_times)
-        ]
-    else:
-        for index in range(iterations):
-            began = time.perf_counter()
-            token_ids, tokenization_latency = tokenize(batch_at(index))
-            _, forward_output_latency = forward_output(token_ids)
-            torch.cuda.synchronize()
-            tokenization_latencies.append(tokenization_latency)
-            forward_output_latencies.append(forward_output_latency)
-            latencies.append(time.perf_counter() - began)
+                latencies.append(time.perf_counter() - began)
+                if profile_path is not None:
+                    active_profiler.step()
+    if profile_path is not None:
+        active_profiler.export_chrome_trace(profile_path)
 
     # Correctness always uses the complete fixture so acceptance cannot change
     # merely because a throughput trial used a larger validation sample.
@@ -259,6 +281,7 @@ def benchmark(
         "specialized_topk": specialized_topk,
         "sconv_backend": sconv_backend,
         "tokenizer_batch": tokenizer_batch,
+        "profile_path": profile_path,
     }
     output_path = Path(output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
