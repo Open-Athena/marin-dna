@@ -1,0 +1,24 @@
+{
+  "backend": "jax",
+  "variant": "acgt_head",
+  "name": "acgt-output-head",
+  "batch_size": 1,
+  "sequence_length": 8192,
+  "iterations": 8,
+  "latency_seconds": [
+    0.023726249113678932,
+    0.022004643455147743,
+    0.020934611558914185,
+    0.021114876493811607,
+    0.020855916664004326,
+    0.02090524323284626,
+    0.02081511914730072,
+    0.02086925506591797
+  ],
+  "median_latency_seconds": 0.020919927395880222,
+  "sequences_per_second": 47.801313124869196,
+  "productive_seconds": 12.049622045829892,
+  "correctness_max_abs_error": 0.0,
+  "jax_version": "0.11.1",
+  "device": "NVIDIA H100 80GB HBM3"
+}

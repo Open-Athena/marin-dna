@@ -1,0 +1,20 @@
+{
+  "backend": "jax",
+  "variant": "full_head",
+  "name": "full-vocab-head",
+  "batch_size": 1,
+  "sequence_length": 8192,
+  "iterations": 4,
+  "latency_seconds": [
+    1.0405083261430264,
+    1.0943103209137917,
+    1.0450961999595165,
+    1.0890853274613619
+  ],
+  "median_latency_seconds": 1.0670907637104392,
+  "sequences_per_second": 0.9371274065973973,
+  "productive_seconds": 17.47384735196829,
+  "correctness_max_abs_error": 0.0,
+  "jax_version": "0.11.1",
+  "device": "NVIDIA H100 80GB HBM3"
+}
