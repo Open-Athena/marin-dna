@@ -2,6 +2,7 @@
 
 import json
 import time
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import jax
@@ -40,6 +41,7 @@ def benchmark(
     attention_implementation: GrugAttentionImplementation = "gpu_fa4_cute",
     expert_chunks: int = 1,
     output_dtype: JaxOutputDtype = "float32",
+    prefetch_tokenization: bool = False,
 ) -> None:
     """Measure complete batched scoring, including tokenization and host output."""
     if iterations < 2:
@@ -86,18 +88,42 @@ def benchmark(
     latencies: list[float] = []
     tokenization_latencies: list[float] = []
     forward_output_latencies: list[float] = []
-    for index in range(iterations):
-        batch = batch_at(index)
+    pipeline_elapsed: float | None = None
+
+    def timed_encode(batch: list[str]) -> tuple[np.ndarray, float]:
         began = time.perf_counter()
-        token_ids = encode(tokenizer, batch)
-        tokenized = time.perf_counter()
-        logits = np.asarray(forward(jax.device_put(token_ids)))
-        result = logits[..., base_ids] if variant == "full_head" else logits
-        completed = time.perf_counter()
-        tokenization_latencies.append(tokenized - began)
-        forward_output_latencies.append(completed - tokenized)
-        latencies.append(completed - began)
-        del logits, result
+        ids = encode(tokenizer, batch)
+        return ids, time.perf_counter() - began
+
+    if prefetch_tokenization:
+        pipeline_began = time.perf_counter()
+        with ThreadPoolExecutor(max_workers=1) as pool:
+            pending = pool.submit(timed_encode, batch_at(0))
+            for index in range(iterations):
+                token_ids, tokenization_latency = pending.result()
+                if index + 1 < iterations:
+                    pending = pool.submit(timed_encode, batch_at(index + 1))
+                began_forward = time.perf_counter()
+                logits = np.asarray(forward(jax.device_put(token_ids)))
+                result = logits[..., base_ids] if variant == "full_head" else logits
+                forward_output_latencies.append(time.perf_counter() - began_forward)
+                tokenization_latencies.append(tokenization_latency)
+                del logits, result
+        pipeline_elapsed = time.perf_counter() - pipeline_began
+        latencies = [pipeline_elapsed / iterations] * iterations
+    else:
+        for index in range(iterations):
+            batch = batch_at(index)
+            began = time.perf_counter()
+            token_ids = encode(tokenizer, batch)
+            tokenized = time.perf_counter()
+            logits = np.asarray(forward(jax.device_put(token_ids)))
+            result = logits[..., base_ids] if variant == "full_head" else logits
+            completed = time.perf_counter()
+            tokenization_latencies.append(tokenized - began)
+            forward_output_latencies.append(completed - tokenized)
+            latencies.append(completed - began)
+            del logits, result
 
     # Use the same complete fixture for every batch-size correctness decision.
     validation_parts = []
@@ -130,7 +156,11 @@ def benchmark(
 
     elapsed = time.perf_counter() - began_productive
     median = float(np.median(latencies))
-    sequences_per_second = batch_size / median
+    sequences_per_second = (
+        batch_size * iterations / pipeline_elapsed
+        if pipeline_elapsed is not None
+        else batch_size / median
+    )
     tokens_per_sequence = 8192
     memory_stats = jax.devices()[0].memory_stats() or {}
     result_payload = {
@@ -143,6 +173,7 @@ def benchmark(
         "latency_seconds": latencies,
         "tokenization_latency_seconds": tokenization_latencies,
         "forward_output_latency_seconds": forward_output_latencies,
+        "pipeline_elapsed_seconds": pipeline_elapsed,
         "median_latency_seconds": median,
         "tokens_per_sequence": tokens_per_sequence,
         "input_tokens_per_second": sequences_per_second * tokens_per_sequence,
@@ -158,6 +189,7 @@ def benchmark(
         "attention_implementation": attention_implementation,
         "expert_chunks": expert_chunks,
         "output_dtype": output_dtype,
+        "prefetch_tokenization": prefetch_tokenization,
         "peak_memory_gib": memory_stats.get("peak_bytes_in_use", 0) / 2**30,
     }
     output_path = Path(output)
@@ -177,7 +209,8 @@ def benchmark(
                 f"{variant}; tokenizer={tokenizer_variant}; "
                 f"compact_vocab={compact_vocab}; moe={moe_implementation}; "
                 f"attention={attention_implementation}; expert_chunks={expert_chunks}; "
-                f"output_dtype={output_dtype}; batch={batch_size}"
+                f"output_dtype={output_dtype}; prefetch={prefetch_tokenization}; "
+                f"batch={batch_size}"
             ),
             tokens_per_sequence=tokens_per_sequence,
             batch_size=batch_size,
