@@ -176,9 +176,11 @@ class EagerGrugMoE:
         cfg = self.config
         prefix = f"model.layers.{layer}.mlp"
         flat = x.reshape(-1, cfg.hidden_dim)
+        # The Hero router dot has the hidden dtype, then casts to FP32 before
+        # bias, top-k and sigmoid. The accumulation order can change routing.
         router = F.linear(
-            flat.float(), self._weight(f"{prefix}.router.weight").float()
-        ).to(flat.dtype).float()
+            flat, self._weight(f"{prefix}.router.weight").to(flat.dtype)
+        ).float()
         biased = router + self._weight(f"{prefix}.router.bias").float()
         selected = torch.topk(biased, k=cfg.experts_per_token + 1, dim=-1).indices[
             :, : cfg.experts_per_token
@@ -191,7 +193,7 @@ class EagerGrugMoE:
             self._weight(f"{prefix}.latent_norm.weight"),
             cfg.layer_norm_eps,
         )
-        output = torch.zeros_like(routed, dtype=torch.float32)
+        output = torch.zeros_like(routed)
         gate_weights = self._weight(f"{prefix}.experts.gate_proj.weight")
         up_weights = self._weight(f"{prefix}.experts.up_proj.weight")
         down_weights = self._weight(f"{prefix}.experts.down_proj.weight")
@@ -203,10 +205,10 @@ class EagerGrugMoE:
             gate = F.linear(expert_input, gate_weights[expert])
             up = F.linear(expert_input, up_weights[expert])
             expert_output = F.linear(F.silu(gate) * up, down_weights[expert])
-            weighted = expert_output.float() * combine[rows, slots, None]
+            weighted = expert_output * combine[rows, slots, None].to(expert_output.dtype)
             output.index_add_(0, rows, weighted)
         output = F.linear(
-            output.to(routed.dtype), self._weight(f"{prefix}.latent_up_proj.weight")
+            output, self._weight(f"{prefix}.latent_up_proj.weight")
         )
         return output.reshape_as(x)
 

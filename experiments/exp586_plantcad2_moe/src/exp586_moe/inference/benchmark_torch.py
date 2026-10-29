@@ -25,6 +25,7 @@ def benchmark(
     accepted: bool = True,
     iterations: int = 2,
     reference: str | None = None,
+    correctness_atol: float = 0.25,
 ) -> None:
     """Run batch-one end-to-end trials, including HF tokenization and host output."""
     if iterations < 2:
@@ -63,6 +64,7 @@ def benchmark(
         if expected.shape != representative.shape:
             raise ValueError("Correctness reference shape differs")
         error = float(np.max(np.abs(expected - representative)))
+    effective_accepted = accepted and (reference is None or error <= correctness_atol)
     elapsed = time.perf_counter() - began_productive
     median = float(np.median(latencies))
     payload = {
@@ -77,6 +79,8 @@ def benchmark(
         "sequences_per_second": 1 / median,
         "productive_seconds": elapsed,
         "correctness_max_abs_error": error,
+        "correctness_atol": correctness_atol,
+        "accepted": effective_accepted,
         "torch_version": torch.__version__,
         "device": torch.cuda.get_device_name(device),
     }
@@ -91,7 +95,7 @@ def benchmark(
             productive_seconds=elapsed,
             sequences_per_second=1 / median,
             median_latency_seconds=median,
-            accepted=accepted,
+            accepted=effective_accepted,
             correctness_max_abs_error=error,
             notes=variant,
         ),
