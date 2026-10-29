@@ -269,6 +269,7 @@ class EagerGrugMoE(torch.nn.Module):
         fp8_moe: bool = False,
         fp8_moe_ptpc: bool = False,
         compact_input_ids: list[int] | None = None,
+        fused_shared_experts: bool = False,
     ) -> None:
         super().__init__()
         if attention_backend not in {
@@ -350,6 +351,29 @@ class EagerGrugMoE(torch.nn.Module):
                         w1,
                         persistent=False,
                     )
+                if fused_shared_experts:
+                    if self.config.num_shared_experts != 1:
+                        raise ValueError(
+                            "Fused shared-expert inference currently requires one expert"
+                        )
+                    shared = f"model.layers.{layer}.shared_experts.0"
+                    shared_w1 = torch.cat(
+                        (
+                            weights[f"{shared}.gate_proj.weight"],
+                            weights[f"{shared}.up_proj.weight"],
+                        ),
+                        dim=0,
+                    ).unsqueeze(0)
+                    self.register_buffer(
+                        f"vllm_shared_w1_{layer}",
+                        shared_w1.contiguous(),
+                        persistent=False,
+                    )
+                    self.register_buffer(
+                        f"vllm_shared_w2_{layer}",
+                        weights[f"{shared}.down_proj.weight"].unsqueeze(0).contiguous(),
+                        persistent=False,
+                    )
         self.device = device
         self.attention_backend = attention_backend
         self.global_attention_backend = global_attention_backend
@@ -358,6 +382,7 @@ class EagerGrugMoE(torch.nn.Module):
         self.sconv_backend = sconv_backend
         self.fp8_moe = fp8_moe
         self.fp8_moe_ptpc = fp8_moe_ptpc
+        self.fused_shared_experts = fused_shared_experts
         self.flex_kernel_options: dict[str, object] = {}
         positions = torch.arange(8192, device=device)
         self.local_mask = (positions[None, :] <= positions[:, None]) & (
@@ -610,6 +635,24 @@ class EagerGrugMoE(torch.nn.Module):
         return output.reshape_as(x)
 
     def _shared_experts(self, layer: int, x: torch.Tensor) -> torch.Tensor:
+        if self.fused_shared_experts:
+            if _vllm_fused_experts is None:
+                raise RuntimeError("The vLLM fused MoE kernel is unavailable")
+            flat = x.reshape(-1, self.config.hidden_dim).contiguous()
+            combine = torch.ones((flat.shape[0], 1), device=x.device)
+            selected = torch.zeros(
+                (flat.shape[0], 1), device=x.device, dtype=torch.int32
+            )
+            output = _vllm_fused_experts(
+                flat,
+                self.get_buffer(f"vllm_shared_w1_{layer}"),
+                self.get_buffer(f"vllm_shared_w2_{layer}"),
+                combine,
+                selected,
+                global_num_experts=1,
+                quant_config=None,
+            )
+            return output.reshape_as(x)
         output = torch.zeros_like(x)
         for expert in range(self.config.num_shared_experts):
             prefix = f"model.layers.{layer}.shared_experts.{expert}"
