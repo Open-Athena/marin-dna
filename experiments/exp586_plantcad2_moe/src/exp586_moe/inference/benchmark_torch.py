@@ -3,6 +3,7 @@
 import json
 import time
 from pathlib import Path
+from typing import Literal
 
 import numpy as np
 import torch
@@ -40,6 +41,7 @@ def benchmark(
     global_attention_gqa: bool = False,
     batch_size: int = 1,
     validation_fixture: str | None = None,
+    output_transfer_dtype: Literal["float32", "bfloat16"] = "float32",
 ) -> None:
     """Measure complete batched scoring, including tokenization and host output."""
     if iterations < 2:
@@ -94,7 +96,9 @@ def benchmark(
             token_ids = encoded["input_ids"].to(device)
         with torch.inference_mode():
             result = model_forward(token_ids)
-        return result.float().cpu().numpy()
+        if output_transfer_dtype == "float32":
+            return result.float().cpu().numpy()
+        return result.to(torch.bfloat16).cpu().float().numpy()
 
     def batch_at(index: int) -> list[str]:
         start = (index * batch_size) % len(sequences)
@@ -166,6 +170,7 @@ def benchmark(
         "torch_version": torch.__version__,
         "device": torch.cuda.get_device_name(device),
         "peak_memory_gib": torch.cuda.max_memory_allocated(device) / 2**30,
+        "output_transfer_dtype": output_transfer_dtype,
     }
     output_path = Path(output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -185,7 +190,8 @@ def benchmark(
                 f"compile_mode={compile_mode if compile_model else None}; "
                 f"tokenizer={tokenizer_variant}; attention={attention_backend}; "
                 f"global_attention={global_attention_backend}; "
-                f"global_gqa={global_attention_gqa}; batch={batch_size}"
+                f"global_gqa={global_attention_gqa}; "
+                f"output_transfer_dtype={output_transfer_dtype}; batch={batch_size}"
             ),
             tokens_per_sequence=tokens_per_sequence,
             batch_size=batch_size,

@@ -29,6 +29,7 @@ from experiments.grug.moe_hero_ep.model import Transformer
 from experiments.grug.moe_hero_ep.weights import restore_weights
 
 JaxVariant = Literal["full_head", "acgt_head"]
+JaxOutputDtype = Literal["float32", "bfloat16"]
 
 
 def load_model(
@@ -86,9 +87,14 @@ def compile_forward(
     base_ids: list[int],
     *,
     variant: JaxVariant,
+    output_dtype: JaxOutputDtype = "float32",
 ) -> Callable[[jax.Array], jax.Array]:
     """Compile either the deliberately naive full head or exact reduced head."""
     selected = np.asarray(base_ids, dtype=np.int32)
+    resolved_output_dtype = {
+        "float32": jnp.float32,
+        "bfloat16": jnp.bfloat16,
+    }[output_dtype]
 
     if variant == "full_head":
 
@@ -102,7 +108,7 @@ def compile_forward(
                 preferred_element_type=jnp.float32,
                 out_sharding=P(None, None, None),
             )
-            return full
+            return full.astype(resolved_output_dtype)
 
     elif variant == "acgt_head":
 
@@ -110,13 +116,14 @@ def compile_forward(
         def forward(model: Transformer, token_ids: jax.Array) -> jax.Array:
             hidden, _ = model(token_ids, AttentionMask.causal())
             head = model.output_proj.at[:, selected].get(out_sharding=P(None, None))
-            return jnp.einsum(
+            logits = jnp.einsum(
                 "bsh,hv->bsv",
                 hidden,
                 head,
                 preferred_element_type=jnp.float32,
                 out_sharding=P(None, None, None),
             )
+            return logits.astype(resolved_output_dtype)
 
     else:
         raise ValueError(f"Unknown JAX variant: {variant}")

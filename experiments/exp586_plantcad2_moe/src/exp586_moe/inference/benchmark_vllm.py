@@ -19,7 +19,12 @@ VllmVariant = Literal["full_head", "acgt_head"]
 TokenizerVariant = Literal["full", "reduced"]
 
 
-def _install_capture(worker, base_ids: list[int], variant: VllmVariant) -> bool:
+def _install_capture(
+    worker,
+    base_ids: list[int],
+    variant: VllmVariant,
+    output_transfer_dtype: Literal["float32", "bfloat16"],
+) -> bool:
     """Capture all-position logits from real vLLM prompt-prefill forwards."""
     import torch
     from torch.nn import functional
@@ -39,7 +44,11 @@ def _install_capture(worker, base_ids: list[int], variant: VllmVariant) -> bool:
                 selected = functional.linear(states, self.lm_head.weight)[..., base_ids]
             else:
                 selected = functional.linear(states, head)
-            self._exp586_captures.append(selected.float().cpu().numpy())
+            if output_transfer_dtype == "float32":
+                captured = selected.float().cpu().numpy()
+            else:
+                captured = selected.to(torch.bfloat16).cpu().float().numpy()
+            self._exp586_captures.append(captured)
         return hidden
 
     model.forward = types.MethodType(capturing_forward, model)
@@ -99,6 +108,7 @@ def benchmark(
     batch_size: int = 1,
     iterations: int = 8,
     validation_fixture: str | None = None,
+    output_transfer_dtype: Literal["float32", "bfloat16"] = "float32",
 ) -> None:
     """Measure batched 8,192-token prefills and return dense A/C/G/T logits."""
     os.environ.setdefault("CUDA_VISIBLE_DEVICES", "0")
@@ -158,7 +168,7 @@ def benchmark(
         ),
     )
     installed = llm.llm_engine.collective_rpc(
-        _install_capture, args=(resolved_base_ids, variant)
+        _install_capture, args=(resolved_base_ids, variant, output_transfer_dtype)
     )
     if installed != [True]:
         raise RuntimeError(f"Capture hook was not installed: {installed}")
@@ -242,6 +252,7 @@ def benchmark(
         "moe_backend": moe_backend,
         "attention_backend": attention_backend,
         "flash_attention_version": flash_attention_version,
+        "output_transfer_dtype": output_transfer_dtype,
         **runtime[0],
     }
     output_path = Path(output)
@@ -263,7 +274,7 @@ def benchmark(
                 f"kv_cache_memory_bytes={kv_cache_memory_bytes}; "
                 f"moe={moe_backend}; attention={attention_backend or 'auto'}; "
                 f"flash_attention_version={flash_attention_version or 'auto'}; "
-                f"batch={batch_size}"
+                f"output_transfer_dtype={output_transfer_dtype}; batch={batch_size}"
             ),
             tokens_per_sequence=tokens_per_sequence,
             batch_size=batch_size,
@@ -294,6 +305,11 @@ if __name__ == "__main__":
     parser.add_argument("--batch-size", type=int, default=1)
     parser.add_argument("--iterations", type=int, default=8)
     parser.add_argument("--validation-fixture")
+    parser.add_argument(
+        "--output-transfer-dtype",
+        choices=("float32", "bfloat16"),
+        default="float32",
+    )
     parser.add_argument(
         "--moe-backend",
         choices=(
@@ -335,4 +351,5 @@ if __name__ == "__main__":
         batch_size=arguments.batch_size,
         iterations=arguments.iterations,
         validation_fixture=arguments.validation_fixture,
+        output_transfer_dtype=arguments.output_transfer_dtype,
     )

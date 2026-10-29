@@ -12,7 +12,12 @@ from levanter.grug.grug_moe import MoeImplementation
 from exp586_moe.data import pretrained_dna_tokenizer
 from exp586_moe.inference.correctness import acgt_parity
 from exp586_moe.inference.fixtures import load_fixture
-from exp586_moe.inference.jax_backend import compile_forward, encode, load_model
+from exp586_moe.inference.jax_backend import (
+    JaxOutputDtype,
+    compile_forward,
+    encode,
+    load_model,
+)
 from exp586_moe.inference.ledger import Trial, append_trial
 from exp586_moe.inference.tokenizer import compact_dna_tokenizer, reduced_dna_tokenizer
 
@@ -34,6 +39,7 @@ def benchmark(
     moe_implementation: MoeImplementation = "sonic",
     attention_implementation: GrugAttentionImplementation = "gpu_fa4_cute",
     expert_chunks: int = 1,
+    output_dtype: JaxOutputDtype = "float32",
 ) -> None:
     """Measure complete batched scoring, including tokenization and host output."""
     if iterations < 2:
@@ -58,7 +64,13 @@ def benchmark(
         attention_implementation=attention_implementation,
         expert_chunks=expert_chunks,
     )
-    forward = compile_forward(model, mesh, base_ids, variant=variant)  # type: ignore[arg-type]
+    forward = compile_forward(
+        model,
+        mesh,
+        base_ids,
+        variant=variant,  # type: ignore[arg-type]
+        output_dtype=output_dtype,
+    )
 
     def batch_at(index: int) -> list[str]:
         start = (index * batch_size) % len(sequences)
@@ -114,6 +126,7 @@ def benchmark(
     median = float(np.median(latencies))
     sequences_per_second = batch_size / median
     tokens_per_sequence = 8192
+    memory_stats = jax.devices()[0].memory_stats() or {}
     result_payload = {
         "backend": "jax",
         "variant": variant,
@@ -136,6 +149,8 @@ def benchmark(
         "moe_implementation": moe_implementation,
         "attention_implementation": attention_implementation,
         "expert_chunks": expert_chunks,
+        "output_dtype": output_dtype,
+        "peak_memory_gib": memory_stats.get("peak_bytes_in_use", 0) / 2**30,
     }
     output_path = Path(output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -154,7 +169,7 @@ def benchmark(
                 f"{variant}; tokenizer={tokenizer_variant}; "
                 f"compact_vocab={compact_vocab}; moe={moe_implementation}; "
                 f"attention={attention_implementation}; expert_chunks={expert_chunks}; "
-                f"batch={batch_size}"
+                f"output_dtype={output_dtype}; batch={batch_size}"
             ),
             tokens_per_sequence=tokens_per_sequence,
             batch_size=batch_size,
