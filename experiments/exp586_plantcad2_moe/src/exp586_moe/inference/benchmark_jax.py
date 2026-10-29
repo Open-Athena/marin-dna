@@ -49,6 +49,7 @@ def benchmark(
     sconv_max_channel_block: int | None = None,
     sconv_num_warps: int | None = None,
     sconv_rows_per_step: int | None = None,
+    sconv_exact_reference_rounding: bool = True,
     results_prefix: str | None = None,
 ) -> None:
     """Measure complete batched scoring, including tokenization and host output."""
@@ -73,6 +74,7 @@ def benchmark(
         max_channel_block=sconv_max_channel_block,
         num_warps=sconv_num_warps,
         rows_per_step=sconv_rows_per_step,
+        exact_reference_rounding=sconv_exact_reference_rounding,
     )
     model, mesh, base_ids = load_model(
         compact_vocab=compact_vocab,
@@ -215,6 +217,7 @@ def benchmark(
         "sconv_max_channel_block": sconv_max_channel_block,
         "sconv_num_warps": sconv_num_warps,
         "sconv_rows_per_step": sconv_rows_per_step,
+        "sconv_exact_reference_rounding": sconv_exact_reference_rounding,
         "peak_memory_gib": memory_stats.get("peak_bytes_in_use", 0) / 2**30,
     }
     output_path = Path(output)
@@ -236,7 +239,8 @@ def benchmark(
                 f"attention={attention_implementation}; expert_chunks={expert_chunks}; "
                 f"output_dtype={output_dtype}; prefetch={prefetch_tokenization}; "
                 f"sconv=({sconv_chunk},{sconv_max_channel_block},"
-                f"{sconv_num_warps},{sconv_rows_per_step}); "
+                f"{sconv_num_warps},{sconv_rows_per_step},"
+                f"exact={sconv_exact_reference_rounding}); "
                 f"batch={batch_size}"
             ),
             tokens_per_sequence=tokens_per_sequence,

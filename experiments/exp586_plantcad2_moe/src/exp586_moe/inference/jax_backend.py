@@ -1,6 +1,7 @@
 """Native JAX baseline and reduced-head inference paths."""
 
 import dataclasses
+import functools
 import math
 from collections.abc import Callable
 from typing import Literal
@@ -39,14 +40,19 @@ def configure_sconv_tiles(
     max_channel_block: int | None = None,
     num_warps: int | None = None,
     rows_per_step: int | None = None,
+    exact_reference_rounding: bool = True,
 ) -> None:
     """Override Levanter's forward-only short-convolution launch shape.
 
     The library default was tuned on GB200.  This benchmark targets H100, so keep
     the same kernel and expose only its documented launch-shape parameters.
     """
-    if all(
-        value is None for value in (chunk, max_channel_block, num_warps, rows_per_step)
+    if (
+        all(
+            value is None
+            for value in (chunk, max_channel_block, num_warps, rows_per_step)
+        )
+        and exact_reference_rounding
     ):
         return
 
@@ -72,6 +78,13 @@ def configure_sconv_tiles(
     sequence_multiple = math.lcm(updated.chunk, triton_gpu.BACKWARD_TILES.chunk)
     triton_gpu.SEQUENCE_MULTIPLE = sequence_multiple
     short_conv_api.TRITON_SEQUENCE_MULTIPLE = sequence_multiple
+    if not exact_reference_rounding:
+        from experiments.grug.moe_hero_ep import model as hero_model
+
+        hero_model.short_conv = functools.partial(
+            short_conv_api.short_conv,
+            exact_reference_rounding=False,
+        )
 
 
 def load_model(
