@@ -21,11 +21,15 @@ except ModuleNotFoundError:
     router_top_k = None
 
 try:
+    from vllm.model_executor.layers.fused_moe.config import (
+        fp8_w8a8_moe_quant_config as _fp8_w8a8_moe_quant_config,
+    )
     from vllm.model_executor.layers.fused_moe.fused_moe import (
         fused_experts as _vllm_fused_experts,
     )
 except ImportError:
     _vllm_fused_experts = None
+    _fp8_w8a8_moe_quant_config = None
 
 try:
     from vllm.vllm_flash_attn import flash_attn_varlen_func as _vllm_flash_attn
@@ -249,6 +253,7 @@ class EagerGrugMoE(torch.nn.Module):
         global_attention_gqa: bool = False,
         specialized_topk: bool = False,
         sconv_backend: TorchSconvBackend = "conv1d",
+        fp8_moe: bool = False,
     ) -> None:
         super().__init__()
         if attention_backend not in {
@@ -266,8 +271,15 @@ class EagerGrugMoE(torch.nn.Module):
             )
         self.config = TorchConfig.load(directory)
         weights = load_weights(directory, device)
+        routed_expert_weights = {
+            f"model.layers.{layer}.mlp.experts.{projection}_proj.weight"
+            for layer in range(self.config.num_layers)
+            for projection in ("gate", "up", "down")
+        }
         self._weight_names: dict[str, str] = {}
         for index, (name, value) in enumerate(weights.items()):
+            if fp8_moe and name in routed_expert_weights:
+                continue
             buffer_name = f"checkpoint_weight_{index}"
             # Own the storage rather than retaining safetensors' mmap-backed weakref;
             # AOTAutograd needs stable buffer storage during graph compilation.
@@ -278,17 +290,52 @@ class EagerGrugMoE(torch.nn.Module):
                 prefix = f"model.layers.{layer}.mlp.experts"
                 gate = weights[f"{prefix}.gate_proj.weight"]
                 up = weights[f"{prefix}.up_proj.weight"]
-                self.register_buffer(
-                    f"vllm_w1_{layer}",
-                    torch.cat((gate, up), dim=1).contiguous(),
-                    persistent=False,
-                )
+                w1 = torch.cat((gate, up), dim=1).contiguous()
+                if fp8_moe:
+                    if _fp8_w8a8_moe_quant_config is None:
+                        raise RuntimeError("The vLLM FP8 MoE kernel is unavailable")
+                    w2 = weights[f"{prefix}.down_proj.weight"].contiguous()
+                    fp8_dtype = torch.float8_e4m3fn
+                    fp8_max = torch.finfo(fp8_dtype).max
+                    w1_scale = (
+                        w1.float().abs().amax(dim=(1, 2)) / fp8_max
+                    ).clamp_min(torch.finfo(torch.float32).tiny)
+                    w2_scale = (
+                        w2.float().abs().amax(dim=(1, 2)) / fp8_max
+                    ).clamp_min(torch.finfo(torch.float32).tiny)
+                    self.register_buffer(
+                        f"vllm_fp8_w1_{layer}",
+                        (w1.float() / w1_scale[:, None, None]).to(fp8_dtype),
+                        persistent=False,
+                    )
+                    self.register_buffer(
+                        f"vllm_fp8_w2_{layer}",
+                        (w2.float() / w2_scale[:, None, None]).to(fp8_dtype),
+                        persistent=False,
+                    )
+                    self.register_buffer(
+                        f"vllm_fp8_w1_scale_{layer}",
+                        w1_scale,
+                        persistent=False,
+                    )
+                    self.register_buffer(
+                        f"vllm_fp8_w2_scale_{layer}",
+                        w2_scale,
+                        persistent=False,
+                    )
+                else:
+                    self.register_buffer(
+                        f"vllm_w1_{layer}",
+                        w1,
+                        persistent=False,
+                    )
         self.device = device
         self.attention_backend = attention_backend
         self.global_attention_backend = global_attention_backend
         self.global_attention_gqa = global_attention_gqa
         self.specialized_topk = specialized_topk
         self.sconv_backend = sconv_backend
+        self.fp8_moe = fp8_moe
         self.flex_kernel_options: dict[str, object] = {}
         positions = torch.arange(8192, device=device)
         self.local_mask = (positions[None, :] <= positions[:, None]) & (
@@ -481,21 +528,34 @@ class EagerGrugMoE(torch.nn.Module):
             cfg.layer_norm_eps,
         )
         output = torch.zeros_like(routed)
-        gate_weights = self._weight(f"{prefix}.experts.gate_proj.weight")
-        up_weights = self._weight(f"{prefix}.experts.up_proj.weight")
-        down_weights = self._weight(f"{prefix}.experts.down_proj.weight")
         if backend == "vllm":
             if _vllm_fused_experts is None:
                 raise RuntimeError("The vLLM fused MoE kernel is unavailable")
+            if self.fp8_moe:
+                assert _fp8_w8a8_moe_quant_config is not None
+                quant_config = _fp8_w8a8_moe_quant_config(
+                    self.get_buffer(f"vllm_fp8_w1_scale_{layer}"),
+                    self.get_buffer(f"vllm_fp8_w2_scale_{layer}"),
+                )
+                w1 = self.get_buffer(f"vllm_fp8_w1_{layer}")
+                w2 = self.get_buffer(f"vllm_fp8_w2_{layer}")
+            else:
+                quant_config = None
+                w1 = self.get_buffer(f"vllm_w1_{layer}")
+                w2 = self._weight(f"{prefix}.experts.down_proj.weight")
             output = _vllm_fused_experts(
                 routed.contiguous(),
-                self.get_buffer(f"vllm_w1_{layer}"),
-                down_weights,
+                w1,
+                w2,
                 combine,
                 selected.to(torch.int32),
                 global_num_experts=cfg.num_experts,
+                quant_config=quant_config,
             )
         elif backend == "grouped":
+            gate_weights = self._weight(f"{prefix}.experts.gate_proj.weight")
+            up_weights = self._weight(f"{prefix}.experts.up_proj.weight")
+            down_weights = self._weight(f"{prefix}.experts.down_proj.weight")
             output = grouped_experts(
                 routed,
                 selected,
@@ -505,6 +565,9 @@ class EagerGrugMoE(torch.nn.Module):
                 down_weights,
             )
         elif backend == "naive":
+            gate_weights = self._weight(f"{prefix}.experts.gate_proj.weight")
+            up_weights = self._weight(f"{prefix}.experts.up_proj.weight")
+            down_weights = self._weight(f"{prefix}.experts.down_proj.weight")
             for expert in range(cfg.num_experts):
                 rows, slots = torch.where(selected == expert)
                 if rows.numel() == 0:
