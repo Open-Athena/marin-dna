@@ -324,12 +324,12 @@ class EagerGrugMoE(torch.nn.Module):
                     fp8_dtype = torch.float8_e4m3fn
                     fp8_max = torch.finfo(fp8_dtype).max
                     scale_dims = 2 if fp8_moe_ptpc else (1, 2)
-                    w1_scale = (w1.float().abs().amax(dim=scale_dims) / fp8_max).clamp_min(
-                        torch.finfo(torch.float32).tiny
-                    )
-                    w2_scale = (w2.float().abs().amax(dim=scale_dims) / fp8_max).clamp_min(
-                        torch.finfo(torch.float32).tiny
-                    )
+                    w1_scale = (
+                        w1.float().abs().amax(dim=scale_dims) / fp8_max
+                    ).clamp_min(torch.finfo(torch.float32).tiny)
+                    w2_scale = (
+                        w2.float().abs().amax(dim=scale_dims) / fp8_max
+                    ).clamp_min(torch.finfo(torch.float32).tiny)
                     scale_view = (..., None) if fp8_moe_ptpc else (..., None, None)
                     self.register_buffer(
                         f"vllm_fp8_w1_{layer}",
@@ -602,13 +602,10 @@ class EagerGrugMoE(torch.nn.Module):
         half = rotary_dim // 2
         rotated = x[..., :rotary_dim]
         flipped = (
-            rotated.reshape(*rotated.shape[:-1], half, 2)
-            .flip(-1)
-            .reshape_as(rotated)
+            rotated.reshape(*rotated.shape[:-1], half, 2).flip(-1).reshape_as(rotated)
         )
         rotated = (
-            self.rope_cos[None, None] * rotated
-            + self.rope_sin[None, None] * flipped
+            self.rope_cos[None, None] * rotated + self.rope_sin[None, None] * flipped
         ).to(x.dtype)
         return torch.cat((rotated, x[..., rotary_dim:]), dim=-1)
 
@@ -713,9 +710,11 @@ class EagerGrugMoE(torch.nn.Module):
             flat = x.reshape(-1, self.config.hidden_dim).contiguous()
             shared_experts = self.config.num_shared_experts
             combine = torch.ones((flat.shape[0], shared_experts), device=x.device)
-            selected = torch.arange(
-                shared_experts, device=x.device, dtype=torch.int32
-            ).expand(flat.shape[0], -1).contiguous()
+            selected = (
+                torch.arange(shared_experts, device=x.device, dtype=torch.int32)
+                .expand(flat.shape[0], -1)
+                .contiguous()
+            )
             output = _vllm_fused_experts(
                 flat,
                 self.get_buffer(f"vllm_shared_w1_{layer}"),
