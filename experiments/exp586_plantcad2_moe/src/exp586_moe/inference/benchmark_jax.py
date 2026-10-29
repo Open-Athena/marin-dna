@@ -3,6 +3,7 @@
 import json
 import time
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import nullcontext
 from itertools import pairwise
 from pathlib import Path
 
@@ -52,6 +53,7 @@ def benchmark(
     sconv_exact_reference_rounding: bool = True,
     layer_scan_unroll: int = 1,
     remat_layers: bool = True,
+    profile_dir: str | None = None,
     results_prefix: str | None = None,
 ) -> None:
     """Measure complete batched scoring, including tokenization and host output."""
@@ -117,41 +119,46 @@ def benchmark(
         ids = encode(tokenizer, batch)
         return ids, time.perf_counter() - began
 
-    if prefetch_tokenization:
-        pipeline_began = time.perf_counter()
-        completion_times: list[float] = []
-        with ThreadPoolExecutor(max_workers=1) as pool:
-            pending = pool.submit(timed_encode, batch_at(0))
+    profile = (
+        jax.profiler.trace(profile_dir) if profile_dir is not None else nullcontext()
+    )
+    with profile:
+        if prefetch_tokenization:
+            pipeline_began = time.perf_counter()
+            completion_times: list[float] = []
+            with ThreadPoolExecutor(max_workers=1) as pool:
+                pending = pool.submit(timed_encode, batch_at(0))
+                for index in range(iterations):
+                    token_ids, tokenization_latency = pending.result()
+                    if index + 1 < iterations:
+                        pending = pool.submit(timed_encode, batch_at(index + 1))
+                    began_forward = time.perf_counter()
+                    logits = np.asarray(forward(jax.device_put(token_ids)))
+                    result = logits[..., base_ids] if variant == "full_head" else logits
+                    forward_output_latencies.append(time.perf_counter() - began_forward)
+                    completion_times.append(time.perf_counter())
+                    tokenization_latencies.append(tokenization_latency)
+                    del logits, result
+            pipeline_elapsed = time.perf_counter() - pipeline_began
+            # Exclude the one-time pipeline fill. Adjacent output completions measure
+            # sustainable throughput and remain comparable across iteration counts.
+            latencies = [
+                completed - previous
+                for previous, completed in pairwise(completion_times)
+            ]
+        else:
             for index in range(iterations):
-                token_ids, tokenization_latency = pending.result()
-                if index + 1 < iterations:
-                    pending = pool.submit(timed_encode, batch_at(index + 1))
-                began_forward = time.perf_counter()
+                batch = batch_at(index)
+                began = time.perf_counter()
+                token_ids = encode(tokenizer, batch)
+                tokenized = time.perf_counter()
                 logits = np.asarray(forward(jax.device_put(token_ids)))
                 result = logits[..., base_ids] if variant == "full_head" else logits
-                forward_output_latencies.append(time.perf_counter() - began_forward)
-                completion_times.append(time.perf_counter())
-                tokenization_latencies.append(tokenization_latency)
+                completed = time.perf_counter()
+                tokenization_latencies.append(tokenized - began)
+                forward_output_latencies.append(completed - tokenized)
+                latencies.append(completed - began)
                 del logits, result
-        pipeline_elapsed = time.perf_counter() - pipeline_began
-        # Exclude the one-time pipeline fill. Adjacent output completions measure
-        # sustainable throughput and remain comparable across iteration counts.
-        latencies = [
-            completed - previous for previous, completed in pairwise(completion_times)
-        ]
-    else:
-        for index in range(iterations):
-            batch = batch_at(index)
-            began = time.perf_counter()
-            token_ids = encode(tokenizer, batch)
-            tokenized = time.perf_counter()
-            logits = np.asarray(forward(jax.device_put(token_ids)))
-            result = logits[..., base_ids] if variant == "full_head" else logits
-            completed = time.perf_counter()
-            tokenization_latencies.append(tokenized - began)
-            forward_output_latencies.append(completed - tokenized)
-            latencies.append(completed - began)
-            del logits, result
 
     # Use the same complete fixture for every batch-size correctness decision.
     validation_parts = []
@@ -226,6 +233,7 @@ def benchmark(
         "sconv_exact_reference_rounding": sconv_exact_reference_rounding,
         "layer_scan_unroll": layer_scan_unroll,
         "remat_layers": remat_layers,
+        "profile_dir": profile_dir,
         "peak_memory_gib": memory_stats.get("peak_bytes_in_use", 0) / 2**30,
     }
     output_path = Path(output)
