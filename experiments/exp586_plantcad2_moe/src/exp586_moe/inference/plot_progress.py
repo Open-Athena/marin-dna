@@ -4,15 +4,33 @@ import math
 from pathlib import Path
 
 import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
 
 from exp586_moe.inference.ledger import Backend, load_trials, progress
 
 _DISPLAY_NAMES = {
+    "full-vocab-head": "Full-vocabulary head",
+    "acgt-output-head": "A/C/G/T output head",
+    "exact-acgt-head-b2": "Increase batch",
+    "exact-acgt-head-b4": "Increase batch",
+    "exact-acgt-head-b8": "Increase batch",
+    "exact-acgt-head-b16": "Increase batch",
+    "exact-acgt-head-b32": "Increase batch",
+    "full-vocab-eager-validated": "Full-vocabulary eager",
+    "native-grouped-moe": "Grouped MoE kernels",
+    "compiled-grouped-moe": "Compile model",
+    "direct-hf-tokenizer": "Direct HF tokenizer",
+    "reduced-hf-tokenizer": "Reduced HF tokenizer",
+    "compiled-flex-expanded": "Local FlexAttention",
+    "compiled-flex-global-flash": "Global FlashAttention",
+    "compiled-flex-flash-b4": "Increase batch",
+    "compiled-flex-flash-b8": "Increase batch",
     "naive-full-vocab-eager": "Naive eager, full vocabulary",
     "exact-acgt-head-eager": "Project only A/C/G/T",
     "exact-acgt-head-compiled": "+ compile engine",
     "compiled-reduced-tokenizer": "+ reduced HF tokenizer",
     "compiled-triton-bm64": "+ tuned Triton MoE kernel",
+    "compiled-triton-bm64-b4": "Increase batch",
 }
 _BACKEND_NAMES = {"jax": "JAX", "torch": "PyTorch", "vllm": "vLLM"}
 
@@ -32,30 +50,20 @@ def plot_backend(backend: Backend, ledger: Path, output: Path) -> None:
     frontier = [best * trial.tokens_per_sequence for trial, _, best in points]
     colors = ["#218739" if trial.accepted else "#9aa0a6" for trial, _, _ in points]
 
-    fig, axis = plt.subplots(figsize=(8.2, 4.5))
-    fig.subplots_adjust(left=0.11, right=0.98, bottom=0.15, top=0.89)
+    fig = plt.figure(figsize=(11.4, 4.8))
+    grid = fig.add_gridspec(1, 2, width_ratios=(1.8, 1), wspace=0.06)
+    axis = fig.add_subplot(grid[0, 0])
+    table_axis = fig.add_subplot(grid[0, 1])
+    fig.subplots_adjust(left=0.08, right=0.98, bottom=0.15, top=0.88)
     axis.scatter(hours, measured, c=colors, s=48, zorder=3)
     axis.step(hours, frontier, where="post", color="#1769e0", linewidth=2.2)
-    accepted_values: list[float] = []
-    max_elapsed = points[-1][1]
-    for (trial, elapsed, _), value in zip(points, measured, strict=True):
-        if trial.accepted:
-            cluster_rank = sum(
-                abs(previous - value) / max(previous, value) < 0.15
-                for previous in accepted_values
-            )
-            accepted_values.append(value)
-            on_right = elapsed >= 0.7 * max_elapsed
-            label = _DISPLAY_NAMES.get(trial.name, trial.name.replace("-", " "))
-            axis.annotate(
-                f"{label} [B={trial.batch_size}]\n"
-                f"{value:,.0f} tok/s ({trial.sequences_per_second:.2f} seq/s)",
-                (elapsed / 3600, value),
-                xytext=(-7 if on_right else 7, 7 + 17 * cluster_rank),
-                textcoords="offset points",
-                horizontalalignment="right" if on_right else "left",
-                fontsize=8,
-            )
+    frontier_trials = []
+    previous_best = 0.0
+    for trial, _, _ in points:
+        value = trial.input_tokens_per_second
+        if trial.accepted and value > previous_best:
+            frontier_trials.append(trial)
+            previous_best = value
     positive = [value for value in measured if math.isfinite(value) and value > 0]
     if max(positive) / min(positive) >= 20:
         axis.set_yscale("log")
@@ -68,6 +76,45 @@ def plot_backend(backend: Backend, ledger: Path, output: Path) -> None:
         ylabel="Input tokens / second",
     )
     axis.grid(alpha=0.22)
+    axis.legend(
+        handles=(
+            Line2D(
+                [], [], marker="o", linestyle="none", color="#218739", label="Accepted"
+            ),
+            Line2D(
+                [], [], marker="o", linestyle="none", color="#9aa0a6", label="Rejected"
+            ),
+            Line2D([], [], color="#1769e0", linewidth=2.2, label="Accepted frontier"),
+        ),
+        loc="lower right",
+        fontsize=8,
+        framealpha=0.9,
+    )
+    table_axis.axis("off")
+    table_rows = [
+        [
+            _DISPLAY_NAMES.get(trial.name, trial.name.replace("-", " ")),
+            str(trial.batch_size),
+            f"{trial.input_tokens_per_second / 1000:,.1f}k",
+        ]
+        for trial in frontier_trials
+    ]
+    table = table_axis.table(
+        cellText=table_rows,
+        colLabels=("Accepted milestone", "Batch", "tok/s"),
+        colWidths=(0.58, 0.17, 0.25),
+        cellLoc="left",
+        colLoc="left",
+        loc="center",
+    )
+    table.auto_set_font_size(False)
+    table.set_fontsize(8.4)
+    table.scale(1, 1.35)
+    for (row, _column), cell in table.get_celld().items():
+        cell.set_edgecolor("#d9dce1")
+        if row == 0:
+            cell.set_text_props(weight="bold")
+            cell.set_facecolor("#f2f5f9")
     output.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(output, dpi=170)
     plt.close(fig)

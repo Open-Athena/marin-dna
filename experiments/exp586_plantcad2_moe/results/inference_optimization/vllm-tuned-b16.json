@@ -1,0 +1,42 @@
+{
+  "backend": "vllm",
+  "variant": "acgt_head",
+  "name": "compiled-triton-bm64-b16",
+  "batch_size": 16,
+  "sequence_length": 8192,
+  "iterations": 6,
+  "latency_seconds": [
+    0.30316608399152756,
+    0.3046034425497055,
+    0.306903351098299,
+    0.30857956409454346,
+    0.30520064383745193,
+    0.3043621238321066
+  ],
+  "median_latency_seconds": 0.3049020431935787,
+  "tokens_per_sequence": 8192,
+  "input_tokens_per_second": 429882.3275407962,
+  "sequences_per_second": 52.47587006113235,
+  "productive_seconds": 60.051585813984275,
+  "parity": {
+    "positions": 131072,
+    "raw_max_abs_error": 2.2679123878479004,
+    "raw_mean_abs_error": 0.020950891077518463,
+    "raw_p99_abs_error": 0.15210427343845367,
+    "probability_max_abs_error": 0.5210551023483276,
+    "probability_mean_abs_error": 0.0024724481627345085,
+    "probability_p99_abs_error": 0.02577134221792221,
+    "argmax_agreement": 0.9895782470703125,
+    "actual_next_base_nll": 0.9404621124267578,
+    "expected_next_base_nll": 0.9404575824737549,
+    "next_base_nll_abs_delta": 4.5299530029296875e-06,
+    "actual_next_base_accuracy": 0.5762422170675131,
+    "expected_next_base_accuracy": 0.5763871932608962,
+    "next_base_accuracy_abs_delta": 0.00014497619338305068,
+    "accepted": false
+  },
+  "accepted": false,
+  "compiled": true,
+  "tokenizer_variant": "reduced",
+  "moe_backend": "triton"
+}

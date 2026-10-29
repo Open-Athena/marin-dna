@@ -1,0 +1,41 @@
+{
+  "backend": "jax",
+  "variant": "acgt_head",
+  "name": "exact-acgt-head-b32",
+  "batch_size": 32,
+  "sequence_length": 8192,
+  "iterations": 5,
+  "latency_seconds": [
+    0.46632005646824837,
+    0.46412243135273457,
+    0.46730427257716656,
+    0.4764216709882021,
+    0.46279509365558624
+  ],
+  "median_latency_seconds": 0.46632005646824837,
+  "tokens_per_sequence": 8192,
+  "input_tokens_per_second": 562154.6754505708,
+  "sequences_per_second": 68.62239690558725,
+  "productive_seconds": 15.462822910398245,
+  "parity": {
+    "positions": 262144,
+    "raw_max_abs_error": 0.0,
+    "raw_mean_abs_error": 0.0,
+    "raw_p99_abs_error": 0.0,
+    "probability_max_abs_error": 0.0,
+    "probability_mean_abs_error": 0.0,
+    "probability_p99_abs_error": 0.0,
+    "argmax_agreement": 1.0,
+    "actual_next_base_nll": 0.9657922983169556,
+    "expected_next_base_nll": 0.9657922983169556,
+    "next_base_nll_abs_delta": 0.0,
+    "actual_next_base_accuracy": 0.5642320839946282,
+    "expected_next_base_accuracy": 0.5642320839946282,
+    "next_base_accuracy_abs_delta": 0.0,
+    "accepted": true
+  },
+  "accepted": true,
+  "jax_version": "0.11.1",
+  "device": "NVIDIA H100 80GB HBM3",
+  "tokenizer_variant": "full"
+}
