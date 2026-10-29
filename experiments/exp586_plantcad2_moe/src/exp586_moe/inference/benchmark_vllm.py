@@ -75,6 +75,8 @@ def _install_capture(
         from vllm.forward_context import get_forward_context
         from vllm.model_executor.models.grugmoe import GrugMoeShortConv
 
+        from exp586_moe.inference.torch_sconv import short_conv_prefill_out
+
         original_sconv = GrugMoeShortConv.forward_impl
 
         def direct_sconv_prefill(self, hidden_states, output):
@@ -92,14 +94,7 @@ def _install_capture(
             ):
                 return original_sconv(self, hidden_states, output)
             count = metadata.num_prefill_tokens
-            values = hidden_states[:count].view(metadata.num_prefills, 8192, -1)
-            result = values * self.weight[0]
-            for lag in range(1, self.kernel_size):
-                result = result + functional.pad(
-                    values[:, :-lag] * self.weight[lag],
-                    (0, 0, lag, 0),
-                )
-            output[:count].copy_(result.reshape(count, -1))
+            short_conv_prefill_out(hidden_states, self.weight, output, count)
 
         GrugMoeShortConv.forward_impl = direct_sconv_prefill
 
