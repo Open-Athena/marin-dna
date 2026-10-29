@@ -32,6 +32,44 @@ try:
 except ImportError:
     _vllm_flash_attn = None
 
+_compiled_vllm_flash_attn = None
+if _vllm_flash_attn is not None:
+
+    @torch.library.custom_op("exp586_moe::flash_attn_fa3", mutates_args=())
+    def _compiled_vllm_flash_attn(
+        q: torch.Tensor,
+        k: torch.Tensor,
+        v: torch.Tensor,
+        cu_seqlens: torch.Tensor,
+        sequence_length: int,
+        window_left: int,
+    ) -> torch.Tensor:
+        """Expose vLLM FA3 as a functional custom op understood by PT2."""
+        return _vllm_flash_attn(
+            q,
+            k,
+            v,
+            sequence_length,
+            cu_seqlens,
+            sequence_length,
+            cu_seqlens,
+            causal=True,
+            window_size=None if window_left < 0 else [window_left, 0],
+            fa_version=3,
+        )
+
+    @_compiled_vllm_flash_attn.register_fake
+    def _(
+        q: torch.Tensor,
+        _k: torch.Tensor,
+        _v: torch.Tensor,
+        _cu_seqlens: torch.Tensor,
+        _sequence_length: int,
+        _window_left: int,
+    ) -> torch.Tensor:
+        return torch.empty_like(q)
+
+
 TorchVariant = Literal[
     "full_head",
     "acgt_head",
@@ -331,7 +369,7 @@ class EagerGrugMoE(torch.nn.Module):
                 k = k.contiguous()
                 v = v.contiguous()
         if self.attention_backend == "vllm_fa3":
-            if _vllm_flash_attn is None:
+            if _compiled_vllm_flash_attn is None:
                 raise RuntimeError("vLLM FlashAttention is unavailable")
             # vLLM's varlen interface accepts native GQA and packed independent
             # sequences. Keep K/V at one head instead of materializing six copies.
@@ -351,17 +389,13 @@ class EagerGrugMoE(torch.nn.Module):
                 device=q.device,
                 dtype=torch.int32,
             )
-            packed_output = _vllm_flash_attn(
+            packed_output = _compiled_vllm_flash_attn(
                 q_packed,
                 k_packed,
                 v_packed,
-                sequence,
                 cu_seqlens,
                 sequence,
-                cu_seqlens,
-                causal=True,
-                window_size=(None if is_global else [cfg.sliding_window - 1, 0]),
-                fa_version=3,
+                -1 if is_global else cfg.sliding_window - 1,
             )
             output = packed_output.reshape(
                 batch, sequence, cfg.num_heads, cfg.head_dim
