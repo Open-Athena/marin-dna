@@ -63,6 +63,7 @@ def benchmark(
     fp8_moe_ptpc: bool = False,
     cuda_graph: bool = False,
     fused_shared_experts: bool = False,
+    precomputed_rope: bool = False,
     results_prefix: str | None = None,
 ) -> None:
     """Measure complete batched scoring, including tokenization and host output."""
@@ -112,6 +113,7 @@ def benchmark(
             else None
         ),
         fused_shared_experts=fused_shared_experts,
+        precomputed_rope=precomputed_rope,
     )
 
     def forward(token_ids: torch.Tensor) -> torch.Tensor:
@@ -330,6 +332,7 @@ def benchmark(
         "fp8_moe_ptpc": fp8_moe_ptpc,
         "cuda_graph": cuda_graph,
         "fused_shared_experts": fused_shared_experts,
+        "precomputed_rope": precomputed_rope,
     }
     output_path = Path(output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -359,6 +362,7 @@ def benchmark(
                 f"; fp8_moe={fp8_moe}; fp8_moe_ptpc={fp8_moe_ptpc}"
                 f"; cuda_graph={cuda_graph}"
                 f"; fused_shared_experts={fused_shared_experts}"
+                f"; precomputed_rope={precomputed_rope}"
             ),
             tokens_per_sequence=tokens_per_sequence,
             batch_size=batch_size,

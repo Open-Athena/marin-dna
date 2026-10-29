@@ -270,6 +270,7 @@ class EagerGrugMoE(torch.nn.Module):
         fp8_moe_ptpc: bool = False,
         compact_input_ids: list[int] | None = None,
         fused_shared_experts: bool = False,
+        precomputed_rope: bool = False,
     ) -> None:
         super().__init__()
         if attention_backend not in {
@@ -383,6 +384,28 @@ class EagerGrugMoE(torch.nn.Module):
         self.fp8_moe = fp8_moe
         self.fp8_moe_ptpc = fp8_moe_ptpc
         self.fused_shared_experts = fused_shared_experts
+        self.precomputed_rope = precomputed_rope
+        if precomputed_rope:
+            rotary_dim = self.config.head_dim // 2
+            half = rotary_dim // 2
+            positions = torch.arange(8192, device=device, dtype=torch.float32)
+            inv_freq = 1.0 / (
+                self.config.rope_theta
+                ** (torch.arange(half, device=device, dtype=torch.float32) / half)
+            )
+            angles = positions[:, None] * inv_freq[None, :]
+            self.register_buffer(
+                "rope_cos",
+                torch.cos(angles).repeat_interleave(2, dim=-1),
+                persistent=False,
+            )
+            self.register_buffer(
+                "rope_sin",
+                torch.stack((-torch.sin(angles), torch.sin(angles)), dim=-1).reshape(
+                    8192, rotary_dim
+                ),
+                persistent=False,
+            )
         self.flex_kernel_options: dict[str, object] = {}
         positions = torch.arange(8192, device=device)
         self.local_mask = (positions[None, :] <= positions[:, None]) & (
@@ -440,8 +463,12 @@ class EagerGrugMoE(torch.nn.Module):
         q = rms_norm(q, None, 1e-6)
         k = rms_norm(k, None, 1e-6)
         if not is_global:
-            q = fused_half_rope(q, cfg.rope_theta)
-            k = fused_half_rope(k, cfg.rope_theta)
+            if self.precomputed_rope:
+                q = self._precomputed_half_rope(q)
+                k = self._precomputed_half_rope(k)
+            else:
+                q = fused_half_rope(q, cfg.rope_theta)
+                k = fused_half_rope(k, cfg.rope_theta)
         q = q * cfg.qk_mult
         expand_kv = self.attention_backend in {"sdpa_expanded", "flex_expanded"}
         if is_global and self.global_attention_gqa:
@@ -539,6 +566,21 @@ class EagerGrugMoE(torch.nn.Module):
         output = output * gate.transpose(1, 2).unsqueeze(-1).to(output.dtype)
         output = output.transpose(1, 2).reshape(batch, sequence, cfg.hidden_dim)
         return F.linear(output, self._weight(f"{prefix}.o_proj.weight"))
+
+    def _precomputed_half_rope(self, x: torch.Tensor) -> torch.Tensor:
+        rotary_dim = x.shape[-1] // 2
+        half = rotary_dim // 2
+        rotated = x[..., :rotary_dim]
+        flipped = (
+            rotated.reshape(*rotated.shape[:-1], half, 2)
+            .flip(-1)
+            .reshape_as(rotated)
+        )
+        rotated = (
+            self.rope_cos[None, None] * rotated
+            + self.rope_sin[None, None] * flipped
+        ).to(x.dtype)
+        return torch.cat((rotated, x[..., rotary_dim:]), dim=-1)
 
     def _moe(
         self,
