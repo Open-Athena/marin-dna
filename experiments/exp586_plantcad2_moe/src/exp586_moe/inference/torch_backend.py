@@ -715,7 +715,7 @@ class EagerGrugMoE(torch.nn.Module):
             combine = torch.ones((flat.shape[0], shared_experts), device=x.device)
             selected = torch.arange(
                 shared_experts, device=x.device, dtype=torch.int32
-            ).expand(flat.shape[0], -1)
+            ).expand(flat.shape[0], -1).contiguous()
             output = _vllm_fused_experts(
                 flat,
                 self.get_buffer(f"vllm_shared_w1_{layer}"),
