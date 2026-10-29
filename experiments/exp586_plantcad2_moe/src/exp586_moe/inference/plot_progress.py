@@ -48,14 +48,39 @@ def plot_backend(backend: Backend, ledger: Path, output: Path) -> None:
         for trial, _, _ in points
     ]
     frontier = [best * trial.tokens_per_sequence for trial, _, best in points]
-    colors = ["#218739" if trial.accepted else "#9aa0a6" for trial, _, _ in points]
-
     fig = plt.figure(figsize=(11.4, 4.8))
     grid = fig.add_gridspec(1, 2, width_ratios=(1.8, 1), wspace=0.06)
     axis = fig.add_subplot(grid[0, 0])
     table_axis = fig.add_subplot(grid[0, 1])
     fig.subplots_adjust(left=0.08, right=0.98, bottom=0.15, top=0.88)
-    axis.scatter(hours, measured, c=colors, s=48, zorder=3)
+    accepted = [
+        (hour, value)
+        for (trial, _, _), hour, value in zip(points, hours, measured, strict=True)
+        if trial.accepted
+    ]
+    rejected = [
+        (hour, value)
+        for (trial, _, _), hour, value in zip(points, hours, measured, strict=True)
+        if not trial.accepted
+    ]
+    if accepted:
+        axis.scatter(
+            [elapsed for elapsed, _ in accepted],
+            [value for _, value in accepted],
+            color="#218739",
+            s=48,
+            zorder=3,
+        )
+    if rejected:
+        axis.scatter(
+            [elapsed for elapsed, _ in rejected],
+            [value for _, value in rejected],
+            color="#8b5a5a",
+            marker="x",
+            linewidths=1.8,
+            s=56,
+            zorder=3,
+        )
     axis.step(hours, frontier, where="post", color="#1769e0", linewidth=2.2)
     frontier_trials = []
     previous_best = 0.0
@@ -71,20 +96,44 @@ def plot_backend(backend: Backend, ledger: Path, output: Path) -> None:
     else:
         axis.set_ylim(0, max(positive) * 1.55)
     axis.set(
-        title=f"{_BACKEND_NAMES[backend]}: single-H100 inference optimization",
         xlabel="Productive H100 experiment time (hours)",
         ylabel="Input tokens / second",
+    )
+    axis.set_title(
+        f"{_BACKEND_NAMES[backend]}: single-H100 inference optimization", pad=28
+    )
+    axis.text(
+        0.5,
+        1.01,
+        "× candidates are excluded when their output fails the correctness gate",
+        transform=axis.transAxes,
+        ha="center",
+        va="bottom",
+        fontsize=8.5,
+        color="#6b3f3f",
     )
     axis.grid(alpha=0.22)
     axis.legend(
         handles=(
             Line2D(
-                [], [], marker="o", linestyle="none", color="#218739", label="Accepted"
+                [],
+                [],
+                marker="o",
+                linestyle="none",
+                color="#218739",
+                label="Passed correctness",
             ),
             Line2D(
-                [], [], marker="o", linestyle="none", color="#9aa0a6", label="Rejected"
+                [],
+                [],
+                marker="x",
+                linestyle="none",
+                color="#8b5a5a",
+                label="Failed correctness",
             ),
-            Line2D([], [], color="#1769e0", linewidth=2.2, label="Accepted frontier"),
+            Line2D(
+                [], [], color="#1769e0", linewidth=2.2, label="Best valid throughput"
+            ),
         ),
         loc="lower right",
         fontsize=8,
@@ -101,7 +150,7 @@ def plot_backend(backend: Backend, ledger: Path, output: Path) -> None:
     ]
     table = table_axis.table(
         cellText=table_rows,
-        colLabels=("Accepted milestone", "Batch", "tok/s"),
+        colLabels=("Valid speed milestone", "Batch", "tok/s"),
         colWidths=(0.58, 0.17, 0.25),
         cellLoc="left",
         colLoc="left",

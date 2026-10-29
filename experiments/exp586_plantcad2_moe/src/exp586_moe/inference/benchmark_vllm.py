@@ -73,6 +73,8 @@ def benchmark(
     compile_engine: bool = False,
     gpu_memory_utilization: float = 0.2,
     moe_backend: str = "auto",
+    attention_backend: str | None = None,
+    flash_attention_version: int | None = None,
     batch_size: int = 1,
     iterations: int = 8,
 ) -> None:
@@ -116,6 +118,18 @@ def benchmark(
         enable_chunked_prefill=False,
         disable_log_stats=True,
         moe_backend=moe_backend,
+        attention_config=(
+            {
+                **({"backend": attention_backend} if attention_backend else {}),
+                **(
+                    {"flash_attn_version": flash_attention_version}
+                    if flash_attention_version
+                    else {}
+                ),
+            }
+            if attention_backend or flash_attention_version
+            else None
+        ),
     )
     installed = llm.llm_engine.collective_rpc(
         _install_capture, args=(resolved_base_ids, variant)
@@ -183,6 +197,8 @@ def benchmark(
         "compiled": compile_engine,
         "tokenizer_variant": tokenizer_variant,
         "moe_backend": moe_backend,
+        "attention_backend": attention_backend,
+        "flash_attention_version": flash_attention_version,
     }
     output_path = Path(output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -199,7 +215,9 @@ def benchmark(
             correctness_max_abs_error=float(parity["raw_max_abs_error"]),
             notes=(
                 f"{variant}; compiled={compile_engine}; tokenizer={tokenizer_variant}; "
-                f"moe={moe_backend}; batch={batch_size}"
+                f"moe={moe_backend}; attention={attention_backend or 'auto'}; "
+                f"flash_attention_version={flash_attention_version or 'auto'}; "
+                f"batch={batch_size}"
             ),
             tokens_per_sequence=tokens_per_sequence,
             batch_size=batch_size,
@@ -239,6 +257,17 @@ if __name__ == "__main__":
         ),
         default="auto",
     )
+    parser.add_argument(
+        "--attention-backend",
+        choices=(
+            "FLASH_ATTN",
+            "TRITON_ATTN",
+            "TORCH_SDPA",
+            "FLASHINFER",
+            "FLEX_ATTENTION",
+        ),
+    )
+    parser.add_argument("--flash-attention-version", type=int, choices=(2, 3, 4))
     arguments = parser.parse_args()
     benchmark(
         arguments.model_dir,
@@ -252,6 +281,8 @@ if __name__ == "__main__":
         compile_engine=arguments.compile_engine,
         gpu_memory_utilization=arguments.gpu_memory_utilization,
         moe_backend=arguments.moe_backend,
+        attention_backend=arguments.attention_backend,
+        flash_attention_version=arguments.flash_attention_version,
         batch_size=arguments.batch_size,
         iterations=arguments.iterations,
     )
