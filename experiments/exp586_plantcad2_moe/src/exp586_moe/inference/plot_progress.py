@@ -24,6 +24,8 @@ _DISPLAY_NAMES = {
     "jax-compact-prefetch-steady-b128": "Overlap HF tokenization",
     "jax-compact-prefetch-steady-b224": "Increase batch",
     "jax-compact-prefetch-steady-b256": "Increase batch",
+    "jax-specialized-topk-b224": "Specialized router top-k",
+    "jax-no-router-stats-b128": "Inference-only routing",
     "full-vocab-eager-validated": "Full-vocabulary eager",
     "native-grouped-moe": "Grouped MoE kernels",
     "compiled-grouped-moe": "Compile model",
@@ -134,8 +136,9 @@ def plot_backend(backend: Backend, ledger: Path, output: Path) -> None:
     previous_best = 0.0
     for trial, _, _ in points:
         value = trial.input_tokens_per_second
-        if trial.accepted and value > previous_best:
+        if trial.accepted and value > previous_best and trial.name in _DISPLAY_NAMES:
             frontier_trials.append(trial)
+        if trial.accepted and value > previous_best:
             previous_best = value
     positive = [value for value in measured if math.isfinite(value) and value > 0]
     if max(positive) / min(positive) >= 20:
