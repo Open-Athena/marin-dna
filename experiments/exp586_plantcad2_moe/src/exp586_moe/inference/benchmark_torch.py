@@ -3,6 +3,7 @@
 import json
 import time
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import nullcontext
 from itertools import pairwise
 from pathlib import Path
 from typing import Literal
@@ -15,11 +16,17 @@ from exp586_moe.inference.contract import token_contract
 from exp586_moe.inference.correctness import acgt_parity
 from exp586_moe.inference.fixtures import load_fixture
 from exp586_moe.inference.ledger import Trial, append_trial
-from exp586_moe.inference.tokenizer import encode_dna, reduced_dna_tokenizer
+from exp586_moe.inference.results_store import upload_trial_artifacts
+from exp586_moe.inference.tokenizer import (
+    encode_dna,
+    encode_dna_batch,
+    reduced_dna_tokenizer,
+)
 from exp586_moe.inference.torch_backend import (
     EagerGrugMoE,
     TorchAttentionBackend,
     TorchGlobalAttentionBackend,
+    TorchSconvBackend,
     TorchVariant,
 )
 
@@ -45,6 +52,11 @@ def benchmark(
     validation_fixture: str | None = None,
     output_transfer_dtype: Literal["float32", "bfloat16"] = "float32",
     prefetch_tokenization: bool = False,
+    moe_config_json: str | dict[str, int] | None = None,
+    specialized_topk: bool = False,
+    sconv_backend: TorchSconvBackend = "conv1d",
+    tokenizer_batch: bool = False,
+    results_prefix: str | None = None,
 ) -> None:
     """Measure complete batched scoring, including tokenization and host output."""
     if iterations < 2:
@@ -72,6 +84,8 @@ def benchmark(
         attention_backend=attention_backend,
         global_attention_backend=global_attention_backend,
         global_attention_gqa=global_attention_gqa,
+        specialized_topk=specialized_topk,
+        sconv_backend=sconv_backend,
     )
 
     def forward(token_ids: torch.Tensor) -> torch.Tensor:
@@ -87,12 +101,27 @@ def benchmark(
         if compile_model
         else forward
     )
+    moe_config = (
+        json.loads(moe_config_json)
+        if isinstance(moe_config_json, str)
+        else moe_config_json
+    )
+    if moe_config is not None:
+        from vllm.model_executor.layers.fused_moe import (
+            override_config as vllm_override_config,
+        )
+    else:
+        vllm_override_config = None
 
     def tokenize(batch: list[str]) -> tuple[torch.Tensor, float]:
         began = time.perf_counter()
         if tokenizer_variant != "wrapper":
-            ids = np.stack(
-                [encode_dna(backend_tokenizer, sequence) for sequence in batch]
+            ids = (
+                encode_dna_batch(backend_tokenizer, batch)
+                if tokenizer_batch
+                else np.stack(
+                    [encode_dna(backend_tokenizer, sequence) for sequence in batch]
+                )
             )
             token_ids = torch.from_numpy(ids)
         else:
@@ -103,7 +132,12 @@ def benchmark(
     def forward_output(token_ids: torch.Tensor) -> tuple[np.ndarray, float]:
         began = time.perf_counter()
         token_ids = token_ids.to(device)
-        with torch.inference_mode():
+        config_context = (
+            vllm_override_config(moe_config)
+            if vllm_override_config is not None
+            else nullcontext()
+        )
+        with torch.inference_mode(), config_context:
             result = model_forward(token_ids)
         if output_transfer_dtype == "float32":
             output = result.float().cpu().numpy()
@@ -221,6 +255,10 @@ def benchmark(
         "peak_memory_gib": torch.cuda.max_memory_allocated(device) / 2**30,
         "output_transfer_dtype": output_transfer_dtype,
         "prefetch_tokenization": prefetch_tokenization,
+        "moe_config": moe_config,
+        "specialized_topk": specialized_topk,
+        "sconv_backend": sconv_backend,
+        "tokenizer_batch": tokenizer_batch,
     }
     output_path = Path(output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -243,11 +281,17 @@ def benchmark(
                 f"global_gqa={global_attention_gqa}; "
                 f"output_transfer_dtype={output_transfer_dtype}; "
                 f"prefetch={prefetch_tokenization}; batch={batch_size}"
+                f"; moe_config={moe_config}"
+                f"; specialized_topk={specialized_topk}"
+                f"; sconv_backend={sconv_backend}"
+                f"; tokenizer_batch={tokenizer_batch}"
             ),
             tokens_per_sequence=tokens_per_sequence,
             batch_size=batch_size,
         ),
     )
+    if results_prefix is not None:
+        upload_trial_artifacts(output_path, Path(ledger), results_prefix)
     print(json.dumps(payload, indent=2))
 
 

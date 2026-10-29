@@ -4,6 +4,8 @@ import json
 import os
 import time
 import types
+from concurrent.futures import ThreadPoolExecutor
+from itertools import pairwise
 from pathlib import Path
 from typing import Literal
 
@@ -13,7 +15,12 @@ from tokenizers import Tokenizer
 from exp586_moe.inference.correctness import acgt_parity
 from exp586_moe.inference.fixtures import load_fixture
 from exp586_moe.inference.ledger import Trial, append_trial
-from exp586_moe.inference.tokenizer import encode_dna, reduced_dna_tokenizer
+from exp586_moe.inference.results_store import upload_trial_artifacts
+from exp586_moe.inference.tokenizer import (
+    encode_dna,
+    encode_dna_batch,
+    reduced_dna_tokenizer,
+)
 
 VllmVariant = Literal["full_head", "acgt_head"]
 TokenizerVariant = Literal["full", "reduced"]
@@ -109,6 +116,9 @@ def benchmark(
     iterations: int = 8,
     validation_fixture: str | None = None,
     output_transfer_dtype: Literal["float32", "bfloat16"] = "float32",
+    tokenizer_batch: bool = False,
+    prefetch_tokenization: bool = False,
+    results_prefix: str | None = None,
 ) -> None:
     """Measure batched 8,192-token prefills and return dense A/C/G/T logits."""
     os.environ.setdefault("CUDA_VISIBLE_DEVICES", "0")
@@ -180,24 +190,33 @@ def benchmark(
             sequences[(start + offset) % len(sequences)] for offset in range(batch_size)
         ]
 
-    def run(
-        batch: list[str],
-        timing: tuple[list[float], list[float]] | None = None,
-    ) -> None:
+    def tokenize(batch: list[str]) -> tuple[list[dict[str, list[int]]], float]:
         began = time.perf_counter()
-        prompts = [
-            {"prompt_token_ids": encode_dna(tokenizer, sequence).tolist()}
-            for sequence in batch
-        ]
-        tokenized = time.perf_counter()
+        if tokenizer_batch:
+            ids = encode_dna_batch(tokenizer, batch)
+            prompts = [
+                {"prompt_token_ids": sequence_ids.tolist()} for sequence_ids in ids
+            ]
+        else:
+            prompts = [
+                {"prompt_token_ids": encode_dna(tokenizer, sequence).tolist()}
+                for sequence in batch
+            ]
+        return prompts, time.perf_counter() - began
+
+    def forward(prompts: list[dict[str, list[int]]]) -> float:
+        began = time.perf_counter()
         llm.generate(
             prompts,
             sampling,
             use_tqdm=False,
         )
-        if timing is not None:
-            timing[0].append(tokenized - began)
-            timing[1].append(time.perf_counter() - tokenized)
+
+        return time.perf_counter() - began
+
+    def run(batch: list[str]) -> None:
+        prompts, _ = tokenize(batch)
+        forward(prompts)
 
     run(batch_at(0))
     llm.llm_engine.collective_rpc(_clear_captures)
@@ -208,13 +227,32 @@ def benchmark(
     latencies: list[float] = []
     tokenization_latencies: list[float] = []
     forward_output_latencies: list[float] = []
-    for index in range(iterations):
-        began = time.perf_counter()
-        run(
-            batch_at(index),
-            timing=(tokenization_latencies, forward_output_latencies),
-        )
-        latencies.append(time.perf_counter() - began)
+    pipeline_elapsed: float | None = None
+    if prefetch_tokenization:
+        pipeline_began = time.perf_counter()
+        completion_times: list[float] = []
+        with ThreadPoolExecutor(max_workers=1) as pool:
+            pending = pool.submit(tokenize, batch_at(0))
+            for index in range(iterations):
+                prompts, tokenization_latency = pending.result()
+                if index + 1 < iterations:
+                    pending = pool.submit(tokenize, batch_at(index + 1))
+                forward_latency = forward(prompts)
+                completion_times.append(time.perf_counter())
+                tokenization_latencies.append(tokenization_latency)
+                forward_output_latencies.append(forward_latency)
+        pipeline_elapsed = time.perf_counter() - pipeline_began
+        latencies = [
+            completed - previous for previous, completed in pairwise(completion_times)
+        ]
+    else:
+        for index in range(iterations):
+            began = time.perf_counter()
+            prompts, tokenization_latency = tokenize(batch_at(index))
+            forward_latency = forward(prompts)
+            tokenization_latencies.append(tokenization_latency)
+            forward_output_latencies.append(forward_latency)
+            latencies.append(time.perf_counter() - began)
 
     # Discard timed captures and validate every batch size on the same complete
     # fixture. This keeps throughput batch size separate from sample coverage.
@@ -251,6 +289,7 @@ def benchmark(
         "latency_seconds": latencies,
         "tokenization_latency_seconds": tokenization_latencies,
         "forward_output_latency_seconds": forward_output_latencies,
+        "pipeline_elapsed_seconds": pipeline_elapsed,
         "median_latency_seconds": median,
         "tokens_per_sequence": tokens_per_sequence,
         "input_tokens_per_second": sequences_per_second * tokens_per_sequence,
@@ -268,6 +307,8 @@ def benchmark(
         "attention_backend": attention_backend,
         "flash_attention_version": flash_attention_version,
         "output_transfer_dtype": output_transfer_dtype,
+        "tokenizer_batch": tokenizer_batch,
+        "prefetch_tokenization": prefetch_tokenization,
         **runtime[0],
     }
     output_path = Path(output)
@@ -290,11 +331,14 @@ def benchmark(
                 f"moe={moe_backend}; attention={attention_backend or 'auto'}; "
                 f"flash_attention_version={flash_attention_version or 'auto'}; "
                 f"output_transfer_dtype={output_transfer_dtype}; batch={batch_size}"
+                f"; tokenizer_batch={tokenizer_batch}; prefetch={prefetch_tokenization}"
             ),
             tokens_per_sequence=tokens_per_sequence,
             batch_size=batch_size,
         ),
     )
+    if results_prefix is not None:
+        upload_trial_artifacts(output_path, Path(ledger), results_prefix)
     print(json.dumps(payload, indent=2))
 
 
@@ -320,6 +364,7 @@ if __name__ == "__main__":
     parser.add_argument("--batch-size", type=int, default=1)
     parser.add_argument("--iterations", type=int, default=8)
     parser.add_argument("--validation-fixture")
+    parser.add_argument("--results-prefix")
     parser.add_argument(
         "--output-transfer-dtype",
         choices=("float32", "bfloat16"),
@@ -347,6 +392,8 @@ if __name__ == "__main__":
         ),
     )
     parser.add_argument("--flash-attention-version", type=int, choices=(2, 3, 4))
+    parser.add_argument("--tokenizer-batch", action="store_true")
+    parser.add_argument("--prefetch-tokenization", action="store_true")
     arguments = parser.parse_args()
     benchmark(
         arguments.model_dir,
@@ -367,4 +414,7 @@ if __name__ == "__main__":
         iterations=arguments.iterations,
         validation_fixture=arguments.validation_fixture,
         output_transfer_dtype=arguments.output_transfer_dtype,
+        tokenizer_batch=arguments.tokenizer_batch,
+        prefetch_tokenization=arguments.prefetch_tokenization,
+        results_prefix=arguments.results_prefix,
     )

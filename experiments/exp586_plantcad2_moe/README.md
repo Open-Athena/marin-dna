@@ -41,3 +41,17 @@ Every GPU request uses whole eight-H100 nodes at batch priority.
 
 Final PlantCAD2 evaluation follows the appendable workflow in [`exp586_evaluation_operations.md`](exp586_evaluation_operations.md).
 It reuses the exp582 benchmark protocol and historical results while binding every new artifact to an exact exp586 checkpoint, tokenizer, input manifest, and evaluation wheel.
+
+## Optimized single-H100 logits
+
+The maintained example reads one 8,192-base ACGTN sequence per line and writes FP32 NumPy arrays shaped `[batch, 8192, 4]` in A/C/G/T order. It uses only GPU 0 and does not generate tokens.
+
+```bash
+bash tools/create_inference_env.sh
+CUDA_VISIBLE_DEVICES=0 .inference-venv/bin/python examples/optimized_logits.py \
+  --model-dir /path/to/hf-bf16 \
+  --sequences-file /path/to/sequences.txt \
+  --output-dir /path/to/logits
+```
+
+The default batch is the current validated throughput peak and remains configurable with `--batch-size` while the final frontier is measured.

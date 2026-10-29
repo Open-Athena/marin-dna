@@ -10,10 +10,11 @@ from exp586_moe.inference.torch_backend import (
 )
 
 
-def test_short_conv_uses_lag_zero_first() -> None:
+@pytest.mark.parametrize("backend", ["conv1d", "direct"])
+def test_short_conv_uses_lag_zero_first(backend: str) -> None:
     values = torch.tensor([[[1.0], [2.0], [3.0], [4.0]]])
     weights = torch.tensor([[2.0], [3.0]])
-    actual = short_conv(values, weights)
+    actual = short_conv(values, weights, backend=backend)
     assert torch.equal(actual, torch.tensor([[[2.0], [7.0], [12.0], [17.0]]]))
 
 

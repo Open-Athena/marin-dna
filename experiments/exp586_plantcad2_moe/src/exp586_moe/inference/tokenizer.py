@@ -42,3 +42,21 @@ def encode_dna(tokenizer: Tokenizer, sequence: str) -> np.ndarray:
     if ids.shape != (8192,):
         raise ValueError(f"Unexpected token shape: {ids.shape}")
     return ids
+
+
+def encode_dna_batch(tokenizer: Tokenizer, sequences: list[str]) -> np.ndarray:
+    """Encode a batch with the Hugging Face tokenizer's native Rayon path."""
+    validate_sequences(sequences)
+    ids = np.asarray(
+        [
+            encoding.ids
+            for encoding in tokenizer.encode_batch(
+                sequences,
+                add_special_tokens=False,
+            )
+        ],
+        dtype=np.int64,
+    )
+    if ids.shape != (len(sequences), 8192):
+        raise ValueError(f"Unexpected token shape: {ids.shape}")
+    return ids

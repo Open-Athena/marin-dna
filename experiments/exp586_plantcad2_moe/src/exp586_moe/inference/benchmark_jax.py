@@ -21,6 +21,7 @@ from exp586_moe.inference.jax_backend import (
     load_model,
 )
 from exp586_moe.inference.ledger import Trial, append_trial
+from exp586_moe.inference.results_store import upload_trial_artifacts
 from exp586_moe.inference.tokenizer import compact_dna_tokenizer, reduced_dna_tokenizer
 
 
@@ -43,6 +44,7 @@ def benchmark(
     expert_chunks: int = 1,
     output_dtype: JaxOutputDtype = "float32",
     prefetch_tokenization: bool = False,
+    results_prefix: str | None = None,
 ) -> None:
     """Measure complete batched scoring, including tokenization and host output."""
     if iterations < 2:
@@ -224,6 +226,8 @@ def benchmark(
             batch_size=batch_size,
         ),
     )
+    if results_prefix is not None:
+        upload_trial_artifacts(output_path, Path(ledger), results_prefix)
     print(json.dumps(result_payload, indent=2))
 
 

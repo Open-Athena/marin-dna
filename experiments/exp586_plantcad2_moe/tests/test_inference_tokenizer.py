@@ -4,6 +4,7 @@ from tokenizers import Tokenizer, models, normalizers, pre_tokenizers
 from exp586_moe.inference.tokenizer import (
     compact_dna_tokenizer,
     encode_dna,
+    encode_dna_batch,
     reduced_dna_tokenizer,
 )
 
@@ -38,3 +39,13 @@ def test_compact_tokenizer_remaps_acgtn_and_normalizes_case() -> None:
     assert tokenizer.encode("ACGTN").ids == [0, 1, 2, 3, 4]
     assert tokenizer.encode("ACGTN").ids == tokenizer.encode("acgtn").ids
     assert tokenizer.get_vocab_size() == 5
+
+
+def test_batch_encoding_matches_individual_encoding() -> None:
+    tokenizer = reduced_dna_tokenizer(_source_tokenizer())
+    sequences = [("ACGTN" * 1640)[:8192], "N" * 8192]
+
+    expected = np.stack([encode_dna(tokenizer, sequence) for sequence in sequences])
+    actual = encode_dna_batch(tokenizer, sequences)
+
+    np.testing.assert_array_equal(actual, expected)

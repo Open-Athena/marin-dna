@@ -16,6 +16,11 @@ from torch.nn.attention.flex_attention import (
 )
 
 try:
+    from exp586_moe.inference.torch_topk import router_top_k
+except ModuleNotFoundError:
+    router_top_k = None
+
+try:
     from vllm.model_executor.layers.fused_moe.fused_moe import (
         fused_experts as _vllm_fused_experts,
     )
@@ -36,6 +41,7 @@ TorchAttentionBackend = Literal[
     "flex_gqa",
 ]
 TorchGlobalAttentionBackend = Literal["auto", "cudnn", "flash", "efficient", "math"]
+TorchSconvBackend = Literal["conv1d", "direct"]
 
 
 @dataclass(frozen=True)
@@ -107,8 +113,23 @@ def rms_norm(x: torch.Tensor, weight: torch.Tensor | None, eps: float) -> torch.
     return value.to(dtype)
 
 
-def short_conv(x: torch.Tensor, weight: torch.Tensor) -> torch.Tensor:
+def short_conv(
+    x: torch.Tensor,
+    weight: torch.Tensor,
+    *,
+    backend: TorchSconvBackend = "conv1d",
+) -> torch.Tensor:
     """Apply Marin's lag-zero-first depthwise causal convolution."""
+    if backend == "direct":
+        result = x * weight[0]
+        for lag in range(1, weight.shape[0]):
+            result = result + F.pad(
+                x[:, :-lag] * weight[lag],
+                (0, 0, lag, 0),
+            )
+        return result
+    if backend != "conv1d":
+        raise ValueError(f"Unknown short-convolution backend: {backend}")
     channels = x.shape[-1]
     kernel = weight.transpose(0, 1).flip(-1).unsqueeze(1)
     padded = F.pad(x.transpose(1, 2), (weight.shape[0] - 1, 0))
@@ -182,6 +203,8 @@ class EagerGrugMoE(torch.nn.Module):
         attention_backend: TorchAttentionBackend = "sdpa_expanded",
         global_attention_backend: TorchGlobalAttentionBackend = "auto",
         global_attention_gqa: bool = False,
+        specialized_topk: bool = False,
+        sconv_backend: TorchSconvBackend = "conv1d",
     ) -> None:
         super().__init__()
         if attention_backend not in {
@@ -219,6 +242,8 @@ class EagerGrugMoE(torch.nn.Module):
         self.attention_backend = attention_backend
         self.global_attention_backend = global_attention_backend
         self.global_attention_gqa = global_attention_gqa
+        self.specialized_topk = specialized_topk
+        self.sconv_backend = sconv_backend
         self.flex_kernel_options: dict[str, object] = {}
         positions = torch.arange(8192, device=device)
         self.local_mask = (positions[None, :] <= positions[:, None]) & (
@@ -264,7 +289,11 @@ class EagerGrugMoE(torch.nn.Module):
         q = F.linear(x, self._weight(f"{prefix}.q_proj.weight"))
         k = F.linear(x, self._weight(f"{prefix}.k_proj.weight"))
         v = F.linear(x, self._weight(f"{prefix}.v_proj.weight"))
-        k = short_conv(k, self._weight(f"{prefix}.sconv_k.weight"))
+        k = short_conv(
+            k,
+            self._weight(f"{prefix}.sconv_k.weight"),
+            backend=self.sconv_backend,
+        )
         batch, sequence, _ = q.shape
         q = q.view(batch, sequence, cfg.num_heads, cfg.head_dim).transpose(1, 2)
         k = k.view(batch, sequence, cfg.num_kv_heads, cfg.head_dim).transpose(1, 2)
@@ -356,11 +385,16 @@ class EagerGrugMoE(torch.nn.Module):
             flat, self._weight(f"{prefix}.router.weight").to(flat.dtype)
         ).float()
         biased = router + self._weight(f"{prefix}.router.bias").float()
-        selected = torch.topk(
-            biased,
-            k=cfg.experts_per_token,
-            dim=-1,
-        ).indices
+        if self.specialized_topk:
+            if router_top_k is None:
+                raise RuntimeError("The specialized router top-k requires Triton")
+            selected = router_top_k(biased, cfg.experts_per_token)
+        else:
+            selected = torch.topk(
+                biased,
+                k=cfg.experts_per_token,
+                dim=-1,
+            ).indices
         combine = torch.sigmoid(torch.gather(router, 1, selected))
         combine = combine * (2.5 / (combine.sum(dim=-1, keepdim=True) + 1e-9))
         routed = F.linear(flat, self._weight(f"{prefix}.latent_down_proj.weight"))
@@ -448,7 +482,9 @@ class EagerGrugMoE(torch.nn.Module):
             )
             attention = self._attention(layer, attn_input, is_global=is_global)
             hidden = hidden + short_conv(
-                attention, self._weight(f"{prefix}.sconv_attn.weight")
+                attention,
+                self._weight(f"{prefix}.sconv_attn.weight"),
+                backend=self.sconv_backend,
             )
             mlp_input = self._gated_norm(
                 f"{prefix}.mlp_gated_norm",
@@ -467,7 +503,9 @@ class EagerGrugMoE(torch.nn.Module):
                 layer, mlp_input, backend=moe_backend
             ) + self._shared_experts(layer, mlp_input)
             hidden = hidden + short_conv(
-                mlp, self._weight(f"{prefix}.sconv_mlp.weight")
+                mlp,
+                self._weight(f"{prefix}.sconv_mlp.weight"),
+                backend=self.sconv_backend,
             )
         hidden = self._gated_norm(
             "model.final_gated_norm",
