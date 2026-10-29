@@ -31,6 +31,7 @@ def _install_capture(
     base_ids: list[int],
     variant: VllmVariant,
     output_transfer_dtype: Literal["float32", "bfloat16"],
+    minimal_sampling_head: bool,
 ) -> bool:
     """Capture all-position logits from real vLLM prompt-prefill forwards."""
     import torch
@@ -59,6 +60,20 @@ def _install_capture(
         return hidden
 
     model.forward = types.MethodType(capturing_forward, model)
+    if minimal_sampling_head:
+
+        def one_token_logits(self, hidden_states):
+            # LLM.generate needs one valid sampled token to finish each request,
+            # but this benchmark consumes only the all-position A/C/G/T capture
+            # above. A one-column tensor preserves that engine contract without
+            # applying the unused 128,256-column language head to final states.
+            return torch.zeros(
+                (hidden_states.shape[0], 1),
+                device=hidden_states.device,
+                dtype=hidden_states.dtype,
+            )
+
+        model.compute_logits = types.MethodType(one_token_logits, model)
     return True
 
 
@@ -118,6 +133,7 @@ def benchmark(
     output_transfer_dtype: Literal["float32", "bfloat16"] = "float32",
     tokenizer_batch: bool = False,
     prefetch_tokenization: bool = False,
+    minimal_sampling_head: bool = False,
     results_prefix: str | None = None,
 ) -> None:
     """Measure batched 8,192-token prefills and return dense A/C/G/T logits."""
@@ -178,7 +194,13 @@ def benchmark(
         ),
     )
     installed = llm.llm_engine.collective_rpc(
-        _install_capture, args=(resolved_base_ids, variant, output_transfer_dtype)
+        _install_capture,
+        args=(
+            resolved_base_ids,
+            variant,
+            output_transfer_dtype,
+            minimal_sampling_head,
+        ),
     )
     if installed != [True]:
         raise RuntimeError(f"Capture hook was not installed: {installed}")
@@ -309,6 +331,7 @@ def benchmark(
         "output_transfer_dtype": output_transfer_dtype,
         "tokenizer_batch": tokenizer_batch,
         "prefetch_tokenization": prefetch_tokenization,
+        "minimal_sampling_head": minimal_sampling_head,
         **runtime[0],
     }
     output_path = Path(output)
@@ -332,6 +355,7 @@ def benchmark(
                 f"flash_attention_version={flash_attention_version or 'auto'}; "
                 f"output_transfer_dtype={output_transfer_dtype}; batch={batch_size}"
                 f"; tokenizer_batch={tokenizer_batch}; prefetch={prefetch_tokenization}"
+                f"; minimal_sampling_head={minimal_sampling_head}"
             ),
             tokens_per_sequence=tokens_per_sequence,
             batch_size=batch_size,
@@ -394,6 +418,7 @@ if __name__ == "__main__":
     parser.add_argument("--flash-attention-version", type=int, choices=(2, 3, 4))
     parser.add_argument("--tokenizer-batch", action="store_true")
     parser.add_argument("--prefetch-tokenization", action="store_true")
+    parser.add_argument("--minimal-sampling-head", action="store_true")
     arguments = parser.parse_args()
     benchmark(
         arguments.model_dir,
@@ -416,5 +441,6 @@ if __name__ == "__main__":
         output_transfer_dtype=arguments.output_transfer_dtype,
         tokenizer_batch=arguments.tokenizer_batch,
         prefetch_tokenization=arguments.prefetch_tokenization,
+        minimal_sampling_head=arguments.minimal_sampling_head,
         results_prefix=arguments.results_prefix,
     )

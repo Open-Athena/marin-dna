@@ -55,3 +55,9 @@ CUDA_VISIBLE_DEVICES=0 .inference-venv/bin/python examples/optimized_logits.py \
 ```
 
 The default batch is the current validated throughput peak and remains configurable with `--batch-size` while the final frontier is measured.
+The helper defaults to the Torch/vLLM stack used by this example. Native JAX
+benchmarks use a separate compatible kernel environment:
+
+```bash
+bash tools/create_inference_env.sh .jax-inference-venv jax
+```
