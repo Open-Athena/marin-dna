@@ -5,6 +5,7 @@ import os
 import time
 import types
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import nullcontext
 from itertools import pairwise
 from pathlib import Path
 from typing import Literal
@@ -35,6 +36,7 @@ def _install_capture(
     minimal_sampling_head: bool,
     specialized_topk: bool = False,
     direct_sconv: bool = False,
+    moe_config: dict[str, int] | None = None,
 ) -> bool:
     """Capture all-position logits from real vLLM prompt-prefill forwards."""
     import torch
@@ -100,7 +102,14 @@ def _install_capture(
         GrugMoeShortConv.forward_impl = direct_sconv_prefill
 
     def capturing_forward(self, *args, **kwargs):
-        hidden = original_forward(*args, **kwargs)
+        if moe_config is not None:
+            from vllm.model_executor.layers.fused_moe import override_config
+
+            config_context = override_config(moe_config)
+        else:
+            config_context = nullcontext()
+        with config_context:
+            hidden = original_forward(*args, **kwargs)
         tensor = hidden[0] if isinstance(hidden, tuple) else hidden
         if isinstance(tensor, torch.Tensor) and tensor.shape[0] >= 8192:
             prompt_tokens = (tensor.shape[0] // 8192) * 8192
@@ -194,6 +203,7 @@ def benchmark(
     minimal_sampling_head: bool = False,
     specialized_topk: bool = False,
     direct_sconv: bool = False,
+    moe_config_json: str | None = None,
     in_process: bool = False,
     omp_threads: int | None = None,
     results_prefix: str | None = None,
@@ -235,6 +245,7 @@ def benchmark(
     if any(token_id is None for token_id in base_ids):
         raise ValueError("Tokenizer lacks isolated A/C/G/T tokens")
     resolved_base_ids = [int(token_id) for token_id in base_ids]
+    moe_config = json.loads(moe_config_json) if moe_config_json is not None else None
 
     llm = LLM(
         model=model_dir,
@@ -273,6 +284,7 @@ def benchmark(
             minimal_sampling_head,
             specialized_topk,
             direct_sconv,
+            moe_config,
         ),
     )
     if installed != [True]:
@@ -406,6 +418,7 @@ def benchmark(
         "minimal_sampling_head": minimal_sampling_head,
         "specialized_topk": specialized_topk,
         "direct_sconv": direct_sconv,
+        "moe_config": moe_config,
         "in_process": in_process,
         "omp_threads": omp_threads,
         **runtime[0],
@@ -434,6 +447,7 @@ def benchmark(
                 f"; tokenizer_batch={tokenizer_batch}; prefetch={prefetch_tokenization}"
                 f"; minimal_sampling_head={minimal_sampling_head}"
                 f"; specialized_topk={specialized_topk}; direct_sconv={direct_sconv}"
+                f"; moe_config={moe_config}"
                 f"; in_process={in_process}; omp_threads={omp_threads}"
             ),
             tokens_per_sequence=tokens_per_sequence,
@@ -503,6 +517,7 @@ if __name__ == "__main__":
     parser.add_argument("--minimal-sampling-head", action="store_true")
     parser.add_argument("--specialized-topk", action="store_true")
     parser.add_argument("--direct-sconv", action="store_true")
+    parser.add_argument("--moe-config-json")
     parser.add_argument("--in-process", action="store_true")
     parser.add_argument("--omp-threads", type=int)
     arguments = parser.parse_args()
@@ -531,6 +546,7 @@ if __name__ == "__main__":
         minimal_sampling_head=arguments.minimal_sampling_head,
         specialized_topk=arguments.specialized_topk,
         direct_sconv=arguments.direct_sconv,
+        moe_config_json=arguments.moe_config_json,
         in_process=arguments.in_process,
         omp_threads=arguments.omp_threads,
         results_prefix=arguments.results_prefix,
