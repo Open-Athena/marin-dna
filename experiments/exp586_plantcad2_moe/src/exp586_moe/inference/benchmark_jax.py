@@ -18,6 +18,7 @@ from exp586_moe.inference.fixtures import load_fixture
 from exp586_moe.inference.jax_backend import (
     JaxOutputDtype,
     compile_forward,
+    configure_fa4_forward,
     configure_sconv_tiles,
     encode,
     load_model,
@@ -53,6 +54,9 @@ def benchmark(
     sconv_exact_reference_rounding: bool = True,
     layer_scan_unroll: int = 1,
     remat_layers: bool = True,
+    fa4_forward_tile_m: int | None = None,
+    fa4_forward_tile_n: int | None = None,
+    fa4_num_threads: int | None = None,
     profile_dir: str | None = None,
     results_prefix: str | None = None,
 ) -> None:
@@ -81,6 +85,11 @@ def benchmark(
         num_warps=sconv_num_warps,
         rows_per_step=sconv_rows_per_step,
         exact_reference_rounding=sconv_exact_reference_rounding,
+    )
+    configure_fa4_forward(
+        tile_m=fa4_forward_tile_m,
+        tile_n=fa4_forward_tile_n,
+        num_threads=fa4_num_threads,
     )
     model, mesh, base_ids = load_model(
         compact_vocab=compact_vocab,
@@ -233,6 +242,9 @@ def benchmark(
         "sconv_exact_reference_rounding": sconv_exact_reference_rounding,
         "layer_scan_unroll": layer_scan_unroll,
         "remat_layers": remat_layers,
+        "fa4_forward_tile_m": fa4_forward_tile_m,
+        "fa4_forward_tile_n": fa4_forward_tile_n,
+        "fa4_num_threads": fa4_num_threads,
         "profile_dir": profile_dir,
         "peak_memory_gib": memory_stats.get("peak_bytes_in_use", 0) / 2**30,
     }
@@ -258,6 +270,8 @@ def benchmark(
                 f"{sconv_num_warps},{sconv_rows_per_step},"
                 f"exact={sconv_exact_reference_rounding}); "
                 f"scan_unroll={layer_scan_unroll}; remat={remat_layers}; "
+                f"fa4=({fa4_forward_tile_m},{fa4_forward_tile_n},"
+                f"threads={fa4_num_threads}); "
                 f"batch={batch_size}"
             ),
             tokens_per_sequence=tokens_per_sequence,

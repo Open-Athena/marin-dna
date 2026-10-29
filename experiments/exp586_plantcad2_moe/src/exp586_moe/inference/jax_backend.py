@@ -87,6 +87,37 @@ def configure_sconv_tiles(
         )
 
 
+def configure_fa4_forward(
+    *,
+    tile_m: int | None = None,
+    tile_n: int | None = None,
+    num_threads: int | None = None,
+) -> None:
+    """Override the Hopper FA4 forward launch shape for this process."""
+    if tile_m is None and tile_n is None and num_threads is None:
+        return
+    if (tile_m is None) != (tile_n is None):
+        raise ValueError("FA4 tile_m and tile_n must be specified together")
+    tile = None
+    if tile_m is not None:
+        assert tile_n is not None
+        tile = (tile_m, tile_n)
+
+    from levanter.grug.attention import _fa4_cute
+
+    original = _fa4_cute._segmented_kernel_config
+
+    def configured(head_dim: int):
+        config = original(head_dim)
+        return dataclasses.replace(
+            config,
+            forward_tile=config.forward_tile if tile is None else tile,
+            num_threads=config.num_threads if num_threads is None else num_threads,
+        )
+
+    _fa4_cute._segmented_kernel_config = configured
+
+
 def load_model(
     *,
     compact_vocab: bool = False,
