@@ -42,6 +42,8 @@ _DISPLAY_NAMES = {
     "torch-prefetch-topk8-b224": "Tokenizer pipeline",
     "torch-special-topk-b128": "Specialized router top-k",
     "torch-topk-direct-sconv-b128": "Direct short convolution",
+    "latest-stack-tokenizer-batch-b128": "Batched HF tokenizer",
+    "torch-latest-repeat-b224": "Increase batch",
     "naive-full-vocab-eager": "Naive eager, full vocabulary",
     "exact-acgt-head-eager": "Project only A/C/G/T",
     "exact-acgt-head-compiled": "+ compile engine",
