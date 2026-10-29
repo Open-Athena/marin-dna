@@ -13,8 +13,8 @@ def plot_backend(backend: Backend, ledger: Path, output: Path) -> None:
     if not points:
         raise ValueError(f"No {backend} benchmark trials to plot")
     hours = [elapsed / 3600 for _, elapsed, _ in points]
-    measured = [trial.sequences_per_second for trial, _, _ in points]
-    frontier = [best for _, _, best in points]
+    measured = [trial.input_tokens_per_second for trial, _, _ in points]
+    frontier = [best * trial.tokens_per_sequence for trial, _, best in points]
     colors = ["#218739" if trial.accepted else "#9aa0a6" for trial, _, _ in points]
 
     fig, axis = plt.subplots(figsize=(8.2, 4.5), constrained_layout=True)
@@ -24,7 +24,7 @@ def plot_backend(backend: Backend, ledger: Path, output: Path) -> None:
         if trial.accepted:
             on_right = elapsed == points[-1][1]
             axis.annotate(
-                f"{trial.name}\n{value:.2f} seq/s",
+                f"{trial.name}\n{value:,.0f} tok/s ({trial.sequences_per_second:.2f} seq/s)",
                 (elapsed / 3600, value),
                 xytext=(-5 if on_right else 5, 7),
                 textcoords="offset points",
@@ -38,7 +38,7 @@ def plot_backend(backend: Backend, ledger: Path, output: Path) -> None:
     axis.set(
         title=f"{backend.upper()}: single-H100 inference optimization",
         xlabel="Productive H100 experiment time (hours)",
-        ylabel="8,192-base sequences / second",
+        ylabel="Input tokens / second",
     )
     axis.grid(alpha=0.22)
     output.parent.mkdir(parents=True, exist_ok=True)

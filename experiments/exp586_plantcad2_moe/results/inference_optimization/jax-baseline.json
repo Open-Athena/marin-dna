@@ -16,5 +16,7 @@
   "productive_seconds": 17.47384735196829,
   "correctness_max_abs_error": 0.0,
   "jax_version": "0.11.1",
-  "device": "NVIDIA H100 80GB HBM3"
+  "device": "NVIDIA H100 80GB HBM3",
+  "tokens_per_sequence": 8192,
+  "input_tokens_per_second": 7676.947714845879
 }

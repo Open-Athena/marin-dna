@@ -38,6 +38,7 @@ def test_ledger_tracks_frontier_and_stagnation(tmp_path: Path) -> None:
 
     loaded = load_trials(path)
     assert [best for _, _, best in progress(loaded)] == [1, 1, 1.2, 1.2]
+    assert loaded[0].input_tokens_per_second == 8192
     assert productive_seconds_since_gain(loaded) == 300
     output = tmp_path / "torch.png"
     plot_backend("torch", path, output)

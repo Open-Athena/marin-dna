@@ -64,6 +64,8 @@ def benchmark(
 
     elapsed = time.perf_counter() - began_productive
     median = float(np.median(latencies))
+    sequences_per_second = 1 / median
+    tokens_per_sequence = 8192
     result_payload = {
         "backend": "jax",
         "variant": variant,
@@ -73,7 +75,9 @@ def benchmark(
         "iterations": iterations,
         "latency_seconds": latencies,
         "median_latency_seconds": median,
-        "sequences_per_second": 1 / median,
+        "tokens_per_sequence": tokens_per_sequence,
+        "input_tokens_per_second": sequences_per_second * tokens_per_sequence,
+        "sequences_per_second": sequences_per_second,
         "productive_seconds": elapsed,
         "correctness_max_abs_error": error,
         "jax_version": jax.__version__,
@@ -88,11 +92,12 @@ def benchmark(
             backend="jax",
             name=name,
             productive_seconds=elapsed,
-            sequences_per_second=1 / median,
+            sequences_per_second=sequences_per_second,
             median_latency_seconds=median,
             accepted=accepted,
             correctness_max_abs_error=error,
             notes=variant,
+            tokens_per_sequence=tokens_per_sequence,
         ),
     )
     print(json.dumps(result_payload, indent=2))

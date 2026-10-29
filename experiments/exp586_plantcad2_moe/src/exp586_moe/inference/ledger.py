@@ -22,6 +22,12 @@ class Trial:
     correctness_max_abs_error: float
     notes: str
     timestamp: str
+    tokens_per_sequence: int = 8192
+
+    @property
+    def input_tokens_per_second(self) -> float:
+        """Return portable input throughput for fixed-length scoring workloads."""
+        return self.sequences_per_second * self.tokens_per_sequence
 
     @classmethod
     def now(
@@ -35,6 +41,7 @@ class Trial:
         accepted: bool,
         correctness_max_abs_error: float,
         notes: str,
+        tokens_per_sequence: int = 8192,
     ) -> "Trial":
         """Create a trial with a stable UTC timestamp."""
         return cls(
@@ -47,6 +54,7 @@ class Trial:
             correctness_max_abs_error=correctness_max_abs_error,
             notes=notes,
             timestamp=datetime.now(UTC).isoformat(),
+            tokens_per_sequence=tokens_per_sequence,
         )
 
 
@@ -56,6 +64,8 @@ def append_trial(path: Path, trial: Trial) -> None:
         raise ValueError("Productive time cannot be negative")
     if trial.sequences_per_second <= 0 or trial.median_latency_seconds <= 0:
         raise ValueError("Timing metrics must be positive")
+    if trial.tokens_per_sequence <= 0:
+        raise ValueError("Tokens per sequence must be positive")
     if trial.correctness_max_abs_error < 0:
         raise ValueError("Correctness error cannot be negative")
     path.parent.mkdir(parents=True, exist_ok=True)

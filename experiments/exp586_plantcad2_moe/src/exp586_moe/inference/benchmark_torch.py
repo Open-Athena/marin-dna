@@ -67,6 +67,8 @@ def benchmark(
     effective_accepted = accepted and (reference is None or error <= correctness_atol)
     elapsed = time.perf_counter() - began_productive
     median = float(np.median(latencies))
+    sequences_per_second = 1 / median
+    tokens_per_sequence = 8192
     payload = {
         "backend": "torch",
         "variant": variant,
@@ -76,7 +78,9 @@ def benchmark(
         "iterations": iterations,
         "latency_seconds": latencies,
         "median_latency_seconds": median,
-        "sequences_per_second": 1 / median,
+        "tokens_per_sequence": tokens_per_sequence,
+        "input_tokens_per_second": sequences_per_second * tokens_per_sequence,
+        "sequences_per_second": sequences_per_second,
         "productive_seconds": elapsed,
         "correctness_max_abs_error": error,
         "correctness_atol": correctness_atol,
@@ -93,11 +97,12 @@ def benchmark(
             backend="torch",
             name=name,
             productive_seconds=elapsed,
-            sequences_per_second=1 / median,
+            sequences_per_second=sequences_per_second,
             median_latency_seconds=median,
             accepted=effective_accepted,
             correctness_max_abs_error=error,
             notes=variant,
+            tokens_per_sequence=tokens_per_sequence,
         ),
     )
     print(json.dumps(payload, indent=2))
