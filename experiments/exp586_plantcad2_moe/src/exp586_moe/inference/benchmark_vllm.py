@@ -448,7 +448,9 @@ if __name__ == "__main__":
     )
     parser.add_argument("--name", default="baseline")
     parser.add_argument(
-        "--tokenizer-variant", choices=("full", "reduced"), default="full"
+        "--tokenizer-variant",
+        choices=("full", "reduced", "reduced_unigram"),
+        default="full",
     )
     parser.add_argument("--compile-engine", action="store_true")
     parser.add_argument("--gpu-memory-utilization", type=float, default=0.2)
