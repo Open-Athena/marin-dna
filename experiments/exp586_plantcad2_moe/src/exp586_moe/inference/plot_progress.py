@@ -46,6 +46,8 @@ _DISPLAY_NAMES = {
     "torch-topk-direct-sconv-b128": "Direct short convolution",
     "latest-stack-tokenizer-batch-b128": "Batched HF tokenizer",
     "torch-latest-repeat-b224": "Increase batch",
+    "FA3-native-GQA-compiled-b32": "FlashAttention 3 + native GQA",
+    "FA3-native-GQA-compiled-b16": "Retune batch",
     "naive-full-vocab-eager": "Naive eager, full vocabulary",
     "exact-acgt-head-eager": "Project only A/C/G/T",
     "exact-acgt-head-compiled": "+ compile engine",
@@ -228,8 +230,10 @@ def plot_backend(backend: Backend, ledger: Path, output: Path) -> None:
         loc="center",
     )
     table.auto_set_font_size(False)
-    table.set_fontsize(8.4)
-    table.scale(1, 1.35)
+    table.set_fontsize(8.4 if len(table_rows) <= 15 else 8.0)
+    # Keep a long optimization history inside the same figure geometry used by
+    # every backend instead of changing only one backend's plot format.
+    table.scale(1, min(1.35, 20 / (len(table_rows) + 1)))
     for (row, _column), cell in table.get_celld().items():
         cell.set_edgecolor("#d9dce1")
         if row == 0:
