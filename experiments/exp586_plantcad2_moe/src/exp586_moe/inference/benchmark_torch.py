@@ -12,6 +12,7 @@ from exp586_moe.inference.contract import token_contract
 from exp586_moe.inference.correctness import acgt_parity
 from exp586_moe.inference.fixtures import load_fixture
 from exp586_moe.inference.ledger import Trial, append_trial
+from exp586_moe.inference.tokenizer import encode_dna, reduced_dna_tokenizer
 from exp586_moe.inference.torch_backend import EagerGrugMoE, TorchVariant
 
 
@@ -26,6 +27,8 @@ def benchmark(
     accepted: bool = True,
     iterations: int = 2,
     reference: str | None = None,
+    compile_model: bool = False,
+    tokenizer_variant: str = "wrapper",
 ) -> None:
     """Run batch-one end-to-end trials, including HF tokenization and host output."""
     if iterations < 2:
@@ -35,15 +38,33 @@ def benchmark(
     directory = Path(model_dir)
     sequences = load_fixture(Path(fixture))
     tokenizer = PreTrainedTokenizerFast.from_pretrained(directory)
+    if tokenizer_variant not in {"wrapper", "backend", "reduced"}:
+        raise ValueError(f"Unknown tokenizer variant: {tokenizer_variant}")
+    backend_tokenizer = tokenizer.backend_tokenizer
+    if tokenizer_variant == "reduced":
+        backend_tokenizer = reduced_dna_tokenizer(backend_tokenizer)
     contract = token_contract(tokenizer.backend_tokenizer)
     base_ids = [contract.output_ids[base] for base in "ACGT"]
     model = EagerGrugMoE(directory, device)
 
+    def forward(token_ids: torch.Tensor) -> torch.Tensor:
+        return model(token_ids, base_ids, variant=variant)
+
+    model_forward = (
+        torch.compile(forward, fullgraph=True, dynamic=False, mode="reduce-overhead")
+        if compile_model
+        else forward
+    )
+
     def run(sequence: str) -> np.ndarray:
-        encoded = tokenizer(sequence, add_special_tokens=False, return_tensors="pt")
-        token_ids = encoded["input_ids"].to(device)
+        if tokenizer_variant != "wrapper":
+            ids = encode_dna(backend_tokenizer, sequence)
+            token_ids = torch.from_numpy(ids).to(device).unsqueeze(0)
+        else:
+            encoded = tokenizer(sequence, add_special_tokens=False, return_tensors="pt")
+            token_ids = encoded["input_ids"].to(device)
         with torch.inference_mode():
-            result = model(token_ids, base_ids, variant=variant)
+            result = model_forward(token_ids)
         return result.float().cpu().numpy()
 
     run(sequences[0])
@@ -95,6 +116,8 @@ def benchmark(
         "productive_seconds": elapsed,
         "parity": parity,
         "accepted": effective_accepted,
+        "compiled": compile_model,
+        "tokenizer_variant": tokenizer_variant,
         "torch_version": torch.__version__,
         "device": torch.cuda.get_device_name(device),
     }

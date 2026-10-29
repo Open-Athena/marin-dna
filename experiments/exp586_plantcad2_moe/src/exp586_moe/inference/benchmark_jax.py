@@ -11,6 +11,7 @@ from exp586_moe.data import pretrained_dna_tokenizer
 from exp586_moe.inference.fixtures import load_fixture
 from exp586_moe.inference.jax_backend import compile_forward, encode, load_model
 from exp586_moe.inference.ledger import Trial, append_trial
+from exp586_moe.inference.tokenizer import reduced_dna_tokenizer
 
 
 def benchmark(
@@ -23,6 +24,7 @@ def benchmark(
     accepted: bool = True,
     iterations: int = 4,
     reference: str | None = None,
+    tokenizer_variant: str = "full",
 ) -> None:
     """Run batch-one end-to-end trials, including HF tokenization and host output."""
     if iterations < 2:
@@ -30,6 +32,10 @@ def benchmark(
     began_productive = time.perf_counter()
     sequences = load_fixture(Path(fixture))
     tokenizer = pretrained_dna_tokenizer()
+    if tokenizer_variant == "reduced":
+        tokenizer = reduced_dna_tokenizer(tokenizer)
+    elif tokenizer_variant != "full":
+        raise ValueError(f"Unknown tokenizer variant: {tokenizer_variant}")
     model, mesh, base_ids = load_model()
     forward = compile_forward(model, mesh, base_ids, variant=variant)  # type: ignore[arg-type]
 
@@ -82,6 +88,7 @@ def benchmark(
         "correctness_max_abs_error": error,
         "jax_version": jax.__version__,
         "device": jax.devices()[0].device_kind,
+        "tokenizer_variant": tokenizer_variant,
     }
     output_path = Path(output)
     output_path.parent.mkdir(parents=True, exist_ok=True)

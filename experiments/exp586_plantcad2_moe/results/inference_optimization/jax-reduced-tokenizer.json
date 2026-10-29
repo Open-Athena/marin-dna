@@ -1,0 +1,29 @@
+{
+  "backend": "jax",
+  "variant": "acgt_head",
+  "name": "reduced-hf-tokenizer",
+  "batch_size": 1,
+  "sequence_length": 8192,
+  "iterations": 8,
+  "latency_seconds": [
+    0.024457097053527832,
+    0.022078832611441612,
+    0.02135920710861683,
+    0.021298736333847046,
+    0.021125338971614838,
+    0.021181223914027214,
+    0.021226750686764717,
+    0.02108323760330677
+  ],
+  "median_latency_seconds": 0.02126274351030588,
+  "tokens_per_sequence": 8192,
+  "input_tokens_per_second": 385274.83511379437,
+  "sequences_per_second": 47.03061952072685,
+  "productive_seconds": 13.119899451732635,
+  "correctness_max_abs_error": 0.0,
+  "jax_version": "0.11.1",
+  "device": "NVIDIA H100 80GB HBM3",
+  "tokenizer_variant": "reduced",
+  "accepted": false,
+  "notes": "same-process A/B showed no throughput gain"
+}
