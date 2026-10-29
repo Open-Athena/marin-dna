@@ -5,6 +5,7 @@ from exp586_moe.inference.tokenizer import (
     compact_dna_tokenizer,
     encode_dna,
     encode_dna_batch,
+    encode_dna_batch_lists,
     reduced_dna_tokenizer,
 )
 
@@ -49,3 +50,4 @@ def test_batch_encoding_matches_individual_encoding() -> None:
     actual = encode_dna_batch(tokenizer, sequences)
 
     np.testing.assert_array_equal(actual, expected)
+    assert encode_dna_batch_lists(tokenizer, sequences) == expected.tolist()

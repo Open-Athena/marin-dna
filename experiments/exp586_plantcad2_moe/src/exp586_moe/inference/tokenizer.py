@@ -60,3 +60,20 @@ def encode_dna_batch(tokenizer: Tokenizer, sequences: list[str]) -> np.ndarray:
     if ids.shape != (len(sequences), 8192):
         raise ValueError(f"Unexpected token shape: {ids.shape}")
     return ids
+
+
+def encode_dna_batch_lists(
+    tokenizer: Tokenizer, sequences: list[str]
+) -> list[list[int]]:
+    """Encode directly to the list representation consumed by vLLM."""
+    validate_sequences(sequences)
+    ids = [
+        encoding.ids
+        for encoding in tokenizer.encode_batch(
+            sequences,
+            add_special_tokens=False,
+        )
+    ]
+    if len(ids) != len(sequences) or any(len(row) != 8192 for row in ids):
+        raise ValueError("Unexpected token shape from batched list encoding")
+    return ids

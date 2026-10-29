@@ -18,7 +18,7 @@ from exp586_moe.inference.ledger import Trial, append_trial
 from exp586_moe.inference.results_store import upload_trial_artifacts
 from exp586_moe.inference.tokenizer import (
     encode_dna,
-    encode_dna_batch,
+    encode_dna_batch_lists,
     reduced_dna_tokenizer,
 )
 
@@ -280,10 +280,8 @@ def benchmark(
     def tokenize(batch: list[str]) -> tuple[list[dict[str, list[int]]], float]:
         began = time.perf_counter()
         if tokenizer_batch:
-            ids = encode_dna_batch(tokenizer, batch)
-            prompts = [
-                {"prompt_token_ids": sequence_ids.tolist()} for sequence_ids in ids
-            ]
+            ids = encode_dna_batch_lists(tokenizer, batch)
+            prompts = [{"prompt_token_ids": sequence_ids} for sequence_ids in ids]
         else:
             prompts = [
                 {"prompt_token_ids": encode_dna(tokenizer, sequence).tolist()}
