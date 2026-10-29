@@ -18,6 +18,7 @@ from exp586_moe.inference.fixtures import load_fixture
 from exp586_moe.inference.ledger import Trial, append_trial
 from exp586_moe.inference.results_store import upload_trial_artifacts
 from exp586_moe.inference.tokenizer import (
+    compact_dna_unigram_tokenizer,
     encode_dna,
     encode_dna_batch,
     reduced_dna_tokenizer,
@@ -75,13 +76,21 @@ def benchmark(
     if batch_size < 1 or batch_size > len(sequences):
         raise ValueError("Batch size must fit the unique-sequence fixture")
     tokenizer = PreTrainedTokenizerFast.from_pretrained(directory)
-    if tokenizer_variant not in {"wrapper", "backend", "reduced", "reduced_unigram"}:
+    if tokenizer_variant not in {
+        "wrapper",
+        "backend",
+        "reduced",
+        "reduced_unigram",
+        "compact_unigram",
+    }:
         raise ValueError(f"Unknown tokenizer variant: {tokenizer_variant}")
     backend_tokenizer = tokenizer.backend_tokenizer
     if tokenizer_variant == "reduced":
         backend_tokenizer = reduced_dna_tokenizer(backend_tokenizer)
     elif tokenizer_variant == "reduced_unigram":
         backend_tokenizer = reduced_dna_unigram_tokenizer(backend_tokenizer)
+    elif tokenizer_variant == "compact_unigram":
+        backend_tokenizer = compact_dna_unigram_tokenizer()
     contract = token_contract(tokenizer.backend_tokenizer)
     base_ids = [contract.output_ids[base] for base in "ACGT"]
     model = EagerGrugMoE(
@@ -94,6 +103,11 @@ def benchmark(
         sconv_backend=sconv_backend,
         fp8_moe=fp8_moe,
         fp8_moe_ptpc=fp8_moe_ptpc,
+        compact_input_ids=(
+            [contract.input_ids[base] for base in "ACGTN"]
+            if tokenizer_variant == "compact_unigram"
+            else None
+        ),
     )
 
     def forward(token_ids: torch.Tensor) -> torch.Tensor:

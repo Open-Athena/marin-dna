@@ -255,6 +255,7 @@ class EagerGrugMoE(torch.nn.Module):
         sconv_backend: TorchSconvBackend = "conv1d",
         fp8_moe: bool = False,
         fp8_moe_ptpc: bool = False,
+        compact_input_ids: list[int] | None = None,
     ) -> None:
         super().__init__()
         if attention_backend not in {
@@ -283,6 +284,8 @@ class EagerGrugMoE(torch.nn.Module):
         for index, (name, value) in enumerate(weights.items()):
             if fp8_moe and name in routed_expert_weights:
                 continue
+            if name == "model.embed_tokens.weight" and compact_input_ids is not None:
+                value = value[compact_input_ids]
             buffer_name = f"checkpoint_weight_{index}"
             # Own the storage rather than retaining safetensors' mmap-backed weakref;
             # AOTAutograd needs stable buffer storage during graph compilation.
