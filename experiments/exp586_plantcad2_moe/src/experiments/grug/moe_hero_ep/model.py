@@ -28,7 +28,11 @@ except ModuleNotFoundError:
     from jax.experimental.shard_map import shard_map
 from jaxtyping import Array, Bool, Float, Int, PRNGKeyArray
 from levanter.compat.hf_checkpoints import HFCheckpointConverter
-from levanter.grug._moe.common import _zero_dropped_assignments, padding_skipped_assignments
+from levanter.grug._moe.common import (
+    _zero_dropped_assignments,
+    padding_skipped_assignments,
+)
+from levanter.grug._moe.topk import top_k_indices
 from levanter.grug.attention import (
     AttentionMask,
     GrugAttentionImplementation,
@@ -58,8 +62,8 @@ from levanter.grug.grug_moe import (
 )
 from levanter.grug.loss import BlockSizes, fused_linear_softmax_cross_entropy_loss
 from levanter.grug.sharding import unshard
-from levanter.layers.stacked import ArrayStacked
 from levanter.kernels.triton.short_conv import short_conv
+from levanter.layers.stacked import ArrayStacked
 from levanter.tracker.histogram import Histogram, SummaryStats
 from levanter.utils.activation import ActivationFunctionEnum
 from transformers import PretrainedConfig as HfConfig
@@ -1005,7 +1009,8 @@ class MoEMLP(eqx.Module):
         biased_logits = router_logits + jax.lax.stop_gradient(self.router_bias)
         router_probs = jax.nn.softmax(router_logits, axis=-1)
         # Select top-(K+1) on biased logits; the (K+1)-th is the QB threshold alpha.
-        _topk_logits, selected_experts = jax.lax.top_k(biased_logits, self.cfg.num_experts_per_token + 1)
+        selected_experts = top_k_indices(biased_logits, self.cfg.num_experts_per_token + 1)
+        _topk_logits = jnp.take_along_axis(biased_logits, selected_experts, axis=-1)
         qb_alpha = _topk_logits[:, -1:]
         selected_experts = selected_experts[:, :-1]
         # Sigmoid combine weights on unbiased logits for selected experts.
