@@ -8,6 +8,7 @@ import jax.numpy as jnp
 import jmp
 from levanter.grug.sharding import compact_grug_mesh
 from rigging.filesystem.s3_compat import configure_coreweave_s3
+from transformers import PreTrainedTokenizerFast
 
 from exp586_moe.config import d768_config
 from exp586_moe.data import pretrained_dna_tokenizer, tokenizer_digest
@@ -45,7 +46,12 @@ def export_hf(output: str = DEFAULT_EXPORT) -> None:
         jax.block_until_ready(model)
         converter = (
             config.hf_checkpoint_converter()
-            .replaced(tokenizer=tokenizer)
+            .replaced(
+                tokenizer=PreTrainedTokenizerFast(
+                    tokenizer_object=tokenizer,
+                    clean_up_tokenization_spaces=False,
+                )
+            )
             .with_config_overrides(
                 {
                     "dtype": "bfloat16",
