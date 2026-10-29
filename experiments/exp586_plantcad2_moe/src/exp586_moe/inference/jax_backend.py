@@ -12,6 +12,7 @@ import numpy as np
 from jax.sharding import PartitionSpec as P
 from levanter.grug.attention import AttentionMask
 from levanter.grug.sharding import compact_grug_mesh
+from rigging.filesystem.s3_compat import configure_coreweave_s3
 from tokenizers import Tokenizer
 
 from exp586_moe.config import d768_config
@@ -31,6 +32,7 @@ JaxVariant = Literal["full_head", "acgt_head"]
 
 def load_model() -> tuple[Transformer, jax.sharding.Mesh, list[int]]:
     """Restore one-device BF16 inference weights and authoritative ACGT IDs."""
+    configure_coreweave_s3()
     if jax.device_count() != 1:
         raise ValueError("Single-H100 inference requires exactly one visible device")
     tokenizer = pretrained_dna_tokenizer()

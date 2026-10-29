@@ -7,6 +7,7 @@ import jax
 import jax.numpy as jnp
 import jmp
 from levanter.grug.sharding import compact_grug_mesh
+from rigging.filesystem.s3_compat import configure_coreweave_s3
 
 from exp586_moe.config import d768_config
 from exp586_moe.data import pretrained_dna_tokenizer, tokenizer_digest
@@ -25,6 +26,7 @@ DEFAULT_EXPORT = (
 
 def export_hf(output: str = DEFAULT_EXPORT) -> None:
     """Write an authoritative BF16 HF/vLLM export from one visible accelerator."""
+    configure_coreweave_s3()
     if jax.device_count() != 1:
         raise ValueError("Export requires exactly one visible accelerator")
     tokenizer = pretrained_dna_tokenizer()
