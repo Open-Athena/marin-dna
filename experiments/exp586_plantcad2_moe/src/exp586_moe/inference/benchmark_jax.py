@@ -3,6 +3,7 @@
 import json
 import time
 from concurrent.futures import ThreadPoolExecutor
+from itertools import pairwise
 from pathlib import Path
 
 import jax
@@ -97,6 +98,7 @@ def benchmark(
 
     if prefetch_tokenization:
         pipeline_began = time.perf_counter()
+        completion_times: list[float] = []
         with ThreadPoolExecutor(max_workers=1) as pool:
             pending = pool.submit(timed_encode, batch_at(0))
             for index in range(iterations):
@@ -107,10 +109,15 @@ def benchmark(
                 logits = np.asarray(forward(jax.device_put(token_ids)))
                 result = logits[..., base_ids] if variant == "full_head" else logits
                 forward_output_latencies.append(time.perf_counter() - began_forward)
+                completion_times.append(time.perf_counter())
                 tokenization_latencies.append(tokenization_latency)
                 del logits, result
         pipeline_elapsed = time.perf_counter() - pipeline_began
-        latencies = [pipeline_elapsed / iterations] * iterations
+        # Exclude the one-time pipeline fill. Adjacent output completions measure
+        # sustainable throughput and remain comparable across iteration counts.
+        latencies = [
+            completed - previous for previous, completed in pairwise(completion_times)
+        ]
     else:
         for index in range(iterations):
             batch = batch_at(index)
@@ -156,11 +163,7 @@ def benchmark(
 
     elapsed = time.perf_counter() - began_productive
     median = float(np.median(latencies))
-    sequences_per_second = (
-        batch_size * iterations / pipeline_elapsed
-        if pipeline_elapsed is not None
-        else batch_size / median
-    )
+    sequences_per_second = batch_size / median
     tokens_per_sequence = 8192
     memory_stats = jax.devices()[0].memory_stats() or {}
     result_payload = {
@@ -174,6 +177,11 @@ def benchmark(
         "tokenization_latency_seconds": tokenization_latencies,
         "forward_output_latency_seconds": forward_output_latencies,
         "pipeline_elapsed_seconds": pipeline_elapsed,
+        "pipeline_including_fill_tokens_per_second": (
+            batch_size * iterations * 8192 / pipeline_elapsed
+            if pipeline_elapsed is not None
+            else None
+        ),
         "median_latency_seconds": median,
         "tokens_per_sequence": tokens_per_sequence,
         "input_tokens_per_second": sequences_per_second * tokens_per_sequence,
