@@ -55,6 +55,11 @@ _DISPLAY_NAMES = {
     "compiled-triton-fa2-b128-fixed": "Increase batch",
     "compiled-triton-fa2-b192-fixed": "Increase batch",
     "compiled-triton-fa2-b256-kv8g": "Right-size KV cache + batch",
+    "vllm-latest-tokenize-b224": "Batch + overlap HF tokenization",
+    "vllm-latest-topk-b224": "Specialized router top-k",
+    "vllm-latest-topk-fa3-b224": "FlashAttention 3",
+    "vllm-latest-topk-fa3-b236": "Increase batch",
+    "vllm-latest-topk-fa3-b240": "Throughput peak",
 }
 _BACKEND_NAMES = {"jax": "JAX", "torch": "PyTorch", "vllm": "vLLM"}
 
