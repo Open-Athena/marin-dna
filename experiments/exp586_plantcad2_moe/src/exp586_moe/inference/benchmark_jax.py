@@ -17,6 +17,7 @@ from exp586_moe.inference.fixtures import load_fixture
 from exp586_moe.inference.jax_backend import (
     JaxOutputDtype,
     compile_forward,
+    configure_sconv_tiles,
     encode,
     load_model,
 )
@@ -44,6 +45,10 @@ def benchmark(
     expert_chunks: int = 1,
     output_dtype: JaxOutputDtype = "float32",
     prefetch_tokenization: bool = False,
+    sconv_chunk: int | None = None,
+    sconv_max_channel_block: int | None = None,
+    sconv_num_warps: int | None = None,
+    sconv_rows_per_step: int | None = None,
     results_prefix: str | None = None,
 ) -> None:
     """Measure complete batched scoring, including tokenization and host output."""
@@ -63,6 +68,12 @@ def benchmark(
         raise ValueError(f"Unknown tokenizer variant: {tokenizer_variant}")
     if compact_vocab and variant != "acgt_head":
         raise ValueError("Compact vocabulary requires the A/C/G/T output head")
+    configure_sconv_tiles(
+        chunk=sconv_chunk,
+        max_channel_block=sconv_max_channel_block,
+        num_warps=sconv_num_warps,
+        rows_per_step=sconv_rows_per_step,
+    )
     model, mesh, base_ids = load_model(
         compact_vocab=compact_vocab,
         moe_implementation=moe_implementation,
@@ -200,6 +211,10 @@ def benchmark(
         "expert_chunks": expert_chunks,
         "output_dtype": output_dtype,
         "prefetch_tokenization": prefetch_tokenization,
+        "sconv_chunk": sconv_chunk,
+        "sconv_max_channel_block": sconv_max_channel_block,
+        "sconv_num_warps": sconv_num_warps,
+        "sconv_rows_per_step": sconv_rows_per_step,
         "peak_memory_gib": memory_stats.get("peak_bytes_in_use", 0) / 2**30,
     }
     output_path = Path(output)
@@ -220,6 +235,8 @@ def benchmark(
                 f"compact_vocab={compact_vocab}; moe={moe_implementation}; "
                 f"attention={attention_implementation}; expert_chunks={expert_chunks}; "
                 f"output_dtype={output_dtype}; prefetch={prefetch_tokenization}; "
+                f"sconv=({sconv_chunk},{sconv_max_channel_block},"
+                f"{sconv_num_warps},{sconv_rows_per_step}); "
                 f"batch={batch_size}"
             ),
             tokens_per_sequence=tokens_per_sequence,

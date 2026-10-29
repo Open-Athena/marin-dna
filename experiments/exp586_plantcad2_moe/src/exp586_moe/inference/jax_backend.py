@@ -1,6 +1,7 @@
 """Native JAX baseline and reduced-head inference paths."""
 
 import dataclasses
+import math
 from collections.abc import Callable
 from typing import Literal
 
@@ -30,6 +31,47 @@ from experiments.grug.moe_hero_ep.weights import restore_weights
 
 JaxVariant = Literal["full_head", "acgt_head"]
 JaxOutputDtype = Literal["float32", "bfloat16"]
+
+
+def configure_sconv_tiles(
+    *,
+    chunk: int | None = None,
+    max_channel_block: int | None = None,
+    num_warps: int | None = None,
+    rows_per_step: int | None = None,
+) -> None:
+    """Override Levanter's forward-only short-convolution launch shape.
+
+    The library default was tuned on GB200.  This benchmark targets H100, so keep
+    the same kernel and expose only its documented launch-shape parameters.
+    """
+    if all(
+        value is None for value in (chunk, max_channel_block, num_warps, rows_per_step)
+    ):
+        return
+
+    from levanter.kernels.triton.short_conv import api as short_conv_api
+    from levanter.kernels.triton.short_conv import triton_gpu
+
+    current = triton_gpu.FORWARD_TILES
+    updated = triton_gpu.TritonShortConvTiles(
+        chunk=current.chunk if chunk is None else chunk,
+        max_channel_block=(
+            current.max_channel_block
+            if max_channel_block is None
+            else max_channel_block
+        ),
+        num_warps=current.num_warps if num_warps is None else num_warps,
+        rows_per_step=current.rows_per_step if rows_per_step is None else rows_per_step,
+    )
+    if updated.chunk <= 0 or updated.rows_per_step <= 0:
+        raise ValueError(f"Short-convolution tile sizes must be positive: {updated}")
+    if updated.chunk % updated.rows_per_step:
+        raise ValueError(f"rows_per_step must divide chunk: {updated}")
+    triton_gpu.FORWARD_TILES = updated
+    sequence_multiple = math.lcm(updated.chunk, triton_gpu.BACKWARD_TILES.chunk)
+    triton_gpu.SEQUENCE_MULTIPLE = sequence_multiple
+    short_conv_api.TRITON_SEQUENCE_MULTIPLE = sequence_multiple
 
 
 def load_model(
