@@ -76,6 +76,8 @@ _DISPLAY_NAMES = {
     "vLLM-budget-262144-boundary-b416": "Increase request batch",
     "vLLM-budget-262144-boundary-b512": "Increase request batch",
     "vLLM-budget-winner-bf16-b512": "Transfer BF16 logits",
+    "vLLM-small-budget-196608-large-b512": "Tune scheduler to 196k tokens",
+    "vLLM-small-budget-196608-large-b768": "Increase request batch",
 }
 _BACKEND_NAMES = {"jax": "JAX", "torch": "PyTorch", "vllm": "vLLM"}
 
