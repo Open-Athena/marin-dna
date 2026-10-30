@@ -99,9 +99,10 @@ _ANNOTATED_JUMPS = {
         "jax-specialized-topk-b224": ("Specialize router top-k", (0.30, 0.78)),
     },
     "torch": {
-        "native-grouped-moe": ("Grouped MoE kernels", (0.30, 0.27)),
-        "compiled-flex-global-flash": ("Global FlashAttention", (0.30, 0.47)),
-        "torch-prefetch-topk8-b224": ("Overlap tokenization", (0.30, 0.67)),
+        "native-grouped-moe": ("Grouped MoE kernels", (0.30, 0.23)),
+        "compiled-flex-global-flash": ("Global FlashAttention", (0.30, 0.41)),
+        "torch-prefetch-topk8-b224": ("Overlap tokenization", (0.30, 0.59)),
+        "torch-topk-direct-sconv-b128": ("Direct short convolution", (0.30, 0.77)),
     },
     "vllm": {
         "compiled-triton-bm64-b4": ("Increase request batch", (0.22, 0.20)),
