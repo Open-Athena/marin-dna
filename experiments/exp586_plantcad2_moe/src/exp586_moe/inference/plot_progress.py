@@ -80,6 +80,7 @@ _DISPLAY_NAMES = {
     "vLLM-small-budget-196608-large-b512": "Tune scheduler to 196k tokens",
     "vLLM-small-budget-196608-large-b768": "Increase request batch",
     "vLLM-r5-budget245760-b768": "245k-token scheduler (short run)",
+    "vLLM-r6-async-transfer-b768": "Overlap output transfers",
 }
 _BACKEND_NAMES = {"jax": "JAX", "torch": "PyTorch", "vllm": "vLLM"}
 
