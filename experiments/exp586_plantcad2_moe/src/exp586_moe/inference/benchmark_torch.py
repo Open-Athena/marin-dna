@@ -66,6 +66,7 @@ def benchmark(
     precomputed_rope: bool = False,
     concatenated_shared_w1: bool = False,
     combined_shared_expert_projections: bool = False,
+    flash_attention_version: int = 3,
     results_prefix: str | None = None,
 ) -> None:
     """Measure complete batched scoring, including tokenization and host output."""
@@ -118,6 +119,7 @@ def benchmark(
         precomputed_rope=precomputed_rope,
         concatenated_shared_w1=concatenated_shared_w1,
         combined_shared_expert_projections=combined_shared_expert_projections,
+        flash_attention_version=flash_attention_version,
     )
 
     def forward(token_ids: torch.Tensor) -> torch.Tensor:
@@ -339,6 +341,7 @@ def benchmark(
         "precomputed_rope": precomputed_rope,
         "concatenated_shared_w1": concatenated_shared_w1,
         "combined_shared_expert_projections": combined_shared_expert_projections,
+        "flash_attention_version": flash_attention_version,
     }
     output_path = Path(output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -372,6 +375,7 @@ def benchmark(
                 f"; concatenated_shared_w1={concatenated_shared_w1}"
                 f"; combined_shared_expert_projections="
                 f"{combined_shared_expert_projections}"
+                f"; flash_attention_version={flash_attention_version}"
             ),
             tokens_per_sequence=tokens_per_sequence,
             batch_size=batch_size,

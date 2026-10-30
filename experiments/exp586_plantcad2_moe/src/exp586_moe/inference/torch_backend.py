@@ -47,6 +47,7 @@ if _vllm_flash_attn is not None:
         cu_seqlens: torch.Tensor,
         sequence_length: int,
         window_left: int,
+        flash_attention_version: int,
     ) -> torch.Tensor:
         """Expose vLLM FA3 as a functional custom op understood by PT2."""
         return _vllm_flash_attn(
@@ -59,7 +60,7 @@ if _vllm_flash_attn is not None:
             cu_seqlens,
             causal=True,
             window_size=None if window_left < 0 else [window_left, 0],
-            fa_version=3,
+            fa_version=flash_attention_version,
         )
 
     @_compiled_vllm_flash_attn.register_fake
@@ -70,6 +71,7 @@ if _vllm_flash_attn is not None:
         _cu_seqlens: torch.Tensor,
         _sequence_length: int,
         _window_left: int,
+        _flash_attention_version: int,
     ) -> torch.Tensor:
         return torch.empty_like(q)
 
@@ -291,6 +293,7 @@ class EagerGrugMoE(torch.nn.Module):
         precomputed_rope: bool = False,
         concatenated_shared_w1: bool = False,
         combined_shared_expert_projections: bool = False,
+        flash_attention_version: int = 3,
     ) -> None:
         super().__init__()
         if attention_backend not in {
@@ -301,6 +304,8 @@ class EagerGrugMoE(torch.nn.Module):
             "vllm_fa3",
         }:
             raise ValueError(f"Unknown attention backend: {attention_backend}")
+        if flash_attention_version not in {2, 3, 4}:
+            raise ValueError("flash_attention_version must be 2, 3, or 4")
         global_backends = {"auto", "cudnn", "flash", "efficient", "math"}
         if global_attention_backend not in global_backends:
             raise ValueError(
@@ -469,6 +474,7 @@ class EagerGrugMoE(torch.nn.Module):
         self.precomputed_rope = precomputed_rope
         self.concatenated_shared_w1 = concatenated_shared_w1
         self.combined_shared_expert_projections = combined_shared_expert_projections
+        self.flash_attention_version = flash_attention_version
         if precomputed_rope:
             rotary_dim = self.config.head_dim // 2
             half = rotary_dim // 2
@@ -601,6 +607,7 @@ class EagerGrugMoE(torch.nn.Module):
                 cu_seqlens,
                 sequence,
                 -1 if is_global else cfg.sliding_window - 1,
+                self.flash_attention_version,
             )
             output = packed_output.reshape(
                 batch, sequence, cfg.num_heads, cfg.head_dim
