@@ -30,6 +30,7 @@ _DISPLAY_NAMES = {
     "jax-latest-fa4-64x128-b352": "Increase batch",
     "JAX-r6-combined-shared-b128": "Combine shared-expert GEMMs",
     "JAX-r6-combined-shared-b352": "Retune batch",
+    "JAX-r6-gemm-fusion-v2-b352": "GEMM fusion v2 (short)",
     "full-vocab-eager-validated": "Full-vocabulary eager",
     "native-grouped-moe": "Grouped MoE kernels",
     "compiled-grouped-moe": "Compile model",
