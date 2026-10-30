@@ -17,8 +17,8 @@ from transformers import PreTrainedTokenizerFast
 from exp586_moe.inference.contract import token_contract, validate_sequences
 from exp586_moe.inference.optimized_common import padded_batches
 from exp586_moe.inference.tokenizer import (
+    compact_dna_unigram_tokenizer,
     encode_dna_batch,
-    reduced_dna_unigram_tokenizer,
 )
 from exp586_moe.inference.torch_backend import EagerGrugMoE
 
@@ -39,9 +39,7 @@ class OptimizedTorchDnaLogits:
 
         directory = Path(model_dir)
         source_tokenizer = PreTrainedTokenizerFast.from_pretrained(directory)
-        self.tokenizer = reduced_dna_unigram_tokenizer(
-            source_tokenizer.backend_tokenizer
-        )
+        self.tokenizer = compact_dna_unigram_tokenizer()
         contract = token_contract(source_tokenizer.backend_tokenizer)
         self.base_ids = [contract.output_ids[base] for base in self.output_bases]
         self.batch_size = batch_size
@@ -53,6 +51,8 @@ class OptimizedTorchDnaLogits:
             global_attention_backend="flash",
             specialized_topk=True,
             sconv_backend="direct",
+            compact_input_ids=[contract.input_ids[base] for base in "ACGTN"],
+            compact_output_ids=self.base_ids,
             precomputed_rope=True,
             combined_shared_expert_projections=True,
         )

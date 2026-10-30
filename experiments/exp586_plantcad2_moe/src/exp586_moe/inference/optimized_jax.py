@@ -6,8 +6,14 @@ from concurrent.futures import ThreadPoolExecutor
 from itertools import chain
 
 # The batch-352 frontier requires the same 95% device pool used in validation.
-# XLA reads this setting when the backend is initialized.
+# XLA reads these settings when the backend is initialized.  The GEMM fusion
+# flag was the final reproducible gain over the otherwise identical graph.
 os.environ.setdefault("XLA_CLIENT_MEM_FRACTION", "0.95")
+_gemm_fusion_flag = "--xla_gpu_experimental_gemm_fusion_v2=true"
+if _gemm_fusion_flag not in os.environ.get("XLA_FLAGS", "").split():
+    os.environ["XLA_FLAGS"] = " ".join(
+        value for value in (os.environ.get("XLA_FLAGS", ""), _gemm_fusion_flag) if value
+    )
 
 import jax
 import numpy as np
@@ -37,7 +43,7 @@ class OptimizedJaxDnaLogits:
         self.tokenizer = compact_dna_unigram_tokenizer()
         model, mesh, base_ids = load_model(
             compact_vocab=True,
-            combine_shared_expert_projections=True,
+            combine_shared_expert_projections=False,
             moe_implementation="sonic",
             attention_implementation="gpu_fa4_cute",
         )

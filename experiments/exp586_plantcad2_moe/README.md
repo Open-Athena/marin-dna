@@ -44,6 +44,9 @@ It reuses the exp582 benchmark protocol and historical results while binding eve
 
 ## Optimized single-H100 logits
 
+This is an experimental upper-bound study rather than a deployment recommendation.
+See [`single_h100_inference_optimization.md`](single_h100_inference_optimization.md) for the exact measurement contract, final configurations, portability tradeoffs, unsuccessful directions, and raw evidence.
+
 The maintained examples read one 8,192-base ACGTN sequence per line and write FP32 NumPy arrays shaped `[batch, 8192, 4]` in A/C/G/T order.
 They use only GPU 0 and do not generate tokens.
 

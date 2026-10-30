@@ -5,6 +5,7 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
+from matplotlib.ticker import FuncFormatter
 
 from exp586_moe.inference.ledger import Backend, load_trials, progress
 
@@ -91,6 +92,32 @@ _DISPLAY_NAMES = {
     "vLLM-r8-prealloc-b2048-active64": "Reuse pinned output buffer",
 }
 _BACKEND_NAMES = {"jax": "JAX", "torch": "PyTorch", "vllm": "vLLM"}
+_ANNOTATED_JUMPS = {
+    "jax": {
+        "acgt-output-head": ("Project only A/C/G/T", (12, -10)),
+        "jax-compact-prefetch-steady-b128": ("Overlap tokenization", (20, 16)),
+        "jax-specialized-topk-b224": ("Specialize router top-k", (12, -34)),
+    },
+    "torch": {
+        "native-grouped-moe": ("Grouped MoE kernels", (12, 12)),
+        "compiled-flex-global-flash": ("Global FlashAttention", (12, -34)),
+        "torch-prefetch-topk8-b224": ("Overlap tokenization", (12, 16)),
+        "torch-topk-direct-sconv-b128": ("Direct short convolution", (12, -34)),
+    },
+    "vllm": {
+        "compiled-triton-bm64-b4": ("Increase request batch", (12, 12)),
+        "vllm-latest-tokenize-b224": ("Overlap tokenization", (12, 12)),
+        "vLLM-r6-async-transfer-b768": ("Overlap output transfer", (12, -34)),
+    },
+}
+
+
+def _throughput_tick(value: float, _position: float) -> str:
+    if value >= 1_000_000:
+        return f"{value / 1_000_000:.1f}M"
+    if value >= 1_000:
+        return f"{value / 1_000:.0f}k"
+    return f"{value:.0f}"
 
 
 def plot_backend(backend: Backend, ledger: Path, output: Path) -> None:
@@ -106,7 +133,7 @@ def plot_backend(backend: Backend, ledger: Path, output: Path) -> None:
         for trial, _, _ in points
     ]
     frontier = [best * trial.tokens_per_sequence for trial, _, best in points]
-    fig = plt.figure(figsize=(11.4, 4.8))
+    fig = plt.figure(figsize=(11.4, 4.8), facecolor="#ffffff")
     grid = fig.add_gridspec(1, 2, width_ratios=(1.8, 1), wspace=0.06)
     axis = fig.add_subplot(grid[0, 0])
     table_axis = fig.add_subplot(grid[0, 1])
@@ -140,11 +167,13 @@ def plot_backend(backend: Backend, ledger: Path, output: Path) -> None:
             zorder=3,
         )
     axis.step(hours, frontier, where="post", color="#1769e0", linewidth=2.2)
+    axis.set_facecolor("#fbfcfe")
     if accepted_points:
         _, start_hour, start_value = accepted_points[0]
         _, best_hour, best_value = max(accepted_points, key=lambda point: point[2])
+        start_offset = (8, -6) if backend == "vllm" else (8, 12)
         annotations = (
-            ("Start", start_hour, start_value, (8, -32 if backend == "vllm" else 12)),
+            ("Start", start_hour, start_value, start_offset),
             (
                 "Best valid",
                 best_hour,
@@ -172,8 +201,9 @@ def plot_backend(backend: Backend, ledger: Path, output: Path) -> None:
                 zorder=4,
             )
     frontier_trials = []
+    frontier_points: dict[str, tuple[float, float, float]] = {}
     previous_best = 0.0
-    for trial, _, _ in points:
+    for (trial, _, _), hour in zip(points, hours, strict=True):
         value = trial.input_tokens_per_second
         if (
             trial.accepted
@@ -186,7 +216,33 @@ def plot_backend(backend: Backend, ledger: Path, output: Path) -> None:
         ):
             frontier_trials.append(trial)
         if trial.accepted and value > previous_best:
+            frontier_points[trial.name] = (hour, value, previous_best)
             previous_best = value
+    for name, (label, offset) in _ANNOTATED_JUMPS[backend].items():
+        point = frontier_points.get(name)
+        if point is None:
+            continue
+        hour, value, prior = point
+        ratio = value / prior
+        gain = f"{ratio:.1f}× frontier" if ratio >= 2 else f"+{(ratio - 1) * 100:.0f}%"
+        axis.annotate(
+            f"{label}\n{gain}",
+            (hour, value),
+            xytext=offset,
+            textcoords="offset points",
+            ha="left",
+            va="bottom" if offset[1] >= 0 else "top",
+            fontsize=7.6,
+            color="#17324d",
+            bbox={
+                "boxstyle": "round,pad=0.24",
+                "facecolor": "#f6f9ff",
+                "edgecolor": "#83a8d8",
+                "alpha": 0.94,
+            },
+            arrowprops={"arrowstyle": "-", "color": "#6e8fb9", "linewidth": 0.8},
+            zorder=4,
+        )
     positive = [value for value in measured if math.isfinite(value) and value > 0]
     if max(positive) / min(positive) >= 20:
         axis.set_yscale("log")
@@ -197,20 +253,22 @@ def plot_backend(backend: Backend, ledger: Path, output: Path) -> None:
         xlabel="Productive H100 experiment time (hours)",
         ylabel="Input tokens / second",
     )
+    axis.yaxis.set_major_formatter(FuncFormatter(_throughput_tick))
     axis.set_title(
         f"{_BACKEND_NAMES[backend]}: single-H100 inference optimization", pad=28
     )
     axis.text(
         0.5,
         1.01,
-        "× candidates fail the fixed 32-sequence probability/loss/accuracy gate",
+        "× failed the fixed 32-sequence correctness gate",
         transform=axis.transAxes,
         ha="center",
         va="bottom",
         fontsize=8.5,
         color="#6b3f3f",
     )
-    axis.grid(alpha=0.22)
+    axis.grid(color="#dbe2ea", alpha=0.7, linewidth=0.7)
+    axis.spines[["top", "right"]].set_visible(False)
     axis.legend(
         handles=(
             Line2D(
@@ -240,7 +298,11 @@ def plot_backend(backend: Backend, ledger: Path, output: Path) -> None:
     table_axis.axis("off")
     table_rows = [
         [
-            _DISPLAY_NAMES.get(trial.name, trial.name.replace("-", " ")),
+            (
+                "Long-run confirmation"
+                if "final-confirm" in trial.name
+                else _DISPLAY_NAMES.get(trial.name, trial.name.replace("-", " "))
+            ),
             str(trial.batch_size),
             f"{trial.input_tokens_per_second / 1000:,.1f}k",
         ]
@@ -255,17 +317,17 @@ def plot_backend(backend: Backend, ledger: Path, output: Path) -> None:
         loc="center",
     )
     table.auto_set_font_size(False)
-    table.set_fontsize(8.4 if len(table_rows) <= 15 else 8.0)
-    # Keep a long optimization history inside the same figure geometry used by
-    # every backend instead of changing only one backend's plot format.
-    # Use the full vertical space beside the plot.  A slightly taller row makes
-    # the milestone text easier to scan without changing the figure geometry.
-    table.scale(1, min(1.45, 23 / (len(table_rows) + 1)))
+    table.set_fontsize(7.8)
     for (row, _column), cell in table.get_celld().items():
         cell.set_edgecolor("#d9dce1")
+        cell.set_linewidth(0.65)
+        cell.set_height(0.041)
+        cell.PAD = 0.08
         if row == 0:
             cell.set_text_props(weight="bold")
             cell.set_facecolor("#f2f5f9")
+        elif row % 2 == 0:
+            cell.set_facecolor("#fafbfc")
     output.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(output, dpi=170)
     plt.close(fig)
