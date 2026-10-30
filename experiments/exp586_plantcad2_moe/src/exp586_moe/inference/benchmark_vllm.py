@@ -38,6 +38,8 @@ def _install_capture(
     direct_sconv: bool = False,
     moe_config: dict[str, int] | None = None,
     async_output_transfer: bool = False,
+    separate_output_transfer_stream: bool = False,
+    deferred_output_transfer: bool = False,
 ) -> bool:
     """Capture all-position logits from real vLLM prompt-prefill forwards."""
     import torch
@@ -47,6 +49,11 @@ def _install_capture(
     original_forward = model.forward
     head = model.lm_head.weight[base_ids].detach()
     model._exp586_captures = []
+    model._exp586_copy_stream = (
+        torch.cuda.Stream(device=worker.model_runner.device)
+        if separate_output_transfer_stream
+        else None
+    )
 
     if specialized_topk:
         from vllm.model_executor.models.grugmoe import GrugMoeRouter
@@ -119,7 +126,13 @@ def _install_capture(
                 selected = functional.linear(states, self.lm_head.weight)[..., base_ids]
             else:
                 selected = functional.linear(states, head)
-            if async_output_transfer:
+            if deferred_output_transfer:
+                captured = (
+                    selected.float()
+                    if output_transfer_dtype == "float32"
+                    else selected.to(torch.bfloat16)
+                )
+            elif async_output_transfer or separate_output_transfer_stream:
                 transfer_dtype = (
                     torch.float32
                     if output_transfer_dtype == "float32"
@@ -131,7 +144,14 @@ def _install_capture(
                     device="cpu",
                     pin_memory=True,
                 )
-                captured.copy_(selected, non_blocking=True)
+                if separate_output_transfer_stream:
+                    copy_stream = self._exp586_copy_stream
+                    copy_stream.wait_stream(torch.cuda.current_stream(selected.device))
+                    selected.record_stream(copy_stream)
+                    with torch.cuda.stream(copy_stream):
+                        captured.copy_(selected, non_blocking=True)
+                else:
+                    captured.copy_(selected, non_blocking=True)
             elif output_transfer_dtype == "float32":
                 captured = selected.float().cpu().numpy()
             else:
@@ -175,11 +195,40 @@ def _finish_async_captures(worker, clear: bool) -> int:
     """Wait once per engine batch after overlapping chunk-level D2H copies."""
     import torch
 
-    torch.cuda.synchronize(worker.model_runner.device)
-    captures = worker.model_runner.model._exp586_captures
+    model = worker.model_runner.model
+    copy_stream = model._exp586_copy_stream
+    if copy_stream is None:
+        torch.cuda.synchronize(worker.model_runner.device)
+    else:
+        copy_stream.synchronize()
+    captures = model._exp586_captures
     count = len(captures)
     if clear:
         captures.clear()
+    return count
+
+
+def _finish_deferred_captures(worker, clear: bool) -> int:
+    """Combine device logits and perform one host transfer per engine batch."""
+    import torch
+
+    model = worker.model_runner.model
+    captures = model._exp586_captures
+    count = len(captures)
+    if not captures:
+        return 0
+    merged = torch.cat(captures, dim=0)
+    host = torch.empty(
+        merged.shape,
+        dtype=merged.dtype,
+        device="cpu",
+        pin_memory=True,
+    )
+    host.copy_(merged, non_blocking=True)
+    torch.cuda.synchronize(worker.model_runner.device)
+    captures.clear()
+    if not clear:
+        captures.append(host)
     return count
 
 
@@ -243,11 +292,24 @@ def benchmark(
     grug_cudagraph_mode: Literal["PIECEWISE", "FULL", "FULL_AND_PIECEWISE"]
     | None = None,
     async_output_transfer: bool = False,
+    separate_output_transfer_stream: bool = False,
+    deferred_output_transfer: bool = False,
     results_prefix: str | None = None,
 ) -> None:
     """Measure batched 8,192-token prefills and return dense A/C/G/T logits."""
     os.environ.setdefault("CUDA_VISIBLE_DEVICES", "0")
     os.environ.setdefault("VLLM_WORKER_MULTIPROC_METHOD", "spawn")
+    if (
+        sum(
+            (
+                async_output_transfer,
+                separate_output_transfer_stream,
+                deferred_output_transfer,
+            )
+        )
+        > 1
+    ):
+        raise ValueError("Choose one asynchronous output-transfer implementation")
     os.environ.setdefault("VLLM_USE_FLASHINFER_SAMPLER", "0")
     os.environ.setdefault("VLLM_ALLOW_INSECURE_SERIALIZATION", "1")
     if grug_cudagraph_mode is not None:
@@ -340,6 +402,8 @@ def benchmark(
             direct_sconv,
             moe_config,
             async_output_transfer,
+            separate_output_transfer_stream,
+            deferred_output_transfer,
         ),
     )
     if installed != [True]:
@@ -373,9 +437,14 @@ def benchmark(
             sampling,
             use_tqdm=False,
         )
-        if async_output_transfer:
+        if async_output_transfer or separate_output_transfer_stream:
             llm.llm_engine.collective_rpc(
                 _finish_async_captures,
+                args=(not retain_captures,),
+            )
+        elif deferred_output_transfer:
+            llm.llm_engine.collective_rpc(
+                _finish_deferred_captures,
                 args=(not retain_captures,),
             )
 
@@ -490,6 +559,8 @@ def benchmark(
         "omp_threads": omp_threads,
         "grug_cudagraph_mode": grug_cudagraph_mode,
         "async_output_transfer": async_output_transfer,
+        "separate_output_transfer_stream": separate_output_transfer_stream,
+        "deferred_output_transfer": deferred_output_transfer,
         **runtime[0],
     }
     output_path = Path(output)
@@ -522,6 +593,8 @@ def benchmark(
                 f"; in_process={in_process}; omp_threads={omp_threads}"
                 f"; grug_cudagraph_mode={grug_cudagraph_mode}"
                 f"; async_output_transfer={async_output_transfer}"
+                f"; separate_output_transfer_stream={separate_output_transfer_stream}"
+                f"; deferred_output_transfer={deferred_output_transfer}"
             ),
             tokens_per_sequence=tokens_per_sequence,
             batch_size=batch_size,
@@ -600,6 +673,8 @@ if __name__ == "__main__":
         choices=("PIECEWISE", "FULL", "FULL_AND_PIECEWISE"),
     )
     parser.add_argument("--async-output-transfer", action="store_true")
+    parser.add_argument("--separate-output-transfer-stream", action="store_true")
+    parser.add_argument("--deferred-output-transfer", action="store_true")
     arguments = parser.parse_args()
     benchmark(
         arguments.model_dir,
@@ -633,5 +708,7 @@ if __name__ == "__main__":
         omp_threads=arguments.omp_threads,
         grug_cudagraph_mode=arguments.grug_cudagraph_mode,
         async_output_transfer=arguments.async_output_transfer,
+        separate_output_transfer_stream=arguments.separate_output_transfer_stream,
+        deferred_output_transfer=arguments.deferred_output_transfer,
         results_prefix=arguments.results_prefix,
     )
