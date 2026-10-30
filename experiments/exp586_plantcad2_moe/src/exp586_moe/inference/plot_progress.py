@@ -78,6 +78,7 @@ _DISPLAY_NAMES = {
     "vLLM-budget-winner-bf16-b512": "Transfer BF16 logits",
     "vLLM-small-budget-196608-large-b512": "Tune scheduler to 196k tokens",
     "vLLM-small-budget-196608-large-b768": "Increase request batch",
+    "vLLM-r5-budget245760-b768": "245k-token scheduler (short run)",
 }
 _BACKEND_NAMES = {"jax": "JAX", "torch": "PyTorch", "vllm": "vLLM"}
 
