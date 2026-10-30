@@ -68,6 +68,8 @@ _DISPLAY_NAMES = {
     "vllm-latest-topk-fa3-b224": "FlashAttention 3",
     "vllm-latest-topk-fa3-b236": "Increase batch",
     "vllm-latest-topk-fa3-b240": "Throughput peak",
+    "vLLM-tuned-direct-b240-repeat1": "Direct sconv + explicit MoE tile",
+    "vLLM-tuned-direct-b240-repeat2": "Long-repeat confirmation",
 }
 _BACKEND_NAMES = {"jax": "JAX", "torch": "PyTorch", "vllm": "vLLM"}
 
