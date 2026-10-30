@@ -9,6 +9,7 @@ from pathlib import Path
 
 import jax
 import numpy as np
+from levanter.grug._moe import sonic as sonic_backend
 from levanter.grug.attention import GrugAttentionImplementation
 from levanter.grug.grug_moe import MoeImplementation
 
@@ -62,6 +63,8 @@ def benchmark(
     fa4_forward_tile_m: int | None = None,
     fa4_forward_tile_n: int | None = None,
     fa4_num_threads: int | None = None,
+    sonic_block_h: int | None = None,
+    sonic_num_warps: int | None = None,
     profile_dir: str | None = None,
     results_prefix: str | None = None,
 ) -> None:
@@ -93,6 +96,18 @@ def benchmark(
         raise ValueError("Compact vocabulary requires the A/C/G/T output head")
     if layer_scan_unroll < 1:
         raise ValueError("layer_scan_unroll must be positive")
+    if sonic_block_h is not None or sonic_num_warps is not None:
+        resolved_block_h = sonic_block_h or 1024
+        resolved_num_warps = sonic_num_warps or 8
+        if resolved_block_h not in {256, 512, 1024}:
+            raise ValueError("sonic_block_h must be 256, 512, or 1024")
+        if resolved_num_warps not in {2, 4, 8, 16}:
+            raise ValueError("sonic_num_warps must be 2, 4, 8, or 16")
+
+        def sonic_config(_hidden_dim: int) -> tuple[int, int, int]:
+            return resolved_block_h, 1, resolved_num_warps
+
+        sonic_backend._sonic_kernel_config = sonic_config
     configure_sconv_tiles(
         chunk=sconv_chunk,
         max_channel_block=sconv_max_channel_block,
@@ -259,6 +274,8 @@ def benchmark(
         "fa4_forward_tile_m": fa4_forward_tile_m,
         "fa4_forward_tile_n": fa4_forward_tile_n,
         "fa4_num_threads": fa4_num_threads,
+        "sonic_block_h": sonic_block_h,
+        "sonic_num_warps": sonic_num_warps,
         "profile_dir": profile_dir,
         "peak_memory_gib": memory_stats.get("peak_bytes_in_use", 0) / 2**30,
     }
@@ -286,6 +303,7 @@ def benchmark(
                 f"scan_unroll={layer_scan_unroll}; remat={remat_layers}; "
                 f"fa4=({fa4_forward_tile_m},{fa4_forward_tile_n},"
                 f"threads={fa4_num_threads}); "
+                f"sonic=({sonic_block_h},{sonic_num_warps}); "
                 f"batch={batch_size}"
             ),
             tokens_per_sequence=tokens_per_sequence,
