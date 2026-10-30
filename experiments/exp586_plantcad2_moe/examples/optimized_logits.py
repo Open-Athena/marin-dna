@@ -29,7 +29,7 @@ if __name__ == "__main__":
     parser.add_argument("--model-dir", type=Path, required=True)
     parser.add_argument("--sequences-file", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
-    parser.add_argument("--batch-size", type=int, default=192)
+    parser.add_argument("--batch-size", type=int, default=240)
     arguments = parser.parse_args()
     main(
         arguments.model_dir,

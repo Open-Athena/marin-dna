@@ -37,6 +37,7 @@ class OptimizedJaxDnaLogits:
         self.tokenizer = compact_dna_unigram_tokenizer()
         model, mesh, base_ids = load_model(
             compact_vocab=True,
+            combine_shared_expert_projections=True,
             moe_implementation="sonic",
             attention_implementation="gpu_fa4_cute",
         )

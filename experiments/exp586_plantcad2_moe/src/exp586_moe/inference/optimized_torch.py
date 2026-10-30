@@ -1,9 +1,14 @@
 """Simple single-H100 interface for the optimized PyTorch logits path."""
 
+import os
 from collections.abc import Iterator, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from itertools import chain
 from pathlib import Path
+
+# Freeze inference parameters before Torch/Inductor is imported.  This enables
+# the constant-weight graph used by the final validated benchmark.
+os.environ.setdefault("TORCHINDUCTOR_FREEZING", "1")
 
 import numpy as np
 import torch
@@ -23,7 +28,7 @@ class OptimizedTorchDnaLogits:
 
     output_bases = "ACGT"
 
-    def __init__(self, model_dir: str | Path, *, batch_size: int = 192) -> None:
+    def __init__(self, model_dir: str | Path, *, batch_size: int = 240) -> None:
         if batch_size < 1:
             raise ValueError("batch_size must be positive")
         if not torch.cuda.is_available() or torch.cuda.device_count() != 1:
@@ -49,7 +54,7 @@ class OptimizedTorchDnaLogits:
             specialized_topk=True,
             sconv_backend="direct",
             precomputed_rope=True,
-            concatenated_shared_w1=True,
+            combined_shared_expert_projections=True,
         )
 
         def forward(token_ids: torch.Tensor) -> torch.Tensor:

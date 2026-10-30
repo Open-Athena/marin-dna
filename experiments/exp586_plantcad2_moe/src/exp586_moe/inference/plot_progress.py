@@ -57,6 +57,7 @@ _DISPLAY_NAMES = {
     "Torch-rope-concat-extended-b192": "Retune batch",
     "Torch-r5-combined-shared-b192": "Shared GEMMs (short run)",
     "Torch-r6-combined-freezing-b192": "Freeze graph (short run)",
+    "Torch-r7-freeze-full-long-b240": "Freeze inference graph",
     "naive-full-vocab-eager": "Naive eager, full vocabulary",
     "exact-acgt-head-eager": "Project only A/C/G/T",
     "exact-acgt-head-compiled": "+ compile engine",
@@ -87,6 +88,7 @@ _DISPLAY_NAMES = {
     "vLLM-r6-async-transfer-b768": "Overlap output transfers",
     "vLLM-r7-async-batch1536-budget245760": "Increase request queue",
     "vLLM-r7-async-batch2048-budget245760": "Reach request-queue plateau",
+    "vLLM-r8-prealloc-b2048-active64": "Reuse pinned output buffer",
 }
 _BACKEND_NAMES = {"jax": "JAX", "torch": "PyTorch", "vllm": "vLLM"}
 
@@ -256,7 +258,9 @@ def plot_backend(backend: Backend, ledger: Path, output: Path) -> None:
     table.set_fontsize(8.4 if len(table_rows) <= 15 else 8.0)
     # Keep a long optimization history inside the same figure geometry used by
     # every backend instead of changing only one backend's plot format.
-    table.scale(1, min(1.35, 20 / (len(table_rows) + 1)))
+    # Use the full vertical space beside the plot.  A slightly taller row makes
+    # the milestone text easier to scan without changing the figure geometry.
+    table.scale(1, min(1.45, 23 / (len(table_rows) + 1)))
     for (row, _column), cell in table.get_celld().items():
         cell.set_edgecolor("#d9dce1")
         if row == 0:

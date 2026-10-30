@@ -2,13 +2,19 @@
 
 import os
 from collections.abc import Iterator, Sequence
+from concurrent.futures import ThreadPoolExecutor
+from itertools import chain
 from pathlib import Path
 from typing import Any
 
 import numpy as np
 from tokenizers import Tokenizer
 
-from exp586_moe.inference.benchmark_vllm import _clear_captures, _install_capture
+from exp586_moe.inference.benchmark_vllm import (
+    _clear_captures,
+    _finish_async_captures,
+    _install_capture,
+)
 from exp586_moe.inference.contract import validate_sequences
 from exp586_moe.inference.tokenizer import (
     encode_dna_batch_lists,
@@ -18,10 +24,18 @@ from exp586_moe.inference.tokenizer import (
 
 def _write_captures(worker: Any, output: str, real_rows: int) -> tuple[int, ...]:
     """Write captured worker outputs without serializing them through RPC."""
-    captures = worker.model_runner.model._exp586_captures
-    values = np.concatenate(captures, axis=0)[:real_rows]
+    model = worker.model_runner.model
+    captures = model._exp586_captures
+    values = np.concatenate(
+        [
+            capture.float().numpy() if hasattr(capture, "detach") else capture
+            for capture in captures
+        ],
+        axis=0,
+    )[:real_rows]
     np.save(output, values)
     captures.clear()
+    model._exp586_capture_offset = 0
     return values.shape
 
 
@@ -34,13 +48,16 @@ class OptimizedVllmDnaLogits:
         self,
         model_dir: str | Path,
         *,
-        batch_size: int = 768,
-        scheduler_token_budget: int = 196_608,
+        batch_size: int = 2048,
+        scheduler_token_budget: int = 245_760,
+        active_requests: int = 64,
     ) -> None:
         if batch_size < 1:
             raise ValueError("batch_size must be positive")
         if scheduler_token_budget < 8192 or scheduler_token_budget % 8192:
             raise ValueError("scheduler_token_budget must be a multiple of 8,192")
+        if not 1 <= active_requests <= batch_size:
+            raise ValueError("active_requests must be between one and batch_size")
         os.environ.setdefault("CUDA_VISIBLE_DEVICES", "0")
         os.environ.setdefault("VLLM_WORKER_MULTIPROC_METHOD", "spawn")
         os.environ.setdefault("VLLM_USE_FLASHINFER_SAMPLER", "0")
@@ -73,7 +90,7 @@ class OptimizedVllmDnaLogits:
             enforce_eager=False,
             max_model_len=8193,
             max_num_batched_tokens=scheduler_token_budget,
-            max_num_seqs=batch_size,
+            max_num_seqs=active_requests,
             gpu_memory_utilization=0.2,
             kv_cache_memory_bytes=8_267_812_045,
             enable_prefix_caching=False,
@@ -92,6 +109,11 @@ class OptimizedVllmDnaLogits:
                 True,
                 True,
                 None,
+                False,
+                False,
+                False,
+                True,
+                batch_size,
             ),
         )
         if installed != [True]:
@@ -105,6 +127,10 @@ class OptimizedVllmDnaLogits:
         """Compile and warm the engine before scoring."""
         validate_sequences([sequence])
         self.llm.generate(self._prompts([sequence]), self.sampling, use_tqdm=False)
+        self.llm.llm_engine.collective_rpc(
+            _finish_async_captures,
+            args=(True,),
+        )
         self.llm.llm_engine.collective_rpc(_clear_captures)
 
     def score_to_directory(
@@ -114,14 +140,34 @@ class OptimizedVllmDnaLogits:
         validate_sequences(sequences)
         destination = Path(output_dir)
         destination.mkdir(parents=True, exist_ok=True)
-        for index, start in enumerate(range(0, len(sequences), self.batch_size)):
-            batch = list(sequences[start : start + self.batch_size])
-            self.llm.generate(self._prompts(batch), self.sampling, use_tqdm=False)
-            output = destination / f"logits-{index:05d}.npy"
-            shapes = self.llm.llm_engine.collective_rpc(
-                _write_captures,
-                args=(str(output), len(batch)),
-            )
-            if len(shapes) != 1:
-                raise RuntimeError(f"Expected one vLLM worker, got {shapes}")
-            yield output, tuple(int(value) for value in shapes[0])
+        batches = (
+            list(sequences[start : start + self.batch_size])
+            for start in range(0, len(sequences), self.batch_size)
+        )
+        try:
+            first_batch = next(batches)
+        except StopIteration:
+            return
+
+        with ThreadPoolExecutor(max_workers=1) as pool:
+            batch = first_batch
+            pending = pool.submit(self._prompts, batch)
+            for index, next_batch in enumerate(chain(batches, (None,))):
+                prompts = pending.result()
+                if next_batch is not None:
+                    pending = pool.submit(self._prompts, next_batch)
+                self.llm.generate(prompts, self.sampling, use_tqdm=False)
+                self.llm.llm_engine.collective_rpc(
+                    _finish_async_captures,
+                    args=(False,),
+                )
+                output = destination / f"logits-{index:05d}.npy"
+                shapes = self.llm.llm_engine.collective_rpc(
+                    _write_captures,
+                    args=(str(output), len(batch)),
+                )
+                if len(shapes) != 1:
+                    raise RuntimeError(f"Expected one vLLM worker, got {shapes}")
+                yield output, tuple(int(value) for value in shapes[0])
+                if next_batch is not None:
+                    batch = next_batch
