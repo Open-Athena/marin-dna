@@ -37,6 +37,7 @@ def _install_capture(
     specialized_topk: bool = False,
     direct_sconv: bool = False,
     moe_config: dict[str, int] | None = None,
+    async_output_transfer: bool = False,
 ) -> bool:
     """Capture all-position logits from real vLLM prompt-prefill forwards."""
     import torch
@@ -118,7 +119,20 @@ def _install_capture(
                 selected = functional.linear(states, self.lm_head.weight)[..., base_ids]
             else:
                 selected = functional.linear(states, head)
-            if output_transfer_dtype == "float32":
+            if async_output_transfer:
+                transfer_dtype = (
+                    torch.float32
+                    if output_transfer_dtype == "float32"
+                    else torch.bfloat16
+                )
+                captured = torch.empty(
+                    selected.shape,
+                    dtype=transfer_dtype,
+                    device="cpu",
+                    pin_memory=True,
+                )
+                captured.copy_(selected, non_blocking=True)
+            elif output_transfer_dtype == "float32":
                 captured = selected.float().cpu().numpy()
             else:
                 captured = selected.to(torch.bfloat16).cpu().float().numpy()
@@ -157,6 +171,18 @@ def _reset_peak_memory(worker) -> bool:
     return True
 
 
+def _finish_async_captures(worker, clear: bool) -> int:
+    """Wait once per engine batch after overlapping chunk-level D2H copies."""
+    import torch
+
+    torch.cuda.synchronize(worker.model_runner.device)
+    captures = worker.model_runner.model._exp586_captures
+    count = len(captures)
+    if clear:
+        captures.clear()
+    return count
+
+
 def _runtime_info(worker) -> dict[str, str | float]:
     import torch
     import vllm
@@ -172,7 +198,13 @@ def _runtime_info(worker) -> dict[str, str | float]:
 
 def _save_captures(worker, output: str) -> int:
     captures = worker.model_runner.model._exp586_captures
-    values = np.concatenate(captures, axis=0)
+    values = np.concatenate(
+        [
+            capture.float().numpy() if hasattr(capture, "detach") else capture
+            for capture in captures
+        ],
+        axis=0,
+    )
     np.savez_compressed(output, logits=values)
     return values.shape[0]
 
@@ -210,6 +242,7 @@ def benchmark(
     omp_threads: int | None = None,
     grug_cudagraph_mode: Literal["PIECEWISE", "FULL", "FULL_AND_PIECEWISE"]
     | None = None,
+    async_output_transfer: bool = False,
     results_prefix: str | None = None,
 ) -> None:
     """Measure batched 8,192-token prefills and return dense A/C/G/T logits."""
@@ -306,6 +339,7 @@ def benchmark(
             specialized_topk,
             direct_sconv,
             moe_config,
+            async_output_transfer,
         ),
     )
     if installed != [True]:
@@ -330,13 +364,20 @@ def benchmark(
             ]
         return prompts, time.perf_counter() - began
 
-    def forward(prompts: list[dict[str, list[int]]]) -> float:
+    def forward(
+        prompts: list[dict[str, list[int]]], *, retain_captures: bool = False
+    ) -> float:
         began = time.perf_counter()
         llm.generate(
             prompts,
             sampling,
             use_tqdm=False,
         )
+        if async_output_transfer:
+            llm.llm_engine.collective_rpc(
+                _finish_async_captures,
+                args=(not retain_captures,),
+            )
 
         return time.perf_counter() - began
 
@@ -385,7 +426,10 @@ def benchmark(
     llm.llm_engine.collective_rpc(_clear_captures)
     validation_batch_size = min(batch_size, len(validation_sequences))
     for start in range(0, len(validation_sequences), validation_batch_size):
-        run(validation_sequences[start : start + validation_batch_size])
+        prompts, _ = tokenize(
+            validation_sequences[start : start + validation_batch_size]
+        )
+        forward(prompts, retain_captures=True)
 
     capture_path = str(Path(output).with_suffix(".reference.npz"))
     captured = llm.llm_engine.collective_rpc(_save_captures, args=(capture_path,))
@@ -445,6 +489,7 @@ def benchmark(
         "in_process": in_process,
         "omp_threads": omp_threads,
         "grug_cudagraph_mode": grug_cudagraph_mode,
+        "async_output_transfer": async_output_transfer,
         **runtime[0],
     }
     output_path = Path(output)
@@ -476,6 +521,7 @@ def benchmark(
                 f"; max_num_batched_tokens={max_num_batched_tokens}"
                 f"; in_process={in_process}; omp_threads={omp_threads}"
                 f"; grug_cudagraph_mode={grug_cudagraph_mode}"
+                f"; async_output_transfer={async_output_transfer}"
             ),
             tokens_per_sequence=tokens_per_sequence,
             batch_size=batch_size,
@@ -553,6 +599,7 @@ if __name__ == "__main__":
         "--grug-cudagraph-mode",
         choices=("PIECEWISE", "FULL", "FULL_AND_PIECEWISE"),
     )
+    parser.add_argument("--async-output-transfer", action="store_true")
     arguments = parser.parse_args()
     benchmark(
         arguments.model_dir,
@@ -585,5 +632,6 @@ if __name__ == "__main__":
         in_process=arguments.in_process,
         omp_threads=arguments.omp_threads,
         grug_cudagraph_mode=arguments.grug_cudagraph_mode,
+        async_output_transfer=arguments.async_output_transfer,
         results_prefix=arguments.results_prefix,
     )
