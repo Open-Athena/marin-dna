@@ -182,6 +182,7 @@ def compile_forward(
     output_dtype: JaxOutputDtype = "float32",
     layer_scan_unroll: int = 1,
     remat_layers: bool = True,
+    donate_input: bool = False,
 ) -> Callable[[jax.Array], jax.Array]:
     """Compile either the deliberately naive full head or exact reduced head."""
     selected = np.asarray(base_ids, dtype=np.int32)
@@ -190,9 +191,14 @@ def compile_forward(
         "bfloat16": jnp.bfloat16,
     }[output_dtype]
 
+    jit = functools.partial(
+        eqx.filter_jit,
+        donate="all-except-first" if donate_input else "none",
+    )
+
     if variant == "full_head":
 
-        @eqx.filter_jit
+        @jit
         def forward(model: Transformer, token_ids: jax.Array) -> jax.Array:
             hidden, _ = model(
                 token_ids,
@@ -212,7 +218,7 @@ def compile_forward(
 
     elif variant == "acgt_head":
 
-        @eqx.filter_jit
+        @jit
         def forward(model: Transformer, token_ids: jax.Array) -> jax.Array:
             hidden, _ = model(
                 token_ids,

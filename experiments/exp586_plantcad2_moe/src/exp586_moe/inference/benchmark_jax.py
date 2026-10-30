@@ -65,6 +65,7 @@ def benchmark(
     fa4_num_threads: int | None = None,
     sonic_block_h: int | None = None,
     sonic_num_warps: int | None = None,
+    donate_input: bool = False,
     profile_dir: str | None = None,
     results_prefix: str | None = None,
 ) -> None:
@@ -134,6 +135,7 @@ def benchmark(
         output_dtype=output_dtype,
         layer_scan_unroll=layer_scan_unroll,
         remat_layers=remat_layers,
+        donate_input=donate_input,
     )
 
     def batch_at(index: int) -> list[str]:
@@ -276,6 +278,7 @@ def benchmark(
         "fa4_num_threads": fa4_num_threads,
         "sonic_block_h": sonic_block_h,
         "sonic_num_warps": sonic_num_warps,
+        "donate_input": donate_input,
         "profile_dir": profile_dir,
         "peak_memory_gib": memory_stats.get("peak_bytes_in_use", 0) / 2**30,
     }
@@ -304,6 +307,7 @@ def benchmark(
                 f"fa4=({fa4_forward_tile_m},{fa4_forward_tile_n},"
                 f"threads={fa4_num_threads}); "
                 f"sonic=({sonic_block_h},{sonic_num_warps}); "
+                f"donate_input={donate_input}; "
                 f"batch={batch_size}"
             ),
             tokens_per_sequence=tokens_per_sequence,
