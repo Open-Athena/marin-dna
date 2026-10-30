@@ -44,7 +44,10 @@ It reuses the exp582 benchmark protocol and historical results while binding eve
 
 ## Optimized single-H100 logits
 
-The maintained example reads one 8,192-base ACGTN sequence per line and writes FP32 NumPy arrays shaped `[batch, 8192, 4]` in A/C/G/T order. It uses only GPU 0 and does not generate tokens.
+The maintained examples read one 8,192-base ACGTN sequence per line and write FP32 NumPy arrays shaped `[batch, 8192, 4]` in A/C/G/T order.
+They use only GPU 0 and do not generate tokens.
+
+The Torch example uses the current fastest path:
 
 ```bash
 bash tools/create_inference_env.sh
@@ -54,10 +57,22 @@ CUDA_VISIBLE_DEVICES=0 .inference-venv/bin/python examples/optimized_logits.py \
   --output-dir /path/to/logits
 ```
 
-The default batch is the current validated throughput peak and remains configurable with `--batch-size` while the final frontier is measured.
-The helper defaults to the Torch/vLLM stack used by this example. Native JAX
-benchmarks use a separate compatible kernel environment:
+The same Torch/vLLM environment provides the optimized vLLM engine path:
+
+```bash
+CUDA_VISIBLE_DEVICES=0 .inference-venv/bin/python examples/optimized_vllm_logits.py \
+  --model-dir /path/to/hf-bf16 \
+  --sequences-file /path/to/sequences.txt \
+  --output-dir /path/to/vllm-logits
+```
+
+Native JAX uses a separate compatible kernel environment and restores the original checkpoint directly:
 
 ```bash
 bash tools/create_inference_env.sh .jax-inference-venv jax
+CUDA_VISIBLE_DEVICES=0 .jax-inference-venv/bin/python examples/optimized_jax_logits.py \
+  --sequences-file /path/to/sequences.txt \
+  --output-dir /path/to/jax-logits
 ```
+
+Each default batch is the current validated throughput peak and remains configurable while the final frontiers are measured.
