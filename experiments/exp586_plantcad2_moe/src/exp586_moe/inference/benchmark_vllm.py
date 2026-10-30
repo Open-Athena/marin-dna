@@ -323,11 +323,15 @@ def benchmark(
     separate_output_transfer_stream: bool = False,
     deferred_output_transfer: bool = False,
     preallocated_output_transfer: bool = False,
+    profile_dir: str | None = None,
     results_prefix: str | None = None,
 ) -> None:
     """Measure batched 8,192-token prefills and return dense A/C/G/T logits."""
     os.environ.setdefault("CUDA_VISIBLE_DEVICES", "0")
     os.environ.setdefault("VLLM_WORKER_MULTIPROC_METHOD", "spawn")
+    if profile_dir is not None:
+        Path(profile_dir).mkdir(parents=True, exist_ok=True)
+        os.environ["VLLM_TORCH_PROFILER_DIR"] = profile_dir
     if (
         sum(
             (
@@ -529,6 +533,13 @@ def benchmark(
             forward_output_latencies.append(forward_latency)
             latencies.append(time.perf_counter() - began)
 
+    if profile_dir is not None:
+        # Keep profiler overhead outside the throughput samples while still
+        # exercising the same complete engine request and capture path.
+        llm.start_profile(profile_prefix=name)
+        run(batch_at(0))
+        llm.stop_profile()
+
     # Discard timed captures and validate every batch size on the same complete
     # fixture. This keeps throughput batch size separate from sample coverage.
     llm.llm_engine.collective_rpc(_clear_captures)
@@ -602,6 +613,7 @@ def benchmark(
         "separate_output_transfer_stream": separate_output_transfer_stream,
         "deferred_output_transfer": deferred_output_transfer,
         "preallocated_output_transfer": preallocated_output_transfer,
+        "profile_dir": profile_dir,
         **runtime[0],
     }
     output_path = Path(output)
@@ -638,6 +650,7 @@ def benchmark(
                 f"; separate_output_transfer_stream={separate_output_transfer_stream}"
                 f"; deferred_output_transfer={deferred_output_transfer}"
                 f"; preallocated_output_transfer={preallocated_output_transfer}"
+                f"; profile_dir={profile_dir}"
             ),
             tokens_per_sequence=tokens_per_sequence,
             batch_size=batch_size,
@@ -720,6 +733,7 @@ if __name__ == "__main__":
     parser.add_argument("--separate-output-transfer-stream", action="store_true")
     parser.add_argument("--deferred-output-transfer", action="store_true")
     parser.add_argument("--preallocated-output-transfer", action="store_true")
+    parser.add_argument("--profile-dir")
     arguments = parser.parse_args()
     benchmark(
         arguments.model_dir,
@@ -757,5 +771,6 @@ if __name__ == "__main__":
         separate_output_transfer_stream=arguments.separate_output_transfer_stream,
         deferred_output_transfer=arguments.deferred_output_transfer,
         preallocated_output_transfer=arguments.preallocated_output_transfer,
+        profile_dir=arguments.profile_dir,
         results_prefix=arguments.results_prefix,
     )
