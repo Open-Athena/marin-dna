@@ -205,6 +205,7 @@ def benchmark(
     direct_sconv: bool = False,
     moe_config_json: str | None = None,
     chunked_prefill: bool = False,
+    max_num_batched_tokens: int | None = None,
     in_process: bool = False,
     omp_threads: int | None = None,
     results_prefix: str | None = None,
@@ -255,7 +256,11 @@ def benchmark(
         tensor_parallel_size=1,
         enforce_eager=not compile_engine,
         max_model_len=8193,
-        max_num_batched_tokens=batch_size * 8193,
+        max_num_batched_tokens=(
+            max_num_batched_tokens
+            if max_num_batched_tokens is not None
+            else batch_size * 8193
+        ),
         max_num_seqs=batch_size,
         gpu_memory_utilization=gpu_memory_utilization,
         kv_cache_memory_bytes=kv_cache_memory_bytes,
@@ -421,6 +426,7 @@ def benchmark(
         "direct_sconv": direct_sconv,
         "moe_config": moe_config,
         "chunked_prefill": chunked_prefill,
+        "max_num_batched_tokens": max_num_batched_tokens,
         "in_process": in_process,
         "omp_threads": omp_threads,
         **runtime[0],
@@ -451,6 +457,7 @@ def benchmark(
                 f"; specialized_topk={specialized_topk}; direct_sconv={direct_sconv}"
                 f"; moe_config={moe_config}"
                 f"; chunked_prefill={chunked_prefill}"
+                f"; max_num_batched_tokens={max_num_batched_tokens}"
                 f"; in_process={in_process}; omp_threads={omp_threads}"
             ),
             tokens_per_sequence=tokens_per_sequence,
@@ -522,6 +529,7 @@ if __name__ == "__main__":
     parser.add_argument("--direct-sconv", action="store_true")
     parser.add_argument("--moe-config-json")
     parser.add_argument("--chunked-prefill", action="store_true")
+    parser.add_argument("--max-num-batched-tokens", type=int)
     parser.add_argument("--in-process", action="store_true")
     parser.add_argument("--omp-threads", type=int)
     arguments = parser.parse_args()
@@ -552,6 +560,7 @@ if __name__ == "__main__":
         direct_sconv=arguments.direct_sconv,
         moe_config_json=arguments.moe_config_json,
         chunked_prefill=arguments.chunked_prefill,
+        max_num_batched_tokens=arguments.max_num_batched_tokens,
         in_process=arguments.in_process,
         omp_threads=arguments.omp_threads,
         results_prefix=arguments.results_prefix,
