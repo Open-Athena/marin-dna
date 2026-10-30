@@ -94,19 +94,19 @@ _DISPLAY_NAMES = {
 _BACKEND_NAMES = {"jax": "JAX", "torch": "PyTorch", "vllm": "vLLM"}
 _ANNOTATED_JUMPS = {
     "jax": {
-        "acgt-output-head": ("Project only A/C/G/T", (0.09, 0.30)),
-        "jax-compact-prefetch-steady-b128": ("Overlap tokenization", (0.28, 0.72)),
-        "jax-specialized-topk-b224": ("Specialize router top-k", (0.52, 0.58)),
+        "acgt-output-head": ("Project only A/C/G/T", (0.30, 0.36)),
+        "jax-compact-prefetch-steady-b128": ("Overlap tokenization", (0.30, 0.60)),
+        "jax-specialized-topk-b224": ("Specialize router top-k", (0.30, 0.78)),
     },
     "torch": {
-        "native-grouped-moe": ("Grouped MoE kernels", (0.10, 0.30)),
-        "compiled-flex-global-flash": ("Global FlashAttention", (0.34, 0.51)),
-        "torch-prefetch-topk8-b224": ("Overlap tokenization", (0.25, 0.84)),
+        "native-grouped-moe": ("Grouped MoE kernels", (0.30, 0.27)),
+        "compiled-flex-global-flash": ("Global FlashAttention", (0.30, 0.47)),
+        "torch-prefetch-topk8-b224": ("Overlap tokenization", (0.30, 0.67)),
     },
     "vllm": {
-        "compiled-triton-bm64-b4": ("Increase request batch", (0.10, 0.24)),
-        "vllm-latest-tokenize-b224": ("Overlap tokenization", (0.28, 0.42)),
-        "vLLM-r6-async-transfer-b768": ("Overlap output transfer", (0.66, 0.50)),
+        "compiled-triton-bm64-b4": ("Increase request batch", (0.22, 0.20)),
+        "vllm-latest-tokenize-b224": ("Overlap tokenization", (0.22, 0.38)),
+        "vLLM-r6-async-transfer-b768": ("Overlap output transfer", (0.64, 0.39)),
     },
 }
 
@@ -229,6 +229,25 @@ def plot_backend(backend: Backend, ledger: Path, output: Path) -> None:
             if backend in {"jax", "torch"}
             else (prior + value) / 2
         )
+        # Emphasize the actual step segment; the small open anchor disambiguates
+        # its midpoint from the trial measurements at either endpoint.
+        axis.plot(
+            [hour, hour],
+            [prior, value],
+            color="#1769e0",
+            linewidth=3.0,
+            zorder=3.5,
+        )
+        axis.plot(
+            hour,
+            jump_midpoint,
+            marker="o",
+            markersize=4,
+            markerfacecolor="white",
+            markeredgecolor="#1769e0",
+            markeredgewidth=1.2,
+            zorder=5,
+        )
         axis.annotate(
             f"{label}\n{gain}",
             (hour, jump_midpoint),
@@ -239,17 +258,22 @@ def plot_backend(backend: Backend, ledger: Path, output: Path) -> None:
             fontsize=8.2,
             color="#17324d",
             bbox={
-                "boxstyle": "round,pad=0.24",
-                "facecolor": "#f6f9ff",
-                "edgecolor": "#5b8fcf",
-                "alpha": 0.97,
+                "boxstyle": "round,pad=0.36,rounding_size=0.12",
+                "facecolor": "white",
+                "edgecolor": "#bfd0e6",
+                "alpha": 1.0,
             },
             arrowprops={
                 "arrowstyle": "-|>",
-                "color": "#1769e0",
-                "linewidth": 1.1,
+                "color": "#517aab",
+                "linewidth": 1.0,
                 "mutation_scale": 8,
-                "shrinkB": 1,
+                "shrinkB": 3,
+                "connectionstyle": (
+                    "angle,angleA=90,angleB=0,rad=4"
+                    if name == "vLLM-r6-async-transfer-b768"
+                    else "arc3,rad=0"
+                ),
             },
             zorder=4,
         )
