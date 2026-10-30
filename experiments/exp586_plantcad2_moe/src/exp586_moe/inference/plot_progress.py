@@ -94,20 +94,19 @@ _DISPLAY_NAMES = {
 _BACKEND_NAMES = {"jax": "JAX", "torch": "PyTorch", "vllm": "vLLM"}
 _ANNOTATED_JUMPS = {
     "jax": {
-        "acgt-output-head": ("Project only A/C/G/T", (12, -10)),
-        "jax-compact-prefetch-steady-b128": ("Overlap tokenization", (20, 16)),
-        "jax-specialized-topk-b224": ("Specialize router top-k", (12, -34)),
+        "acgt-output-head": ("Project only A/C/G/T", (0.08, 0.42)),
+        "jax-compact-prefetch-steady-b128": ("Overlap tokenization", (0.23, 0.90)),
+        "jax-specialized-topk-b224": ("Specialize router top-k", (0.46, 0.60)),
     },
     "torch": {
-        "native-grouped-moe": ("Grouped MoE kernels", (12, 12)),
-        "compiled-flex-global-flash": ("Global FlashAttention", (12, -34)),
-        "torch-prefetch-topk8-b224": ("Overlap tokenization", (12, 16)),
-        "torch-topk-direct-sconv-b128": ("Direct short convolution", (12, -34)),
+        "native-grouped-moe": ("Grouped MoE kernels", (0.10, 0.43)),
+        "compiled-flex-global-flash": ("Global FlashAttention", (0.33, 0.52)),
+        "torch-prefetch-topk8-b224": ("Overlap tokenization", (0.22, 0.88)),
     },
     "vllm": {
-        "compiled-triton-bm64-b4": ("Increase request batch", (12, 12)),
-        "vllm-latest-tokenize-b224": ("Overlap tokenization", (12, 12)),
-        "vLLM-r6-async-transfer-b768": ("Overlap output transfer", (12, -34)),
+        "compiled-triton-bm64-b4": ("Increase request batch", (0.12, 0.28)),
+        "vllm-latest-tokenize-b224": ("Overlap tokenization", (0.26, 0.53)),
+        "vLLM-r6-async-transfer-b768": ("Overlap output transfer", (0.66, 0.48)),
     },
 }
 
@@ -173,9 +172,9 @@ def plot_backend(backend: Backend, ledger: Path, output: Path) -> None:
         _, best_hour, best_value = max(accepted_points, key=lambda point: point[2])
         start_offset = (8, -6) if backend == "vllm" else (8, 12)
         annotations = (
-            ("Start", start_hour, start_value, start_offset),
+            ("Baseline", start_hour, start_value, start_offset),
             (
-                "Best valid",
+                "Best",
                 best_hour,
                 best_value,
                 (-8, 12 if backend == "vllm" else -32),
@@ -224,15 +223,15 @@ def plot_backend(backend: Backend, ledger: Path, output: Path) -> None:
             continue
         hour, value, prior = point
         ratio = value / prior
-        gain = f"{ratio:.1f}× frontier" if ratio >= 2 else f"+{(ratio - 1) * 100:.0f}%"
+        gain = f"{ratio:.1f}× gain" if ratio >= 2 else f"+{(ratio - 1) * 100:.0f}%"
         axis.annotate(
             f"{label}\n{gain}",
             (hour, value),
             xytext=offset,
-            textcoords="offset points",
+            textcoords="axes fraction",
             ha="left",
-            va="bottom" if offset[1] >= 0 else "top",
-            fontsize=7.6,
+            va="center",
+            fontsize=8.2,
             color="#17324d",
             bbox={
                 "boxstyle": "round,pad=0.24",
@@ -287,9 +286,7 @@ def plot_backend(backend: Backend, ledger: Path, output: Path) -> None:
                 color="#8b5a5a",
                 label="Failed correctness",
             ),
-            Line2D(
-                [], [], color="#1769e0", linewidth=2.2, label="Best valid throughput"
-            ),
+            Line2D([], [], color="#1769e0", linewidth=2.2, label="Best throughput"),
         ),
         loc="lower right",
         fontsize=8,
@@ -310,7 +307,7 @@ def plot_backend(backend: Backend, ledger: Path, output: Path) -> None:
     ]
     table = table_axis.table(
         cellText=table_rows,
-        colLabels=("Valid speed milestone", "Batch", "tok/s"),
+        colLabels=("Throughput milestone", "Batch", "tok/s"),
         colWidths=(0.58, 0.17, 0.25),
         cellLoc="left",
         colLoc="left",

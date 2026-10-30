@@ -56,7 +56,7 @@ The workload consumes four logits per position, while the pretrained model has a
 
 ### Tokenization and batching
 
-The original Hugging Face BPE model is inappropriate for this restricted workload unless it is forced to emit one token per base. The optimized tokenizers retain the Hugging Face `tokenizers` runtime and lowercase normalizer while replacing the segmentation model with an ACGTN character unigram. Batched encoding and a one-thread prefetch pipeline hide most tokenizer time behind GPU work. This was one of the largest improvements in all three paths; in JAX it raised the frontier from about 582k to 958k tok/s.
+The original Hugging Face BPE model is inappropriate for this restricted workload unless it is forced to emit one token per base. The optimized tokenizers retain the Hugging Face `tokenizers` runtime and lowercase normalizer while replacing the segmentation model with an ACGTN character unigram. Batched encoding and a one-thread prefetch pipeline hide most tokenizer time behind GPU work. This was one of the largest improvements in all three paths; in JAX it raised throughput from about 582k to 958k tok/s.
 
 Batch size was retuned after every material graph change rather than inherited from an earlier path. The largest batch that fit was not always the fastest. vLLM additionally separates the caller's request queue from the number of requests active in the scheduler.
 

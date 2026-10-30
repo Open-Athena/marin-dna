@@ -78,4 +78,4 @@ CUDA_VISIBLE_DEVICES=0 .jax-inference-venv/bin/python examples/optimized_jax_log
   --output-dir /path/to/jax-logits
 ```
 
-Each default batch is the current validated throughput peak and remains configurable while the final frontiers are measured.
+Each default batch is the best validated setting from this experiment and remains configurable.
