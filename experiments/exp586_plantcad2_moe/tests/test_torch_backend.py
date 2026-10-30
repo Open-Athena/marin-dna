@@ -3,11 +3,36 @@ import pytest
 torch = pytest.importorskip("torch")
 
 from exp586_moe.inference.torch_backend import (
+    combined_shared_experts,
     fused_half_rope,
     grouped_experts,
     rms_norm,
     short_conv,
 )
+
+
+def test_combined_shared_experts_matches_separate_projections() -> None:
+    generator = torch.Generator().manual_seed(586)
+    values = torch.randn(2, 3, 8, generator=generator)
+    gate = torch.randn(2, 6, 8, generator=generator)
+    up = torch.randn(2, 6, 8, generator=generator)
+    down = torch.randn(2, 8, 6, generator=generator)
+    expected = sum(
+        torch.nn.functional.linear(
+            torch.nn.functional.silu(torch.nn.functional.linear(values, gate[expert]))
+            * torch.nn.functional.linear(values, up[expert]),
+            down[expert],
+        )
+        for expert in range(2)
+    )
+    gate_up = torch.cat(
+        [projection for expert in range(2) for projection in (gate[expert], up[expert])]
+    )
+    combined_down = torch.cat([down[expert] for expert in range(2)], dim=1)
+
+    actual = combined_shared_experts(values, gate_up, combined_down, 2)
+
+    torch.testing.assert_close(actual, expected)
 
 
 @pytest.mark.parametrize("backend", ["conv1d", "direct"])

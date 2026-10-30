@@ -253,6 +253,24 @@ def grouped_experts(
     return result
 
 
+def combined_shared_experts(
+    x: torch.Tensor,
+    gate_up_weights: torch.Tensor,
+    down_weights: torch.Tensor,
+    num_experts: int,
+) -> torch.Tensor:
+    """Evaluate fixed shared experts with one input and one output projection."""
+    projections = F.linear(x, gate_up_weights).chunk(2 * num_experts, dim=-1)
+    activations = torch.cat(
+        [
+            F.silu(projections[2 * expert]) * projections[2 * expert + 1]
+            for expert in range(num_experts)
+        ],
+        dim=-1,
+    )
+    return F.linear(activations, down_weights)
+
+
 class EagerGrugMoE(torch.nn.Module):
     """Plain PyTorch operations with no vLLM engine, EP, or custom MoE kernel."""
 
@@ -272,6 +290,7 @@ class EagerGrugMoE(torch.nn.Module):
         fused_shared_experts: bool = False,
         precomputed_rope: bool = False,
         concatenated_shared_w1: bool = False,
+        combined_shared_expert_projections: bool = False,
     ) -> None:
         super().__init__()
         if attention_backend not in {
@@ -290,10 +309,15 @@ class EagerGrugMoE(torch.nn.Module):
         self.config = TorchConfig.load(directory)
         if fp8_moe_ptpc and not fp8_moe:
             raise ValueError("fp8_moe_ptpc requires fp8_moe")
-        if fused_shared_experts and concatenated_shared_w1:
-            raise ValueError(
-                "Choose either fused_shared_experts or concatenated_shared_w1"
+        shared_projection_modes = sum(
+            (
+                fused_shared_experts,
+                concatenated_shared_w1,
+                combined_shared_expert_projections,
             )
+        )
+        if shared_projection_modes > 1:
+            raise ValueError("Choose one shared-expert projection implementation")
         weights = load_weights(directory, device)
         routed_expert_weights = {
             f"model.layers.{layer}.mlp.experts.{projection}_proj.weight"
@@ -404,6 +428,35 @@ class EagerGrugMoE(torch.nn.Module):
                         ).contiguous(),
                         persistent=False,
                     )
+        if combined_shared_expert_projections:
+            for layer in range(self.config.num_layers):
+                shared_prefixes = [
+                    f"model.layers.{layer}.shared_experts.{expert}"
+                    for expert in range(self.config.num_shared_experts)
+                ]
+                self.register_buffer(
+                    f"combined_shared_w1_{layer}",
+                    torch.cat(
+                        [
+                            weights[f"{shared}.{projection}_proj.weight"]
+                            for shared in shared_prefixes
+                            for projection in ("gate", "up")
+                        ],
+                        dim=0,
+                    ).contiguous(),
+                    persistent=False,
+                )
+                self.register_buffer(
+                    f"combined_shared_w2_{layer}",
+                    torch.cat(
+                        [
+                            weights[f"{shared}.down_proj.weight"]
+                            for shared in shared_prefixes
+                        ],
+                        dim=1,
+                    ).contiguous(),
+                    persistent=False,
+                )
         self.device = device
         self.attention_backend = attention_backend
         self.global_attention_backend = global_attention_backend
@@ -415,6 +468,7 @@ class EagerGrugMoE(torch.nn.Module):
         self.fused_shared_experts = fused_shared_experts
         self.precomputed_rope = precomputed_rope
         self.concatenated_shared_w1 = concatenated_shared_w1
+        self.combined_shared_expert_projections = combined_shared_expert_projections
         if precomputed_rope:
             rotary_dim = self.config.head_dim // 2
             half = rotary_dim // 2
@@ -704,6 +758,13 @@ class EagerGrugMoE(torch.nn.Module):
         return output.reshape_as(x)
 
     def _shared_experts(self, layer: int, x: torch.Tensor) -> torch.Tensor:
+        if self.combined_shared_expert_projections:
+            return combined_shared_experts(
+                x,
+                self.get_buffer(f"combined_shared_w1_{layer}"),
+                self.get_buffer(f"combined_shared_w2_{layer}"),
+                self.config.num_shared_experts,
+            )
         if self.fused_shared_experts:
             if _vllm_fused_experts is None:
                 raise RuntimeError("The vLLM fused MoE kernel is unavailable")
