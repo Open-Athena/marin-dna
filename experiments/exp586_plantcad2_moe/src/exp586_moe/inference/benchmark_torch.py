@@ -178,11 +178,13 @@ def benchmark(
         with torch.inference_mode(), config_context:
             if cuda_graph:
                 if graph is None:
-                    # Compile and populate stable allocations before capture.
-                    for _ in range(3):
-                        model_forward(token_ids)
-                    torch.cuda.synchronize()
+                    # Compile with the exact static input allocation that capture
+                    # will replay. Some custom kernels key lazy compilation on
+                    # this tensor rather than only its shape and strides.
                     graph_input = token_ids.clone()
+                    for _ in range(3):
+                        model_forward(graph_input)
+                    torch.cuda.synchronize()
                     graph = torch.cuda.CUDAGraph()
                     with torch.cuda.graph(graph):
                         graph_output = model_forward(graph_input)
