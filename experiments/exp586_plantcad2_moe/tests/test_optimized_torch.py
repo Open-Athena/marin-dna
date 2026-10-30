@@ -1,6 +1,7 @@
 import pytest
 
-from exp586_moe.inference.optimized_torch import padded_batches
+from exp586_moe.inference.contract import validate_sequences
+from exp586_moe.inference.optimized_common import padded_batches
 
 
 def _sequence(base: str) -> str:
@@ -12,10 +13,12 @@ def test_padded_batches_preserves_rows_and_fixed_shape() -> None:
 
     batches = list(padded_batches(sequences, 2))
 
-    assert batches == [
-        (sequences[:2], 2),
-        ([sequences[2], sequences[2]], 1),
-    ]
+    assert batches[0] == (sequences[:2], 2)
+    padded, real_rows = batches[1]
+    assert real_rows == 1
+    assert padded[0] == sequences[2]
+    assert len(padded) == 2
+    validate_sequences(padded)
 
 
 def test_padded_batches_rejects_invalid_inputs() -> None:

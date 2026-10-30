@@ -1,8 +1,13 @@
 """Simple single-H100 interface for the optimized native-JAX logits path."""
 
+import os
 from collections.abc import Iterator, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from itertools import chain
+
+# The batch-352 frontier requires the same 95% device pool used in validation.
+# XLA reads this setting when the backend is initialized.
+os.environ.setdefault("XLA_CLIENT_MEM_FRACTION", "0.95")
 
 import jax
 import numpy as np
@@ -53,7 +58,8 @@ class OptimizedJaxDnaLogits:
     def warmup(self, sequence: str) -> None:
         """Compile and warm the fixed batch shape before timed scoring."""
         validate_sequences([sequence])
-        self._forward(self._tokenize([sequence] * self.batch_size))
+        batch, _ = next(padded_batches([sequence], self.batch_size))
+        self._forward(self._tokenize(batch))
 
     def score_batches(self, sequences: Sequence[str]) -> Iterator[np.ndarray]:
         """Yield FP32 arrays shaped ``[batch, 8192, 4]`` in A/C/G/T order."""

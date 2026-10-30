@@ -74,7 +74,8 @@ class OptimizedTorchDnaLogits:
     def warmup(self, sequence: str) -> None:
         """Compile and warm the fixed batch shape before timed scoring."""
         validate_sequences([sequence])
-        token_ids = self._tokenize([sequence] * self.batch_size)
+        batch, _ = next(padded_batches([sequence], self.batch_size))
+        token_ids = self._tokenize(batch)
         self._forward(token_ids)
 
     def score_batches(self, sequences: Sequence[str]) -> Iterator[np.ndarray]:
