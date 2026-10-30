@@ -40,6 +40,8 @@ def _install_capture(
     async_output_transfer: bool = False,
     separate_output_transfer_stream: bool = False,
     deferred_output_transfer: bool = False,
+    preallocated_output_transfer: bool = False,
+    capture_batch_size: int | None = None,
 ) -> bool:
     """Capture all-position logits from real vLLM prompt-prefill forwards."""
     import torch
@@ -54,6 +56,20 @@ def _install_capture(
         if separate_output_transfer_stream
         else None
     )
+    model._exp586_capture_offset = 0
+    model._exp586_output_buffer = None
+    if preallocated_output_transfer:
+        if capture_batch_size is None or capture_batch_size < 1:
+            raise ValueError("Preallocated transfer requires a positive batch size")
+        transfer_dtype = (
+            torch.float32 if output_transfer_dtype == "float32" else torch.bfloat16
+        )
+        model._exp586_output_buffer = torch.empty(
+            (capture_batch_size, 8192, len(base_ids)),
+            dtype=transfer_dtype,
+            device="cpu",
+            pin_memory=True,
+        )
 
     if specialized_topk:
         from vllm.model_executor.models.grugmoe import GrugMoeRouter
@@ -132,6 +148,14 @@ def _install_capture(
                     if output_transfer_dtype == "float32"
                     else selected.to(torch.bfloat16)
                 )
+            elif preallocated_output_transfer:
+                start = self._exp586_capture_offset
+                stop = start + selected.shape[0]
+                if stop > self._exp586_output_buffer.shape[0]:
+                    raise RuntimeError("Captured logits exceed the preallocated batch")
+                captured = self._exp586_output_buffer[start:stop]
+                captured.copy_(selected, non_blocking=True)
+                self._exp586_capture_offset = stop
             elif async_output_transfer or separate_output_transfer_stream:
                 transfer_dtype = (
                     torch.float32
@@ -178,9 +202,11 @@ def _install_capture(
 
 
 def _clear_captures(worker) -> int:
-    captures = worker.model_runner.model._exp586_captures
+    model = worker.model_runner.model
+    captures = model._exp586_captures
     count = len(captures)
     captures.clear()
+    model._exp586_capture_offset = 0
     return count
 
 
@@ -205,6 +231,7 @@ def _finish_async_captures(worker, clear: bool) -> int:
     count = len(captures)
     if clear:
         captures.clear()
+        model._exp586_capture_offset = 0
     return count
 
 
@@ -294,6 +321,7 @@ def benchmark(
     async_output_transfer: bool = False,
     separate_output_transfer_stream: bool = False,
     deferred_output_transfer: bool = False,
+    preallocated_output_transfer: bool = False,
     results_prefix: str | None = None,
 ) -> None:
     """Measure batched 8,192-token prefills and return dense A/C/G/T logits."""
@@ -305,6 +333,7 @@ def benchmark(
                 async_output_transfer,
                 separate_output_transfer_stream,
                 deferred_output_transfer,
+                preallocated_output_transfer,
             )
         )
         > 1
@@ -404,6 +433,8 @@ def benchmark(
             async_output_transfer,
             separate_output_transfer_stream,
             deferred_output_transfer,
+            preallocated_output_transfer,
+            batch_size,
         ),
     )
     if installed != [True]:
@@ -437,7 +468,11 @@ def benchmark(
             sampling,
             use_tqdm=False,
         )
-        if async_output_transfer or separate_output_transfer_stream:
+        if (
+            async_output_transfer
+            or separate_output_transfer_stream
+            or preallocated_output_transfer
+        ):
             llm.llm_engine.collective_rpc(
                 _finish_async_captures,
                 args=(not retain_captures,),
@@ -561,6 +596,7 @@ def benchmark(
         "async_output_transfer": async_output_transfer,
         "separate_output_transfer_stream": separate_output_transfer_stream,
         "deferred_output_transfer": deferred_output_transfer,
+        "preallocated_output_transfer": preallocated_output_transfer,
         **runtime[0],
     }
     output_path = Path(output)
@@ -595,6 +631,7 @@ def benchmark(
                 f"; async_output_transfer={async_output_transfer}"
                 f"; separate_output_transfer_stream={separate_output_transfer_stream}"
                 f"; deferred_output_transfer={deferred_output_transfer}"
+                f"; preallocated_output_transfer={preallocated_output_transfer}"
             ),
             tokens_per_sequence=tokens_per_sequence,
             batch_size=batch_size,
@@ -675,6 +712,7 @@ if __name__ == "__main__":
     parser.add_argument("--async-output-transfer", action="store_true")
     parser.add_argument("--separate-output-transfer-stream", action="store_true")
     parser.add_argument("--deferred-output-transfer", action="store_true")
+    parser.add_argument("--preallocated-output-transfer", action="store_true")
     arguments = parser.parse_args()
     benchmark(
         arguments.model_dir,
@@ -710,5 +748,6 @@ if __name__ == "__main__":
         async_output_transfer=arguments.async_output_transfer,
         separate_output_transfer_stream=arguments.separate_output_transfer_stream,
         deferred_output_transfer=arguments.deferred_output_transfer,
+        preallocated_output_transfer=arguments.preallocated_output_transfer,
         results_prefix=arguments.results_prefix,
     )
