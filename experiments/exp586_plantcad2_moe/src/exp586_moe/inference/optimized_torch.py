@@ -10,7 +10,10 @@ import torch
 from transformers import PreTrainedTokenizerFast
 
 from exp586_moe.inference.contract import token_contract, validate_sequences
-from exp586_moe.inference.tokenizer import encode_dna_batch, reduced_dna_tokenizer
+from exp586_moe.inference.tokenizer import (
+    encode_dna_batch,
+    reduced_dna_unigram_tokenizer,
+)
 from exp586_moe.inference.torch_backend import EagerGrugMoE
 
 
@@ -34,7 +37,7 @@ class OptimizedTorchDnaLogits:
 
     output_bases = "ACGT"
 
-    def __init__(self, model_dir: str | Path, *, batch_size: int = 128) -> None:
+    def __init__(self, model_dir: str | Path, *, batch_size: int = 192) -> None:
         if batch_size < 1:
             raise ValueError("batch_size must be positive")
         if not torch.cuda.is_available() or torch.cuda.device_count() != 1:
@@ -45,7 +48,9 @@ class OptimizedTorchDnaLogits:
 
         directory = Path(model_dir)
         source_tokenizer = PreTrainedTokenizerFast.from_pretrained(directory)
-        self.tokenizer = reduced_dna_tokenizer(source_tokenizer.backend_tokenizer)
+        self.tokenizer = reduced_dna_unigram_tokenizer(
+            source_tokenizer.backend_tokenizer
+        )
         contract = token_contract(source_tokenizer.backend_tokenizer)
         self.base_ids = [contract.output_ids[base] for base in self.output_bases]
         self.batch_size = batch_size
@@ -53,10 +58,12 @@ class OptimizedTorchDnaLogits:
         self.model = EagerGrugMoE(
             directory,
             device,
-            attention_backend="flex_expanded",
+            attention_backend="vllm_fa3",
             global_attention_backend="flash",
             specialized_topk=True,
             sconv_backend="direct",
+            precomputed_rope=True,
+            concatenated_shared_w1=True,
         )
 
         def forward(token_ids: torch.Tensor) -> torch.Tensor:
