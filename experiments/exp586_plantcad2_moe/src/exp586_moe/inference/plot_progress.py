@@ -52,6 +52,7 @@ _DISPLAY_NAMES = {
     "Torch-rope-concat-shared-b16": "Combine shared-expert gate/up",
     "Torch-rope-concat-large-b128": "Increase batch",
     "Torch-rope-concat-extended-b192": "Retune batch",
+    "Torch-r5-combined-shared-b192": "Shared GEMMs (short run)",
     "naive-full-vocab-eager": "Naive eager, full vocabulary",
     "exact-acgt-head-eager": "Project only A/C/G/T",
     "exact-acgt-head-compiled": "+ compile engine",
