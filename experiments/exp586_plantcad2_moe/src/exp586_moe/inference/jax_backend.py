@@ -11,10 +11,14 @@ import jax
 import jax.numpy as jnp
 import jmp
 import numpy as np
+from einops import rearrange
 from jax.sharding import PartitionSpec as P
+from jax.sharding import reshard
+from levanter.grug._moe.common import MoeActivation
 from levanter.grug.attention import AttentionMask, GrugAttentionImplementation
 from levanter.grug.grug_moe import MoeImplementation
 from levanter.grug.sharding import compact_grug_mesh
+from levanter.utils.activation import ActivationFunctionEnum
 from rigging.filesystem.s3_compat import configure_coreweave_s3
 from tokenizers import Tokenizer
 
@@ -27,11 +31,90 @@ from exp586_moe.inference.contract import (
     token_contract,
     validate_sequences,
 )
-from experiments.grug.moe_hero_ep.model import Transformer
+from experiments.grug.moe_hero_ep.model import (
+    Transformer,
+    _activation_spec,
+    _token_spec,
+)
 from experiments.grug.moe_hero_ep.weights import restore_weights
 
 JaxVariant = Literal["full_head", "acgt_head"]
 JaxOutputDtype = Literal["float32", "bfloat16"]
+
+
+def combined_shared_expert_projections(
+    x: jax.Array,
+    gate_up_weights: jax.Array,
+    down_weights: jax.Array,
+    num_experts: int,
+) -> jax.Array:
+    """Evaluate fixed shared experts with one input and one output projection."""
+    projections = jnp.einsum("td,dm->tm", x, gate_up_weights)
+    pieces = jnp.split(projections, 2 * num_experts, axis=-1)
+    activations = jnp.concatenate(
+        [
+            jax.nn.silu(pieces[2 * expert]) * pieces[2 * expert + 1]
+            for expert in range(num_experts)
+        ],
+        axis=-1,
+    )
+    return jnp.einsum(
+        "tm,md->td",
+        activations,
+        down_weights,
+        out_sharding=_token_spec(),
+    )
+
+
+class CombinedSharedExperts(eqx.Module):
+    """Inference-only equivalent of a tuple of fixed shared experts."""
+
+    gate_up_weights: jax.Array
+    down_weights: jax.Array
+    num_experts: int = eqx.field(static=True)
+
+    def __call__(
+        self,
+        x: jax.Array,
+        *,
+        activation: MoeActivation = ActivationFunctionEnum.silu,
+    ) -> jax.Array:
+        if activation != ActivationFunctionEnum.silu:
+            raise ValueError("Combined shared experts require SiLU")
+        batch, sequence, _ = x.shape
+        flat = reshard(rearrange(x, "b s d -> (b s) d"), _token_spec())
+        out = combined_shared_expert_projections(
+            flat,
+            self.gate_up_weights,
+            self.down_weights,
+            self.num_experts,
+        )
+        return reshard(
+            rearrange(out, "(b s) d -> b s d", b=batch, s=sequence),
+            _activation_spec(x),
+        )
+
+
+def combine_shared_experts(model: Transformer) -> Transformer:
+    """Replace separate fixed experts with the same two-projection computation."""
+    shared = model.stacked_blocks.stacked.shared
+    if shared is None or len(shared) < 2:
+        return model
+    gate_up_weights = jnp.concatenate(
+        [weight for expert in shared for weight in (expert.w_gate, expert.w_up)],
+        axis=-1,
+    )
+    down_weights = jnp.concatenate([expert.w_down for expert in shared], axis=-2)
+    combined = CombinedSharedExperts(
+        gate_up_weights=gate_up_weights,
+        down_weights=down_weights,
+        num_experts=len(shared),
+    )
+    return eqx.tree_at(
+        lambda tree: tree.stacked_blocks.stacked.shared,
+        model,
+        (combined,),
+    )
 
 
 def configure_sconv_tiles(
@@ -121,6 +204,7 @@ def configure_fa4_forward(
 def load_model(
     *,
     compact_vocab: bool = False,
+    combine_shared_expert_projections: bool = False,
     moe_implementation: MoeImplementation = "sonic",
     attention_implementation: GrugAttentionImplementation = "gpu_fa4_cute",
     expert_chunks: int = 1,
@@ -164,6 +248,9 @@ def load_model(
                 model,
                 (compact_embed, compact_output),
             )
+            jax.block_until_ready(model)
+        if combine_shared_expert_projections:
+            model = combine_shared_experts(model)
             jax.block_until_ready(model)
     base_ids = (
         list(range(4))

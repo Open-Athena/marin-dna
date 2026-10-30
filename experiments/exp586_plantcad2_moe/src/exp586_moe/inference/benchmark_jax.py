@@ -48,6 +48,7 @@ def benchmark(
     batch_size: int = 1,
     validation_fixture: str | None = None,
     compact_vocab: bool = False,
+    combine_shared_expert_projections: bool = False,
     moe_implementation: MoeImplementation = "sonic",
     attention_implementation: GrugAttentionImplementation = "gpu_fa4_cute",
     expert_chunks: int = 1,
@@ -123,6 +124,7 @@ def benchmark(
     )
     model, mesh, base_ids = load_model(
         compact_vocab=compact_vocab,
+        combine_shared_expert_projections=combine_shared_expert_projections,
         moe_implementation=moe_implementation,
         attention_implementation=attention_implementation,
         expert_chunks=expert_chunks,
@@ -261,6 +263,7 @@ def benchmark(
         "device": jax.devices()[0].device_kind,
         "tokenizer_variant": tokenizer_variant,
         "compact_vocab": compact_vocab,
+        "combine_shared_expert_projections": combine_shared_expert_projections,
         "moe_implementation": moe_implementation,
         "attention_implementation": attention_implementation,
         "expert_chunks": expert_chunks,
@@ -298,6 +301,7 @@ def benchmark(
             notes=(
                 f"{variant}; tokenizer={tokenizer_variant}; "
                 f"compact_vocab={compact_vocab}; moe={moe_implementation}; "
+                f"combined_shared={combine_shared_expert_projections}; "
                 f"attention={attention_implementation}; expert_chunks={expert_chunks}; "
                 f"output_dtype={output_dtype}; prefetch={prefetch_tokenization}; "
                 f"sconv=({sconv_chunk},{sconv_max_channel_block},"
