@@ -10,26 +10,12 @@ import torch
 from transformers import PreTrainedTokenizerFast
 
 from exp586_moe.inference.contract import token_contract, validate_sequences
+from exp586_moe.inference.optimized_common import padded_batches
 from exp586_moe.inference.tokenizer import (
     encode_dna_batch,
     reduced_dna_unigram_tokenizer,
 )
 from exp586_moe.inference.torch_backend import EagerGrugMoE
-
-
-def padded_batches(
-    sequences: Sequence[str], batch_size: int
-) -> Iterator[tuple[list[str], int]]:
-    """Yield fixed-shape batches and the number of real rows in each batch."""
-    if batch_size < 1:
-        raise ValueError("batch_size must be positive")
-    for start in range(0, len(sequences), batch_size):
-        batch = list(sequences[start : start + batch_size])
-        validate_sequences(batch)
-        real_rows = len(batch)
-        while len(batch) < batch_size:
-            batch.extend(batch[: min(len(batch), batch_size - len(batch))])
-        yield batch, real_rows
 
 
 class OptimizedTorchDnaLogits:
