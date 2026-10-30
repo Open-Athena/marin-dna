@@ -106,7 +106,7 @@ _ANNOTATED_JUMPS = {
     },
     "vllm": {
         "compiled-triton-bm64-b4": ("Increase request batch", (0.22, 0.20)),
-        "vllm-latest-tokenize-b224": ("Overlap tokenization", (0.22, 0.38)),
+        "vllm-latest-tokenize-b224": ("Overlap tokenization", (0.22, 0.33)),
         "vLLM-r6-async-transfer-b768": ("Overlap output transfer", (0.64, 0.39)),
     },
 }
