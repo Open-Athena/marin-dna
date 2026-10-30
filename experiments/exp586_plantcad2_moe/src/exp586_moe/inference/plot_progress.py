@@ -70,6 +70,7 @@ _DISPLAY_NAMES = {
     "vllm-latest-topk-fa3-b240": "Throughput peak",
     "vLLM-tuned-direct-b240-repeat1": "Direct sconv + explicit MoE tile",
     "vLLM-tuned-direct-b240-repeat2": "Long-repeat confirmation",
+    "vLLM-chunked-direct-long-b240": "Chunked prefill + direct sconv",
 }
 _BACKEND_NAMES = {"jax": "JAX", "torch": "PyTorch", "vllm": "vLLM"}
 
