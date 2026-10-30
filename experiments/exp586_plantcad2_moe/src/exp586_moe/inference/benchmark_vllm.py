@@ -314,6 +314,7 @@ def benchmark(
     moe_config_json: str | None = None,
     chunked_prefill: bool = False,
     max_num_batched_tokens: int | None = None,
+    max_num_seqs: int | None = None,
     in_process: bool = False,
     omp_threads: int | None = None,
     grug_cudagraph_mode: Literal["PIECEWISE", "FULL", "FULL_AND_PIECEWISE"]
@@ -370,6 +371,9 @@ def benchmark(
         raise ValueError("Batch size must fit the unique-sequence fixture")
     if iterations < 2:
         raise ValueError("Use at least two timed iterations")
+    resolved_max_num_seqs = batch_size if max_num_seqs is None else max_num_seqs
+    if resolved_max_num_seqs < 1 or resolved_max_num_seqs > batch_size:
+        raise ValueError("max_num_seqs must be between one and the request batch size")
     tokenizer = Tokenizer.from_file(str(Path(model_dir) / "tokenizer.json"))
     if tokenizer_variant == "reduced":
         tokenizer = reduced_dna_tokenizer(tokenizer)
@@ -395,7 +399,7 @@ def benchmark(
             if max_num_batched_tokens is not None
             else batch_size * 8193
         ),
-        max_num_seqs=batch_size,
+        max_num_seqs=resolved_max_num_seqs,
         gpu_memory_utilization=gpu_memory_utilization,
         kv_cache_memory_bytes=kv_cache_memory_bytes,
         enable_prefix_caching=False,
@@ -590,6 +594,7 @@ def benchmark(
         "moe_config": moe_config,
         "chunked_prefill": chunked_prefill,
         "max_num_batched_tokens": max_num_batched_tokens,
+        "max_num_seqs": resolved_max_num_seqs,
         "in_process": in_process,
         "omp_threads": omp_threads,
         "grug_cudagraph_mode": grug_cudagraph_mode,
@@ -626,6 +631,7 @@ def benchmark(
                 f"; moe_config={moe_config}"
                 f"; chunked_prefill={chunked_prefill}"
                 f"; max_num_batched_tokens={max_num_batched_tokens}"
+                f"; max_num_seqs={resolved_max_num_seqs}"
                 f"; in_process={in_process}; omp_threads={omp_threads}"
                 f"; grug_cudagraph_mode={grug_cudagraph_mode}"
                 f"; async_output_transfer={async_output_transfer}"
@@ -703,6 +709,7 @@ if __name__ == "__main__":
     parser.add_argument("--moe-config-json")
     parser.add_argument("--chunked-prefill", action="store_true")
     parser.add_argument("--max-num-batched-tokens", type=int)
+    parser.add_argument("--max-num-seqs", type=int)
     parser.add_argument("--in-process", action="store_true")
     parser.add_argument("--omp-threads", type=int)
     parser.add_argument(
@@ -742,6 +749,7 @@ if __name__ == "__main__":
         moe_config_json=arguments.moe_config_json,
         chunked_prefill=arguments.chunked_prefill,
         max_num_batched_tokens=arguments.max_num_batched_tokens,
+        max_num_seqs=arguments.max_num_seqs,
         in_process=arguments.in_process,
         omp_threads=arguments.omp_threads,
         grug_cudagraph_mode=arguments.grug_cudagraph_mode,
