@@ -3,6 +3,7 @@
 import os
 from collections.abc import Iterator, Sequence
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 from tokenizers import Tokenizer
@@ -15,7 +16,7 @@ from exp586_moe.inference.tokenizer import (
 )
 
 
-def _write_captures(worker, output: str, real_rows: int) -> tuple[int, ...]:
+def _write_captures(worker: Any, output: str, real_rows: int) -> tuple[int, ...]:
     """Write captured worker outputs without serializing them through RPC."""
     captures = worker.model_runner.model._exp586_captures
     values = np.concatenate(captures, axis=0)[:real_rows]
