@@ -71,6 +71,11 @@ _DISPLAY_NAMES = {
     "vLLM-tuned-direct-b240-repeat1": "Direct sconv + explicit MoE tile",
     "vLLM-tuned-direct-b240-repeat2": "Long-repeat confirmation",
     "vLLM-chunked-direct-long-b240": "Chunked prefill + direct sconv",
+    "vLLM-budget-262144-b240": "Limit scheduler to 262k tokens",
+    "vLLM-budget-262144-boundary-b264": "Increase request batch",
+    "vLLM-budget-262144-boundary-b416": "Increase request batch",
+    "vLLM-budget-262144-boundary-b512": "Increase request batch",
+    "vLLM-budget-winner-bf16-b512": "Transfer BF16 logits",
 }
 _BACKEND_NAMES = {"jax": "JAX", "torch": "PyTorch", "vllm": "vLLM"}
 
