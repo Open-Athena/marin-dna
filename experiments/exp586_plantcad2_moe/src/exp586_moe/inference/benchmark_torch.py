@@ -61,6 +61,7 @@ def benchmark(
     profile_path: str | None = None,
     fp8_moe: bool = False,
     fp8_moe_ptpc: bool = False,
+    compact_output_head: bool = False,
     cuda_graph: bool = False,
     fused_shared_experts: bool = False,
     precomputed_rope: bool = False,
@@ -100,6 +101,8 @@ def benchmark(
     contract = token_contract(tokenizer.backend_tokenizer)
     base_ids = [contract.output_ids[base] for base in "ACGT"]
     base_ids_tensor = torch.tensor(base_ids, device=device)
+    if compact_output_head and variant == "full_head":
+        raise ValueError("compact_output_head requires an A/C/G/T output variant")
     model = EagerGrugMoE(
         directory,
         device,
@@ -115,6 +118,7 @@ def benchmark(
             if tokenizer_variant == "compact_unigram"
             else None
         ),
+        compact_output_ids=base_ids if compact_output_head else None,
         fused_shared_experts=fused_shared_experts,
         precomputed_rope=precomputed_rope,
         concatenated_shared_w1=concatenated_shared_w1,
@@ -338,6 +342,7 @@ def benchmark(
         "profile_path": profile_path,
         "fp8_moe": fp8_moe,
         "fp8_moe_ptpc": fp8_moe_ptpc,
+        "compact_output_head": compact_output_head,
         "cuda_graph": cuda_graph,
         "fused_shared_experts": fused_shared_experts,
         "precomputed_rope": precomputed_rope,
@@ -371,6 +376,7 @@ def benchmark(
                 f"; sconv_backend={sconv_backend}"
                 f"; tokenizer_batch={tokenizer_batch}"
                 f"; fp8_moe={fp8_moe}; fp8_moe_ptpc={fp8_moe_ptpc}"
+                f"; compact_output_head={compact_output_head}"
                 f"; cuda_graph={cuda_graph}"
                 f"; fused_shared_experts={fused_shared_experts}"
                 f"; precomputed_rope={precomputed_rope}"

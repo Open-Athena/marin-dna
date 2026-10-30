@@ -289,6 +289,7 @@ class EagerGrugMoE(torch.nn.Module):
         fp8_moe: bool = False,
         fp8_moe_ptpc: bool = False,
         compact_input_ids: list[int] | None = None,
+        compact_output_ids: list[int] | None = None,
         fused_shared_experts: bool = False,
         precomputed_rope: bool = False,
         concatenated_shared_w1: bool = False,
@@ -335,6 +336,8 @@ class EagerGrugMoE(torch.nn.Module):
                 continue
             if name == "model.embed_tokens.weight" and compact_input_ids is not None:
                 value = value[compact_input_ids]
+            if name == "lm_head.weight" and compact_output_ids is not None:
+                value = value[compact_output_ids]
             buffer_name = f"checkpoint_weight_{index}"
             # Own the storage rather than retaining safetensors' mmap-backed weakref;
             # AOTAutograd needs stable buffer storage during graph compilation.
@@ -463,6 +466,7 @@ class EagerGrugMoE(torch.nn.Module):
                     persistent=False,
                 )
         self.device = device
+        self.compact_output_head = compact_output_ids is not None
         self.attention_backend = attention_backend
         self.global_attention_backend = global_attention_backend
         self.global_attention_gqa = global_attention_gqa
@@ -867,8 +871,12 @@ class EagerGrugMoE(torch.nn.Module):
             "model.final_gated_norm",
             rms_norm(hidden, self._weight("model.norm.weight"), cfg.layer_norm_eps),
         )
+        if variant == "full_head" and self.compact_output_head:
+            raise ValueError(
+                "The compact output head cannot return the full vocabulary"
+            )
         head = self._weight("lm_head.weight")
-        if variant != "full_head":
+        if variant != "full_head" and not self.compact_output_head:
             head = head[base_ids]
         logits = F.linear(hidden, head)
         return logits[..., base_ids] if variant == "full_head" else logits
