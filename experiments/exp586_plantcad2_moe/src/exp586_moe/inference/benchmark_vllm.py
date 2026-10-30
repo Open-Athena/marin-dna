@@ -208,6 +208,8 @@ def benchmark(
     max_num_batched_tokens: int | None = None,
     in_process: bool = False,
     omp_threads: int | None = None,
+    grug_cudagraph_mode: Literal["PIECEWISE", "FULL", "FULL_AND_PIECEWISE"]
+    | None = None,
     results_prefix: str | None = None,
 ) -> None:
     """Measure batched 8,192-token prefills and return dense A/C/G/T logits."""
@@ -215,6 +217,13 @@ def benchmark(
     os.environ.setdefault("VLLM_WORKER_MULTIPROC_METHOD", "spawn")
     os.environ.setdefault("VLLM_USE_FLASHINFER_SAMPLER", "0")
     os.environ.setdefault("VLLM_ALLOW_INSECURE_SERIALIZATION", "1")
+    if grug_cudagraph_mode is not None:
+        os.environ["EXP586_VLLM_CUDAGRAPH"] = "1"
+        allowed_plugins = {
+            name for name in os.environ.get("VLLM_PLUGINS", "").split(",") if name
+        }
+        allowed_plugins.add("exp586_grug_cudagraph")
+        os.environ["VLLM_PLUGINS"] = ",".join(sorted(allowed_plugins))
     if in_process:
         os.environ["VLLM_ENABLE_V1_MULTIPROCESSING"] = "0"
     if omp_threads is not None:
@@ -226,6 +235,7 @@ def benchmark(
     os.environ.setdefault("VLLM_ALLOW_LONG_MAX_MODEL_LEN", "1")
 
     from vllm import LLM, SamplingParams
+    from vllm.config import CUDAGraphMode
 
     began_productive = time.perf_counter()
     sequences = load_fixture(Path(fixture))
@@ -278,6 +288,11 @@ def benchmark(
                 ),
             }
             if attention_backend or flash_attention_version
+            else None
+        ),
+        compilation_config=(
+            {"cudagraph_mode": CUDAGraphMode[grug_cudagraph_mode]}
+            if grug_cudagraph_mode is not None
             else None
         ),
     )
@@ -429,6 +444,7 @@ def benchmark(
         "max_num_batched_tokens": max_num_batched_tokens,
         "in_process": in_process,
         "omp_threads": omp_threads,
+        "grug_cudagraph_mode": grug_cudagraph_mode,
         **runtime[0],
     }
     output_path = Path(output)
@@ -459,6 +475,7 @@ def benchmark(
                 f"; chunked_prefill={chunked_prefill}"
                 f"; max_num_batched_tokens={max_num_batched_tokens}"
                 f"; in_process={in_process}; omp_threads={omp_threads}"
+                f"; grug_cudagraph_mode={grug_cudagraph_mode}"
             ),
             tokens_per_sequence=tokens_per_sequence,
             batch_size=batch_size,
@@ -532,6 +549,10 @@ if __name__ == "__main__":
     parser.add_argument("--max-num-batched-tokens", type=int)
     parser.add_argument("--in-process", action="store_true")
     parser.add_argument("--omp-threads", type=int)
+    parser.add_argument(
+        "--grug-cudagraph-mode",
+        choices=("PIECEWISE", "FULL", "FULL_AND_PIECEWISE"),
+    )
     arguments = parser.parse_args()
     benchmark(
         arguments.model_dir,
@@ -563,5 +584,6 @@ if __name__ == "__main__":
         max_num_batched_tokens=arguments.max_num_batched_tokens,
         in_process=arguments.in_process,
         omp_threads=arguments.omp_threads,
+        grug_cudagraph_mode=arguments.grug_cudagraph_mode,
         results_prefix=arguments.results_prefix,
     )

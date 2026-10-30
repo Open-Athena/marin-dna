@@ -48,6 +48,9 @@ gpu = [
     "flash-attn-4[cu13]==4.0.0b28",
 ]
 
+[project.entry-points."vllm.general_plugins"]
+exp586_grug_cudagraph = "exp586_moe.inference.vllm_plugin:register_plugin"
+
 [dependency-groups]
 dev = ["matplotlib>=3.10", "pytest>=8", "ruff", "scipy", "scikit-learn"]
 
