@@ -159,6 +159,45 @@ def test_one_trillion_stage_is_fresh_pretrained_and_keeps_twelve_checkpoints():
     assert binding["target_input_tokens"] == ONE_TRILLION_TARGET_TOKENS
     assert binding["optimizer_reference_tokens"] == ONE_TRILLION_TARGET_TOKENS
     assert binding["optimizer"]["learning_rate"] == pytest.approx(0.0019538660550705964)
+    assert hashlib.sha256(config_json(binding).encode()).hexdigest() == (
+        "6a5273b56f94f5da995a882b44208678dbbb8baf8871a4c3ccc37c286f222899"
+    )
+    assert not any(key.startswith("profiling_") for key in binding)
+
+    combined = dataclasses.replace(
+        config,
+        runtime_state_mode="fp32_device",
+        runtime_prefetch=True,
+        runtime_transition_id="combined-v1-20261031",
+        runtime_code_sha256="a" * 64,
+    )
+    assert combined.run_id == config.run_id
+    assert combined.checkpoint_root == config.checkpoint_root
+    assert combined.effective_runtime_state_mode == "fp32_device"
+    assert combined.prefetch_depth == 1
+    assert combined.runtime_metadata == {
+        "state_mode": "fp32_device",
+        "prefetch_depth": 1,
+        "transition_id": "combined-v1-20261031",
+        "code_sha256": "a" * 64,
+        "cluster": "cw-rno2a",
+        "nodes": 8,
+    }
+    assert scientific_config(combined, SOURCE_TOKENIZER_SHA256) == binding
+    assert hashlib.sha256(
+        config_json(scientific_config(combined, SOURCE_TOKENIZER_SHA256)).encode()
+    ).hexdigest() == (
+        "6a5273b56f94f5da995a882b44208678dbbb8baf8871a4c3ccc37c286f222899"
+    )
+
+    with pytest.raises(ValueError, match="set together"):
+        dataclasses.replace(config, runtime_transition_id="combined-v1")
+    with pytest.raises(ValueError, match="lowercase SHA-256"):
+        dataclasses.replace(
+            config,
+            runtime_transition_id="combined-v1",
+            runtime_code_sha256="A" * 64,
+        )
 
     smoke = dataclasses.replace(
         config, nodes=2, validation_updates=2, validation_id="fresh-a"
@@ -172,6 +211,33 @@ def test_one_trillion_stage_is_fresh_pretrained_and_keeps_twelve_checkpoints():
         TrainingConfig("pretrained", 2.0, "cw-rno2a", 8, stage="t1")
     with pytest.raises(ValueError, match="only for pretrained 1x"):
         TrainingConfig("scratch", 1.0, "cw-rno2a", 8, stage="t1")
+
+
+def test_one_trillion_profiling_is_isolated_and_bounded():
+    config = TrainingConfig(
+        "pretrained",
+        1.0,
+        "cw-rno2a",
+        1,
+        stage="t1",
+        profiling_updates=80,
+        profiling_id="baseline",
+        profiler_start_step=20,
+        profiler_num_steps=5,
+    )
+
+    assert config.run_id == (
+        "exp586-plantcad2-d768-pretrained-lrm1-seed0-1t-v1-profile-baseline"
+    )
+    assert config.execution_stop_update == 80
+    assert config.permanent_checkpoint_updates == frozenset()
+    assert "/tmp/ttl=7d/" in config.checkpoint_root
+    assert config.runtime_batch_size == 8
+    assert config.effective_runtime_state_mode == "fp32_pinned_host"
+    assert config.prefetch_depth == 0
+    profile_binding = scientific_config(config, SOURCE_TOKENIZER_SHA256)
+    assert profile_binding["profiling_state_mode"] == "production"
+    assert profile_binding["profiling_prefetch"] is False
 
 
 def test_stage_one_binding_exactly_matches_the_source_checkpoint():

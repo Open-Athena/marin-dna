@@ -11,6 +11,7 @@ import os
 import time
 import uuid
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
 from enum import Enum
 from typing import Any, Literal
 
@@ -26,6 +27,12 @@ from fray.types import Entrypoint, JobRequest, create_environment
 from iris.rpc.proto_display import priority_band_value
 from jax.experimental import multihost_utils
 from levanter import tracker
+from levanter.callbacks.profiler import (
+    DEFAULT_XPROF_SERVICE_URL,
+    ProfileOptionsConfig,
+    profile,
+    xprof_viewer_url,
+)
 from levanter.callbacks.watch import WatchConfig
 from levanter.checkpoint import discover_checkpoint_candidates
 from levanter.grug.grug_moe import (
@@ -180,6 +187,17 @@ class TrainingConfig:
     moe_backend: Literal["pooled", "fixed", "ring"] | None = None
     validation_updates: int | None = None
     validation_id: str | None = None
+    runtime_state_mode: Literal["fp32_pinned_host", "fp32_device"] = "fp32_pinned_host"
+    runtime_prefetch: bool = False
+    runtime_transition_id: str | None = None
+    runtime_code_sha256: str | None = None
+    profiling_updates: int | None = None
+    profiling_id: str | None = None
+    profiling_batch_size: int = 8
+    profiling_state_mode: Literal["production", "device"] = "production"
+    profiling_prefetch: bool = False
+    profiler_start_step: int = 20
+    profiler_num_steps: int = 5
 
     def __post_init__(self) -> None:
         multipliers = {
@@ -215,6 +233,10 @@ class TrainingConfig:
             raise ValueError("Select an approved MoE runtime backend")
         if (self.validation_updates is None) != (self.validation_id is None):
             raise ValueError("Validation updates and ID must be set together")
+        if (self.profiling_updates is None) != (self.profiling_id is None):
+            raise ValueError("Profiling updates and ID must be set together")
+        if self.validation_updates is not None and self.profiling_updates is not None:
+            raise ValueError("Validation and profiling modes are mutually exclusive")
         if self.validation_updates is not None:
             if (
                 self.stage not in ("s02", "t1")
@@ -228,10 +250,102 @@ class TrainingConfig:
                 raise ValueError(
                     "Validation ID must contain only letters, digits, and hyphens"
                 )
+        if self.runtime_state_mode not in ("fp32_pinned_host", "fp32_device"):
+            raise ValueError("Unknown production runtime state mode")
+        if (self.runtime_transition_id is None) != (self.runtime_code_sha256 is None):
+            raise ValueError(
+                "Runtime transition ID and code digest must be set together"
+            )
+        if self.runtime_transition_id is not None:
+            if not self.runtime_transition_id.replace("-", "").isalnum():
+                raise ValueError(
+                    "Runtime transition ID must contain only letters, digits, and hyphens"
+                )
+            if len(self.runtime_code_sha256 or "") != 64 or any(
+                c not in "0123456789abcdef" for c in self.runtime_code_sha256 or ""
+            ):
+                raise ValueError("Runtime code digest must be lowercase SHA-256")
+        if self.profiling_updates is not None:
+            if self.stage != "t1" or not 10 <= self.profiling_updates <= 200:
+                raise ValueError(
+                    "Profiling must run 10 through 200 updates of stage t1"
+                )
+            if (
+                not self.profiling_id
+                or not self.profiling_id.replace("-", "").isalnum()
+            ):
+                raise ValueError(
+                    "Profiling ID must contain only letters, digits, and hyphens"
+                )
+            if (
+                self.profiler_start_step < 1
+                or self.profiler_num_steps < 1
+                or self.profiler_start_step + self.profiler_num_steps
+                > self.profiling_updates
+            ):
+                raise ValueError("Profiler window must fit inside the profiling run")
+            if self.profiling_batch_size != 8:
+                raise ValueError("One-node profiling uses one example per H100")
+            if self.profiling_state_mode not in ("production", "device"):
+                raise ValueError("Unknown profiling state mode")
+            if (
+                self.runtime_state_mode != "fp32_pinned_host"
+                or self.runtime_prefetch
+                or self.runtime_transition_id is not None
+            ):
+                raise ValueError(
+                    "Production runtime choices cannot be combined with profiling mode"
+                )
+        elif (
+            self.profiling_batch_size != 8
+            or self.profiling_state_mode != "production"
+            or self.profiling_prefetch
+        ):
+            raise ValueError("Profiling runtime choices require profiling mode")
 
     @property
     def context_axis_size(self) -> int:
         return 1
+
+    @property
+    def runtime_batch_size(self) -> int:
+        return (
+            self.profiling_batch_size
+            if self.profiling_updates is not None
+            else BATCH_SIZE
+        )
+
+    @property
+    def effective_runtime_state_mode(
+        self,
+    ) -> Literal["fp32_pinned_host", "fp32_device"]:
+        if self.profiling_updates is not None:
+            return (
+                "fp32_device"
+                if self.profiling_state_mode == "device"
+                else "fp32_pinned_host"
+            )
+        return self.runtime_state_mode
+
+    @property
+    def prefetch_depth(self) -> int:
+        enabled = (
+            self.profiling_prefetch
+            if self.profiling_updates is not None
+            else self.runtime_prefetch
+        )
+        return int(enabled)
+
+    @property
+    def runtime_metadata(self) -> dict[str, Any]:
+        return {
+            "state_mode": self.effective_runtime_state_mode,
+            "prefetch_depth": self.prefetch_depth,
+            "transition_id": self.runtime_transition_id,
+            "code_sha256": self.runtime_code_sha256,
+            "cluster": self.cluster,
+            "nodes": self.nodes,
+        }
 
     @property
     def run_id(self) -> str:
@@ -247,11 +361,13 @@ class TrainingConfig:
             base = base.removesuffix("-v1") + "-1t-v1"
         if self.validation_id is not None:
             base += f"-smoke-{self.validation_id}"
+        elif self.profiling_id is not None:
+            base += f"-profile-{self.profiling_id}"
         return base
 
     @property
     def checkpoint_root(self) -> str:
-        if self.validation_id is not None:
+        if self.validation_id is not None or self.profiling_id is not None:
             return (
                 "s3://marin-us-east-02a/tmp/ttl=7d/MarinDNA/"
                 f"exp586_plantcad2_moe/{self.run_id}/checkpoints"
@@ -308,6 +424,8 @@ class TrainingConfig:
     def execution_stop_update(self) -> int:
         if self.validation_updates is not None:
             return self.start_update + self.validation_updates
+        if self.profiling_updates is not None:
+            return self.start_update + self.profiling_updates
         return self.target_updates
 
     @property
@@ -316,6 +434,8 @@ class TrainingConfig:
 
     @property
     def permanent_checkpoint_updates(self) -> frozenset[int]:
+        if self.profiling_updates is not None:
+            return frozenset()
         if self.validation_updates is not None:
             return frozenset({self.execution_stop_update})
         if self.stage == "s01":
@@ -394,7 +514,7 @@ def scientific_config(config: TrainingConfig, tokenizer_sha256: str) -> dict[str
     if config.stage == "s01":
         return stage_one
     if config.stage == "t1":
-        return {
+        stage_t1 = {
             **stage_one,
             "schema": 3,
             "stage": config.stage,
@@ -402,6 +522,16 @@ def scientific_config(config: TrainingConfig, tokenizer_sha256: str) -> dict[str
             "target_input_tokens": config.target_input_tokens,
             "validation_updates": config.validation_updates,
         }
+        if config.profiling_updates is not None:
+            stage_t1.update(
+                {
+                    "profiling_updates": config.profiling_updates,
+                    "profiling_batch_size": config.runtime_batch_size,
+                    "profiling_state_mode": config.profiling_state_mode,
+                    "profiling_prefetch": config.profiling_prefetch,
+                }
+            )
+        return stage_t1
     return {
         **stage_one,
         "schema": 2,
@@ -631,10 +761,13 @@ def evaluate(
 
 def _run_training(config: TrainingConfig) -> None:
     mp = jmp.get_policy("params=bfloat16,compute=bfloat16,output=bfloat16")
+    runtime_batch_size = config.runtime_batch_size
+    runtime_tokens_per_update = runtime_batch_size * 8192
+    offload_state = config.effective_runtime_state_mode == "fp32_pinned_host"
     trainer = TrainerConfig(
         id=config.run_id,
         seed=config.seed,
-        train_batch_size=BATCH_SIZE,
+        train_batch_size=runtime_batch_size,
         num_train_steps=config.execution_stop_update,
         require_accelerator=True,
         mp=mp,
@@ -660,6 +793,7 @@ def _run_training(config: TrainingConfig) -> None:
                 config.cluster,
                 config.condition,
                 f"stage={config.stage}",
+                *(["profiling"] if config.profiling_updates is not None else []),
             ],
             save_code=False,
             background=False,
@@ -678,6 +812,14 @@ def _run_training(config: TrainingConfig) -> None:
         {
             "training/phase": "loading",
             "training/moe_runtime_backend": config.model.moe_implementation,
+            "training/runtime_batch_size": runtime_batch_size,
+            "training/runtime_tokens_per_update": runtime_tokens_per_update,
+            "training/state_mode": config.effective_runtime_state_mode,
+            "training/prefetch": bool(config.prefetch_depth),
+            "training/runtime_state_mode": config.effective_runtime_state_mode,
+            "training/prefetch_depth": config.prefetch_depth,
+            "training/runtime_transition_id": config.runtime_transition_id,
+            "training/runtime_code_sha256": config.runtime_code_sha256,
             "gpu_type": "H100",
             "nodes": config.nodes,
             **flops_summary,
@@ -726,9 +868,15 @@ def _run_training(config: TrainingConfig) -> None:
                 config.model, key=jax.random.key(config.seed)
             )
         )
-        state = eqx.filter_jit(lambda w: fresh_state(w, optimizer, mp, offload=True))(
-            weights
-        )
+        state = eqx.filter_jit(
+            lambda w: fresh_state(
+                w,
+                optimizer,
+                mp,
+                offload=offload_state,
+                retain_master=True,
+            )
+        )(weights)
         del weights
         clock = TokenClock()
         resume_checkpoint = checkpoint or config.continuation_source_checkpoint
@@ -783,6 +931,7 @@ def _run_training(config: TrainingConfig) -> None:
                 "training/next_muon_lr": opt_config.learning_rate * next_factor,
                 "training/next_adam_lr": opt_config.adam_lr * next_factor,
                 "training/phase": "compiling",
+                "training/profiling_run": config.profiling_updates is not None,
             }
         )
         if initial_update >= schedule.peak_update:
@@ -805,34 +954,121 @@ def _run_training(config: TrainingConfig) -> None:
             mp,
             z_loss_weight=1e-4,
             ema_beta=None,
-            offload_opt_state=True,
-            master_param_mode=MasterParamMode.FP32_PINNED_HOST,
+            offload_opt_state=offload_state,
+            master_param_mode=(
+                MasterParamMode.FP32_PINNED_HOST
+                if offload_state
+                else MasterParamMode.FP32_DEVICE
+            ),
             watch_config=None,
         )
+        profiler_callback = None
+        profile_uri = None
+        if config.profiling_updates is not None:
+            profile_uri = f"s3://marin-us-east-02a/tmp/ttl=7d/xprof/{config.run_id}"
+            profiler_callback = profile(
+                f"/tmp/{config.run_id}/profiler",
+                start_step=config.profiler_start_step,
+                num_steps=config.profiler_num_steps,
+                create_perfetto_link=False,
+                create_perfetto_trace=False,
+                profiler_options=ProfileOptionsConfig(
+                    host_tracer_level=2,
+                    python_tracer_level=0,
+                    device_tracer_level=1,
+                ).build_jax_profile_options(),
+                process_index=0,
+                upload_uri=profile_uri,
+                xprof_service_url=DEFAULT_XPROF_SERVICE_URL,
+            )
+            tracker.log_summary(
+                {
+                    "profiling/start_step": config.profiler_start_step,
+                    "profiling/num_steps": config.profiler_num_steps,
+                    "profiling/profile_uri": profile_uri,
+                    "profiling/xprof_url": xprof_viewer_url(
+                        DEFAULT_XPROF_SERVICE_URL, profile_uri
+                    ),
+                }
+            )
         last_save = time.monotonic()
+        batch_iterator = None
+        if config.prefetch_depth:
+
+            def prefetch_batches():
+                remaining = config.execution_stop_update - clock.updates
+                base_examples = clock.examples
+                with ThreadPoolExecutor(max_workers=1) as pool:
+                    future = pool.submit(
+                        distributed_batch,
+                        dataset,
+                        tokenizer,
+                        mesh,
+                        base_examples,
+                        runtime_batch_size,
+                        augment=True,
+                    )
+                    for index in range(remaining):
+                        batch = future.result()
+                        if index + 1 < remaining:
+                            future = pool.submit(
+                                distributed_batch,
+                                dataset,
+                                tokenizer,
+                                mesh,
+                                base_examples + (index + 1) * runtime_batch_size,
+                                runtime_batch_size,
+                                augment=True,
+                            )
+                        yield batch
+
+            batch_iterator = iter(prefetch_batches())
         while clock.updates < config.execution_stop_update:
             start = time.monotonic()
-            batch = distributed_batch(
-                dataset, tokenizer, mesh, clock.examples, BATCH_SIZE, augment=True
-            )
+            if batch_iterator is None:
+                batch = distributed_batch(
+                    dataset,
+                    tokenizer,
+                    mesh,
+                    clock.examples,
+                    runtime_batch_size,
+                    augment=True,
+                )
+            else:
+                batch = next(batch_iterator)
             loading_time = time.monotonic() - start
-            factor = schedule.factor(clock.input_tokens)
+            schedule_input_tokens = (
+                clock.updates * TOKENS_PER_UPDATE
+                if config.profiling_updates is not None
+                else clock.input_tokens
+            )
+            factor = schedule.factor(schedule_input_tokens)
+            schedule_clock = (
+                dataclasses.replace(clock, input_tokens=schedule_input_tokens)
+                if config.profiling_updates is not None
+                else clock
+            )
             state = dataclasses.replace(
                 state,
                 opt_state=set_token_learning_rates(
-                    state.opt_state, opt_config, schedule, clock
+                    state.opt_state, opt_config, schedule, schedule_clock
                 ),
             )
-            state, metrics, watch = train_step(state, batch)
-            jax.block_until_ready((state, metrics, watch))
+            if config.profiling_updates is not None:
+                with jax.profiler.StepTraceAnnotation("train", step_num=clock.updates):
+                    state, metrics, watch = train_step(state, batch)
+                    jax.block_until_ready((state, metrics, watch))
+            else:
+                state, metrics, watch = train_step(state, batch)
+                jax.block_until_ready((state, metrics, watch))
             clock = clock.advance(
-                input_tokens=TOKENS_PER_UPDATE,
-                loss_targets=BATCH_SIZE * 8191,
-                examples=BATCH_SIZE,
+                input_tokens=runtime_tokens_per_update,
+                loss_targets=runtime_batch_size * 8191,
+                examples=runtime_batch_size,
             )
             elapsed = time.monotonic() - start
             values = routing_diagnostics(
-                metrics, batch_size=BATCH_SIZE, model_config=config.model
+                metrics, batch_size=runtime_batch_size, model_config=config.model
             )
             values.update({key: float(value) for key, value in (watch or {}).items()})
             if any(not math.isfinite(float(value)) for value in values.values()):
@@ -854,6 +1090,12 @@ def _run_training(config: TrainingConfig) -> None:
                     / config.target_input_tokens,
                     "train/step": clock.updates,
                     "train/input_tokens": clock.input_tokens,
+                    "train/schedule_input_tokens": schedule_input_tokens,
+                    "profiling/actual_input_tokens": (
+                        clock.updates * runtime_tokens_per_update
+                        if config.profiling_updates is not None
+                        else clock.input_tokens
+                    ),
                     "train/loss_targets": clock.loss_targets,
                     "train/examples": clock.examples,
                     "train/epochs": clock.input_tokens / EPOCH_TOKENS,
@@ -862,14 +1104,14 @@ def _run_training(config: TrainingConfig) -> None:
                     "train/adam_lr": opt_config.adam_lr * factor,
                     "throughput/step_seconds": elapsed,
                     "throughput/loading_seconds": loading_time,
-                    "throughput/tokens_per_second": TOKENS_PER_UPDATE / elapsed,
+                    "throughput/tokens_per_second": runtime_tokens_per_update / elapsed,
                 }
             )
             values.update(
                 throughput_flop_metrics(
                     flops_per_example=flops_per_example,
                     completed_examples=clock.examples,
-                    batch_size=BATCH_SIZE,
+                    batch_size=runtime_batch_size,
                     elapsed_seconds=elapsed,
                     theoretical_flops_total=flops_total,
                 )
@@ -881,27 +1123,33 @@ def _run_training(config: TrainingConfig) -> None:
             history_step = log_offset + clock.updates - initial_update
             tracker.log(values, step=history_step)
             tracker.log_summary({"training/phase": "training"})
+            if profiler_callback is not None:
+                profiler_callback(
+                    type("ProfileStep", (), {"step": clock.updates - 1})()
+                )
             permanent = is_permanent_checkpoint(
                 clock.updates,
                 peak_update=schedule.peak_update,
                 permanent_updates=config.permanent_checkpoint_updates,
             )
-            due = int(
-                multihost_utils.broadcast_one_to_all(
-                    np.asarray(
-                        checkpoint_due(
-                            clock.updates,
-                            initial_update,
-                            time.monotonic() - last_save,
-                            config.checkpoint_interval_seconds,
-                            peak_update=schedule.peak_update,
-                            recovery_delay_updates=config.recovery_checkpoint_delay_updates,
-                            permanent_updates=config.permanent_checkpoint_updates,
-                        ),
-                        dtype=np.int32,
+            due = 0
+            if config.profiling_updates is None:
+                due = int(
+                    multihost_utils.broadcast_one_to_all(
+                        np.asarray(
+                            checkpoint_due(
+                                clock.updates,
+                                initial_update,
+                                time.monotonic() - last_save,
+                                config.checkpoint_interval_seconds,
+                                peak_update=schedule.peak_update,
+                                recovery_delay_updates=config.recovery_checkpoint_delay_updates,
+                                permanent_updates=config.permanent_checkpoint_updates,
+                            ),
+                            dtype=np.int32,
+                        )
                     )
                 )
-            )
             if due:
                 save_start = time.monotonic()
                 if not bool(state_all_finite(state)):
@@ -918,6 +1166,7 @@ def _run_training(config: TrainingConfig) -> None:
                     tokenizer_sha256=tokenizer_sha256,
                     scientific_config_sha256=digest,
                     runtime_moe_implementation=config.model.moe_implementation,
+                    runtime_metadata=config.runtime_metadata,
                     is_temporary=not permanent,
                 )
                 primary_json(
@@ -940,12 +1189,17 @@ def _run_training(config: TrainingConfig) -> None:
                     )
                 if clock.updates == schedule.peak_update:
                     tracker.log_summary({"training/peak_checkpoint": checkpoint})
-            if clock.updates == 25 or clock.updates % 2000 == 0 or permanent:
+            if config.profiling_updates is None and (
+                clock.updates == 25 or clock.updates % 2000 == 0 or permanent
+            ):
                 tracker.log_summary({"training/phase": "evaluating"})
                 tracker.log(
                     evaluate(state, validation, tokenizer, mesh), step=history_step
                 )
-        if initial_update == config.execution_stop_update:
+        if (
+            config.profiling_updates is None
+            and initial_update == config.execution_stop_update
+        ):
             primary_json(lambda: commit_and_prune(config, checkpoint, digest, clock))
             tracker.log(
                 evaluate(state, validation, tokenizer, mesh), step=log_offset + 1
@@ -956,8 +1210,11 @@ def _run_training(config: TrainingConfig) -> None:
         tracker.log_summary(
             {
                 "training/phase": "complete",
-                "training/final_checkpoint": checkpoint,
+                "training/final_checkpoint": (
+                    checkpoint if config.profiling_updates is None else None
+                ),
                 "training/validation_run": config.validation_updates is not None,
+                "training/profiling_run": config.profiling_updates is not None,
             }
         )
     tracker.current_tracker().finish()
@@ -1054,6 +1311,27 @@ def main() -> None:
     )
     parser.add_argument("--validation-updates", type=int, default=None)
     parser.add_argument("--validation-id", default=None)
+    parser.add_argument(
+        "--runtime-state-mode",
+        choices=["fp32_pinned_host", "fp32_device"],
+        default="fp32_pinned_host",
+    )
+    parser.add_argument(
+        "--runtime-prefetch", action=argparse.BooleanOptionalAction, default=False
+    )
+    parser.add_argument("--runtime-transition-id", default=None)
+    parser.add_argument("--runtime-code-sha256", default=None)
+    parser.add_argument("--profiling-updates", type=int, default=None)
+    parser.add_argument("--profiling-id", default=None)
+    parser.add_argument("--profiling-batch-size", type=int, default=8)
+    parser.add_argument(
+        "--profiling-state-mode", choices=["production", "device"], default="production"
+    )
+    parser.add_argument(
+        "--profiling-prefetch", action=argparse.BooleanOptionalAction, default=False
+    )
+    parser.add_argument("--profiler-start-step", type=int, default=20)
+    parser.add_argument("--profiler-num-steps", type=int, default=5)
     dispatch(TrainingConfig(**vars(parser.parse_args())))
 
 

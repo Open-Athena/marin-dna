@@ -80,6 +80,7 @@ def fresh_state(
     mp: jmp.Policy,
     *,
     offload: bool,
+    retain_master: bool = False,
 ) -> GrugTrainState:
     """Start a new optimizer while retaining the effective source router biases."""
     master = jmp.get_policy(
@@ -92,7 +93,11 @@ def fresh_state(
     return GrugTrainState(
         step=jax.sharding.reshard(jnp.asarray(0, dtype=jnp.int32), P()),
         params=mp.cast_to_param(master),
-        master_params=_tree_to_memory_kind(master, "pinned_host") if offload else None,
+        master_params=(
+            _tree_to_memory_kind(master, "pinned_host")
+            if offload
+            else (master if retain_master else None)
+        ),
         opt_state=_tree_to_memory_kind(opt_state, "pinned_host")
         if offload
         else opt_state,
@@ -110,6 +115,7 @@ def save_dna_checkpoint(
     tokenizer_sha256: str | None = None,
     scientific_config_sha256: str | None = None,
     runtime_moe_implementation: str | None = None,
+    runtime_metadata: dict[str, object] | None = None,
     is_temporary: bool = False,
 ) -> None:
     if int(state.step) != clock.updates:
@@ -135,6 +141,7 @@ def save_dna_checkpoint(
             "tokenizer_sha256": tokenizer_sha256,
             "scientific_config_sha256": scientific_config_sha256,
             "runtime_moe_implementation": runtime_moe_implementation,
+            "exp586_runtime": runtime_metadata,
         },
     )
 
