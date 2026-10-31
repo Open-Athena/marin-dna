@@ -1,0 +1,160 @@
+{
+  "collected_at_utc": "2026-10-31T14:26:14.057368+00:00",
+  "cumulative_projection": {
+    "factor": 2.1949587763756058,
+    "status": "Arithmetic projection from separate experiments; not a measured cumulative production speedup"
+  },
+  "round_1": {
+    "baseline": "FP32 pinned-host master and optimizer state; synchronous input",
+    "examples_per_update": 8,
+    "h100_gpus": 8,
+    "nodes": 1,
+    "profiles": [
+      {
+        "mean_step_seconds": 0.37142192256436046,
+        "median_step_seconds": 0.37105918768793344,
+        "run_id": "exp586-plantcad2-d768-pretrained-lrm1-seed0-1t-v1-profile-b8-combined-r2",
+        "samples": 51,
+        "throughput_gain_vs_round_baseline": 0.7500955298703478,
+        "updates": [
+          30,
+          80
+        ]
+      },
+      {
+        "mean_step_seconds": 0.37172175974895555,
+        "median_step_seconds": 0.3713290928862989,
+        "run_id": "exp586-plantcad2-d768-pretrained-lrm1-seed0-1t-v1-profile-b8-combined",
+        "samples": 51,
+        "throughput_gain_vs_round_baseline": 0.7486838726221869,
+        "updates": [
+          30,
+          80
+        ]
+      },
+      {
+        "mean_step_seconds": 0.5178466355702018,
+        "median_step_seconds": 0.4978172001428902,
+        "run_id": "exp586-plantcad2-d768-pretrained-lrm1-seed0-1t-v1-profile-b8-prefetch",
+        "samples": 51,
+        "throughput_gain_vs_round_baseline": 0.25524393078270236,
+        "updates": [
+          30,
+          80
+        ]
+      },
+      {
+        "mean_step_seconds": 0.560269220010834,
+        "median_step_seconds": 0.5733291520737112,
+        "run_id": "exp586-plantcad2-d768-pretrained-lrm1-seed0-1t-v1-profile-b8-fp32device",
+        "samples": 51,
+        "throughput_gain_vs_round_baseline": 0.16019910278699245,
+        "updates": [
+          30,
+          80
+        ]
+      },
+      {
+        "mean_step_seconds": 0.6500238463757377,
+        "median_step_seconds": 0.6217139330692589,
+        "run_id": "exp586-plantcad2-d768-pretrained-lrm1-seed0-1t-v1-profile-b8-prodstate-a2",
+        "samples": 51,
+        "throughput_gain_vs_round_baseline": 0.0,
+        "updates": [
+          30,
+          80
+        ]
+      }
+    ],
+    "validation": {
+      "h100_gpus": 64,
+      "run_id": "exp586-plantcad2-d768-pretrained-lrm1-seed0-1t-v1-equivalence-combined-v1",
+      "summary": {
+        "validation/candidate_loss_rmse": 0.00010490071954103208,
+        "validation/candidate_roundtrip_error": 0,
+        "validation/control_loss_rmse": 0.00013006823373437897,
+        "validation/control_roundtrip_error": 0,
+        "validation/max_batch_error": 0,
+        "validation/max_candidate_drop_error": 0,
+        "validation/restart_batch_error": 0,
+        "validation/source_checkpoint": "s3://marin-us-east-02a/MarinDNA/exp586_plantcad2_moe/checkpoints/exp586-plantcad2-d768-pretrained-lrm1-seed0-1t-v1/2026.10.20/checkpoints/step-693582"
+      },
+      "updates": 100
+    }
+  },
+  "round_2": {
+    "baseline": "Round 1: FP32-device state with one-batch prefetch",
+    "correctness": {
+      "candidate_loss_mae": 0.0005078688263893127,
+      "candidate_loss_rmse": 0.0007222258178917018,
+      "candidate_loss_signed_mean": 6.266981363296509e-05,
+      "max_drop_fraction": 0,
+      "note": "Same 200 batches in both repeats; not one 400-update trajectory",
+      "repeats": 2,
+      "unchanged_control_loss_mae": 0.0004908075928688049,
+      "unchanged_control_loss_rmse": 0.000698912031622597,
+      "unchanged_control_loss_signed_mean": 7.350057363510132e-05,
+      "updates_per_repeat": 200
+    },
+    "examples_per_update": 8,
+    "h100_gpus": 8,
+    "paired_benchmark": {
+      "mean_candidate_step_seconds": 0.3034139716921494,
+      "mean_reference_step_seconds": 0.3805398897796172,
+      "method": "Same allocation, preloaded inputs, three resident training states, alternating reference/candidate order; excludes production inter-node communication",
+      "run_id": "exp586-plantcad2-d768-pretrained-lrm1-seed0-1t-v1-perf2-onehot-trim-a1-verify-bench",
+      "samples": 171,
+      "throughput_gain": 0.2541936933798208,
+      "updates": [
+        30,
+        200
+      ]
+    },
+    "screening_profiles": [
+      {
+        "mean_step_seconds": 0.3901903459287419,
+        "median_step_seconds": 0.3903150469996035,
+        "run_id": "exp586-plantcad2-d768-pretrained-lrm1-seed0-1t-v1-perf2-combined-a1",
+        "samples": 71,
+        "throughput_gain_vs_round_baseline": 0.0,
+        "updates": [
+          30,
+          100
+        ]
+      },
+      {
+        "mean_step_seconds": 0.34795510049082967,
+        "median_step_seconds": 0.3475953129818663,
+        "run_id": "exp586-plantcad2-d768-pretrained-lrm1-seed0-1t-v1-perf2-onehot-lookup-a1",
+        "samples": 71,
+        "throughput_gain_vs_round_baseline": 0.1213813086180795,
+        "updates": [
+          30,
+          100
+        ]
+      },
+      {
+        "mean_step_seconds": 0.3508292579856163,
+        "median_step_seconds": 0.34413667605258524,
+        "run_id": "exp586-plantcad2-d768-pretrained-lrm1-seed0-1t-v1-perf2-trim-expert-rows-a1",
+        "samples": 71,
+        "throughput_gain_vs_round_baseline": 0.11219442805063706,
+        "updates": [
+          30,
+          100
+        ]
+      },
+      {
+        "mean_step_seconds": 0.31563859813335077,
+        "median_step_seconds": 0.30445019993931055,
+        "run_id": "exp586-plantcad2-d768-pretrained-lrm1-seed0-1t-v1-perf2-onehot-trim-a1",
+        "samples": 71,
+        "throughput_gain_vs_round_baseline": 0.2361933814060806,
+        "updates": [
+          30,
+          100
+        ]
+      }
+    ]
+  }
+}
