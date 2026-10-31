@@ -70,6 +70,7 @@ Profiles preload inputs and separately verify model/optimizer replication, colle
 The authorized 64-H100 comparison uses `--nodes 8 --batch-size 64 --verification --ep-reference live --end-to-end` to compare against the live EP configuration on the same allocation.
 It separately measures prefetched training with metrics, production validation, and temporary checkpoint overhead.
 `--end-to-end-updates 150 --end-to-end-order balanced` runs both backend orders for 300 updates per backend; both include per-update checkpoint-decision coordination and finite-metric checks.
+See [the production-size results](dp_production_results.md) for throughput relative to the live EP runtime, variability, and correctness evidence.
 `dp_control.py`, `dp_reconcile.py`, and [dp_operations.md](dp_operations.md) own the isolated submission and persistence boundary.
 They never use the live run or its checkpoint owner.
 

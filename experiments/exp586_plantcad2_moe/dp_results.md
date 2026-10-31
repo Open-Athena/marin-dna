@@ -1,4 +1,7 @@
-# Exp586: full-replica data parallelism
+# Exp586: initial one-node data-parallel feasibility
+
+The subsequent [64-H100 comparison against the live EP runtime](dp_production_results.md) is the relevant throughput report for production decisions.
+This document preserves the initial one-node feasibility evidence.
 
 Full-replica data parallelism works on H100s without EP or FSDP.
 In the paired eight-GPU comparison it improved compute throughput by **56.3%** over the round-2 EP implementation.
@@ -11,7 +14,7 @@ The model, FP32 master weights, complete optimizer state, and router state are r
 Persistent state is **15.568 GiB per GPU**: 2.965 GiB BF16 parameters, 5.930 GiB FP32 masters, and 6.673 GiB optimizer state, plus small counters/router arrays.
 Assertions verify that every state array is fully replicated before and after training.
 
-The mesh uses `replica_dcn=8`, with `data=context=expert=model=1`.
+The initial mesh uses `replica_dcn=8`, with `data=context=expert=model=1`.
 Examples are partitioned across replicas; the existing JAX gradient of the global mean loss supplies gradient averaging.
 The expert computation uses Levanter's existing local `scatter` backend: sort assignments, grouped matrix multiplication, then weighted scatter-add.
 Every GPU has all 384 experts; tokens never travel to another GPU to reach an expert.
@@ -30,7 +33,8 @@ The CPU oracle gives identical histogram thresholds for the same margins partiti
 
 The full 128,256-token vocabulary, existing character tokenization, output softmax, architecture, attention, 8K context, augmentation, learning rates, schedule, optimizer equations, and data order are retained.
 Round 2's input lookup optimization remains enabled; expert-buffer trimming is unnecessary for the local backend.
-Batch 64 means eight separate 8K examples per GPU, with **524,288 input tokens per update** and no example packing.
+On one node, batch 64 means eight separate 8K examples per GPU, with **524,288 input tokens per update** and no example packing.
+The production-size comparison instead uses one such example per GPU on 64 H100s.
 
 The adapter and replication checks are in [data_parallel.py](src/exp586_moe/data_parallel.py).
 The optimizer changes are in [grugmuon_hero.py](src/experiments/grug/moe_hero_ep/grugmuon_hero.py).
@@ -38,7 +42,7 @@ No production launcher imports the new adapter.
 
 ## Throughput
 
-All jobs used one eight-H100 node in East at batch priority with the required Iris account.
+All initial jobs in this section used one eight-H100 node in East at batch priority with the required Iris account.
 Timings exclude compilation, input loading, metric materialization, checkpointing, and Python LR injection.
 Inputs were preloaded.
 Means include stalls and cover updates 10–100, giving 91 timed updates.
@@ -113,17 +117,17 @@ Pre-commit and SQLite integrity checks passed.
 
 ## Operational record and limits
 
-There were four bounded dispatches: an initial successful ten-update smoke with temporary optimizer work partitioning, one diagnosed startup failure, the successful 100-update strict-DP comparison, and the successful 100-update batch-64 validation.
+The initial phase had four bounded dispatches: an initial successful ten-update smoke with temporary optimizer work partitioning, one diagnosed startup failure, the successful 100-update strict-DP comparison, and the successful 100-update batch-64 validation.
 The initial smoke's 133 ms final step is not used as a strict-DP benchmark: its compiled optimizer contained six asynchronous all-gathers.
 The failed strict attempt exposed an explicit-sharding contraction error, fixed before the successful attempt.
-No larger GPU gang, alternative optimizer, altered attention, precision reduction, vocabulary pruning, or scaling test was used.
+This initial phase used no larger GPU gang, alternative optimizer, altered attention, precision reduction, vocabulary pruning, or scaling test.
 
-All four roots are terminal; the final ledger has zero active dispatches and zero unreconciled intents.
+All four initial roots and both later production-size comparison roots are terminal; the final ledger has zero active dispatches and zero unreconciled intents.
 No profiling allocation remains active.
 No GitHub update or push was made for this isolated experiment.
 
-The one-node results do not establish 64-GPU performance.
-Replicating the experts changes the gradient-communication volume and topology across nodes; an isolated multi-node benchmark is still needed before considering deployment.
+The one-node results alone do not establish 64-GPU performance.
+Replicating the experts changes the gradient-communication volume and topology across nodes; the subsequent production-size comparison measures that directly.
 The full-batch result establishes feasibility and matching token accounting on one node.
 The tests do not establish long-horizon quality equivalence.
 
