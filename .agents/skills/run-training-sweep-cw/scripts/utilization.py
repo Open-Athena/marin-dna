@@ -16,7 +16,9 @@ PRODUCTION_PEERS = {
     "cw-us-east-02a": "h100",
     "cw-us-east-08a": "gb200",
 }
-AVAILABILITY_VERSION = 2
+# Iris v3 uses explicit priority ranks, including SYSTEM, rather than wire values.
+# Batch placement consumes only reported free capacity; held capacity is accounting.
+AVAILABILITY_VERSION = 3
 
 
 class SnapshotError(RuntimeError):
@@ -137,6 +139,7 @@ def summarize(
             "free_gpus": 0,
             "held_gpus": 0,
             "total_gpus": 0,
+            "accounting_delta_gpus": 0,
             "held_by_band": defaultdict(int),
         }
     )
@@ -208,11 +211,12 @@ def summarize(
             held_gpus = sum(held_by_band.values())
             if free_gpus > total_gpus:
                 raise SnapshotError(f"{path} free {expected_gpu} exceeds total")
-            if free_gpus + held_gpus != total_gpus:
-                raise SnapshotError(
-                    f"{path} {expected_gpu} accounting disagrees: "
-                    f"free={free_gpus}, held={held_gpus}, total={total_gpus}"
-                )
+            # ``amounts`` is the peer scheduler's authoritative idle capacity.
+            # During preemption handoff, admitted replacement pods can overlap
+            # terminating pods briefly, so held_by_band may exceed total even
+            # though reported free capacity is still accurate. Preserve that
+            # discrepancy as a diagnostic instead of discarding the snapshot.
+            accounting_delta_gpus = total_gpus - free_gpus - held_gpus
 
             pending_tasks = _integer(
                 backend.get("pending_task_count"), f"{path}.pending_task_count"
@@ -228,6 +232,7 @@ def summarize(
                     "free_gpus": free_gpus,
                     "held_gpus": held_gpus,
                     "total_gpus": total_gpus,
+                    "accounting_delta_gpus": accounting_delta_gpus,
                     "in_use_percent": round(100 * held_gpus / total_gpus, 1)
                     if total_gpus
                     else 0.0,
@@ -242,6 +247,7 @@ def summarize(
             aggregate["free_gpus"] += free_gpus
             aggregate["held_gpus"] += held_gpus
             aggregate["total_gpus"] += total_gpus
+            aggregate["accounting_delta_gpus"] += accounting_delta_gpus
             for band, amount in held_by_band.items():
                 aggregate["held_by_band"][band] += amount
 
@@ -256,6 +262,7 @@ def summarize(
             "free_gpus": aggregate["free_gpus"],
             "held_gpus": aggregate["held_gpus"],
             "total_gpus": aggregate["total_gpus"],
+            "accounting_delta_gpus": aggregate["accounting_delta_gpus"],
             "held_by_band": dict(sorted(aggregate["held_by_band"].items())),
         }
 

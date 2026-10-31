@@ -284,8 +284,8 @@ def prepare_dispatch(
         ).fetchone()
         if trial is None:
             raise RuntimeError(f"unknown trial: {trial_id}")
-        if trial[0].casefold() == "completed":
-            raise RuntimeError(f"trial {trial_id!r} is completed")
+        if trial[0].casefold() in {"completed", "abandoned"}:
+            raise RuntimeError(f"trial {trial_id!r} is {trial[0].casefold()}")
         active = connection.execute(
             """
             SELECT dispatch_id, submission_state FROM dispatches
@@ -453,8 +453,8 @@ def record_observation(
         if row is None:
             raise RuntimeError(f"unknown dispatch: {dispatch_id}")
         trial_id, submitted_at, trial_status, previous = row
-        if trial_status.casefold() == "completed":
-            raise RuntimeError(f"trial {trial_id!r} is completed")
+        if trial_status.casefold() in {"completed", "abandoned"}:
+            raise RuntimeError(f"trial {trial_id!r} is {trial_status.casefold()}")
         if submitted_at is None:
             raise RuntimeError(
                 f"dispatch {dispatch_id!r} has not been confirmed as submitted"
@@ -481,7 +481,7 @@ def record_observation(
             connection.execute(
                 """
                 UPDATE trials SET high_water_progress = ?, status = 'active'
-                WHERE trial_id = ? AND status != 'completed'
+                WHERE trial_id = ? AND status NOT IN ('completed', 'abandoned')
                 """,
                 (run_progress, trial_id),
             )
@@ -543,6 +543,32 @@ def complete_trial(
             None,
         )
     return verified_at
+
+
+def abandon_trial(path: Path, trial_id: str, reason: str) -> None:
+    with _connect(path) as connection:
+        connection.execute("BEGIN IMMEDIATE")
+        row = connection.execute(
+            "SELECT status FROM trials WHERE trial_id = ?", (trial_id,)
+        ).fetchone()
+        if row is None:
+            raise RuntimeError(f"unknown trial: {trial_id}")
+        if row[0].casefold() == "completed":
+            raise RuntimeError(f"trial {trial_id!r} is completed")
+        if (
+            connection.execute(
+                "SELECT 1 FROM dispatches WHERE trial_id = ? AND active = 1",
+                (trial_id,),
+            ).fetchone()
+            is not None
+        ):
+            raise RuntimeError(f"trial {trial_id!r} still has an active dispatch")
+        if row[0].casefold() == "abandoned":
+            return
+        connection.execute(
+            "UPDATE trials SET status = 'abandoned' WHERE trial_id = ?", (trial_id,)
+        )
+        _record_event(connection, "trial_abandoned", reason, trial_id, None)
 
 
 def backup(path: Path, destination: Path) -> dict[str, object]:
@@ -714,6 +740,11 @@ def _build_snapshot(
         for trial in trials
         if trial["status"].casefold() == "completed"
     }
+    abandoned_ids = {
+        trial["trial_id"]
+        for trial in trials
+        if trial["status"].casefold() == "abandoned"
+    }
     for trial_id in completed_ids:
         trial = trial_by_id[trial_id]
         if trial["high_water_progress"] < 1:
@@ -724,6 +755,9 @@ def _build_snapshot(
             )
         if any(dispatch["active"] for dispatch in dispatches_by_trial[trial_id]):
             raise RuntimeError(f"completed trial {trial_id!r} has an active dispatch")
+    for trial_id in abandoned_ids:
+        if any(dispatch["active"] for dispatch in dispatches_by_trial[trial_id]):
+            raise RuntimeError(f"abandoned trial {trial_id!r} has an active dispatch")
 
     trial_snapshots: list[dict[str, object]] = []
     current_trial_by_id: dict[str, dict[str, object]] = {}
@@ -877,7 +911,7 @@ def _build_snapshot(
         }
         current_trial_by_id[trial_id] = snapshot
 
-        if trial_id not in completed_ids:
+        if trial_id not in completed_ids and trial_id not in abandoned_ids:
             kinds: list[str] = []
             if active_dispatch is None:
                 kinds.append("no_active_dispatch")
@@ -1145,6 +1179,11 @@ def main() -> int:
     complete_parser.add_argument("--trial-id", required=True)
     complete_parser.add_argument("--checkpoint-verified-at")
 
+    abandon_parser = subparsers.add_parser("trial-abandon")
+    abandon_parser.add_argument("database", type=Path)
+    abandon_parser.add_argument("--trial-id", required=True)
+    abandon_parser.add_argument("--reason", required=True)
+
     backup_parser = subparsers.add_parser("backup")
     backup_parser.add_argument("database", type=Path)
     backup_parser.add_argument("destination", type=Path)
@@ -1236,6 +1275,10 @@ def main() -> int:
                 {"trial_id": args.trial_id, "checkpoint_verified_at": verified_at}
             )
         )
+        return 0
+    if args.command == "trial-abandon":
+        abandon_trial(args.database, args.trial_id, args.reason)
+        print(json.dumps({"trial_id": args.trial_id, "status": "abandoned"}))
         return 0
     if args.command == "backup":
         print(json.dumps(backup(args.database, args.destination), sort_keys=True))
