@@ -10,6 +10,7 @@ No load-balancing loss; router z-loss only. All layers are MoE (no dense layers)
 import dataclasses
 from dataclasses import dataclass
 from enum import StrEnum
+from functools import partial
 from typing import Any, Literal
 
 import equinox as eqx
@@ -29,7 +30,10 @@ except ModuleNotFoundError:
     from jax.experimental.shard_map import shard_map
 from jaxtyping import Array, Bool, Float, Int, PRNGKeyArray
 from levanter.compat.hf_checkpoints import HFCheckpointConverter
-from levanter.grug._moe.common import _zero_dropped_assignments, padding_skipped_assignments
+from levanter.grug._moe.common import (
+    _zero_dropped_assignments,
+    padding_skipped_assignments,
+)
 from levanter.grug.attention import (
     AttentionMask,
     GrugAttentionImplementation,
@@ -109,7 +113,7 @@ def _mesh_axis_size(mesh: jax.sharding.AbstractMesh | None, axis_name: str) -> i
     return int(mesh.shape[axis_name])
 
 
-RematMode = Literal["recompute_all", "save_moe", "offload_carry"]
+RematMode = Literal["recompute_all", "save_moe", "offload_carry", "none"]
 OFFLOAD_CARRY_REMAT_MODE: RematMode = "offload_carry"
 
 # The per-layer residual-stream input. Plain remat holds it as the checkpoint argument, which
@@ -148,10 +152,14 @@ def _activation_spec(x: Float[Array, "B S D"]) -> P:
     return _partition_spec_of(x) or _batch_spec()
 
 
-def _embedding_gather(token_embed: jax.Array, token_ids: Int[Array, "B S"]) -> Float[Array, "B S D"]:
+def _embedding_gather(
+    token_embed: jax.Array, token_ids: Int[Array, "B S"], *, one_hot: bool = False
+) -> Float[Array, "B S D"]:
     """Look up tokens locally and establish the context-sharded residual layout."""
 
     def _local(table: jax.Array, ids: jax.Array) -> jax.Array:
+        if one_hot:
+            return jax.nn.one_hot(ids, table.shape[0], dtype=table.dtype) @ table
         return table[ids]
 
     seq_axis = _seq_axis(get_abstract_mesh())
@@ -162,6 +170,27 @@ def _embedding_gather(token_embed: jax.Array, token_ids: Int[Array, "B S"]) -> F
         in_specs=(P(None, None), P(_BATCH_AXES, seq_axis)),
         out_specs=P(_BATCH_AXES, seq_axis, None),
     )(token_embed, token_ids)
+
+
+def _compact_embedding_gather(
+    token_embed: jax.Array, token_ids: Int[Array, "B S"], lookup_ids: tuple[int, ...], *, one_hot: bool = False
+) -> Float[Array, "B S D"]:
+    """Retain a full vocabulary while communicating only used input rows.
+
+    The ordinary gather's transpose reduces a full vocabulary-sized gradient
+    across the token mesh. Gathering a small table first moves that reduction
+    before the scatter back into the full table. Standard JAX autodiff handles
+    both gathers. Arbitrary input tokens retain the original lookup behavior.
+    """
+    rows = jnp.asarray(lookup_ids, dtype=jnp.int32)
+    inverse = jnp.full((token_embed.shape[0],), -1, dtype=jnp.int32)
+    inverse = inverse.at[rows].set(jnp.arange(len(lookup_ids), dtype=jnp.int32))
+    mapped = inverse.at[token_ids].get(out_sharding=P(_BATCH_AXES, _seq_axis(get_abstract_mesh())))
+    return jax.lax.cond(
+        jnp.all(mapped >= 0),
+        lambda: _embedding_gather(token_embed[rows], mapped, one_hot=one_hot),
+        lambda: _embedding_gather(token_embed, token_ids),
+    )
 
 
 def _partition_spec_of(x: jax.Array) -> P | None:
@@ -298,9 +327,8 @@ class GrugModelConfig:
             raise ValueError("expert_chunks must be positive")
         if self.pooled_transport_capacity_factor is not None and self.pooled_transport_capacity_factor <= 0:
             raise ValueError("pooled_transport_capacity_factor must be positive")
-        if self.moe_implementation == "fixed_pooled_wave_all_to_all":
-            if self.pooled_transport_capacity_factor is None:
-                raise ValueError("fixed_pooled_wave_all_to_all requires pooled_transport_capacity_factor")
+        if self.moe_implementation == "fixed_pooled_wave_all_to_all" and self.pooled_transport_capacity_factor is None:
+            raise ValueError("fixed_pooled_wave_all_to_all requires pooled_transport_capacity_factor")
         if self.num_expert_waves <= 0:
             raise ValueError("num_expert_waves must be positive")
         if self.num_shared_experts <= 0:
@@ -1087,7 +1115,13 @@ class MoEMLP(eqx.Module):
             )
             # Keep the expert input scale independent of the down-projection initialization.
             routed_input = self.latent_norm(routed_input)
-        moe_out = self.expert_mlp(
+        expert_call = self.expert_mlp
+        fast_rows = getattr(self.cfg, "expert_compute_fast_rows", 0)
+        if fast_rows:
+            from exp586_moe.perf2_pooled import trimmed_mlp
+
+            expert_call = partial(trimmed_mlp, self.expert_mlp, fast_rows=fast_rows)
+        moe_out = expert_call(
             routed_input,
             selected_experts.astype(jnp.int32),
             combine_weights,
@@ -1270,7 +1304,14 @@ class Transformer(eqx.Module):
             mask = AttentionMask.causal()
 
         cfg = self.config
-        hidden = _embedding_gather(self.token_embed, token_ids)
+        lookup_ids = getattr(cfg, "compact_input_lookup_ids", ())
+        if lookup_ids:
+            hidden = _compact_embedding_gather(
+                self.token_embed, token_ids, lookup_ids,
+                one_hot=getattr(cfg, "compact_input_lookup_one_hot", False),
+            )
+        else:
+            hidden = _embedding_gather(self.token_embed, token_ids)
         hidden = self.embed_gated_norm(self.embed_norm(hidden))
 
         # Local layers use a sliding window; every global_every-th layer is full causal.
@@ -1331,7 +1372,12 @@ class Transformer(eqx.Module):
             use_long = jnp.asarray(layer_use_long_mask, dtype=jnp.bool_)
             lower_bounds = jnp.where(use_long, long_lower_bounds, short_lower_bounds)
             layer_mask = long_mask.with_fa4_bounds(lower_bounds, valid)
-            return eqx.filter_checkpoint(layer, policy=remat_policy)(
+            layer_call = (
+                layer
+                if cfg.remat_mode == "none"
+                else eqx.filter_checkpoint(layer, policy=remat_policy)
+            )
+            return layer_call(
                 carry_hidden,
                 layer_mask,
                 use_long,
@@ -1339,7 +1385,10 @@ class Transformer(eqx.Module):
             )
 
         hidden, stacked_router_stats = jax.lax.scan(
-            _scan_layers, hidden, xs=(self.stacked_blocks.stacked, mask_schedule)
+            _scan_layers,
+            hidden,
+            xs=(self.stacked_blocks.stacked, mask_schedule),
+            unroll=getattr(cfg, "layer_scan_unroll", 1),
         )
         # One cross-device reduction for the whole stack of layers, instead of one inside every
         # scan iteration. See `moe_routing_stats_local`.
