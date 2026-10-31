@@ -190,6 +190,31 @@ def test_one_trillion_stage_is_fresh_pretrained_and_keeps_twelve_checkpoints():
         "6a5273b56f94f5da995a882b44208678dbbb8baf8871a4c3ccc37c286f222899"
     )
 
+    dp = dataclasses.replace(combined, runtime_data_parallel=True)
+    assert dp.run_id == config.run_id
+    assert dp.checkpoint_root == config.checkpoint_root
+    assert dp.model.moe_implementation == "scatter"
+    assert dp.model.compact_input_lookup_ids == tuple(range(64, 90))
+    assert dp.model.compact_input_lookup_one_hot is True
+    assert dp.model.expert_compute_fast_rows == 0
+    assert dp.runtime_metadata["parallelism"] == "full-replica-data-parallel"
+    assert dp.runtime_metadata["mesh"] == {
+        "replica_dcn": 64,
+        "data": 1,
+        "context": 1,
+        "expert": 1,
+        "model": 1,
+    }
+    assert scientific_config(dp, SOURCE_TOKENIZER_SHA256) == binding
+    assert hashlib.sha256(
+        config_json(scientific_config(dp, SOURCE_TOKENIZER_SHA256)).encode()
+    ).hexdigest() == (
+        "6a5273b56f94f5da995a882b44208678dbbb8baf8871a4c3ccc37c286f222899"
+    )
+
+    with pytest.raises(ValueError, match="64 H100s"):
+        dataclasses.replace(dp, nodes=4)
+
     with pytest.raises(ValueError, match="set together"):
         dataclasses.replace(config, runtime_transition_id="combined-v1")
     with pytest.raises(ValueError, match="lowercase SHA-256"):

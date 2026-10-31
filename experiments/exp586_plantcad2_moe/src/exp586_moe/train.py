@@ -70,9 +70,16 @@ from exp586_moe.config import (
 )
 from exp586_moe.corpus import corpus_digest, distributed_batch, open_dataset
 from exp586_moe.data import (
+    PRETRAINED_DNA_INPUT_TOKEN_IDS,
+    pretrained_dna_input_token_ids,
     pretrained_dna_tokenizer,
     scratch_tokenizer,
     tokenizer_digest,
+)
+from exp586_moe.data_parallel import (
+    assert_replicated_state,
+    local_model,
+    replicated_mesh,
 )
 from exp586_moe.routing_probe import routing_diagnostics
 from exp586_moe.schedule import (
@@ -191,6 +198,7 @@ class TrainingConfig:
     runtime_prefetch: bool = False
     runtime_transition_id: str | None = None
     runtime_code_sha256: str | None = None
+    runtime_data_parallel: bool = False
     profiling_updates: int | None = None
     profiling_id: str | None = None
     profiling_batch_size: int = 8
@@ -265,6 +273,17 @@ class TrainingConfig:
                 c not in "0123456789abcdef" for c in self.runtime_code_sha256 or ""
             ):
                 raise ValueError("Runtime code digest must be lowercase SHA-256")
+        if self.runtime_data_parallel and (
+            self.stage != "t1"
+            or self.nodes != 8
+            or self.runtime_state_mode != "fp32_device"
+            or not self.runtime_prefetch
+            or self.runtime_transition_id is None
+        ):
+            raise ValueError(
+                "Full-replica DP requires stage t1 on 64 H100s, FP32-device "
+                "state, prefetch, and transition metadata"
+            )
         if self.profiling_updates is not None:
             if self.stage != "t1" or not 10 <= self.profiling_updates <= 200:
                 raise ValueError(
@@ -292,6 +311,7 @@ class TrainingConfig:
                 self.runtime_state_mode != "fp32_pinned_host"
                 or self.runtime_prefetch
                 or self.runtime_transition_id is not None
+                or self.runtime_data_parallel
             ):
                 raise ValueError(
                     "Production runtime choices cannot be combined with profiling mode"
@@ -338,7 +358,7 @@ class TrainingConfig:
 
     @property
     def runtime_metadata(self) -> dict[str, Any]:
-        return {
+        metadata = {
             "state_mode": self.effective_runtime_state_mode,
             "prefetch_depth": self.prefetch_depth,
             "transition_id": self.runtime_transition_id,
@@ -346,6 +366,25 @@ class TrainingConfig:
             "cluster": self.cluster,
             "nodes": self.nodes,
         }
+        if self.runtime_data_parallel:
+            metadata.update(
+                {
+                    "parallelism": "full-replica-data-parallel",
+                    "mesh": {
+                        "replica_dcn": 8 * self.nodes,
+                        "data": 1,
+                        "context": 1,
+                        "expert": 1,
+                        "model": 1,
+                    },
+                    "moe_implementation": "scatter",
+                    "compact_input_lookup_ids": PRETRAINED_DNA_INPUT_TOKEN_IDS,
+                    "compact_input_lookup_one_hot": True,
+                    "persistent_state_replication": "asserted",
+                    "optimizer_newton_schulz_scope": "fully-replicated-local",
+                }
+            )
+        return metadata
 
     @property
     def run_id(self) -> str:
@@ -467,6 +506,8 @@ class TrainingConfig:
 
     @property
     def model(self) -> Any:
+        if self.runtime_data_parallel:
+            return local_model(self.scientific_model)
         implementation = {
             "pooled": "fixed_pooled_wave_all_to_all",
             "fixed": "fixed_all_to_all",
@@ -820,6 +861,7 @@ def _run_training(config: TrainingConfig) -> None:
             "training/prefetch_depth": config.prefetch_depth,
             "training/runtime_transition_id": config.runtime_transition_id,
             "training/runtime_code_sha256": config.runtime_code_sha256,
+            "training/runtime_data_parallel": config.runtime_data_parallel,
             "gpu_type": "H100",
             "nodes": config.nodes,
             **flops_summary,
@@ -835,6 +877,10 @@ def _run_training(config: TrainingConfig) -> None:
         else pretrained_dna_tokenizer()
     )
     tokenizer_sha256 = tokenizer_digest(tokenizer)
+    if config.runtime_data_parallel and pretrained_dna_input_token_ids(
+        tokenizer
+    ) != tuple(config.model.compact_input_lookup_ids):
+        raise ValueError("Runtime input-lookup IDs differ from the tokenizer")
     binding = scientific_config(config, tokenizer_sha256)
     digest, checkpoint = primary_json(lambda: bind_and_discover(config, binding))
     tracker.log_hyperparameters(
@@ -903,6 +949,9 @@ def _run_training(config: TrainingConfig) -> None:
             if not bool(state_all_finite(state)):
                 raise ValueError("Restored training state is nonfinite")
             gc.collect()
+        replicated_state_bytes = (
+            assert_replicated_state(state) if config.runtime_data_parallel else None
+        )
         check_clock(
             clock,
             min_updates=config.start_update,
@@ -932,6 +981,7 @@ def _run_training(config: TrainingConfig) -> None:
                 "training/next_adam_lr": opt_config.adam_lr * next_factor,
                 "training/phase": "compiling",
                 "training/profiling_run": config.profiling_updates is not None,
+                "training/replicated_state_bytes": replicated_state_bytes,
             }
         )
         if initial_update >= schedule.peak_update:
@@ -1061,6 +1111,8 @@ def _run_training(config: TrainingConfig) -> None:
             else:
                 state, metrics, watch = train_step(state, batch)
                 jax.block_until_ready((state, metrics, watch))
+            if config.runtime_data_parallel and clock.updates == initial_update:
+                assert_replicated_state(state)
             clock = clock.advance(
                 input_tokens=runtime_tokens_per_update,
                 loss_targets=runtime_batch_size * 8191,
@@ -1154,6 +1206,8 @@ def _run_training(config: TrainingConfig) -> None:
                 save_start = time.monotonic()
                 if not bool(state_all_finite(state)):
                     raise ValueError("Nonfinite checkpoint state")
+                if config.runtime_data_parallel:
+                    assert_replicated_state(state)
                 tracker.log_summary({"training/phase": "checkpointing"})
                 checkpoint = primary_json(
                     lambda clock=clock: prepare_checkpoint(config, clock)
@@ -1221,7 +1275,19 @@ def _run_training(config: TrainingConfig) -> None:
 
 
 def training_mesh(config: TrainingConfig) -> jax.sharding.Mesh:
-    """Keep EP8 inside each node and replicate the fixed global batch."""
+    """Select the validated EP8 or fully replicated DP production topology."""
+    if config.runtime_data_parallel:
+        mesh = replicated_mesh()
+        expected = {
+            "replica_dcn": 8 * config.nodes,
+            "data": 1,
+            "context": 1,
+            "expert": 1,
+            "model": 1,
+        }
+        if dict(mesh.shape) != expected:
+            raise ValueError(f"Unexpected full-replica DP mesh: {dict(mesh.shape)}")
+        return mesh
     mesh = compact_grug_mesh(
         expert_axis_size=8,
         replica_axis_size=config.nodes // config.context_axis_size,
@@ -1321,6 +1387,11 @@ def main() -> None:
     )
     parser.add_argument("--runtime-transition-id", default=None)
     parser.add_argument("--runtime-code-sha256", default=None)
+    parser.add_argument(
+        "--runtime-data-parallel",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+    )
     parser.add_argument("--profiling-updates", type=int, default=None)
     parser.add_argument("--profiling-id", default=None)
     parser.add_argument("--profiling-batch-size", type=int, default=8)

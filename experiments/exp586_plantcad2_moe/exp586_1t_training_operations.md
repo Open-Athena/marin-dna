@@ -7,7 +7,8 @@
 
 Use one live writer, one W&B identity, and one checkpoint root for the trial.
 Use H100s only, whole eight-GPU nodes, batch priority, and the approved Iris user.
-Keep global batch 64, EP8, the full language tokenizer, and the fresh pretrained initialization unchanged across placement changes.
+Keep global batch 64, the full language tokenizer, and the fresh pretrained initialization unchanged across placement changes.
+The approved production runtime transition uses fully replicated data parallelism on exactly 64 H100s; retain the legacy EP runtime only as the recorded rollback path.
 Treat W&B as training-state truth and use Iris only for exact-job liveness, placement, and diagnosed startup failures.
 Do not publish GitHub updates without an explicit user request.
 
@@ -41,14 +42,14 @@ Completion requires `run_progress >= 1` and a reachable permanent final checkpoi
 | Cluster | GPU | Nodes | GPUs | State | Reason |
 | --- | --- | ---: | ---: | --- | --- |
 | `cw-rno2a` | H100 | 1 | 8 | unvalidated | — |
-| `cw-rno2a` | H100 | 2 | 16 | eligible | — |
-| `cw-rno2a` | H100 | 4 | 32 | eligible | — |
+| `cw-rno2a` | H100 | 2 | 16 | ineligible | DP production runtime validated only at 64 H100s |
+| `cw-rno2a` | H100 | 4 | 32 | ineligible | DP production runtime validated only at 64 H100s |
 | `cw-rno2a` | H100 | 8 | 64 | eligible | — |
 | `cw-us-east-02a` | H100 | 1 | 8 | unvalidated | — |
-| `cw-us-east-02a` | H100 | 2 | 16 | eligible | — |
-| `cw-us-east-02a` | H100 | 4 | 32 | eligible | — |
+| `cw-us-east-02a` | H100 | 2 | 16 | ineligible | DP production runtime validated only at 64 H100s |
+| `cw-us-east-02a` | H100 | 4 | 32 | ineligible | DP production runtime validated only at 64 H100s |
 | `cw-us-east-02a` | H100 | 8 | 64 | eligible | — |
 
 ## Change Record
 
-None.
+- `2026-10-31T17:04:24Z`: The operator approved replacing the legacy EP runtime with the validated fully replicated DP runtime. Production execution now requires a 64-H100 target; the same scientific, W&B, checkpoint, batch, schedule, tokenizer, and data identities remain binding, and the latest committed EP checkpoint remains the rollback path.

@@ -7,10 +7,12 @@ import pytest
 from tokenizers import Tokenizer
 
 from exp586_moe.data import (
+    PRETRAINED_DNA_INPUT_TOKEN_IDS,
     SCRATCH_VOCAB,
     encode_windows,
     language_tokenizer,
     prepare_window,
+    pretrained_dna_input_token_ids,
     pretrained_dna_tokenizer,
     reverse_complement,
     reverse_complement_selected,
@@ -40,6 +42,7 @@ def test_pretrained_character_mode_preserves_ids_offsets_and_text_tokenizer() ->
     assert dna.encode("<|end_of_text|>").ids == [128001]
     assert json.loads(original.to_str())["normalizer"] is None
     assert original.encode("a").ids == [128000, 64]
+    assert pretrained_dna_input_token_ids(dna) == PRETRAINED_DNA_INPUT_TOKEN_IDS
 
 
 def test_pretrained_data_matches_direct_character_lookup_after_augmentation() -> None:
