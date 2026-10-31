@@ -19,6 +19,7 @@ The initial one-node comparisons used eight examples per update, with the same 6
 The authorized production-size comparison uses 64 H100s and the actual production global batch, cursor, and token count for both backends.
 The `live` EP reference retains the production runtime's original input lookup and pooled expert kernels; the DP candidate retains its previously validated lookup optimization.
 Matched comparisons include preloaded compute, normal prefetched training with metrics, 512-example validation, and temporary checkpoint timing.
+The confirmation reverses backend order, lengthens the sampled training window, and includes the production loop's per-step checkpoint-decision host synchronization.
 The existing global histogram router preserves its mathematical thresholds across different partitions of the same batch; do not substitute per-device quantiles or change its bins.
 The source is the same frozen, independently verified DNA checkpoint used for the previous optimization experiments; never read a changing latest pointer.
 Compare exact initial values, masks and example order; mathematical local-expert outputs and gradients; replicated optimizer updates; router estimator grouping; full-vocabulary loss; numerical trajectories against unchanged EP controls; and temporary checkpoint restoration.
@@ -62,3 +63,5 @@ A startup contraction error on size-one model/data annotations was fixed with a 
 All model and optimizer arrays remain replicated; no live experiment files changed.
 2026-10-31: The user requested comparison against the live process on the same GPU count.
 The isolated launcher now accepts eight whole nodes and a live EP reference, with identical global batches and additional prefetched-loop, validation, and checkpoint timings.
+2026-10-31: The first matched timing loop omitted the production checkpoint-due host synchronization.
+The confirmation includes that common overhead, per-step finite checks and summary updates, and explicit backend-order counterbalancing.

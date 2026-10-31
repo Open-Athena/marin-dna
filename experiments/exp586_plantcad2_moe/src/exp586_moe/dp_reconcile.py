@@ -24,6 +24,12 @@ def main() -> None:
     parser.add_argument("--nodes", type=int, choices=[1, 8], default=1)
     parser.add_argument("--ep-reference", choices=["best", "live"], default="best")
     parser.add_argument("--end-to-end", action="store_true")
+    parser.add_argument("--end-to-end-updates", type=int, default=60)
+    parser.add_argument(
+        "--end-to-end-order",
+        choices=["dp-first", "ep-first", "balanced"],
+        default="dp-first",
+    )
     config = DPConfig(**vars(parser.parse_args()))
     run = wandb.Api(api_key=os.environ["WANDB_API_KEY"]).run(
         f"eric-czech/marin/{config.run_id}"

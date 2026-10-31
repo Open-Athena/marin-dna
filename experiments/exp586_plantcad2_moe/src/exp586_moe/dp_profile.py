@@ -89,6 +89,8 @@ class DPConfig:
     nodes: int = 1
     ep_reference: str = "best"
     end_to_end: bool = False
+    end_to_end_updates: int = 60
+    end_to_end_order: str = "dp-first"
 
     def __post_init__(self) -> None:
         if self.variant not in VARIANTS or self.cluster not in (
@@ -104,6 +106,10 @@ class DPConfig:
             raise ValueError("Choose the best tested or live EP reference")
         if self.end_to_end and not (self.verification and self.batch_size == 64):
             raise ValueError("End-to-end comparison requires paired production batches")
+        if not 30 <= self.end_to_end_updates <= 500:
+            raise ValueError("Use 30 through 500 end-to-end updates per backend")
+        if self.end_to_end_order not in ("dp-first", "ep-first", "balanced"):
+            raise ValueError("Choose an explicit end-to-end backend order")
         if not 10 <= self.updates <= 200 or not self.attempt.replace("-", "").isalnum():
             raise ValueError("Invalid bounded profile length or identity")
 
@@ -495,7 +501,7 @@ def _run(config: DPConfig) -> None:
         controls.clear()
         gc.collect()
         base_clock = clock
-        e2e_updates = 60
+        e2e_updates = config.end_to_end_updates
         validation = ValidationSample()
 
         def end_to_end(
@@ -561,6 +567,8 @@ def _run(config: DPConfig) -> None:
                         float(metrics["train/loss"])
                     ):
                         raise ValueError("Invalid end-to-end loss or routing")
+                    if any(not np.isfinite(float(value)) for value in values.values()):
+                        raise ValueError("Nonfinite end-to-end metrics")
                     tracker.log(
                         {f"benchmark/{label}/{k}": v for k, v in values.items()}
                         | {
@@ -569,6 +577,19 @@ def _run(config: DPConfig) -> None:
                         },
                         step=offset + i + 1,
                     )
+                    tracker.log_summary({"profiling/phase": f"end_to_end_{label}"})
+                    # The production loop coordinates its checkpoint-due decision
+                    # on every update, including when no write is due. Include
+                    # that host synchronization rather than timing a lighter loop.
+                    due = int(
+                        multihost_utils.broadcast_one_to_all(
+                            np.asarray(0, dtype=np.int32)
+                        )
+                    )
+                    if due:
+                        raise AssertionError(
+                            "Bounded loop unexpectedly requested a checkpoint"
+                        )
                     if i >= 5:
                         elapsed_samples.append(elapsed)
                     active_clock = active_clock.advance(
@@ -594,14 +615,68 @@ def _run(config: DPConfig) -> None:
                 )
             return current, active_clock, duration
 
-        tracker.log_summary({"profiling/phase": "end_to_end_dp"})
-        state, clock, dp_wall = end_to_end(state, mesh, "dp", config.updates)
-        tracker.log_summary({"profiling/phase": "end_to_end_ep"})
-        reference, reference_clock, ep_wall = end_to_end(
-            reference, ep_mesh, "ep", config.updates + e2e_updates
-        )
+        if config.end_to_end_order == "dp-first":
+            state, clock, dp_wall = end_to_end(state, mesh, "dp", config.updates)
+            reference, reference_clock, ep_wall = end_to_end(
+                reference, ep_mesh, "ep", config.updates + e2e_updates
+            )
+        else:
+            reference, reference_clock, ep_wall = end_to_end(
+                reference, ep_mesh, "ep", config.updates
+            )
+            state, clock, dp_wall = end_to_end(
+                state, mesh, "dp", config.updates + e2e_updates
+            )
         if clock != reference_clock:
             raise ValueError("End-to-end backend clocks differ")
+        if config.end_to_end_order == "balanced":
+            # Use both orders on consecutive equal streams, carrying each
+            # backend's own training state forward between the two windows.
+            first = {
+                k: v
+                for k, v in summary.items()
+                if k.startswith(("benchmark/dp/", "benchmark/ep/"))
+            }
+            base_clock = clock
+            state, clock, dp_second = end_to_end(
+                state, mesh, "dp", config.updates + 2 * e2e_updates
+            )
+            reference, reference_clock, ep_second = end_to_end(
+                reference, ep_mesh, "ep", config.updates + 3 * e2e_updates
+            )
+            if clock != reference_clock:
+                raise ValueError("Counterbalanced backend clocks differ")
+            summary.update(
+                {
+                    k.replace("benchmark/", "benchmark/order1/", 1): v
+                    for k, v in summary.copy().items()
+                    if k.startswith(("benchmark/dp/", "benchmark/ep/"))
+                }
+            )
+            summary.update(
+                {
+                    k.replace("benchmark/", "benchmark/order0/", 1): v
+                    for k, v in first.items()
+                }
+            )
+            dp_wall += dp_second
+            ep_wall += ep_second
+            for label, duration in (("dp", dp_wall), ("ep", ep_wall)):
+                count = 2 * (e2e_updates - 5)
+                mean = (
+                    first[f"benchmark/{label}/mean_step_seconds"]
+                    + summary[f"benchmark/{label}/mean_step_seconds"]
+                ) / 2
+                summary.update(
+                    {
+                        f"benchmark/{label}/wall_seconds": duration,
+                        f"benchmark/{label}/measured_updates": count,
+                        f"benchmark/{label}/wall_tokens_per_second": count
+                        * TOKENS_PER_UPDATE
+                        / duration,
+                        f"benchmark/{label}/mean_step_seconds": mean,
+                    }
+                )
         summary["benchmark/wall_throughput_gain"] = ep_wall / dp_wall - 1
         for label, current, active_mesh in (
             ("dp", state, mesh),
@@ -785,6 +860,12 @@ def main() -> None:
     parser.add_argument("--nodes", type=int, choices=[1, 8], default=1)
     parser.add_argument("--ep-reference", choices=["best", "live"], default="best")
     parser.add_argument("--end-to-end", action="store_true")
+    parser.add_argument("--end-to-end-updates", type=int, default=60)
+    parser.add_argument(
+        "--end-to-end-order",
+        choices=["dp-first", "ep-first", "balanced"],
+        default="dp-first",
+    )
     dispatch(DPConfig(**vars(parser.parse_args())))
 
 

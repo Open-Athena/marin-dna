@@ -23,6 +23,21 @@ def test_production_size_comparison_is_separate_from_one_node_identity():
     assert production.run_id in production.artifact_root
 
 
+def test_longer_control_reverses_order_explicitly():
+    config = DPConfig(
+        "scatter",
+        "cw-rno2a",
+        nodes=8,
+        batch_size=64,
+        verification=True,
+        end_to_end=True,
+        end_to_end_updates=300,
+        end_to_end_order="ep-first",
+    )
+    assert config.end_to_end_updates == 300
+    assert config.end_to_end_order == "ep-first"
+
+
 @pytest.mark.parametrize(
     "overrides",
     [

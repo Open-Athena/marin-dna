@@ -86,6 +86,12 @@ def main() -> None:
     parser.add_argument("--nodes", type=int, choices=[1, 8], default=1)
     parser.add_argument("--ep-reference", choices=["best", "live"], default="best")
     parser.add_argument("--end-to-end", action="store_true")
+    parser.add_argument("--end-to-end-updates", type=int, default=60)
+    parser.add_argument(
+        "--end-to-end-order",
+        choices=["dp-first", "ep-first", "balanced"],
+        default="dp-first",
+    )
     config = DPConfig(**vars(parser.parse_args()))
     if remaining_seconds() < 300:
         raise ValueError("Deadline does not allow another profiling job")
@@ -172,6 +178,10 @@ def main() -> None:
         str(config.nodes),
         "--ep-reference",
         config.ep_reference,
+        "--end-to-end-updates",
+        str(config.end_to_end_updates),
+        "--end-to-end-order",
+        config.end_to_end_order,
     ]
     if config.verification:
         entry.append("--verification")
