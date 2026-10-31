@@ -21,6 +21,9 @@ def main() -> None:
     parser.add_argument("--updates", type=int, default=100)
     parser.add_argument("--verification", action="store_true")
     parser.add_argument("--batch-size", type=int, default=8)
+    parser.add_argument("--nodes", type=int, choices=[1, 8], default=1)
+    parser.add_argument("--ep-reference", choices=["best", "live"], default="best")
+    parser.add_argument("--end-to-end", action="store_true")
     config = DPConfig(**vars(parser.parse_args()))
     run = wandb.Api(api_key=os.environ["WANDB_API_KEY"]).run(
         f"eric-czech/marin/{config.run_id}"

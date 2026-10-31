@@ -12,6 +12,7 @@ import re
 import statistics
 import string
 import time
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
 import equinox as eqx
@@ -54,7 +55,13 @@ from exp586_moe.state import (
     state_error_by_group,
     validate_restored_training_state,
 )
-from exp586_moe.train import TrainingConfig, config_json, training_mesh
+from exp586_moe.train import (
+    TrainingConfig,
+    ValidationSample,
+    config_json,
+    evaluate,
+    training_mesh,
+)
 from experiments.grug.dispatch import _forwarded_env_vars
 from experiments.grug.moe_hero_ep import grugmuon_hero
 from experiments.grug.moe_hero_ep.model import Transformer
@@ -79,6 +86,9 @@ class DPConfig:
     updates: int = 100
     verification: bool = False
     batch_size: int = 8
+    nodes: int = 1
+    ep_reference: str = "best"
+    end_to_end: bool = False
 
     def __post_init__(self) -> None:
         if self.variant not in VARIANTS or self.cluster not in (
@@ -86,12 +96,14 @@ class DPConfig:
             "cw-us-east-02a",
         ):
             raise ValueError("Unsupported DP backend or H100 target")
-        if self.batch_size not in (8, 64) or (
-            self.verification and self.batch_size != 8
-        ):
-            raise ValueError(
-                "Use batch 8 for paired controls, or batch 64 for standalone production-batch validation"
-            )
+        if self.nodes not in (1, 8) or self.batch_size not in (8, 64):
+            raise ValueError("Use one or eight H100 nodes and batch 8 or 64")
+        if self.nodes == 8 and self.batch_size != 64:
+            raise ValueError("The 64-GPU benchmark requires the production batch")
+        if self.ep_reference not in ("best", "live"):
+            raise ValueError("Choose the best tested or live EP reference")
+        if self.end_to_end and not (self.verification and self.batch_size == 64):
+            raise ValueError("End-to-end comparison requires paired production batches")
         if not 10 <= self.updates <= 200 or not self.attempt.replace("-", "").isalnum():
             raise ValueError("Invalid bounded profile length or identity")
 
@@ -99,12 +111,14 @@ class DPConfig:
     def run_id(self) -> str:
         suffix = "-b64" if self.batch_size == 64 else ""
         suffix += "-verify" if self.verification else ""
+        suffix += f"-n{self.nodes}-{self.ep_reference}" if self.nodes != 1 else ""
         return f"exp586-plantcad2-d768-pretrained-lrm1-seed0-1t-v1-dp-{self.variant}-{self.attempt}{suffix}"
 
     @property
     def job_name(self) -> str:
         suffix = "-b64" if self.batch_size == 64 else ""
         suffix += "-verify" if self.verification else ""
+        suffix += f"-n{self.nodes}-{self.ep_reference}" if self.nodes != 1 else ""
         return f"exp586-dp-{self.variant}-{self.attempt}{suffix}-20261031"
 
     @property
@@ -143,7 +157,9 @@ def _errors(
 def _run(config: DPConfig) -> None:
     if remaining_seconds() < 120:
         raise RuntimeError("Isolated experiment deadline reached")
-    production = TrainingConfig("pretrained", 1.0, config.cluster, 1, stage="t1")
+    production = TrainingConfig(
+        "pretrained", 1.0, config.cluster, config.nodes, stage="t1"
+    )
     mp = jmp.get_policy("params=bfloat16,compute=bfloat16,output=bfloat16")
     TrainerConfig(
         id=config.run_id,
@@ -166,10 +182,10 @@ def _run(config: DPConfig) -> None:
             replicate_path=config.artifact_root,
         ),
     ).initialize()
-    if jax.device_count() != 8 or any(
+    if jax.device_count() != 8 * config.nodes or any(
         "H100" not in d.device_kind for d in jax.devices()
     ):
-        raise ValueError("Only one eight-H100 node is authorized")
+        raise ValueError("Unexpected H100 gang size")
     if jax.process_index() == 0 and tracker.get_tracker("wandb").run.resumed:
         raise ValueError("Profiles require a fresh attempt ID after interruption")
     tracker.log_configuration(config)
@@ -180,7 +196,10 @@ def _run(config: DPConfig) -> None:
             "profiling/source_checkpoint": SOURCE_CHECKPOINT,
             "profiling/data_preloaded": True,
             "profiling/batch_size": config.batch_size,
-            "profiling/processes": 8,
+            "profiling/processes": jax.process_count(),
+            "profiling/nodes": config.nodes,
+            "profiling/gpus": jax.device_count(),
+            "profiling/ep_reference": config.ep_reference,
             "profiling/source_sha256": hashlib.sha256(
                 StoragePath(__file__).read_bytes()
             ).hexdigest(),
@@ -203,13 +222,16 @@ def _run(config: DPConfig) -> None:
         f.name: getattr(production.model, f.name)
         for f in dataclasses.fields(production.model)
     }
-    ep_model = PerfModelConfig(
+    candidate_model = PerfModelConfig(
         **values,
         compact_input_lookup_ids=lookup_ids,
         compact_input_lookup_one_hot=True,
         expert_compute_fast_rows=2048,
     )
-    model = local_model(ep_model, implementation=config.variant)
+    ep_model = (
+        PerfModelConfig(**values) if config.ep_reference == "live" else candidate_model
+    )
+    model = local_model(candidate_model, implementation=config.variant)
     opt_cfg = optimizer_config(
         reference_tokens_per_update=TOKENS_PER_UPDATE,
         training_tokens=production.optimizer_reference_tokens,
@@ -222,6 +244,7 @@ def _run(config: DPConfig) -> None:
         {
             "profiling/mesh_shape": dict(mesh.shape),
             "profiling/model_config": dataclasses.asdict(model),
+            "profiling/ep_model_config": dataclasses.asdict(ep_model),
         }
     )
 
@@ -441,7 +464,7 @@ def _run(config: DPConfig) -> None:
         )
     assert_replicated_state(state)
     summary = {
-        "profiling/phase": "complete",
+        "profiling/phase": "finishing",
         "profiling/updates": config.updates,
         "profiling/mean_step_seconds": statistics.fmean(times),
         "profiling/median_step_seconds": statistics.median(times),
@@ -464,6 +487,157 @@ def _run(config: DPConfig) -> None:
                     f"correctness/{label}_loss_signed_mean": float(np.mean(d)),
                 }
             )
+    if config.end_to_end:
+        # Use the production input/prefetch/metrics path on both backends. Keep
+        # the real batch and LR/data clocks; preloaded proxy timings above are
+        # reported separately. Compilation is already warm for both backends.
+        reference = controls[0]
+        controls.clear()
+        gc.collect()
+        base_clock = clock
+        e2e_updates = 60
+        validation = ValidationSample()
+
+        def end_to_end(
+            current: Any, active_mesh: jax.sharding.Mesh, label: str, offset: int
+        ) -> tuple[Any, Any, float]:
+            active_clock = base_clock
+            elapsed_samples = []
+
+            def inputs() -> Any:
+                with ThreadPoolExecutor(max_workers=1) as pool:
+                    future = pool.submit(
+                        distributed_batch,
+                        dataset,
+                        tok,
+                        active_mesh,
+                        base_clock.examples,
+                        GLOBAL_BATCH_SIZE,
+                        augment=True,
+                    )
+                    for i in range(e2e_updates):
+                        value = future.result()
+                        if i + 1 < e2e_updates:
+                            future = pool.submit(
+                                distributed_batch,
+                                dataset,
+                                tok,
+                                active_mesh,
+                                base_clock.examples + (i + 1) * GLOBAL_BATCH_SIZE,
+                                GLOBAL_BATCH_SIZE,
+                                augment=True,
+                            )
+                        yield value
+
+            iterator = iter(inputs())
+            measured_start = None
+            with jax.set_mesh(active_mesh):
+                for i in range(e2e_updates):
+                    if remaining_seconds() < 120:
+                        raise RuntimeError("Experiment hard deadline reached")
+                    if i == 5:
+                        multihost_utils.sync_global_devices(f"e2e-{label}-start")
+                        measured_start = time.monotonic()
+                    begin = time.monotonic()
+                    batch = next(iterator)
+                    current = dataclasses.replace(
+                        current,
+                        opt_state=set_token_learning_rates(
+                            current.opt_state,
+                            opt_cfg,
+                            production.schedule,
+                            active_clock,
+                        ),
+                    )
+                    current, metrics, _ = step_fn(current, batch)
+                    jax.block_until_ready((current, metrics))
+                    elapsed = time.monotonic() - begin
+                    values = routing_diagnostics(
+                        metrics,
+                        batch_size=GLOBAL_BATCH_SIZE,
+                        model_config=model if label == "dp" else ep_model,
+                    )
+                    if values["moe/drop_fraction"] != 0 or not np.isfinite(
+                        float(metrics["train/loss"])
+                    ):
+                        raise ValueError("Invalid end-to-end loss or routing")
+                    tracker.log(
+                        {f"benchmark/{label}/{k}": v for k, v in values.items()}
+                        | {
+                            f"benchmark/{label}/step_seconds": elapsed,
+                            f"benchmark/{label}/loss": float(metrics["train/loss"]),
+                        },
+                        step=offset + i + 1,
+                    )
+                    if i >= 5:
+                        elapsed_samples.append(elapsed)
+                    active_clock = active_clock.advance(
+                        input_tokens=TOKENS_PER_UPDATE,
+                        loss_targets=GLOBAL_BATCH_SIZE * (SEQ_LEN - 1),
+                        examples=GLOBAL_BATCH_SIZE,
+                    )
+                multihost_utils.sync_global_devices(f"e2e-{label}-end")
+                duration = time.monotonic() - measured_start
+                summary.update(
+                    {
+                        f"benchmark/{label}/measured_updates": len(elapsed_samples),
+                        f"benchmark/{label}/wall_seconds": duration,
+                        f"benchmark/{label}/wall_tokens_per_second": len(
+                            elapsed_samples
+                        )
+                        * TOKENS_PER_UPDATE
+                        / duration,
+                        f"benchmark/{label}/mean_step_seconds": statistics.fmean(
+                            elapsed_samples
+                        ),
+                    }
+                )
+            return current, active_clock, duration
+
+        tracker.log_summary({"profiling/phase": "end_to_end_dp"})
+        state, clock, dp_wall = end_to_end(state, mesh, "dp", config.updates)
+        tracker.log_summary({"profiling/phase": "end_to_end_ep"})
+        reference, reference_clock, ep_wall = end_to_end(
+            reference, ep_mesh, "ep", config.updates + e2e_updates
+        )
+        if clock != reference_clock:
+            raise ValueError("End-to-end backend clocks differ")
+        summary["benchmark/wall_throughput_gain"] = ep_wall / dp_wall - 1
+        for label, current, active_mesh in (
+            ("dp", state, mesh),
+            ("ep", reference, ep_mesh),
+        ):
+            tracker.log_summary({"profiling/phase": f"evaluating_{label}"})
+            with jax.set_mesh(active_mesh):
+                for pass_name in ("cold", "warm"):
+                    begin = time.monotonic()
+                    values = evaluate(current, validation, tok, active_mesh)
+                    summary[f"benchmark/{label}/eval_{pass_name}_seconds"] = (
+                        time.monotonic() - begin
+                    )
+                    summary[f"benchmark/{label}/eval_{pass_name}_metrics"] = values
+            tracker.log_summary(summary)
+        tracker.log_summary({"profiling/phase": "checkpointing_ep"})
+        ep_path = config.artifact_root + f"/ep-checkpoint/step-{clock.updates}"
+        with jax.set_mesh(ep_mesh):
+            begin = time.monotonic()
+            save_dna_checkpoint(
+                reference,
+                clock,
+                ep_path,
+                data_seed=0,
+                tokenizer_sha256=tok_digest,
+                scientific_config_sha256=SOURCE_SCIENTIFIC_CONFIG_SHA256,
+                runtime_moe_implementation=ep_model.moe_implementation,
+                runtime_metadata={
+                    "experimental_dp_reference": True,
+                    "not_for_production": True,
+                },
+                is_temporary=True,
+            )
+            summary["benchmark/ep/checkpoint_seconds"] = time.monotonic() - begin
+        del reference
+        gc.collect()
     if config.verification or config.batch_size == 64:
         # Serialize only into this experiment's temporary namespace, never the live owner.
         controls.clear()
@@ -471,6 +645,7 @@ def _run(config: DPConfig) -> None:
         tracker.log_summary({"profiling/phase": "checkpointing"})
         path = config.artifact_root + f"/checkpoint/step-{clock.updates}"
         with jax.set_mesh(mesh):
+            save_start = time.monotonic()
             save_dna_checkpoint(
                 state,
                 clock,
@@ -487,6 +662,7 @@ def _run(config: DPConfig) -> None:
                 },
                 is_temporary=True,
             )
+            summary["benchmark/dp/checkpoint_seconds"] = time.monotonic() - save_start
             restored, r_clock = restore_dna_checkpoint(
                 state,
                 path,
@@ -529,6 +705,7 @@ def _run(config: DPConfig) -> None:
                 raise ValueError("Checkpoint replay changed forward loss")
             del restored
     gc.collect()
+    summary["profiling/phase"] = "complete"
     if jax.process_index() == 0:
         (StoragePath(config.artifact_root) / "result.json").write_text(
             config_json(summary)
@@ -567,7 +744,7 @@ def dispatch(config: DPConfig) -> None:
         processes_per_task=8,
     )
     resources = ResourceConfig.with_gpu(
-        "H100", count=8, replicas=1, cpu=32, ram="600g", disk="900g"
+        "H100", count=8, replicas=config.nodes, cpu=32, ram="600g", disk="900g"
     )
     env = resolve_training_env(
         {
@@ -605,6 +782,9 @@ def main() -> None:
     parser.add_argument("--updates", type=int, default=100)
     parser.add_argument("--verification", action="store_true")
     parser.add_argument("--batch-size", type=int, default=8)
+    parser.add_argument("--nodes", type=int, choices=[1, 8], default=1)
+    parser.add_argument("--ep-reference", choices=["best", "live"], default="best")
+    parser.add_argument("--end-to-end", action="store_true")
     dispatch(DPConfig(**vars(parser.parse_args())))
 
 

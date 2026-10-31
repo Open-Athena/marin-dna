@@ -83,6 +83,9 @@ def main() -> None:
     parser.add_argument("--updates", type=int, default=100)
     parser.add_argument("--verification", action="store_true")
     parser.add_argument("--batch-size", type=int, default=8)
+    parser.add_argument("--nodes", type=int, choices=[1, 8], default=1)
+    parser.add_argument("--ep-reference", choices=["best", "live"], default="best")
+    parser.add_argument("--end-to-end", action="store_true")
     config = DPConfig(**vars(parser.parse_args()))
     if remaining_seconds() < 300:
         raise ValueError("Deadline does not allow another profiling job")
@@ -165,9 +168,15 @@ def main() -> None:
         str(config.updates),
         "--batch-size",
         str(config.batch_size),
+        "--nodes",
+        str(config.nodes),
+        "--ep-reference",
+        config.ep_reference,
     ]
     if config.verification:
         entry.append("--verification")
+    if config.end_to_end:
+        entry.append("--end-to-end")
     command.extend(entry)
     redacted.extend(entry)
     _mutate(
@@ -184,9 +193,9 @@ def main() -> None:
         "--gpu-variant",
         "H100",
         "--nodes",
-        "1",
+        str(config.nodes),
         "--gpus",
-        "8",
+        str(8 * config.nodes),
         "--command-redacted",
         shlex.join(redacted),
     )

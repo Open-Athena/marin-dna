@@ -15,8 +15,10 @@ Use existing local MoE kernels without capacity truncation.
 
 The entry point and bounded catalog are `src/exp586_moe/dp_profile.py`.
 The model/mesh adapter is `src/exp586_moe/data_parallel.py`.
-Paired comparisons use eight examples per update, with the same 64-example reference LR/data cursor spacing as round 2.
-Standalone batch-64 validation uses the actual production global batch, cursor, and token count on the same single eight-GPU node.
+The initial one-node comparisons used eight examples per update, with the same 64-example reference LR/data cursor spacing as round 2.
+The authorized production-size comparison uses 64 H100s and the actual production global batch, cursor, and token count for both backends.
+The `live` EP reference retains the production runtime's original input lookup and pooled expert kernels; the DP candidate retains its previously validated lookup optimization.
+Matched comparisons include preloaded compute, normal prefetched training with metrics, 512-example validation, and temporary checkpoint timing.
 The existing global histogram router preserves its mathematical thresholds across different partitions of the same batch; do not substitute per-device quantiles or change its bins.
 The source is the same frozen, independently verified DNA checkpoint used for the previous optimization experiments; never read a changing latest pointer.
 Compare exact initial values, masks and example order; mathematical local-expert outputs and gradients; replicated optimizer updates; router estimator grouping; full-vocabulary loss; numerical trajectories against unchanged EP controls; and temporary checkpoint restoration.
@@ -27,9 +29,9 @@ Do not claim long-term scientific equivalence solely from a short loss trajector
 ## Operator choices
 
 Keep the existing experiment deadline, 2026-10-31T18:07:14Z, as a conservative hard stop for this follow-up.
-Use at most one whole eight-H100 node at a time in `cw-us-east-02a` or `cw-rno2a`, always batch priority with user `eczech`.
-Do not run scaling tests or request a larger gang.
-Prefer unused East capacity while the production writer uses Reno; capacity must be refreshed before each submission.
+The user explicitly authorized a matched production-size comparison on 2026-10-31, superseding the previous one-node limit.
+Use at most one isolated eight-node, 64-H100 gang at a time in `cw-us-east-02a` or `cw-rno2a`, always batch priority with user `eczech`.
+Use genuinely free capacity and keep both backends on the same physical allocation; capacity must be refreshed before each submission.
 Each child job is bounded by 45 minutes and the global deadline.
 No automatic retries; diagnose failures before selecting a fresh attempt.
 The ledger is `scratch/exp586_dp/dp.sqlite`.
@@ -41,6 +43,8 @@ Restore the newest valid immutable backup if local state is lost.
 | --- | --- | ---: | ---: | --- | --- |
 | cw-us-east-02a | H100 | 1 | 8 | eligible | Existing exp586 launches validate environment, whole-node resources, and shared storage; this experiment validates the new runtime |
 | cw-rno2a | H100 | 1 | 8 | eligible | Existing exp586 launches validate environment, whole-node resources, and shared storage; use only genuinely free capacity |
+| cw-us-east-02a | H100 | 8 | 64 | eligible | The production launcher supports this whole-node placement; initial state is smaller per GPU than the validated batch-64 one-node DP profile |
+| cw-rno2a | H100 | 8 | 64 | eligible | Existing 64-H100 production EP runs validate placement; DP holds the same full replica per GPU as the validated one-node profile |
 
 ## Operating policy
 
@@ -56,3 +60,5 @@ Stop all isolated work at the deadline and leave the live run unchanged.
 The strict candidate computes orthogonalization locally and checks asynchronous as well as synchronous collective names.
 A startup contraction error on size-one model/data annotations was fixed with a fully replicated local computation scope.
 All model and optimizer arrays remain replicated; no live experiment files changed.
+2026-10-31: The user requested comparison against the live process on the same GPU count.
+The isolated launcher now accepts eight whole nodes and a live EP reference, with identical global batches and additional prefetched-loop, validation, and checkpoint timings.
