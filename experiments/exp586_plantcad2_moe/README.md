@@ -58,6 +58,18 @@ python -m exp586_moe.train --condition pretrained --lr-multiplier 1 --stage t1 -
 CoreWeave placement is operational and does not change the W&B or checkpoint identity.
 Every GPU request uses whole eight-H100 nodes at batch priority.
 
+## Isolated data-parallel experiments
+
+`data_parallel.py` builds a mesh with one complete model and optimizer replica per GPU and selects the existing local `scatter` MoE backend.
+The experiment also keeps Muon orthogonalization local, with gradient averaging and the existing global histogram router reductions as its only cross-replica operations.
+No production launcher selects this path.
+
+`dp_profile.py` restores a fixed independent checkpoint into a bounded experiment identity.
+Batch-eight paired checks compare against two EP controls; batch-64 checks use the actual 524,288-token production batch on one eight-H100 node.
+Profiles preload inputs and separately verify model/optimizer replication, collective operations, numerical differences, and temporary checkpoint replay.
+`dp_control.py`, `dp_reconcile.py`, and [dp_operations.md](dp_operations.md) own the isolated submission and persistence boundary.
+They never use the live run or its checkpoint owner.
+
 ## Evaluation
 
 Final PlantCAD2 evaluation follows the appendable workflow in [`exp586_evaluation_operations.md`](exp586_evaluation_operations.md).

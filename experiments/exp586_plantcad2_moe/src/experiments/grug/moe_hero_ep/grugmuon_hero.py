@@ -38,7 +38,9 @@ def _intra_rack_axes(mesh) -> list[tuple[str, int]]:
     """
     axes = [(name, size) for name, size in mesh.shape.items() if size > 1]
     intra = [(name, size) for name, size in axes if name != "replica_dcn"]
-    return intra if intra else axes
+    # Pure data-parallel replicas own complete matrices and optimizer state.
+    # Do not partition temporary orthogonalization work across those replicas.
+    return intra
 
 
 def _target_named_sharding(array) -> NamedSharding | None:
@@ -240,7 +242,18 @@ def _newtonschulz_4d_distributed(
         return jax.vmap(jax.vmap(local_ns))(x)
     mesh_shape_items = _intra_rack_axes(mesh)
     if not mesh_shape_items:
-        return jax.vmap(jax.vmap(local_ns))(x)
+        def local_stack(stack: jax.Array) -> jax.Array:
+            if use_syrk:
+                layers, experts, rows, cols = stack.shape
+                flat = stack.astype(jnp.bfloat16).reshape(layers * experts, rows, cols)
+                return _newtonschulz_batched_syrk(flat, steps, eps, coefficient_type).reshape(stack.shape).astype(stack.dtype)
+            return jax.vmap(jax.vmap(local_ns))(stack)
+
+        # Manual replicated scope keeps size-one logical model/data axes out of
+        # local contraction annotations; no parameters or work are partitioned.
+        return shard_map(local_stack, mesh=mesh, in_specs=PartitionSpec(), out_specs=PartitionSpec(), check_vma=False)(
+            reshard(x, PartitionSpec())
+        )
 
     layers, expert_count, d, last = x.shape
     is_w_down = any(getattr(entry, "name", None) == "w_down" for entry in path)
@@ -335,7 +348,7 @@ def _newtonschulz_padded_stack_sharded(
         return jax.vmap(local)(X)
     axes = _intra_rack_axes(mesh)
     if not axes:
-        return jax.vmap(local)(X)
+        return shard_map(jax.vmap(local), mesh=mesh, in_specs=P(), out_specs=P(), check_vma=False)(reshard(X, P()))
 
     batch_axis = tuple(name for name, _ in axes)
     batch_shards = math.prod(size for _, size in axes)
