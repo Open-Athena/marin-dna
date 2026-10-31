@@ -1,6 +1,7 @@
 """One-window DNA examples, deterministic strand augmentation, and explicit padding."""
 
 import hashlib
+import string
 from collections.abc import Sequence
 from dataclasses import dataclass
 
@@ -26,6 +27,7 @@ SCRATCH_VOCAB = {
     "[EOS]": 7,
 }
 _COMPLEMENT = str.maketrans("acgt", "tgca")
+PRETRAINED_DNA_INPUT_TOKEN_IDS = tuple(range(64, 90))
 
 
 def scratch_tokenizer() -> Tokenizer:
@@ -63,6 +65,17 @@ def pretrained_dna_tokenizer() -> Tokenizer:
     tokenizer.pre_tokenizer = pre_tokenizers.Split("", behavior="isolated")
     tokenizer.post_processor = None
     return tokenizer
+
+
+def pretrained_dna_input_token_ids(tokenizer: Tokenizer) -> tuple[int, ...]:
+    """Resolve and verify the pinned lowercase language-token rows used by DNA."""
+    encoded = tuple(tuple(tokenizer.encode(c).ids) for c in string.ascii_lowercase)
+    if any(len(ids) != 1 for ids in encoded):
+        raise ValueError("Expected one existing vocabulary ID per lowercase character")
+    token_ids = tuple(ids[0] for ids in encoded)
+    if token_ids != PRETRAINED_DNA_INPUT_TOKEN_IDS:
+        raise ValueError("Pinned lowercase language-token IDs changed")
+    return token_ids
 
 
 def tokenizer_digest(tokenizer: Tokenizer) -> str:

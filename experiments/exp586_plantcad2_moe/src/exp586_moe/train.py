@@ -70,6 +70,8 @@ from exp586_moe.config import (
 )
 from exp586_moe.corpus import corpus_digest, distributed_batch, open_dataset
 from exp586_moe.data import (
+    PRETRAINED_DNA_INPUT_TOKEN_IDS,
+    pretrained_dna_input_token_ids,
     pretrained_dna_tokenizer,
     scratch_tokenizer,
     tokenizer_digest,
@@ -91,7 +93,11 @@ from exp586_moe.state import (
 )
 from exp586_moe.tracking import wandb_history_offset
 from experiments.grug.dispatch import _forwarded_env_vars
-from experiments.grug.moe_hero_ep.model import Transformer, apply_qb_betas
+from experiments.grug.moe_hero_ep.model import (
+    GrugModelConfig,
+    Transformer,
+    apply_qb_betas,
+)
 from experiments.grug.moe_hero_ep.train import (
     MasterParamMode,
     _apply_hero_ep_runtime_defaults,
@@ -175,6 +181,15 @@ def throughput_flop_metrics(
 
 
 @dataclasses.dataclass(frozen=True)
+class RuntimeModelConfig(GrugModelConfig):
+    """Operational kernels that preserve the scientific model contract."""
+
+    compact_input_lookup_ids: tuple[int, ...] = ()
+    compact_input_lookup_one_hot: bool = False
+    expert_compute_fast_rows: int = 0
+
+
+@dataclasses.dataclass(frozen=True)
 class TrainingConfig:
     condition: Literal["scratch", "pretrained"]
     lr_multiplier: float
@@ -191,6 +206,7 @@ class TrainingConfig:
     runtime_prefetch: bool = False
     runtime_transition_id: str | None = None
     runtime_code_sha256: str | None = None
+    runtime_kernel_optimizations: bool = False
     profiling_updates: int | None = None
     profiling_id: str | None = None
     profiling_batch_size: int = 8
@@ -265,6 +281,16 @@ class TrainingConfig:
                 c not in "0123456789abcdef" for c in self.runtime_code_sha256 or ""
             ):
                 raise ValueError("Runtime code digest must be lowercase SHA-256")
+        if self.runtime_kernel_optimizations and (
+            self.stage != "t1"
+            or self.runtime_state_mode != "fp32_device"
+            or not self.runtime_prefetch
+            or self.runtime_transition_id is None
+        ):
+            raise ValueError(
+                "Runtime kernel optimizations require stage t1, FP32-device state, "
+                "prefetch, and transition metadata"
+            )
         if self.profiling_updates is not None:
             if self.stage != "t1" or not 10 <= self.profiling_updates <= 200:
                 raise ValueError(
@@ -292,6 +318,7 @@ class TrainingConfig:
                 self.runtime_state_mode != "fp32_pinned_host"
                 or self.runtime_prefetch
                 or self.runtime_transition_id is not None
+                or self.runtime_kernel_optimizations
             ):
                 raise ValueError(
                     "Production runtime choices cannot be combined with profiling mode"
@@ -338,7 +365,7 @@ class TrainingConfig:
 
     @property
     def runtime_metadata(self) -> dict[str, Any]:
-        return {
+        metadata = {
             "state_mode": self.effective_runtime_state_mode,
             "prefetch_depth": self.prefetch_depth,
             "transition_id": self.runtime_transition_id,
@@ -346,6 +373,15 @@ class TrainingConfig:
             "cluster": self.cluster,
             "nodes": self.nodes,
         }
+        if self.runtime_kernel_optimizations:
+            metadata.update(
+                {
+                    "compact_input_lookup_ids": PRETRAINED_DNA_INPUT_TOKEN_IDS,
+                    "compact_input_lookup_one_hot": True,
+                    "expert_compute_fast_rows": 2048,
+                }
+            )
+        return metadata
 
     @property
     def run_id(self) -> str:
@@ -472,8 +508,16 @@ class TrainingConfig:
             "fixed": "fixed_all_to_all",
             "ring": "ring",
         }[self.resolved_moe_backend]
+        model: GrugModelConfig = self.scientific_model
+        if self.runtime_kernel_optimizations:
+            model = RuntimeModelConfig(
+                **dataclasses.asdict(model),
+                compact_input_lookup_ids=PRETRAINED_DNA_INPUT_TOKEN_IDS,
+                compact_input_lookup_one_hot=True,
+                expert_compute_fast_rows=2048,
+            )
         return dataclasses.replace(
-            self.scientific_model,
+            model,
             moe_implementation=implementation,
             pooled_transport_capacity_factor=(
                 8.0 if self.resolved_moe_backend == "pooled" else None
@@ -820,6 +864,9 @@ def _run_training(config: TrainingConfig) -> None:
             "training/prefetch_depth": config.prefetch_depth,
             "training/runtime_transition_id": config.runtime_transition_id,
             "training/runtime_code_sha256": config.runtime_code_sha256,
+            "training/runtime_kernel_optimizations": (
+                config.runtime_kernel_optimizations
+            ),
             "gpu_type": "H100",
             "nodes": config.nodes,
             **flops_summary,
@@ -835,6 +882,10 @@ def _run_training(config: TrainingConfig) -> None:
         else pretrained_dna_tokenizer()
     )
     tokenizer_sha256 = tokenizer_digest(tokenizer)
+    if config.runtime_kernel_optimizations and pretrained_dna_input_token_ids(
+        tokenizer
+    ) != tuple(config.model.compact_input_lookup_ids):
+        raise ValueError("Runtime input-lookup IDs differ from the tokenizer")
     binding = scientific_config(config, tokenizer_sha256)
     digest, checkpoint = primary_json(lambda: bind_and_discover(config, binding))
     tracker.log_hyperparameters(
@@ -1321,6 +1372,11 @@ def main() -> None:
     )
     parser.add_argument("--runtime-transition-id", default=None)
     parser.add_argument("--runtime-code-sha256", default=None)
+    parser.add_argument(
+        "--runtime-kernel-optimizations",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+    )
     parser.add_argument("--profiling-updates", type=int, default=None)
     parser.add_argument("--profiling-id", default=None)
     parser.add_argument("--profiling-batch-size", type=int, default=8)

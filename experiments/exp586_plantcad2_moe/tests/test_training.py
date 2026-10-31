@@ -190,6 +190,23 @@ def test_one_trillion_stage_is_fresh_pretrained_and_keeps_twelve_checkpoints():
         "6a5273b56f94f5da995a882b44208678dbbb8baf8871a4c3ccc37c286f222899"
     )
 
+    kernels = dataclasses.replace(combined, runtime_kernel_optimizations=True)
+    assert kernels.run_id == config.run_id
+    assert kernels.checkpoint_root == config.checkpoint_root
+    assert kernels.model.compact_input_lookup_ids == tuple(range(64, 90))
+    assert kernels.model.compact_input_lookup_one_hot is True
+    assert kernels.model.expert_compute_fast_rows == 2048
+    assert kernels.runtime_metadata == {
+        **combined.runtime_metadata,
+        "compact_input_lookup_ids": tuple(range(64, 90)),
+        "compact_input_lookup_one_hot": True,
+        "expert_compute_fast_rows": 2048,
+    }
+    assert scientific_config(kernels, SOURCE_TOKENIZER_SHA256) == binding
+
+    with pytest.raises(ValueError, match="require stage t1"):
+        dataclasses.replace(config, runtime_kernel_optimizations=True)
+
     with pytest.raises(ValueError, match="set together"):
         dataclasses.replace(config, runtime_transition_id="combined-v1")
     with pytest.raises(ValueError, match="lowercase SHA-256"):
