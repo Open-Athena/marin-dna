@@ -511,7 +511,10 @@ class TrainingConfig:
         model: GrugModelConfig = self.scientific_model
         if self.runtime_kernel_optimizations:
             model = RuntimeModelConfig(
-                **dataclasses.asdict(model),
+                **{
+                    field.name: getattr(model, field.name)
+                    for field in dataclasses.fields(GrugModelConfig)
+                },
                 compact_input_lookup_ids=PRETRAINED_DNA_INPUT_TOKEN_IDS,
                 compact_input_lookup_one_hot=True,
                 expert_compute_fast_rows=2048,

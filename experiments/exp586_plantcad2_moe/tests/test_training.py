@@ -196,6 +196,7 @@ def test_one_trillion_stage_is_fresh_pretrained_and_keeps_twelve_checkpoints():
     assert kernels.model.compact_input_lookup_ids == tuple(range(64, 90))
     assert kernels.model.compact_input_lookup_one_hot is True
     assert kernels.model.expert_compute_fast_rows == 2048
+    assert hash(kernels.model)
     assert kernels.runtime_metadata == {
         **combined.runtime_metadata,
         "compact_input_lookup_ids": tuple(range(64, 90)),
