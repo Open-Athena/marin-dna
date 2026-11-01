@@ -2,10 +2,13 @@
 
 import hashlib
 import json
+import os
 from bisect import bisect_right
 from collections import OrderedDict
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import Any
 
 import fsspec
@@ -31,7 +34,15 @@ def corpus_digest() -> str:
 class RawWindows(AsyncDataset[str]):
     """Read only requested Parquet row groups, with a bounded process-local cache."""
 
-    def __init__(self, records: list[dict[str, Any]], cache_groups: int = 256) -> None:
+    def __init__(
+        self,
+        records: list[dict[str, Any]],
+        cache_groups: int = 256,
+        *,
+        read_cache_type: str | None = None,
+        read_block_size: int | None = None,
+        cache_files: bool = False,
+    ) -> None:
         if (
             not records
             or cache_groups <= 0
@@ -49,12 +60,51 @@ class RawWindows(AsyncDataset[str]):
         self.files: dict[int, tuple[Any, pq.ParquetFile]] = {}
         self.cache: OrderedDict[tuple[int, int], Any] = OrderedDict()
         self.cache_groups = cache_groups
+        self.read_options: dict[str, Any] = {}
+        self.file_cache = (
+            TemporaryDirectory(prefix="exp586-perf4-input-") if cache_files else None
+        )
+        if read_cache_type is not None:
+            self.read_options["cache_type"] = read_cache_type
+        if read_block_size is not None:
+            if read_block_size <= 0:
+                raise ValueError("Read block size must be positive")
+            self.read_options["block_size"] = read_block_size
 
     async def async_len(self) -> int:
         return self.ends[-1]
 
     def is_finite(self) -> bool:
         return True
+
+    def open_verified_file(self, file_id: int) -> tuple[Any, pq.ParquetFile]:
+        """Retain the original source checks for remote and temporary local streams."""
+        record = self.records[file_id]
+        fs, path = fsspec.core.url_to_fs(record["uri"])
+        info = fs.info(path)
+        if info["size"] != record["bytes"] or info.get("ETag") != record["etag"]:
+            raise ValueError("Raw corpus object identity changed")
+        if self.file_cache is None:
+            stream = fs.open(path, "rb", **self.read_options)
+        else:
+            cached = fsspec.filesystem(
+                "simplecache", fs=fs, cache_storage=self.file_cache.name
+            )
+            stream = cached.open(path, "rb")
+            if os.fstat(stream.fileno()).st_size != record["bytes"]:
+                raise ValueError("Cached raw object length changed")
+            after = fs.info(path, refresh=True)
+            if after["size"] != record["bytes"] or after.get("ETag") != record["etag"]:
+                raise ValueError("Raw corpus object identity changed during caching")
+        parquet = pq.ParquetFile(stream)
+        if parquet.metadata.num_rows != record["rows"]:
+            raise ValueError("Raw corpus row count changed")
+        if [
+            parquet.metadata.row_group(i).num_rows
+            for i in range(parquet.metadata.num_row_groups)
+        ] != record["row_groups"]:
+            raise ValueError("Raw corpus row groups changed")
+        return stream, parquet
 
     async def get_batch(self, indices: Sequence[int]) -> Sequence[str]:
         result = []
@@ -68,24 +118,7 @@ class RawWindows(AsyncDataset[str]):
             key = (file_id, group)
             if key not in self.cache:
                 if file_id not in self.files:
-                    record = self.records[file_id]
-                    fs, path = fsspec.core.url_to_fs(record["uri"])
-                    info = fs.info(path)
-                    if (
-                        info["size"] != record["bytes"]
-                        or info.get("ETag") != record["etag"]
-                    ):
-                        raise ValueError("Raw corpus object identity changed")
-                    stream = fs.open(path, "rb")
-                    parquet = pq.ParquetFile(stream)
-                    if parquet.metadata.num_rows != record["rows"]:
-                        raise ValueError("Raw corpus row count changed")
-                    if [
-                        parquet.metadata.row_group(i).num_rows
-                        for i in range(parquet.metadata.num_row_groups)
-                    ] != record["row_groups"]:
-                        raise ValueError("Raw corpus row groups changed")
-                    self.files[file_id] = stream, parquet
+                    self.files[file_id] = self.open_verified_file(file_id)
                 self.cache[key] = self.files[file_id][1].read_row_group(
                     group, columns=["seq"]
                 )["seq"]
@@ -108,8 +141,73 @@ def training_dataset(raw: AsyncDataset[str], seed: int) -> AsyncDataset[str]:
     return MixtureDataset({"dna": shuffled}, {"dna": 1.0}, block_size=2048, key=mix_key)
 
 
-def open_dataset(split: str, seed: int = 0) -> Any:
-    raw = RawWindows(json.loads(CORPUS_PATH.read_text())[split])
+def open_dataset(
+    split: str,
+    seed: int = 0,
+    *,
+    cache_groups: int = 256,
+    read_cache_type: str | None = None,
+    read_block_size: int | None = None,
+    preload_all: bool = False,
+    preload_workers: int = 1,
+    preload_progress: Callable[[int, int], None] | None = None,
+    cache_files: bool = False,
+    cache_file_workers: int = 4,
+) -> Any:
+    raw = RawWindows(
+        json.loads(CORPUS_PATH.read_text())[split],
+        cache_groups=cache_groups,
+        read_cache_type=read_cache_type,
+        read_block_size=read_block_size,
+        cache_files=cache_files,
+    )
+    if cache_files:
+        if cache_file_workers <= 0:
+            raise ValueError("File-cache preloading requires positive workers")
+        with ThreadPoolExecutor(max_workers=cache_file_workers) as pool:
+            for file_index, opened in enumerate(
+                pool.map(raw.open_verified_file, range(len(raw.records)))
+            ):
+                raw.files[file_index] = opened
+                if preload_progress is not None:
+                    preload_progress(file_index + 1, len(raw.records))
+    if preload_all:
+        groups = [n for record in raw.records for n in record["row_groups"]]
+        if cache_groups < len(groups) or preload_workers <= 0:
+            raise ValueError("Preloading requires enough cache for every row group")
+
+        def warm_file(file_index: int) -> dict[int, Any]:
+            record = raw.records[file_index]
+            if cache_files:
+                # Each task owns a distinct already-verified local Parquet file.
+                # Avoid refetching it while filling the complete decoded cache.
+                parquet = raw.files[file_index][1]
+                return {
+                    group: parquet.read_row_group(group, columns=["seq"])["seq"]
+                    for group in range(len(record["row_groups"]))
+                }
+            # Independent Parquet streams avoid shared seek offsets between threads.
+            reader = RawWindows(
+                [record],
+                cache_groups=len(record["row_groups"]),
+                read_cache_type=read_cache_type,
+                read_block_size=read_block_size,
+            )
+            starts = np.cumsum([0, *record["row_groups"][:-1]]).tolist()
+            reader.as_sync_dataset().get_batch(starts)
+            raw.files[file_index] = reader.files[0]
+            return {group: column for (_, group), column in reader.cache.items()}
+
+        completed = 0
+        with ThreadPoolExecutor(max_workers=preload_workers) as pool:
+            for file_index, columns in enumerate(
+                pool.map(warm_file, range(len(raw.records)))
+            ):
+                for group_index, column in columns.items():
+                    raw.cache[file_index, group_index] = column
+                completed += len(columns)
+                if preload_progress is not None:
+                    preload_progress(completed, len(groups))
     return (training_dataset(raw, seed) if split == "train" else raw).as_sync_dataset()
 
 

@@ -1,6 +1,7 @@
 # Copyright The Marin Authors
 # SPDX-License-Identifier: Apache-2.0
 
+from collections.abc import Callable
 from dataclasses import dataclass
 
 import jax
@@ -11,7 +12,10 @@ from levanter.optim.util import CoefficientType
 from levanter.utils.jax_utils import leaf_key_paths
 
 from experiments.grug.moe_hero_ep.adamh import scale_by_adamh
-from experiments.grug.moe_hero_ep.grugmuon_hero import _grug_scale_with_muon_hero, _target_named_sharding
+from experiments.grug.moe_hero_ep.grugmuon_hero import (
+    _grug_scale_with_muon_hero,
+    _target_named_sharding,
+)
 
 
 def _match_named_update_sharding() -> optax.GradientTransformation:
@@ -90,7 +94,7 @@ def _is_gate_or_router_weight(path_lower: str) -> bool:
     Matches the leaf attribute name at the end of the path, so it selects ``...attn.attn_gate`` and
     ``...mlp.router`` but not the separate ``...mlp.router_bias`` leaf.
     """
-    return path_lower.endswith(".attn_gate") or path_lower.endswith(".router")
+    return path_lower.endswith((".attn_gate", ".router"))
 
 
 def _gate_router_decay_mask(params):
@@ -138,6 +142,7 @@ def scale_with_grug_muonh(
     learning_rate: float = 0.02,
     coefficient_type: CoefficientType = "quintic",
     use_syrk: bool = True,
+    ns4d_impl: Callable[..., jax.Array] | None = None,
 ) -> optax.GradientTransformation:
     """MuonH transform for the stacked hero model: Newton-Schulz direction + Frobenius hyperball step."""
     muon_transform = _grug_scale_with_muon_hero(
@@ -147,6 +152,7 @@ def scale_with_grug_muonh(
         muon_eps=muon_eps,
         coefficient_type=coefficient_type,
         use_syrk=use_syrk,
+        ns4d_impl=ns4d_impl,
     )
 
     def init_fn(params):
@@ -189,7 +195,12 @@ class GrugMoeMuonHConfig(OptimizerConfig):
     use_syrk: bool = True
     gate_router_weight_decay: float = 0.0
 
-    def build(self, num_train_steps):
+    def build(
+        self,
+        num_train_steps: int,
+        *,
+        ns4d_impl: Callable[..., jax.Array] | None = None,
+    ) -> optax.GradientTransformation:
         learning_rate_schedule = self.lr_scheduler(num_train_steps)
         adam_lr_schedule = self.lr_scheduler(num_train_steps, override_lr=self.adam_lr)
 
@@ -207,6 +218,7 @@ class GrugMoeMuonHConfig(OptimizerConfig):
                         learning_rate=learning_rate,
                         coefficient_type=self.coefficient_type,
                         use_syrk=self.use_syrk,
+                        ns4d_impl=ns4d_impl,
                     )
                 )
                 components.append(_match_named_update_sharding())

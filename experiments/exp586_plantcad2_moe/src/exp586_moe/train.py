@@ -8,6 +8,7 @@ import json
 import logging
 import math
 import os
+import resource
 import time
 import uuid
 from collections.abc import Callable
@@ -77,10 +78,12 @@ from exp586_moe.data import (
     tokenizer_digest,
 )
 from exp586_moe.data_parallel import (
+    assert_physical_replicas,
     assert_replicated_state,
     local_model,
     replicated_mesh,
 )
+from exp586_moe.perf4_muon import node_local_expert_ns
 from exp586_moe.routing_probe import routing_diagnostics
 from exp586_moe.schedule import (
     ContinuationTokenSchedule,
@@ -116,6 +119,23 @@ CONTINUATION_ARTIFACT_DATE = "2026.10.19"
 ONE_TRILLION_ARTIFACT_DATE = "2026.10.20"
 PERMANENT_CHECKPOINT_COUNT = 8
 ONE_TRILLION_PERMANENT_CHECKPOINT_COUNT = 12
+PERF4_RUNTIME_TRANSITION_ID = "full-replica-dp-perf4-v1-20261101"
+PERF4_SOURCE_COMMIT = "34aa317617c3a0ede609c76b01e44312dbd864e2"
+PREVIOUS_DP_RUNTIME_TRANSITION_ID = "full-replica-dp-v1-20261031"
+PREVIOUS_DP_RUNTIME_CODE_SHA256 = (
+    "8ca27ecf5e219150606cccbb6f2835a06c51971def1cf88c2f23cddfb833bf5b"
+)
+PERF4_READER_OPTIONS = {
+    "cache_files": True,
+    "cache_file_workers": 4,
+    "preload_all": True,
+    "preload_workers": 4,
+    "cache_groups": 4096,
+}
+PERF4_COMPILER_OPTIONS = {
+    "xla_gpu_enable_pdl": False,
+    "xla_gpu_enable_pdl_launch": False,
+}
 
 
 def build_permanent_checkpoint_updates(
@@ -199,6 +219,7 @@ class TrainingConfig:
     runtime_transition_id: str | None = None
     runtime_code_sha256: str | None = None
     runtime_data_parallel: bool = False
+    runtime_perf4: bool = False
     profiling_updates: int | None = None
     profiling_id: str | None = None
     profiling_batch_size: int = 8
@@ -283,6 +304,13 @@ class TrainingConfig:
             raise ValueError(
                 "Full-replica DP requires stage t1 on 64 H100s, FP32-device "
                 "state, prefetch, and transition metadata"
+            )
+        if self.runtime_perf4 and (
+            not self.runtime_data_parallel
+            or self.runtime_transition_id != PERF4_RUNTIME_TRANSITION_ID
+        ):
+            raise ValueError(
+                "Perf4 production requires full-replica DP and its exact transition ID"
             )
         if self.profiling_updates is not None:
             if self.stage != "t1" or not 10 <= self.profiling_updates <= 200:
@@ -382,6 +410,20 @@ class TrainingConfig:
                     "compact_input_lookup_one_hot": True,
                     "persistent_state_replication": "asserted",
                     "optimizer_newton_schulz_scope": "fully-replicated-local",
+                }
+            )
+        if self.runtime_perf4:
+            metadata.update(
+                {
+                    "perf4_source_commit": PERF4_SOURCE_COMMIT,
+                    "reader_options": PERF4_READER_OPTIONS,
+                    "compiler_options": PERF4_COMPILER_OPTIONS,
+                    "optimizer_newton_schulz_scope": "node-local-8-gpu",
+                    "optimizer_group_size": 8,
+                    "optimizer_normalize_before_split": False,
+                    "optimizer_slice_before_cast": True,
+                    "optimizer_cast_before_gather": False,
+                    "physical_replica_checks": "restore-and-checkpoint-boundaries",
                 }
             )
         return metadata
@@ -671,6 +713,46 @@ def bind_and_discover(
     return digest, candidates[-1].path if candidates else None
 
 
+def validate_runtime_resume(config: TrainingConfig, checkpoint: str) -> dict[str, Any]:
+    """Permit perf4 only from the exact compatible production DP lineage."""
+    if not config.runtime_perf4:
+        return {}
+    if not checkpoint.startswith(config.checkpoint_root + "/step-"):
+        raise ValueError("Perf4 production cannot restore a non-production checkpoint")
+    metadata = json.loads((StoragePath(checkpoint) / "metadata.json").read_text())
+    runtime = metadata.get("exp586_runtime")
+    if not isinstance(runtime, dict):
+        raise TypeError("Perf4 production requires bound DP runtime metadata")
+    transition = runtime.get("transition_id")
+    code_sha256 = runtime.get("code_sha256")
+    expected_code = {
+        PREVIOUS_DP_RUNTIME_TRANSITION_ID: PREVIOUS_DP_RUNTIME_CODE_SHA256,
+        PERF4_RUNTIME_TRANSITION_ID: config.runtime_code_sha256,
+    }.get(transition)
+    if expected_code is None or code_sha256 != expected_code:
+        raise ValueError("Checkpoint runtime transition is not perf4-compatible")
+    if (
+        runtime.get("state_mode") != "fp32_device"
+        or runtime.get("parallelism") != "full-replica-data-parallel"
+        or runtime.get("mesh")
+        != {
+            "replica_dcn": 64,
+            "data": 1,
+            "context": 1,
+            "expert": 1,
+            "model": 1,
+        }
+        or runtime.get("moe_implementation") != "scatter"
+    ):
+        raise ValueError("Checkpoint DP topology is not perf4-compatible")
+    return {
+        "source_transition_id": transition,
+        "source_code_sha256": code_sha256,
+        "target_transition_id": PERF4_RUNTIME_TRANSITION_ID,
+        "target_code_sha256": config.runtime_code_sha256,
+    }
+
+
 def prepare_checkpoint(config: TrainingConfig, clock: TokenClock) -> str:
     """Choose an append-only destination for this checkpoint state.
 
@@ -862,6 +944,7 @@ def _run_training(config: TrainingConfig) -> None:
             "training/runtime_transition_id": config.runtime_transition_id,
             "training/runtime_code_sha256": config.runtime_code_sha256,
             "training/runtime_data_parallel": config.runtime_data_parallel,
+            "training/runtime_perf4": config.runtime_perf4,
             "gpu_type": "H100",
             "nodes": config.nodes,
             **flops_summary,
@@ -890,15 +973,62 @@ def _run_training(config: TrainingConfig) -> None:
             "reference_real_tokens_per_update": TOKENS_PER_UPDATE,
         }
     )
-    dataset, validation = open_dataset("train", config.seed), ValidationSample()
+    reader_started = time.monotonic()
+    if config.runtime_perf4:
+        tracker.log_summary({"training/phase": "prewarming_inputs"})
+    dataset = open_dataset(
+        "train",
+        config.seed,
+        **(PERF4_READER_OPTIONS if config.runtime_perf4 else {}),
+        **(
+            {
+                "preload_progress": lambda completed, total: tracker.log_summary(
+                    {
+                        "training/preloaded_input_items": completed,
+                        "training/preload_total_items": total,
+                    }
+                )
+            }
+            if config.runtime_perf4
+            else {}
+        ),
+    )
+    reader_resources = np.asarray(
+        multihost_utils.process_allgather(
+            np.asarray(
+                [
+                    time.monotonic() - reader_started,
+                    resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024**2,
+                ],
+                dtype=np.float32,
+            ),
+            tiled=True,
+        )
+    ).reshape(-1, 2)
+    if config.runtime_perf4 and float(reader_resources[:, 1].max()) > 50:
+        raise ValueError("Perf4 eager input cache exceeds its validated RSS bound")
+    tracker.log_summary(
+        {
+            "training/reader_setup_max_seconds": float(reader_resources[:, 0].max()),
+            "training/reader_max_host_rss_gib": float(reader_resources[:, 1].max()),
+        }
+    )
+    validation = ValidationSample()
+    mesh = training_mesh(config)
     opt_config = optimizer_config(
         reference_tokens_per_update=TOKENS_PER_UPDATE,
         training_tokens=config.optimizer_reference_tokens,
         multiplier=config.lr_multiplier,
     )
-    optimizer = opt_config.build(config.target_updates)
+    optimizer = opt_config.build(
+        config.target_updates,
+        ns4d_impl=(
+            node_local_expert_ns(mesh, slice_before_cast=True)
+            if config.runtime_perf4
+            else None
+        ),
+    )
     schedule = config.schedule
-    mesh = training_mesh(config)
     with jax.set_mesh(mesh):
         is_fresh_pretrained = (
             config.stage in ("s01", "t1")
@@ -926,6 +1056,11 @@ def _run_training(config: TrainingConfig) -> None:
         del weights
         clock = TokenClock()
         resume_checkpoint = checkpoint or config.continuation_source_checkpoint
+        runtime_resume = (
+            validate_runtime_resume(config, resume_checkpoint)
+            if resume_checkpoint is not None
+            else {}
+        )
         restore_summary: dict[str, float | int] | None = None
         if resume_checkpoint is not None:
             state, clock = restore_dna_checkpoint(
@@ -952,6 +1087,9 @@ def _run_training(config: TrainingConfig) -> None:
         replicated_state_bytes = (
             assert_replicated_state(state) if config.runtime_data_parallel else None
         )
+        physical_restore = (
+            assert_physical_replicas(state, mesh) if config.runtime_perf4 else None
+        )
         check_clock(
             clock,
             min_updates=config.start_update,
@@ -964,6 +1102,8 @@ def _run_training(config: TrainingConfig) -> None:
                 "training/resumed_checkpoint": resume_checkpoint,
                 "training/resumed_input_tokens": clock.input_tokens,
                 "training/restored_state": restore_summary,
+                "training/runtime_resume_compatibility": runtime_resume,
+                "training/restored_physical_replicas": physical_restore,
                 **(
                     {
                         f"training/restored_{key}": value
@@ -1011,6 +1151,7 @@ def _run_training(config: TrainingConfig) -> None:
                 else MasterParamMode.FP32_DEVICE
             ),
             watch_config=None,
+            compiler_options=(PERF4_COMPILER_OPTIONS if config.runtime_perf4 else None),
         )
         profiler_callback = None
         profile_uri = None
@@ -1208,6 +1349,19 @@ def _run_training(config: TrainingConfig) -> None:
                     raise ValueError("Nonfinite checkpoint state")
                 if config.runtime_data_parallel:
                     assert_replicated_state(state)
+                physical_checkpoint = None
+                if config.runtime_perf4:
+                    physical_started = time.monotonic()
+                    physical_checkpoint = assert_physical_replicas(state, mesh)
+                    physical_checkpoint["seconds"] = time.monotonic() - physical_started
+                    physical_checkpoint["step"] = clock.updates
+                    tracker.log_summary(
+                        {
+                            "training/latest_physical_replica_check": (
+                                physical_checkpoint
+                            )
+                        }
+                    )
                 tracker.log_summary({"training/phase": "checkpointing"})
                 checkpoint = primary_json(
                     lambda clock=clock: prepare_checkpoint(config, clock)
@@ -1389,6 +1543,11 @@ def main() -> None:
     parser.add_argument("--runtime-code-sha256", default=None)
     parser.add_argument(
         "--runtime-data-parallel",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+    )
+    parser.add_argument(
+        "--runtime-perf4",
         action=argparse.BooleanOptionalAction,
         default=False,
     )

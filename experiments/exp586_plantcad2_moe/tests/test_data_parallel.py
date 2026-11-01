@@ -13,8 +13,11 @@ from levanter.grug.grug_moe import MoEExpertMlp
 from levanter.grug.sharding import compact_grug_mesh
 
 from exp586_moe.data_parallel import (
+    assert_physical_replicas,
     assert_replicated_state,
     local_model,
+    physical_projection_snapshot,
+    replica_fingerprints,
     replicated_mesh,
 )
 from exp586_moe.state import fresh_state
@@ -144,6 +147,48 @@ def test_full_model_and_optimizer_are_replicated():
         sizes = assert_replicated_state(state)
     assert sizes["master_params"] == 2 * sizes["params"]
     assert sizes["opt_state"] > sizes["master_params"]
+
+
+class _Projection(eqx.Module):
+    output_proj: jax.Array
+
+
+class _ReplicaState(eqx.Module):
+    params: _Projection
+    master_params: _Projection
+
+
+@pytest.mark.skipif(jax.device_count() != 8, reason="Requires eight CPU devices")
+def test_physical_replica_checks_observe_each_gpu_copy():
+    mesh = replicated_mesh()
+    sharding = NamedSharding(mesh, P())
+    values = np.random.default_rng(86).normal(size=(8, 16)).astype(np.float32)
+    good = jax.device_put(values, sharding)
+    state = _ReplicaState(_Projection(good.astype(jnp.bfloat16)), _Projection(good))
+    with jax.set_mesh(mesh):
+        fingerprints = replica_fingerprints(state, mesh)
+        assert fingerprints.shape == (8, 6)
+        report = assert_physical_replicas(state, mesh)
+        assert report["arrays_checked"] == 2
+        assert report["master_projection_norm_min"] == pytest.approx(
+            report["master_projection_norm_max"]
+        )
+        snapshot = physical_projection_snapshot(good, mesh)
+        assert len(set(snapshot["sha256_by_rank"])) == 1
+
+        buffers = [
+            jax.device_put(values + (index == 5), device)
+            for index, device in enumerate(mesh.devices.reshape(-1))
+        ]
+        inconsistent = jax.make_array_from_single_device_arrays(
+            values.shape, sharding, buffers
+        )
+        bad = _ReplicaState(
+            _Projection(inconsistent.astype(jnp.bfloat16)),
+            _Projection(inconsistent),
+        )
+        with pytest.raises(ValueError, match="differ across physical replicas"):
+            assert_physical_replicas(bad, mesh)
 
 
 def test_only_local_backends_are_allowed():

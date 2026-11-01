@@ -2,6 +2,7 @@ import dataclasses
 import hashlib
 import json
 from pathlib import Path
+from types import SimpleNamespace
 
 import jax
 import jax.numpy as jnp
@@ -27,6 +28,10 @@ from exp586_moe.schedule import TokenClock
 from exp586_moe.train import (
     BATCH_SIZE,
     ONE_TRILLION_PERMANENT_CHECKPOINT_COUNT,
+    PERF4_COMPILER_OPTIONS,
+    PERF4_READER_OPTIONS,
+    PERF4_RUNTIME_TRANSITION_ID,
+    PERF4_SOURCE_COMMIT,
     PERMANENT_CHECKPOINT_COUNT,
     PERMANENT_CHECKPOINT_UPDATES,
     TOKENS_PER_UPDATE,
@@ -43,6 +48,7 @@ from exp586_moe.train import (
     scientific_config,
     theoretical_flops,
     throughput_flop_metrics,
+    validate_runtime_resume,
 )
 from experiments.grug.moe_hero_ep.train import _compute_flops
 
@@ -212,6 +218,32 @@ def test_one_trillion_stage_is_fresh_pretrained_and_keeps_twelve_checkpoints():
         "6a5273b56f94f5da995a882b44208678dbbb8baf8871a4c3ccc37c286f222899"
     )
 
+    perf4 = dataclasses.replace(
+        dp,
+        runtime_transition_id=PERF4_RUNTIME_TRANSITION_ID,
+        runtime_code_sha256="b" * 64,
+        runtime_perf4=True,
+    )
+    assert perf4.run_id == config.run_id
+    assert perf4.checkpoint_root == config.checkpoint_root
+    assert perf4.prefetch_depth == 1
+    assert perf4.runtime_metadata["perf4_source_commit"] == PERF4_SOURCE_COMMIT
+    assert perf4.runtime_metadata["reader_options"] == PERF4_READER_OPTIONS
+    assert perf4.runtime_metadata["compiler_options"] == PERF4_COMPILER_OPTIONS
+    assert perf4.runtime_metadata["optimizer_group_size"] == 8
+    assert perf4.runtime_metadata["optimizer_slice_before_cast"] is True
+    assert perf4.runtime_metadata["optimizer_cast_before_gather"] is False
+    assert scientific_config(perf4, SOURCE_TOKENIZER_SHA256) == binding
+
+    with pytest.raises(ValueError, match="exact transition ID"):
+        dataclasses.replace(dp, runtime_perf4=True)
+    with pytest.raises(ValueError, match="full-replica DP"):
+        dataclasses.replace(
+            combined,
+            runtime_transition_id=PERF4_RUNTIME_TRANSITION_ID,
+            runtime_perf4=True,
+        )
+
     with pytest.raises(ValueError, match="64 H100s"):
         dataclasses.replace(dp, nodes=4)
 
@@ -236,6 +268,45 @@ def test_one_trillion_stage_is_fresh_pretrained_and_keeps_twelve_checkpoints():
         TrainingConfig("pretrained", 2.0, "cw-rno2a", 8, stage="t1")
     with pytest.raises(ValueError, match="only for pretrained 1x"):
         TrainingConfig("scratch", 1.0, "cw-rno2a", 8, stage="t1")
+
+
+def test_perf4_resume_accepts_only_bound_production_dp_lineage(tmp_path: Path):
+    root = tmp_path / "checkpoints"
+    checkpoint = root / "step-123"
+    checkpoint.mkdir(parents=True)
+    config = SimpleNamespace(
+        runtime_perf4=True,
+        checkpoint_root=str(root),
+        runtime_code_sha256="b" * 64,
+    )
+    runtime = {
+        "transition_id": "full-replica-dp-v1-20261031",
+        "code_sha256": (
+            "8ca27ecf5e219150606cccbb6f2835a06c51971def1cf88c2f23cddfb833bf5b"
+        ),
+        "state_mode": "fp32_device",
+        "parallelism": "full-replica-data-parallel",
+        "mesh": {
+            "replica_dcn": 64,
+            "data": 1,
+            "context": 1,
+            "expert": 1,
+            "model": 1,
+        },
+        "moe_implementation": "scatter",
+    }
+    (checkpoint / "metadata.json").write_text(json.dumps({"exp586_runtime": runtime}))
+    result = validate_runtime_resume(config, str(checkpoint))
+    assert result["source_transition_id"] == "full-replica-dp-v1-20261031"
+    assert result["target_transition_id"] == PERF4_RUNTIME_TRANSITION_ID
+
+    runtime["code_sha256"] = "c" * 64
+    (checkpoint / "metadata.json").write_text(json.dumps({"exp586_runtime": runtime}))
+    with pytest.raises(ValueError, match="not perf4-compatible"):
+        validate_runtime_resume(config, str(checkpoint))
+
+    with pytest.raises(ValueError, match="non-production"):
+        validate_runtime_resume(config, str(tmp_path / "experimental" / "step-123"))
 
 
 def test_one_trillion_profiling_is_isolated_and_bounded():

@@ -17,6 +17,7 @@ The optimizer config (routing, LR groups, the MuonH hyperball step) lives in ``o
 """
 
 import math
+from collections.abc import Callable
 from importlib import import_module
 
 import jax
@@ -60,9 +61,13 @@ def _grug_scale_with_muon_hero(
     coefficient_type="quintic",
     *,
     use_syrk: bool = True,
+    ns4d_impl: Callable[..., jax.Array] | None = None,
 ):
     """Muon gradient transformation for the stacked hero model (2D/3D/4D leaves)."""
     steps = int(steps)
+    four_dimensional_transform = (
+        _newtonschulz_4d_distributed if ns4d_impl is None else ns4d_impl
+    )
 
     def init_fn(params):
         return ScaleByMuonState(momentum_buffer=otu.tree_zeros_like(params))
@@ -98,7 +103,7 @@ def _grug_scale_with_muon_hero(
                     target_sharding=_target_named_sharding(param),
                 )
             else:
-                updated = _newtonschulz_4d_distributed(
+                updated = four_dimensional_transform(
                     path,
                     x,
                     steps,

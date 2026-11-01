@@ -8,7 +8,9 @@
 Use one live writer, one W&B identity, and one checkpoint root for the trial.
 Use H100s only, whole eight-GPU nodes, batch priority, and the approved Iris user.
 Keep global batch 64, the full language tokenizer, and the fresh pretrained initialization unchanged across placement changes.
-The approved production runtime transition uses fully replicated data parallelism on exactly 64 H100s; retain the legacy EP runtime only as the recorded rollback path.
+The approved production runtime uses fully replicated data parallelism on exactly 64 H100s and the `trajectory-combined-no-pdl` settings validated from perf4 source commit `34aa317617c3a0ede609c76b01e44312dbd864e2`.
+Retain the pre-perf4 DP checkpoint as the immediate rollback path and the legacy EP checkpoint as the older rollback path.
+Require physical fingerprints for every persistent array plus an independent FP32 output-projection hash and norm after restore and at every checkpoint boundary.
 Treat W&B as training-state truth and use Iris only for exact-job liveness, placement, and diagnosed startup failures.
 Do not publish GitHub updates without an explicit user request.
 
@@ -53,3 +55,4 @@ Completion requires `run_progress >= 1` and a reachable permanent final checkpoi
 ## Change Record
 
 - `2026-10-31T17:04:24Z`: The operator approved replacing the legacy EP runtime with the validated fully replicated DP runtime. Production execution now requires a 64-H100 target; the same scientific, W&B, checkpoint, batch, schedule, tokenizer, and data identities remain binding, and the latest committed EP checkpoint remains the rollback path.
+- `2026-11-01T21:45:00Z`: The operator approved deploying the matched `trajectory-combined-no-pdl` runtime from perf4 source commit `34aa317617c3a0ede609c76b01e44312dbd864e2`. Production retains one 64-H100 writer and the existing scientific, W&B, checkpoint, batch, schedule, tokenizer, and data identities; the transition adds the validated eager reader cache, node-local Muon work sharing, disabled PDL launch flags, restore/checkpoint physical-replica checks, and a recorded pre-transition rollback checkpoint.

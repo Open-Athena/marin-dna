@@ -1,6 +1,7 @@
 """Check raw-row identity and parity with the original Levanter data wrappers."""
 
 import asyncio
+import hashlib
 import json
 
 import jax
@@ -72,7 +73,10 @@ def test_raw_rows_cross_groups_and_files_in_requested_order(tmp_path):
 
 
 @pytest.mark.parametrize("field", ["bytes", "etag", "rows", "row_groups"])
-def test_raw_reader_rejects_changed_object_or_index_metadata(tmp_path, field):
+@pytest.mark.parametrize("cache_files", [False, True])
+def test_raw_reader_rejects_changed_object_or_index_metadata(
+    tmp_path, field, cache_files
+):
     record = parquet_record(tmp_path / "data.parquet", ["A", "C", "G"], 2)
     bad = dict(record)
     if field == "etag":
@@ -83,7 +87,7 @@ def test_raw_reader_rejects_changed_object_or_index_metadata(tmp_path, field):
     else:
         bad[field] += 1
     with pytest.raises(ValueError):
-        asyncio.run(corpus.RawWindows([bad]).get_batch([1]))
+        asyncio.run(corpus.RawWindows([bad], cache_files=cache_files).get_batch([1]))
 
 
 @pytest.mark.parametrize("cache_groups", [0, -1])
@@ -96,6 +100,115 @@ def test_raw_reader_requires_a_positive_cache(tmp_path, cache_groups):
 def test_raw_reader_rejects_an_empty_inventory():
     with pytest.raises(ValueError):
         corpus.RawWindows([])
+
+
+@pytest.mark.parametrize(
+    "options",
+    [
+        {"read_cache_type": "none"},
+        {"read_cache_type": "blockcache", "read_block_size": 4 * 1024**2},
+    ],
+)
+def test_io_cache_options_preserve_exact_sequences_and_validation(tmp_path, options):
+    sequences = ["ACGT", "NnAa", "TTAA", "acgt", "G"]
+    record = parquet_record(tmp_path / "data.parquet", sequences, 2)
+    baseline = corpus.RawWindows([record], cache_groups=1)
+    candidate = corpus.RawWindows([record], cache_groups=1, **options)
+    for indices in [[4, 0, 3, 1, 1, 2], [0, 4, 0], []]:
+        expected = [sequences[i] for i in indices]
+        assert asyncio.run(candidate.get_batch(indices)) == expected
+        assert asyncio.run(baseline.get_batch(indices)) == expected
+    bad = dict(record, etag="changed")
+    with pytest.raises(ValueError, match="identity changed"):
+        asyncio.run(corpus.RawWindows([bad], **options).get_batch([0]))
+
+
+@pytest.mark.parametrize("workers", [1, 4])
+@pytest.mark.parametrize("cache_files", [False, True])
+def test_full_prewarm_preserves_rows_across_partial_groups_and_files(
+    tmp_path, monkeypatch, workers, cache_files
+):
+    sequences = ["A", "cC", "NnAa", "TTAA", "acgt", "G", "Tn"]
+    records = [
+        parquet_record(tmp_path / "first.parquet", sequences[:5], 3),
+        parquet_record(tmp_path / "second.parquet", sequences[5:], 1),
+    ]
+    manifest = tmp_path / "corpus.json"
+    manifest.write_text(json.dumps({"validation": records}))
+    monkeypatch.setattr(corpus, "CORPUS_PATH", manifest)
+    observed = []
+    original = corpus.RawWindows
+
+    class ObservedReader(original):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            observed.append(self)
+
+    monkeypatch.setattr(corpus, "RawWindows", ObservedReader)
+    progress = []
+    dataset = corpus.open_dataset(
+        "validation",
+        cache_groups=4,
+        read_cache_type="none",
+        preload_all=True,
+        preload_workers=workers,
+        cache_files=cache_files,
+        preload_progress=lambda done, total: progress.append((done, total)),
+    )
+    assert len(observed[0].cache) == 4
+    assert progress == ([(1, 2), (2, 2)] if cache_files else []) + [(2, 4), (4, 4)]
+    if cache_files:
+        # The decoded prewarm reuses the local verified files, with no remote readers.
+        assert len(observed) == 1
+        assert all(
+            corpus.Path(stream.name).parent == corpus.Path(observed[0].file_cache.name)
+            for stream, _ in observed[0].files.values()
+        )
+    indices = [6, 0, 4, 2, 5, 1, 1]
+    assert dataset.get_batch(indices) == [sequences[index] for index in indices]
+    with pytest.raises(ValueError, match="every row group"):
+        corpus.open_dataset("validation", cache_groups=3, preload_all=True)
+    records[0]["etag"] = "changed"
+    manifest.write_text(json.dumps({"validation": records}))
+    with pytest.raises(ValueError, match="identity changed"):
+        corpus.open_dataset("validation", cache_groups=4, preload_all=True)
+
+
+@pytest.mark.parametrize("workers", [1, 4])
+def test_compressed_file_cache_is_byte_exact_and_keeps_decoded_cache_bounded(
+    tmp_path, monkeypatch, workers
+):
+    sequences = ["A", "cC", "NnAa", "TTAA", "acgt", "G", "Tn"]
+    records = [
+        parquet_record(tmp_path / "first.parquet", sequences[:5], 3),
+        parquet_record(tmp_path / "second.parquet", sequences[5:], 1),
+    ]
+    manifest = tmp_path / "corpus.json"
+    manifest.write_text(json.dumps({"validation": records}))
+    monkeypatch.setattr(corpus, "CORPUS_PATH", manifest)
+    progress = []
+    dataset = corpus.open_dataset(
+        "validation",
+        cache_groups=1,
+        cache_files=True,
+        cache_file_workers=workers,
+        preload_progress=lambda done, total: progress.append((done, total)),
+    )
+    raw = dataset.dataset
+    assert progress == [(1, 2), (2, 2)]
+    assert len(raw.files) == 2 and len(raw.cache) == 0
+    for index, record in enumerate(records):
+        stream = raw.files[index][0]
+        cached_path = corpus.Path(stream.name)
+        assert cached_path.parent == corpus.Path(raw.file_cache.name)
+        original_bytes = corpus.Path(record["uri"]).read_bytes()
+        assert (
+            hashlib.sha256(cached_path.read_bytes()).digest()
+            == hashlib.sha256(original_bytes).digest()
+        )
+    indices = [6, 0, 4, 2, 5, 1, 1]
+    assert dataset.get_batch(indices) == [sequences[index] for index in indices]
+    assert len(raw.cache) == 1
 
 
 class IndexDataset(AsyncDataset[int]):
