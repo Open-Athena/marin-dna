@@ -926,6 +926,7 @@ def _make_train_step(
     offload_opt_state: bool = False,
     master_param_mode: MasterParamMode = MasterParamMode.DEVICE,
     compiler_options: dict[str, bool | int | str] | None = None,
+    replicate_compute_params: bool = False,
 ):
     one = jnp.array(1, dtype=jnp.int32)
     z_loss = z_loss_weight if z_loss_weight > 0 else None
@@ -982,6 +983,12 @@ def _make_train_step(
             )
             master_params = optax.apply_updates(master_params_in, updates)
             params = mp.cast_to_param(master_params)
+            if replicate_compute_params:
+                # Keep the complete BF16 compute model while allowing only
+                # FP32 optimizer arrays to use an independent placement.
+                params = jax.tree.map(
+                    lambda value: jax.sharding.reshard(value, P()), params
+                )
             if master_param_mode == MasterParamMode.FP32_PINNED_HOST:
                 master_params = _tree_to_memory_kind(master_params, "pinned_host")
         else:

@@ -30,8 +30,10 @@ from exp586_moe.train import (
     ONE_TRILLION_PERMANENT_CHECKPOINT_COUNT,
     PERF4_COMPILER_OPTIONS,
     PERF4_READER_OPTIONS,
+    PERF4_RUNTIME_CODE_SHA256,
     PERF4_RUNTIME_TRANSITION_ID,
     PERF4_SOURCE_COMMIT,
+    PERF5_RUNTIME_TRANSITION_ID,
     PERMANENT_CHECKPOINT_COUNT,
     PERMANENT_CHECKPOINT_UPDATES,
     TOKENS_PER_UPDATE,
@@ -40,9 +42,11 @@ from exp586_moe.train import (
     build_permanent_checkpoint_updates,
     check_clock,
     checkpoint_due,
+    checkpoint_metadata_binding,
     commit_and_prune,
     config_json,
     is_permanent_checkpoint,
+    perf5_runtime_source_sha256,
     prepare_checkpoint,
     primary_json,
     scientific_config,
@@ -309,6 +313,136 @@ def test_perf4_resume_accepts_only_bound_production_dp_lineage(tmp_path: Path):
         validate_runtime_resume(config, str(tmp_path / "experimental" / "step-123"))
 
 
+def test_perf5_smoke_binds_current_production_checkpoint_and_runtime():
+    base = TrainingConfig("pretrained", 1.0, "cw-rno2a", 8, stage="t1")
+    source_update = 1_290_286
+    source = f"{base.production_checkpoint_root}/step-{source_update}"
+    config = dataclasses.replace(
+        base,
+        validation_updates=2,
+        validation_id="perf5-current",
+        validation_source_checkpoint=source,
+        validation_source_metadata_sha256="a" * 64,
+        validation_source_update=source_update,
+        runtime_state_mode="fp32_device",
+        runtime_prefetch=True,
+        runtime_transition_id=PERF5_RUNTIME_TRANSITION_ID,
+        runtime_code_sha256=perf5_runtime_source_sha256(),
+        runtime_data_parallel=True,
+        runtime_perf4=True,
+        runtime_perf5=True,
+    )
+
+    assert config.start_update == source_update
+    assert config.start_input_tokens == source_update * TOKENS_PER_UPDATE
+    assert config.execution_stop_update == source_update + 2
+    assert config.run_id.endswith("-smoke-perf5-current")
+    assert config.checkpoint_root != config.production_checkpoint_root
+    assert "/tmp/ttl=7d/" in config.checkpoint_root
+    assert config.runtime_metadata["optimizer_state_placement"] == (
+        "expert-fp32-partitioned-on-replica-dcn"
+    )
+    assert config.runtime_metadata["checkpoint_optimizer_state"] == (
+        "canonical-fully-replicated"
+    )
+
+    first_launch = dataclasses.replace(config, validation_execution_updates=1)
+    second_launch = dataclasses.replace(config, validation_execution_updates=2)
+    assert first_launch.execution_stop_update == source_update + 1
+    assert second_launch.execution_stop_update == source_update + 2
+    assert scientific_config(
+        first_launch, SOURCE_TOKENIZER_SHA256
+    ) == scientific_config(second_launch, SOURCE_TOKENIZER_SHA256)
+    with pytest.raises(ValueError, match="within the validation contract"):
+        dataclasses.replace(config, validation_execution_updates=3)
+
+    with pytest.raises(ValueError, match="set together"):
+        dataclasses.replace(config, validation_source_metadata_sha256=None)
+    with pytest.raises(ValueError, match="64-H100"):
+        dataclasses.replace(config, nodes=4)
+    with pytest.raises(ValueError, match="digest of every changed runtime source"):
+        dataclasses.replace(config, runtime_code_sha256="b" * 64)
+
+
+def test_perf5_resume_accepts_perf4_source_and_canonical_perf5_checkpoint(
+    tmp_path: Path,
+):
+    production = tmp_path / "production"
+    smoke = tmp_path / "smoke"
+    source = production / "step-123"
+    restored = smoke / "step-124"
+    source.mkdir(parents=True)
+    restored.mkdir(parents=True)
+    config = SimpleNamespace(
+        runtime_perf4=True,
+        runtime_perf5=True,
+        validation_source_checkpoint=str(source),
+        checkpoint_root=str(smoke),
+        runtime_transition_id=PERF5_RUNTIME_TRANSITION_ID,
+        runtime_code_sha256="b" * 64,
+    )
+    topology = {
+        "state_mode": "fp32_device",
+        "parallelism": "full-replica-data-parallel",
+        "mesh": {
+            "replica_dcn": 64,
+            "data": 1,
+            "context": 1,
+            "expert": 1,
+            "model": 1,
+        },
+        "moe_implementation": "scatter",
+    }
+    source_runtime = {
+        **topology,
+        "transition_id": PERF4_RUNTIME_TRANSITION_ID,
+        "code_sha256": PERF4_RUNTIME_CODE_SHA256,
+    }
+    (source / "metadata.json").write_text(
+        json.dumps({"exp586_runtime": source_runtime})
+    )
+    assert validate_runtime_resume(config, str(source))["source_transition_id"] == (
+        PERF4_RUNTIME_TRANSITION_ID
+    )
+
+    restored_runtime = {
+        **topology,
+        "transition_id": PERF5_RUNTIME_TRANSITION_ID,
+        "code_sha256": config.runtime_code_sha256,
+        "checkpoint_optimizer_state": "canonical-fully-replicated",
+    }
+    (restored / "metadata.json").write_text(
+        json.dumps({"exp586_runtime": restored_runtime})
+    )
+    assert validate_runtime_resume(config, str(restored))["source_transition_id"] == (
+        PERF5_RUNTIME_TRANSITION_ID
+    )
+
+    restored_runtime.pop("checkpoint_optimizer_state")
+    (restored / "metadata.json").write_text(
+        json.dumps({"exp586_runtime": restored_runtime})
+    )
+    with pytest.raises(ValueError, match="canonical optimizer state"):
+        validate_runtime_resume(config, str(restored))
+
+
+def test_checkpoint_metadata_binding_hashes_exact_bytes(tmp_path: Path):
+    checkpoint = tmp_path / "step-123"
+    checkpoint.mkdir()
+    metadata = {
+        "scientific_config_sha256": "science",
+        "exp586_clock": {"updates": 123, "input_tokens": 456},
+    }
+    blob = json.dumps(metadata, separators=(",", ":")).encode()
+    (checkpoint / "metadata.json").write_bytes(blob)
+    binding = checkpoint_metadata_binding(str(checkpoint))
+    assert binding == {
+        "metadata_sha256": hashlib.sha256(blob).hexdigest(),
+        "scientific_config_sha256": "science",
+        "clock": metadata["exp586_clock"],
+    }
+
+
 def test_one_trillion_profiling_is_isolated_and_bounded():
     config = TrainingConfig(
         "pretrained",
@@ -552,6 +686,40 @@ def test_checkpoint_binding_peak_and_bounded_retention(tmp_path, monkeypatch):
         json.dumps(_metadata(PEAK_CHECKPOINT_UPDATE, digest, temporary=False))
     )
     assert bind_and_discover(config, binding)[1] == str(final)
+
+
+def test_validation_checkpoint_root_does_not_require_historical_peak(tmp_path):
+    root = tmp_path / "smoke-checkpoints"
+    root.mkdir()
+    config = TrainingConfig(
+        "pretrained",
+        1.0,
+        "cw-rno2a",
+        8,
+        stage="t1",
+        validation_updates=2,
+        validation_id="perf5-replay",
+    )
+    binding = scientific_config(config, SOURCE_TOKENIZER_SHA256)
+    digest = hashlib.sha256(config_json(binding).encode()).hexdigest()
+    checkpoint = root / f"step-{ONE_TRILLION_PEAK_CHECKPOINT_UPDATE + 1}"
+    checkpoint.mkdir()
+    (checkpoint / "metadata.json").write_text(
+        json.dumps(
+            _metadata(
+                ONE_TRILLION_PEAK_CHECKPOINT_UPDATE + 1,
+                digest,
+                temporary=False,
+            )
+        )
+    )
+    with pytest.MonkeyPatch.context() as patch:
+        patch.setattr(
+            TrainingConfig,
+            "checkpoint_root",
+            property(lambda self: str(root)),
+        )
+        assert bind_and_discover(config, binding)[1] == str(checkpoint)
 
 
 def test_primary_io_broadcasts_failure():

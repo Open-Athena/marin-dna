@@ -239,9 +239,39 @@ def recorded_config_equal(recorded: object, current: object) -> bool:
 
 
 def routing_diagnostics(
-    metrics: dict[str, object], *, batch_size: int, model_config: GrugModelConfig
+    metrics: dict[str, object],
+    *,
+    batch_size: int,
+    model_config: GrugModelConfig,
+    prefetch_to_host: bool = False,
+    pack_floating_scalars: bool = False,
 ) -> dict[str, float | int]:
     """Log real assignment counts and layer concentration without averaging ranks."""
+    if prefetch_to_host:
+        from exp586_moe.perf5_metrics import copy_metrics
+
+        # Copy exactly the arrays consumed below. The complete metric tree also
+        # includes SummaryStats histograms and QB tensors that this scalar
+        # logger does not read; copying those would add unnecessary transfers.
+        required = {
+            MOE_DROPPED_ASSIGNMENTS_METRIC,
+            MOE_SENDER_DROPPED_ASSIGNMENTS_METRIC,
+            MOE_RECEIVER_DROPPED_ASSIGNMENTS_METRIC,
+            MOE_SKIPPED_PADDING_ASSIGNMENTS_METRIC,
+            MOE_VALID_ASSIGNMENTS_METRIC,
+            "train/router/routing_counts_per_layer",
+        }
+        metrics = copy_metrics(
+            {
+                key: value
+                for key, value in metrics.items()
+                if key in required
+                or (isinstance(value, (jax.Array, np.ndarray)) and value.ndim == 0)
+            },
+            pack_scalars=pack_floating_scalars,
+        )
+    elif pack_floating_scalars:
+        raise ValueError("Scalar packing requires the selected host-copy path")
     result = _drop_metrics(
         metrics[MOE_DROPPED_ASSIGNMENTS_METRIC],
         metrics[MOE_SENDER_DROPPED_ASSIGNMENTS_METRIC],
@@ -254,7 +284,7 @@ def routing_diagnostics(
         num_layers=model_config.num_layers,
     )
     for key, value in metrics.items():
-        if isinstance(value, jax.Array) and value.ndim == 0:
+        if isinstance(value, (jax.Array, np.ndarray)) and value.ndim == 0:
             result[key] = float(value)
     counts = np.asarray(metrics["train/router/routing_counts_per_layer"])
     for layer, row in enumerate(counts):

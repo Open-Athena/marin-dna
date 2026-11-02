@@ -14,6 +14,7 @@ import uuid
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from enum import Enum
+from pathlib import Path
 from typing import Any, Literal
 
 import equinox as eqx
@@ -84,6 +85,15 @@ from exp586_moe.data_parallel import (
     replicated_mesh,
 )
 from exp586_moe.perf4_muon import node_local_expert_ns
+from exp586_moe.perf5_optimizer import (
+    assert_partitioned_optimizer_state,
+    match_gradient_placement,
+    model_matches_fp32_master,
+    partition_expert_optimizer_state,
+    persistent_state_bytes,
+    replicate_optimizer_state_for_validation,
+    sharded_expert_ns,
+)
 from exp586_moe.routing_probe import routing_diagnostics
 from exp586_moe.schedule import (
     ContinuationTokenSchedule,
@@ -121,6 +131,11 @@ PERMANENT_CHECKPOINT_COUNT = 8
 ONE_TRILLION_PERMANENT_CHECKPOINT_COUNT = 12
 PERF4_RUNTIME_TRANSITION_ID = "full-replica-dp-perf4-v1-20261101"
 PERF4_SOURCE_COMMIT = "34aa317617c3a0ede609c76b01e44312dbd864e2"
+PERF4_RUNTIME_CODE_SHA256 = (
+    "16276343806f2c02ef7eccf72f20e559620a5a6605af6fc37a308d0099bd2d94"
+)
+PERF5_RUNTIME_TRANSITION_ID = "full-replica-dp-perf5-v1-20261102"
+PERF5_SOURCE_COMMIT = "pending-production-integration"
 PREVIOUS_DP_RUNTIME_TRANSITION_ID = "full-replica-dp-v1-20261031"
 PREVIOUS_DP_RUNTIME_CODE_SHA256 = (
     "8ca27ecf5e219150606cccbb6f2835a06c51971def1cf88c2f23cddfb833bf5b"
@@ -136,6 +151,26 @@ PERF4_COMPILER_OPTIONS = {
     "xla_gpu_enable_pdl": False,
     "xla_gpu_enable_pdl_launch": False,
 }
+
+PERF5_RUNTIME_SOURCE_PATHS = (
+    "src/exp586_moe/train.py",
+    "src/exp586_moe/perf5_optimizer.py",
+    "src/exp586_moe/perf5_metrics.py",
+    "src/exp586_moe/routing_probe.py",
+    "src/experiments/grug/moe_hero_ep/train.py",
+)
+
+
+def perf5_runtime_source_sha256() -> str:
+    """Bind the deployed digest to every source file changed by perf5."""
+    project = Path(__file__).resolve().parents[2]
+    digest = hashlib.sha256()
+    for relative in PERF5_RUNTIME_SOURCE_PATHS:
+        digest.update(relative.encode())
+        digest.update(b"\0")
+        digest.update((project / relative).read_bytes())
+        digest.update(b"\0")
+    return digest.hexdigest()
 
 
 def build_permanent_checkpoint_updates(
@@ -214,12 +249,17 @@ class TrainingConfig:
     moe_backend: Literal["pooled", "fixed", "ring"] | None = None
     validation_updates: int | None = None
     validation_id: str | None = None
+    validation_execution_updates: int | None = None
+    validation_source_checkpoint: str | None = None
+    validation_source_metadata_sha256: str | None = None
+    validation_source_update: int | None = None
     runtime_state_mode: Literal["fp32_pinned_host", "fp32_device"] = "fp32_pinned_host"
     runtime_prefetch: bool = False
     runtime_transition_id: str | None = None
     runtime_code_sha256: str | None = None
     runtime_data_parallel: bool = False
     runtime_perf4: bool = False
+    runtime_perf5: bool = False
     profiling_updates: int | None = None
     profiling_id: str | None = None
     profiling_batch_size: int = 8
@@ -262,6 +302,17 @@ class TrainingConfig:
             raise ValueError("Select an approved MoE runtime backend")
         if (self.validation_updates is None) != (self.validation_id is None):
             raise ValueError("Validation updates and ID must be set together")
+        validation_source = (
+            self.validation_source_checkpoint,
+            self.validation_source_metadata_sha256,
+            self.validation_source_update,
+        )
+        if any(value is not None for value in validation_source) != all(
+            value is not None for value in validation_source
+        ):
+            raise ValueError(
+                "Validation source checkpoint, metadata digest, and update must be set together"
+            )
         if (self.profiling_updates is None) != (self.profiling_id is None):
             raise ValueError("Profiling updates and ID must be set together")
         if self.validation_updates is not None and self.profiling_updates is not None:
@@ -279,6 +330,36 @@ class TrainingConfig:
                 raise ValueError(
                     "Validation ID must contain only letters, digits, and hyphens"
                 )
+        if self.validation_execution_updates is not None and (
+            self.validation_updates is None
+            or not 1 <= self.validation_execution_updates <= self.validation_updates
+        ):
+            raise ValueError(
+                "Validation execution updates must be within the validation contract"
+            )
+        if self.validation_source_checkpoint is not None:
+            expected = f"{self.production_checkpoint_root}/step-{self.validation_source_update}"
+            if (
+                self.stage != "t1"
+                or self.validation_updates is None
+                or self.nodes != 8
+                or (
+                    self.validation_source_checkpoint != expected
+                    and not self.validation_source_checkpoint.startswith(
+                        expected + "-retry-"
+                    )
+                )
+                or not isinstance(self.validation_source_update, int)
+                or self.validation_source_update < 1
+            ):
+                raise ValueError(
+                    "A validation source must be an exact 64-H100 main-run checkpoint"
+                )
+            if len(self.validation_source_metadata_sha256 or "") != 64 or any(
+                character not in "0123456789abcdef"
+                for character in self.validation_source_metadata_sha256 or ""
+            ):
+                raise ValueError("Validation source metadata digest must be SHA-256")
         if self.runtime_state_mode not in ("fp32_pinned_host", "fp32_device"):
             raise ValueError("Unknown production runtime state mode")
         if (self.runtime_transition_id is None) != (self.runtime_code_sha256 is None):
@@ -305,9 +386,21 @@ class TrainingConfig:
                 "Full-replica DP requires stage t1 on 64 H100s, FP32-device "
                 "state, prefetch, and transition metadata"
             )
-        if self.runtime_perf4 and (
-            not self.runtime_data_parallel
-            or self.runtime_transition_id != PERF4_RUNTIME_TRANSITION_ID
+        if self.runtime_perf4 and not self.runtime_data_parallel:
+            raise ValueError("Perf4-derived production requires full-replica DP")
+        if self.runtime_perf5 and (
+            not self.runtime_perf4
+            or self.runtime_transition_id != PERF5_RUNTIME_TRANSITION_ID
+            or self.runtime_code_sha256 != perf5_runtime_source_sha256()
+        ):
+            raise ValueError(
+                "Perf5 production requires the perf4 base, its exact transition ID, "
+                "and a digest of every changed runtime source"
+            )
+        if (
+            self.runtime_perf4
+            and not self.runtime_perf5
+            and (self.runtime_transition_id != PERF4_RUNTIME_TRANSITION_ID)
         ):
             raise ValueError(
                 "Perf4 production requires full-replica DP and its exact transition ID"
@@ -426,10 +519,32 @@ class TrainingConfig:
                     "physical_replica_checks": "restore-and-checkpoint-boundaries",
                 }
             )
+        if self.runtime_perf5:
+            metadata.update(
+                {
+                    "perf5_source_commit": PERF5_SOURCE_COMMIT,
+                    "optimizer_state_placement": (
+                        "expert-fp32-partitioned-on-replica-dcn"
+                    ),
+                    "partitioned_master_banks": 3,
+                    "partitioned_momentum_banks": 3,
+                    "compute_model_replication": "complete-bf16-on-every-gpu",
+                    "optimizer_hyperball_norm": "global-layer-expert-bank",
+                    "checkpoint_optimizer_state": "canonical-fully-replicated",
+                    "checkpoint_repartition_after_restore": True,
+                    "diagnostic_transfer": (
+                        "consumed-fp16-bf16-fp32-scalars-packed-exactly"
+                    ),
+                    "physical_replica_checks": (
+                        "canonical-restore-and-checkpoint-boundaries"
+                    ),
+                    "runtime_source_paths": PERF5_RUNTIME_SOURCE_PATHS,
+                }
+            )
         return metadata
 
     @property
-    def run_id(self) -> str:
+    def base_run_id(self) -> str:
         multiplier = {0.5: "0p5", 1.0: "1", 2.0: "2", 3.0: "3", 10.0: "10"}[
             self.lr_multiplier
         ]
@@ -440,11 +555,25 @@ class TrainingConfig:
             base = base.removesuffix("-v1") + "-s02-v1"
         elif self.stage == "t1":
             base = base.removesuffix("-v1") + "-1t-v1"
+        return base
+
+    @property
+    def run_id(self) -> str:
+        base = self.base_run_id
         if self.validation_id is not None:
             base += f"-smoke-{self.validation_id}"
         elif self.profiling_id is not None:
             base += f"-profile-{self.profiling_id}"
         return base
+
+    @property
+    def production_checkpoint_root(self) -> str:
+        if self.stage != "t1":
+            raise ValueError("Only stage t1 has a validation source checkpoint")
+        return (
+            "s3://marin-us-east-02a/MarinDNA/exp586_plantcad2_moe/checkpoints/"
+            f"{self.base_run_id}/{ONE_TRILLION_ARTIFACT_DATE}/checkpoints"
+        )
 
     @property
     def checkpoint_root(self) -> str:
@@ -475,10 +604,14 @@ class TrainingConfig:
 
     @property
     def start_update(self) -> int:
+        if self.validation_source_update is not None:
+            return self.validation_source_update
         return CONTINUATION_SOURCE_UPDATES if self.stage == "s02" else 0
 
     @property
     def start_input_tokens(self) -> int:
+        if self.validation_source_update is not None:
+            return self.validation_source_update * TOKENS_PER_UPDATE
         return CONTINUATION_SOURCE_TOKENS if self.stage == "s02" else 0
 
     @property
@@ -503,6 +636,8 @@ class TrainingConfig:
 
     @property
     def execution_stop_update(self) -> int:
+        if self.validation_execution_updates is not None:
+            return self.start_update + self.validation_execution_updates
         if self.validation_updates is not None:
             return self.start_update + self.validation_updates
         if self.profiling_updates is not None:
@@ -706,7 +841,11 @@ def bind_and_discover(
     for candidate in candidates:
         if candidate.metadata.get("scientific_config_sha256") != digest:
             raise ValueError("Checkpoint scientific configuration mismatch")
-    if candidates and candidates[-1].step >= config.schedule.peak_update:
+    if (
+        config.validation_updates is None
+        and candidates
+        and candidates[-1].step >= config.schedule.peak_update
+    ):
         peaks = [c for c in candidates if c.step == config.schedule.peak_update]
         if len(peaks) != 1 or peaks[0].metadata.get("is_temporary") is not False:
             raise ValueError("Permanent peak checkpoint is missing")
@@ -714,23 +853,45 @@ def bind_and_discover(
 
 
 def validate_runtime_resume(config: TrainingConfig, checkpoint: str) -> dict[str, Any]:
-    """Permit perf4 only from the exact compatible production DP lineage."""
+    """Permit optimized runtimes only from exact compatible production lineages."""
     if not config.runtime_perf4:
         return {}
-    if not checkpoint.startswith(config.checkpoint_root + "/step-"):
-        raise ValueError("Perf4 production cannot restore a non-production checkpoint")
+    runtime_perf5 = getattr(config, "runtime_perf5", False)
+    validation_source_checkpoint = getattr(config, "validation_source_checkpoint", None)
+    if validation_source_checkpoint is not None:
+        valid_path = (
+            checkpoint == validation_source_checkpoint
+            or checkpoint.startswith(config.checkpoint_root + "/step-")
+        )
+    else:
+        valid_path = checkpoint.startswith(config.checkpoint_root + "/step-")
+    if not valid_path:
+        detail = (
+            "unbound checkpoint source"
+            if runtime_perf5
+            else "non-production checkpoint"
+        )
+        raise ValueError(f"Optimized production cannot restore a {detail}")
     metadata = json.loads((StoragePath(checkpoint) / "metadata.json").read_text())
     runtime = metadata.get("exp586_runtime")
     if not isinstance(runtime, dict):
-        raise TypeError("Perf4 production requires bound DP runtime metadata")
+        raise TypeError("Optimized production requires bound DP runtime metadata")
     transition = runtime.get("transition_id")
     code_sha256 = runtime.get("code_sha256")
-    expected_code = {
-        PREVIOUS_DP_RUNTIME_TRANSITION_ID: PREVIOUS_DP_RUNTIME_CODE_SHA256,
-        PERF4_RUNTIME_TRANSITION_ID: config.runtime_code_sha256,
-    }.get(transition)
+    expected_code = (
+        {
+            PERF4_RUNTIME_TRANSITION_ID: PERF4_RUNTIME_CODE_SHA256,
+            PERF5_RUNTIME_TRANSITION_ID: config.runtime_code_sha256,
+        }.get(transition)
+        if runtime_perf5
+        else {
+            PREVIOUS_DP_RUNTIME_TRANSITION_ID: PREVIOUS_DP_RUNTIME_CODE_SHA256,
+            PERF4_RUNTIME_TRANSITION_ID: config.runtime_code_sha256,
+        }.get(transition)
+    )
     if expected_code is None or code_sha256 != expected_code:
-        raise ValueError("Checkpoint runtime transition is not perf4-compatible")
+        detail = "not compatible" if runtime_perf5 else "not perf4-compatible"
+        raise ValueError(f"Checkpoint runtime transition is {detail}")
     if (
         runtime.get("state_mode") != "fp32_device"
         or runtime.get("parallelism") != "full-replica-data-parallel"
@@ -744,12 +905,38 @@ def validate_runtime_resume(config: TrainingConfig, checkpoint: str) -> dict[str
         }
         or runtime.get("moe_implementation") != "scatter"
     ):
-        raise ValueError("Checkpoint DP topology is not perf4-compatible")
+        raise ValueError("Checkpoint DP topology is not compatible")
+    if (
+        transition == PERF5_RUNTIME_TRANSITION_ID
+        and runtime.get("checkpoint_optimizer_state") != "canonical-fully-replicated"
+    ):
+        raise ValueError("Perf5 checkpoint does not declare canonical optimizer state")
     return {
         "source_transition_id": transition,
         "source_code_sha256": code_sha256,
-        "target_transition_id": PERF4_RUNTIME_TRANSITION_ID,
+        "target_transition_id": getattr(
+            config,
+            "runtime_transition_id",
+            PERF5_RUNTIME_TRANSITION_ID
+            if runtime_perf5
+            else PERF4_RUNTIME_TRANSITION_ID,
+        ),
         "target_code_sha256": config.runtime_code_sha256,
+    }
+
+
+def checkpoint_metadata_binding(checkpoint: str) -> dict[str, Any]:
+    """Read the exact metadata digest and scientific binding for a smoke source."""
+    blob = (StoragePath(checkpoint) / "metadata.json").read_bytes()
+    metadata = json.loads(blob)
+    scientific = metadata.get("scientific_config_sha256")
+    clock = metadata.get("exp586_clock")
+    if not isinstance(scientific, str) or not isinstance(clock, dict):
+        raise TypeError("Checkpoint metadata is missing its scientific binding")
+    return {
+        "metadata_sha256": hashlib.sha256(blob).hexdigest(),
+        "scientific_config_sha256": scientific,
+        "clock": clock,
     }
 
 
@@ -945,6 +1132,7 @@ def _run_training(config: TrainingConfig) -> None:
             "training/runtime_code_sha256": config.runtime_code_sha256,
             "training/runtime_data_parallel": config.runtime_data_parallel,
             "training/runtime_perf4": config.runtime_perf4,
+            "training/runtime_perf5": config.runtime_perf5,
             "gpu_type": "H100",
             "nodes": config.nodes,
             **flops_summary,
@@ -1023,11 +1211,15 @@ def _run_training(config: TrainingConfig) -> None:
     optimizer = opt_config.build(
         config.target_updates,
         ns4d_impl=(
-            node_local_expert_ns(mesh, slice_before_cast=True)
+            sharded_expert_ns(mesh)
+            if config.runtime_perf5
+            else node_local_expert_ns(mesh, slice_before_cast=True)
             if config.runtime_perf4
             else None
         ),
     )
+    if config.runtime_perf5:
+        optimizer = match_gradient_placement(optimizer)
     schedule = config.schedule
     with jax.set_mesh(mesh):
         is_fresh_pretrained = (
@@ -1055,12 +1247,28 @@ def _run_training(config: TrainingConfig) -> None:
         )(weights)
         del weights
         clock = TokenClock()
-        resume_checkpoint = checkpoint or config.continuation_source_checkpoint
+        resume_checkpoint = (
+            checkpoint
+            or config.validation_source_checkpoint
+            or config.continuation_source_checkpoint
+        )
         runtime_resume = (
             validate_runtime_resume(config, resume_checkpoint)
             if resume_checkpoint is not None
             else {}
         )
+        validation_source_binding = None
+        if checkpoint is None and config.validation_source_checkpoint is not None:
+            validation_source_binding = primary_json(
+                lambda: checkpoint_metadata_binding(config.validation_source_checkpoint)
+            )
+            if (
+                validation_source_binding["metadata_sha256"]
+                != config.validation_source_metadata_sha256
+                or validation_source_binding["clock"].get("updates")
+                != config.validation_source_update
+            ):
+                raise ValueError("Validation source checkpoint binding changed")
         restore_summary: dict[str, float | int] | None = None
         if resume_checkpoint is not None:
             state, clock = restore_dna_checkpoint(
@@ -1072,10 +1280,14 @@ def _run_training(config: TrainingConfig) -> None:
                 scientific_config_sha256=(
                     digest
                     if checkpoint is not None
+                    else validation_source_binding["scientific_config_sha256"]
+                    if validation_source_binding is not None
                     else CONTINUATION_SOURCE_SCIENTIFIC_CONFIG_SHA256
                 ),
                 metadata_sha256=(
-                    CONTINUATION_SOURCE_METADATA_SHA256
+                    config.validation_source_metadata_sha256
+                    if validation_source_binding is not None
+                    else CONTINUATION_SOURCE_METADATA_SHA256
                     if checkpoint is None and config.stage == "s02"
                     else None
                 ),
@@ -1090,6 +1302,15 @@ def _run_training(config: TrainingConfig) -> None:
         physical_restore = (
             assert_physical_replicas(state, mesh) if config.runtime_perf4 else None
         )
+        optimizer_partitions = None
+        partitioned_state_bytes = None
+        if config.runtime_perf5:
+            state, optimizer_partitions = partition_expert_optimizer_state(state, mesh)
+            jax.block_until_ready(state)
+            assert_partitioned_optimizer_state(state, mesh)
+            if not bool(model_matches_fp32_master(state.params, state.master_params)):
+                raise ValueError("Restored BF16 parameters do not match FP32 masters")
+            partitioned_state_bytes = persistent_state_bytes(state)
         check_clock(
             clock,
             min_updates=config.start_update,
@@ -1116,12 +1337,17 @@ def _run_training(config: TrainingConfig) -> None:
                 "training/start_input_tokens": config.start_input_tokens,
                 "training/target_input_tokens": config.target_input_tokens,
                 "training/execution_stop_update": config.execution_stop_update,
+                "training/validation_execution_updates": (
+                    config.validation_execution_updates
+                ),
                 "training/peak_update": schedule.peak_update,
                 "training/next_muon_lr": opt_config.learning_rate * next_factor,
                 "training/next_adam_lr": opt_config.adam_lr * next_factor,
                 "training/phase": "compiling",
                 "training/profiling_run": config.profiling_updates is not None,
                 "training/replicated_state_bytes": replicated_state_bytes,
+                "training/optimizer_partitions": optimizer_partitions,
+                "training/partitioned_state_bytes": partitioned_state_bytes,
             }
         )
         if initial_update >= schedule.peak_update:
@@ -1152,6 +1378,7 @@ def _run_training(config: TrainingConfig) -> None:
             ),
             watch_config=None,
             compiler_options=(PERF4_COMPILER_OPTIONS if config.runtime_perf4 else None),
+            replicate_compute_params=config.runtime_perf5,
         )
         profiler_callback = None
         profile_uri = None
@@ -1253,7 +1480,16 @@ def _run_training(config: TrainingConfig) -> None:
                 state, metrics, watch = train_step(state, batch)
                 jax.block_until_ready((state, metrics, watch))
             if config.runtime_data_parallel and clock.updates == initial_update:
-                assert_replicated_state(state)
+                if config.runtime_perf5:
+                    assert_partitioned_optimizer_state(state, mesh)
+                    if not bool(
+                        model_matches_fp32_master(state.params, state.master_params)
+                    ):
+                        raise ValueError(
+                            "Updated BF16 parameters do not match FP32 masters"
+                        )
+                else:
+                    assert_replicated_state(state)
             clock = clock.advance(
                 input_tokens=runtime_tokens_per_update,
                 loss_targets=runtime_batch_size * 8191,
@@ -1261,7 +1497,11 @@ def _run_training(config: TrainingConfig) -> None:
             )
             elapsed = time.monotonic() - start
             values = routing_diagnostics(
-                metrics, batch_size=runtime_batch_size, model_config=config.model
+                metrics,
+                batch_size=runtime_batch_size,
+                model_config=config.model,
+                prefetch_to_host=config.runtime_perf5,
+                pack_floating_scalars=config.runtime_perf5,
             )
             values.update({key: float(value) for key, value in (watch or {}).items()})
             if any(not math.isfinite(float(value)) for value in values.values()):
@@ -1347,12 +1587,28 @@ def _run_training(config: TrainingConfig) -> None:
                 save_start = time.monotonic()
                 if not bool(state_all_finite(state)):
                     raise ValueError("Nonfinite checkpoint state")
-                if config.runtime_data_parallel:
+                checkpoint_state = state
+                if config.runtime_perf5:
+                    assert_partitioned_optimizer_state(state, mesh)
+                    checkpoint_state = replicate_optimizer_state_for_validation(state)
+                    jax.block_until_ready(checkpoint_state)
+                    if not bool(
+                        model_matches_fp32_master(
+                            checkpoint_state.params, checkpoint_state.master_params
+                        )
+                    ):
+                        raise ValueError(
+                            "Canonical checkpoint BF16 parameters do not match masters"
+                        )
+                    assert_replicated_state(checkpoint_state)
+                elif config.runtime_data_parallel:
                     assert_replicated_state(state)
                 physical_checkpoint = None
                 if config.runtime_perf4:
                     physical_started = time.monotonic()
-                    physical_checkpoint = assert_physical_replicas(state, mesh)
+                    physical_checkpoint = assert_physical_replicas(
+                        checkpoint_state, mesh
+                    )
                     physical_checkpoint["seconds"] = time.monotonic() - physical_started
                     physical_checkpoint["step"] = clock.updates
                     tracker.log_summary(
@@ -1367,7 +1623,7 @@ def _run_training(config: TrainingConfig) -> None:
                     lambda clock=clock: prepare_checkpoint(config, clock)
                 )
                 save_dna_checkpoint(
-                    state,
+                    checkpoint_state,
                     clock,
                     checkpoint,
                     data_seed=config.seed,
@@ -1377,6 +1633,9 @@ def _run_training(config: TrainingConfig) -> None:
                     runtime_metadata=config.runtime_metadata,
                     is_temporary=not permanent,
                 )
+                if config.runtime_perf5:
+                    del checkpoint_state
+                    gc.collect()
                 primary_json(
                     lambda checkpoint=checkpoint, clock=clock: commit_and_prune(
                         config, checkpoint, digest, clock
@@ -1502,7 +1761,11 @@ def dispatch(config: TrainingConfig) -> None:
             processes_per_task=8,
             environment=create_environment(env_vars=env, extras=["gpu"]),
             priority=priority_band_value("batch"),
-            timeout=Duration.from_hours((45 if config.stage == "t1" else 14) * 24),
+            timeout=Duration.from_hours(
+                2
+                if config.validation_updates is not None
+                else (45 if config.stage == "t1" else 14) * 24
+            ),
             max_retries_failure=0,
             max_task_failures=0,
         )
@@ -1531,6 +1794,10 @@ def main() -> None:
     )
     parser.add_argument("--validation-updates", type=int, default=None)
     parser.add_argument("--validation-id", default=None)
+    parser.add_argument("--validation-execution-updates", type=int, default=None)
+    parser.add_argument("--validation-source-checkpoint", default=None)
+    parser.add_argument("--validation-source-metadata-sha256", default=None)
+    parser.add_argument("--validation-source-update", type=int, default=None)
     parser.add_argument(
         "--runtime-state-mode",
         choices=["fp32_pinned_host", "fp32_device"],
@@ -1548,6 +1815,11 @@ def main() -> None:
     )
     parser.add_argument(
         "--runtime-perf4",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+    )
+    parser.add_argument(
+        "--runtime-perf5",
         action=argparse.BooleanOptionalAction,
         default=False,
     )
