@@ -1,7 +1,9 @@
+import jax.numpy as jnp
 import numpy as np
 import pytest
 
 from exp586_moe.final_checkpoint_gate import compare_readouts, windows_for_parity
+from exp586_moe.stable_scatter_reference import ordered_combine
 
 
 def readouts() -> dict[str, np.ndarray]:
@@ -33,3 +35,16 @@ def test_parity_cases_include_reverse_complements_variants_and_ambiguous_bases()
     assert all(len(window) == 8192 for window in windows)
     assert windows[32][4096] != windows[0][4096]
     assert windows[-1] == "N" * 8192
+
+
+def test_ordered_combine_restores_token_assignments_and_uses_fp32_sum():
+    dispatched = jnp.asarray(
+        [[256, 256], [1, 2], [-256, -256], [7, 8]], dtype=jnp.bfloat16
+    )
+    positions = jnp.asarray([[0, 1, 2], [3, 2, 0]])
+    weights = jnp.asarray([[1, 1, 1], [0.5, 0, 0]], dtype=jnp.float32)
+    combined = ordered_combine(dispatched, positions, weights)
+    np.testing.assert_array_equal(
+        np.asarray(combined, dtype=np.float32), [[1, 2], [3.5, 4]]
+    )
+    assert combined.dtype == jnp.bfloat16
