@@ -92,7 +92,7 @@
         "sliding_window": 2048,
         "vocab_size": 128256
       },
-      "original_history_step": 416688,
+      "original_history_step": 1907349,
       "original_loss": 0.8898855298757553,
       "original_metric": "eval/loss",
       "original_sampling": {
@@ -101,7 +101,7 @@
         "type": "evenly_spaced"
       },
       "raw_metadata_sha256": "52c4a4fd062b8a16dae680f0323dc81f1480308658916151e6e1a08975f7ebd2",
-      "results": "runs/exp586-final/pretrained-lrm1-seed0",
+      "results": "runs/exp586-1t-final/pretrained-lrm1-seed0-1t",
       "rung": null,
       "source_git_commit": "de5f428fc7b2bac8b6e40697f905c8b99ca3580d",
       "source_metadata": {
@@ -204,9 +204,9 @@
       "tokenizer_sha256": "d1cf7a63f3e0e0778a7ef137020e6f39d04be1e6da14fe22d6283eb36cddae5e",
       "total_parameters_approx": 1592000000,
       "vocab_size": 128256,
-      "wandb_path": "eric-czech/marin/exp586-plantcad2-d768-pretrained-lrm1-seed0-v1",
+      "wandb_path": "eric-czech/marin/exp586-plantcad2-d768-pretrained-lrm1-seed0-1t-v1",
       "wandb_url": "https://wandb.ai/eric-czech/marin/runs/exp586-plantcad2-d768-pretrained-lrm1-seed0-1t-v1"
     }
   ],
-  "worker_source_sha256": "330510b70a1561a59c7a64761d88a66f8b75faa366d3d87fd4ce418ff1ec634a"
+  "worker_source_sha256": "d8e998f2796f511604e033f06312ffa85b987dde4f9eabfb5d592d424e78dfd8"
 }

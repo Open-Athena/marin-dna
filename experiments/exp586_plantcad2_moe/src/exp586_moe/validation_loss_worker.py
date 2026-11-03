@@ -21,11 +21,6 @@ import jax.numpy as jnp
 import jmp
 import numpy as np
 import pyarrow.parquet as pq
-from exp586_moe.config import d768_config
-from exp586_moe.data import encode_windows, pretrained_dna_tokenizer, scratch_tokenizer
-from exp586_moe.gpu_smoke import SmokeConfig, dispatch
-from experiments.grug.moe_hero_ep.model import _CE_BLOCK_SIZES
-from experiments.grug.moe_hero_ep.weights import restore_weights
 from jax.experimental import multihost_utils
 from jax.sharding import NamedSharding
 from jax.sharding import PartitionSpec as P
@@ -36,6 +31,13 @@ from levanter.grug.loss import fused_linear_softmax_cross_entropy_loss
 from levanter.grug.sharding import compact_grug_mesh
 from levanter.tracker.wandb import WandbConfig
 from levanter.trainer import TrainerConfig
+
+from exp586_moe.config import d768_config
+from exp586_moe.data import encode_windows, pretrained_dna_tokenizer, scratch_tokenizer
+from exp586_moe.data_parallel import local_model, replicated_mesh
+from exp586_moe.gpu_smoke import SmokeConfig, dispatch
+from experiments.grug.moe_hero_ep.model import _CE_BLOCK_SIZES
+from experiments.grug.moe_hero_ep.weights import restore_weights
 
 
 @dataclasses.dataclass(frozen=True)
@@ -160,7 +162,15 @@ def run(config: LossConfig) -> None:
         {"model_binding": record, "request_sha256": config.request_sha256}
     )
     tracker.log_summary({"evaluation/phase": "restore", "training_updates": 0})
-    mesh = compact_grug_mesh(expert_axis_size=1 if dense else 8, replica_axis_size=1)
+    replicated = (
+        record.get("source_metadata", {}).get("exp586_runtime", {}).get("parallelism")
+        == "full-replica-data-parallel"
+    )
+    mesh = (
+        replicated_mesh()
+        if replicated
+        else compact_grug_mesh(expert_axis_size=1 if dense else 8, replica_axis_size=1)
+    )
     policy = jmp.get_policy("params=bfloat16,compute=bfloat16,output=bfloat16")
     tokenizer = (
         pretrained_dna_tokenizer()
@@ -198,6 +208,8 @@ def run(config: LossConfig) -> None:
                 moe_implementation=backend,
                 remat_mode="none",
             )
+            if replicated:
+                model_cfg = local_model(model_cfg, implementation=backend)
             model = restore_weights(
                 record["checkpoint"],
                 record["canonical_metadata_sha256"],
@@ -288,6 +300,7 @@ def run(config: LossConfig) -> None:
                 for name in ("marin-iris", "marin-levanter", "jax", "marin-haliax")
             },
             "backend": "JAX_FLASH" if dense else backend,
+            "mesh": dict(mesh.shape),
             "samples": {},
         }
         phases = ["common-65536"] if dense else ["original-moe-512", "common-65536"]
