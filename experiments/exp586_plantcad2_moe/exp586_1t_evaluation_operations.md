@@ -48,4 +48,6 @@ The PlantCAD2 local draft is owned by branch `codex/exp586-1t-draft` and directo
 
 ## Change record
 
-None.
+2026-11-03: The controller rejected the training runtime's 2026-10-18 Iris build before allocating a job.
+The evaluation now pins the coherent Marin 0.2.224.dev40027069267 set previously validated by the common-loss study, preserving the checkpoint model source and the required ArrayStacked API.
+Native final-loss replay remains a mandatory numerical gate for this runtime change.

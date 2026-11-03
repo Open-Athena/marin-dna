@@ -8,12 +8,12 @@ version = "0.1.0"
 description = "MarinDNA d768 adaptation and validation"
 requires-python = ">=3.12,<3.13"
 dependencies = [
-    "marin-core==0.2.201.dev39243773500",
-    "marin-iris==0.2.201.dev39243773500",
-    "marin-levanter==0.2.201.dev39243773500",
-    "marin-fray==0.2.201.dev39243773500",
-    "marin-rigging[secrets]==0.2.201.dev39243773500",
-    "marin-zephyr==0.2.201.dev39243773500",
+    "marin-core==0.2.224.dev40027069267",
+    "marin-iris==0.2.224.dev40027069267",
+    "marin-levanter==0.2.224.dev40027069267",
+    "marin-fray==0.2.224.dev40027069267",
+    "marin-rigging[secrets]==0.2.224.dev40027069267",
+    "marin-zephyr==0.2.224.dev40027069267",
     # Current Marin training imports its tokenization/datakit path at module load.
     "marin-dupekit",
     "tokenizers",
@@ -31,13 +31,13 @@ dependencies = [
 [project.optional-dependencies]
 eval = []
 cpu = [
-    "marin-core[cpu]==0.2.201.dev39243773500",
+    "marin-core[cpu]==0.2.224.dev40027069267",
     "torch==2.11.0",
     "torchvision==0.26.0+cpu; platform_machine == 'x86_64'",
     "torchvision==0.26.0; platform_machine == 'aarch64'",
 ]
 gpu = [
-    "marin-core[gpu]==0.2.201.dev39243773500",
+    "marin-core[gpu]==0.2.224.dev40027069267",
     "torch==2.11.0",
     "torchvision==0.26.0",
     "jax-cuda13-pjrt==0.11.1",
