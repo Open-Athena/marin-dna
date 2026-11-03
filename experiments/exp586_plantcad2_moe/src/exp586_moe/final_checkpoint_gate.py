@@ -210,7 +210,7 @@ def replay_loss(
     return float(np.mean(values))
 
 
-def run(config: GateConfig) -> None:
+def run_gate(config: GateConfig) -> None:
     trainer = TrainerConfig(
         id=config.run_id,
         seed=0,
@@ -308,9 +308,7 @@ def run(config: GateConfig) -> None:
         )
         jax.block_until_ready(state)
         if int(state["step"]) != 1907349 or not bool(
-            eqx.filter_jit(model_matches_fp32_master)(
-                state["params"], state["master_params"]
-            )
+            model_matches_fp32_master(state["params"], state["master_params"])
         ):
             raise ValueError("Stored compute weights do not equal cast FP32 masters")
         report["compute_matches_master_exactly"] = True
@@ -404,6 +402,22 @@ def run(config: GateConfig) -> None:
         raise ValueError("Final checkpoint backend gate failed; report was saved")
     tracker.log({"run_progress": 1.0}, step=1)
     tracker.current_tracker().finish()
+
+
+def run(config: GateConfig) -> None:
+    try:
+        run_gate(config)
+    except Exception as error:
+        try:
+            wandb_tracker = tracker.get_tracker("wandb")
+        except (RuntimeError, KeyError):
+            pass
+        else:
+            wandb_tracker.log_summary(
+                {"validation/phase": "failed", "validation/error": str(error)}
+            )
+            wandb_tracker.run.finish(exit_code=1)
+        raise
 
 
 def main() -> None:
