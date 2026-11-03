@@ -20,7 +20,8 @@ Checkpoints are stored under `s3://marin-us-east-02a/MarinDNA/exp586_plantcad2_m
 
 ## Runtime
 
-The project uses the locked Marin `0.2.201.dev39243773500` package set and vendors the required Hero experiment modules.
+This final-evaluation checkout uses the coherent Marin `0.2.224.dev40027069267` package set required by the current Iris controller and vendors the checkpoint's Hero model modules.
+The training snapshot used Marin `0.2.201.dev39243773500`; final-checkpoint loss replay and independent probability/feature comparisons validate the evaluation runtime transition.
 The permanent language source is `s3://marin-us-east-02a/marin/grug/rav-ladder-d768-v2/2026.08.18/checkpoints/step-11420`.
 
 ```bash
@@ -78,3 +79,4 @@ They never use the live run or its checkpoint owner.
 
 Final PlantCAD2 evaluation follows the appendable workflow in [`exp586_evaluation_operations.md`](exp586_evaluation_operations.md).
 It reuses the exp582 benchmark protocol and historical results while binding every new artifact to an exact exp586 checkpoint, tokenizer, input manifest, and evaluation wheel.
+The final 1T evaluation is governed by [`exp586_1t_evaluation_operations.md`](exp586_1t_evaluation_operations.md), including its frozen scorer and disjoint execution parts.
