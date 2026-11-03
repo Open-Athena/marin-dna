@@ -141,8 +141,14 @@ def windows_for_parity(sequences: list[str]) -> list[str]:
 
 
 def collect(
-    model: Any, mesh: Any, tokenizer: Any, windows: list[str], length: int
-) -> dict[str, np.ndarray]:
+    model: Any,
+    mesh: Any,
+    tokenizer: Any,
+    windows: list[str],
+    length: int,
+    *,
+    exact_oracles: bool,
+) -> tuple[dict[str, np.ndarray], dict]:
     scorer = PilotScorer(
         model,
         mesh,
@@ -150,6 +156,7 @@ def collect(
         sequence_length=length,
     )
     result: dict[str, list[np.ndarray]] = {}
+    oracles = {}
     for start in range(0, len(windows), scorer.batch_size):
         cropped = [
             sequence[(8192 - length) // 2 : (8192 + length) // 2]
@@ -180,20 +187,29 @@ def collect(
                 [length // 2],
                 allele_frequency=True,
             )
-            for name in ("probabilities", "mean", "variant"):
-                limit = (
-                    LIMITS["batch_probability_max_abs"]
-                    if name == "probabilities"
-                    else LIMITS["batch_feature_max_abs"]
-                )
-                if (
-                    not np.array_equal(values[name], repeat[name])
-                    or np.max(np.abs(values[name][:1] - single[name])) > limit
-                ):
-                    raise ValueError(f"Repeat/batch oracle failed for {name}")
+            oracles = {
+                "repeat": compare_readouts(values, repeat),
+                "batch": compare_readouts(
+                    {name: value[:1] for name, value in values.items()}, single
+                ),
+                "repeat_exact": all(
+                    np.array_equal(values[name], repeat[name]) for name in values
+                ),
+                "batch_exact": all(
+                    np.array_equal(values[name][:1], single[name]) for name in values
+                ),
+            }
+            # Scatter combines contributions with floating-point atomic adds.
+            # Quantify its repeat noise using the fixed numerical contract;
+            # Sonic must retain the previous exact-repeat/batch contract.
+            if not all(oracles[key]["accepted"] for key in ("repeat", "batch")) or (
+                exact_oracles
+                and not (oracles["repeat_exact"] and oracles["batch_exact"])
+            ):
+                raise ValueError("Repeat/batch oracle failed: " + json.dumps(oracles))
         for name, value in values.items():
             result.setdefault(name, []).append(value)
-    return {name: np.concatenate(values) for name, values in result.items()}
+    return {name: np.concatenate(values) for name, values in result.items()}, oracles
 
 
 def replay_loss(
@@ -344,6 +360,7 @@ def run_gate(config: GateConfig) -> None:
         del state
         gc.collect()
         reference = {}
+        reference_oracles = {}
         for length in (2048, 8192):
             tracker.log_summary(
                 {
@@ -351,7 +368,10 @@ def run_gate(config: GateConfig) -> None:
                     "validation/native_loss": report["native_loss"],
                 }
             )
-            reference[length] = collect(native, native_mesh, tokenizer, windows, length)
+            reference[length], reference_oracles[str(length)] = collect(
+                native, native_mesh, tokenizer, windows, length, exact_oracles=False
+            )
+        report["native_oracles"] = reference_oracles
     del native
     gc.collect()
     jax.clear_caches()
@@ -371,11 +391,15 @@ def run_gate(config: GateConfig) -> None:
             )
         )
         comparisons = {}
+        sonic_oracles = {}
         for length in (2048, 8192):
             tracker.log_summary({"validation/phase": f"sonic-readouts-{length}"})
-            candidate = collect(sonic, sonic_mesh, tokenizer, windows, length)
+            candidate, sonic_oracles[str(length)] = collect(
+                sonic, sonic_mesh, tokenizer, windows, length, exact_oracles=True
+            )
             comparisons[str(length)] = compare_readouts(reference[length], candidate)
         report["readout_comparisons"] = comparisons
+        report["sonic_oracles"] = sonic_oracles
         # Same full native vocabulary and loss formula, with Sonic computation.
         pending = -sonic.stacked_blocks.stacked.mlp.router_bias.astype(jnp.float32)
         report["sonic_loss"] = replay_loss(
