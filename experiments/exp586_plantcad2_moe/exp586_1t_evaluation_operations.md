@@ -22,7 +22,13 @@ Compute common-sample validation loss using the previously verified immutable in
 
 ## Execution
 
-Use H100s only on `cw-rno2a` and `cw-us-east-02a`, whole eight-GPU nodes, at most 128 GPUs concurrently.
+Use H100s only on `cw-rno2a` and `cw-us-east-02a`, whole eight-GPU nodes, at most 256 GPUs concurrently.
+The initial 128-GPU allocation was expanded on 2026-11-03 after the user requested more workers to use free capacity.
+Split each original partition into two disjoint execution parts, validate the executor on bounded canaries, then stop the original writers before launching the 32 parts.
+Reuse every completed chunk with its original checksum and source binding.
+Parts write separate manifests and W&B replicas; merge complete disjoint coverage into the original 16 canonical worker manifests before reduction.
+Original worker trials become aggregate parents while their parts run; do not independently recover a parent during this interval.
+The partition executor project is `codex-exp586-1t-eval-scale`; its frozen file manifest must verify every original scoring/model/dependency file before preserving the original cache binding.
 Every Iris root and child uses batch priority; roots use user `eczech`.
 Check skill utilization before every submission or placement change.
 Treat W&B as execution-progress truth; use Iris for exact-job liveness and concrete startup failures.
