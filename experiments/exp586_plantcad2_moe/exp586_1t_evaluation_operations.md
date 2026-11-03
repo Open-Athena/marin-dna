@@ -27,9 +27,9 @@ Every Iris root and child uses batch priority; roots use user `eczech`.
 Check skill utilization before every submission or placement change.
 Treat W&B as execution-progress truth; use Iris for exact-job liveness and concrete startup failures.
 Keep one active dispatch per logical trial.
-Use 30-minute heartbeats after progress is established, reslice after one hour without progress, and restart after three hours without progress.
+Use 30-minute heartbeats after progress is established, report full-evaluation progress to the user at each heartbeat, reslice after one hour without progress, and restart after three hours without progress.
 Identical full workers may be admitted concurrently on a cluster once its first worker proves progress.
-Root timeout must exceed the child timeout; use 24-hour roots and 20-hour full workers.
+Root timeout must exceed the child timeout; use 24-hour roots and the existing 18-hour full workers.
 The sweep hard deadline is 2026-11-17T23:59:59Z; recovery timing is independent of that deadline.
 
 | Cluster | GPU | Nodes | GPUs | State | Reason |
@@ -53,3 +53,8 @@ The evaluation now pins the coherent Marin 0.2.224.dev40027069267 set previously
 Native final-loss replay remains a mandatory numerical gate for this runtime change.
 2026-11-03: The first accepted GPU task inherited a revoked CoreWeave key and failed during compilation-cache initialization.
 Submit roots with current Secret Manager credentials using Iris named-secret file delivery, inherited by children, and an explicit compilation-cache location in the shared `marin-us-east-02a` bucket.
+2026-11-03: Native scatter uses BF16 atomic weighted sums and is not repeatable; its suffix log probabilities exceed the original numerical oracle on identical repeated requests.
+An independently implemented ordered FP32 weighted sum with the same grouped expert projections agrees bitwise with Sonic on all 56 real, reverse-complement, alternate, and stress cases at both 2K and 8K, including suffix logs and frozen features, and their 512-window losses are identical.
+The initial maximum-error check against atomic scatter failed at 0.098 despite p99 0.015, mean 0.00075, 99.64% argmax agreement, and aggregate loss difference 0.000022.
+Retain those original failed diagnostics; require the stronger exact independent-reference agreement, exact batch/repeat oracles, unchanged native mean/p99/argmax/feature limits, and tighten the aggregate backend-loss limit to 0.00005 for admission.
+Repeat all native parity cases to locate outliers and measure atomic noise before full evaluation.

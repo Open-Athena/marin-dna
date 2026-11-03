@@ -2,7 +2,11 @@ import jax.numpy as jnp
 import numpy as np
 import pytest
 
-from exp586_moe.final_checkpoint_gate import compare_readouts, windows_for_parity
+from exp586_moe.final_checkpoint_gate import (
+    admission,
+    compare_readouts,
+    windows_for_parity,
+)
 from exp586_moe.stable_scatter_reference import ordered_combine
 
 
@@ -48,3 +52,26 @@ def test_ordered_combine_restores_token_assignments_and_uses_fp32_sum():
         np.asarray(combined, dtype=np.float32), [[1, 2], [3.5, 4]]
     )
     assert combined.dtype == jnp.bfloat16
+
+
+def test_atomic_outliers_do_not_replace_exact_independent_reference_requirement():
+    import copy
+
+    exact = compare_readouts(readouts(), readouts())
+    noisy = copy.deepcopy(exact)
+    noisy.update(probability_max_abs=0.098, accepted=False)
+    report = {
+        "readout_comparisons": {"2048": exact, "8192": exact},
+        "atomic_scatter_comparisons": {"2048": noisy, "8192": noisy},
+        "backend_loss_abs": 0.00003,
+    }
+    assert admission(report)
+    bad = copy.deepcopy(report)
+    bad["readout_comparisons"]["8192"]["variant"]["max_abs"] = 0.5
+    assert not admission(bad)
+    bad = copy.deepcopy(report)
+    bad["atomic_scatter_comparisons"]["8192"]["probability_p99_abs"] = 0.03
+    assert not admission(bad)
+    bad = copy.deepcopy(report)
+    bad["backend_loss_abs"] = 0.0001
+    assert not admission(bad)
