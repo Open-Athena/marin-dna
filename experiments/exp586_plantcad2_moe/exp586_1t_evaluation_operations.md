@@ -35,6 +35,7 @@ Treat W&B as execution-progress truth; use Iris for exact-job liveness and concr
 Keep one active dispatch per logical trial.
 Use 30-minute heartbeats after progress is established, report full-evaluation progress to the user at each heartbeat, reslice after one hour without progress, and restart after three hours without progress.
 Identical full workers may be admitted concurrently on a cluster once its first worker proves progress.
+At the final scoring-to-reduction handoff, allow a 15-minute check when measured remaining scoring is below the normal heartbeat interval, then return to 30-minute checks during reduction.
 Root timeout must exceed the child timeout; use 24-hour roots and the existing 18-hour full workers.
 The sweep hard deadline is 2026-11-17T23:59:59Z; recovery timing is independent of that deadline.
 
