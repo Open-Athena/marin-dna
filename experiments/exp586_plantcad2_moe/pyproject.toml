@@ -29,9 +29,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-eval = [
-    "marindna-exp582-evals @ git+https://github.com/eric-czech/plantcad2.git@ee4eb4f1618bd70c0140f9de24a07431f055722e#subdirectory=zero-shot-leaderboard/marindna_exp582",
-]
+eval = []
 cpu = [
     "marin-core[cpu]==0.2.201.dev39243773500",
     "torch==2.11.0",
@@ -54,7 +52,7 @@ dev = ["pytest>=8", "ruff", "scipy", "scikit-learn"]
 [tool.uv]
 required-version = ">=0.13.5,<0.14"
 prerelease = "allow"
-environments = ["sys_platform == 'linux'"]
+environments = ["sys_platform == 'linux' and (platform_machine == 'x86_64' or platform_machine == 'aarch64')"]
 conflicts = [[{ extra = "cpu" }, { extra = "gpu" }]]
 
 [tool.uv.sources]

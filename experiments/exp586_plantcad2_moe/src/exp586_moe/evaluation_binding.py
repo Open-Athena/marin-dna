@@ -58,6 +58,7 @@ def validate_checkpoint_binding(
     if metadata.get("tokenizer_sha256") == tokenizer_sha256:
         runtime_moe_implementation = metadata.get("runtime_moe_implementation")
         if runtime_moe_implementation not in {
+            "scatter",
             "ring",
             "fixed_all_to_all",
             "fixed_pooled_wave_all_to_all",

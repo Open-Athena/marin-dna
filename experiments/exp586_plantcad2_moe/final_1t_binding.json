@@ -1,0 +1,132 @@
+{
+  "checkpoint": "s3://marin-us-east-02a/MarinDNA/exp586_plantcad2_moe/checkpoints/exp586-plantcad2-d768-pretrained-lrm1-seed0-1t-v1/2026.10.20/checkpoints/step-1907349",
+  "summary": {
+    "run_progress": 1,
+    "train/input_tokens": 1000000192512,
+    "train/step": 1907349,
+    "eval/loss": 0.8898855298757553,
+    "training/phase": "complete",
+    "training/final_checkpoint": "s3://marin-us-east-02a/MarinDNA/exp586_plantcad2_moe/checkpoints/exp586-plantcad2-d768-pretrained-lrm1-seed0-1t-v1/2026.10.20/checkpoints/step-1907349",
+    "training/latest_physical_replica_check": null,
+    "training/latest_permanent_checkpoint": "s3://marin-us-east-02a/MarinDNA/exp586_plantcad2_moe/checkpoints/exp586-plantcad2-d768-pretrained-lrm1-seed0-1t-v1/2026.10.20/checkpoints/step-1907349"
+  },
+  "metadata": {
+    "exp586_clock": {
+      "input_tokens": 1000000192512,
+      "loss_targets": 999878122176,
+      "examples": 122070336,
+      "updates": 1907349
+    },
+    "data_seed": 0,
+    "exp586_schema": 1,
+    "tokenizer_sha256": "d1cf7a63f3e0e0778a7ef137020e6f39d04be1e6da14fe22d6283eb36cddae5e",
+    "scientific_config_sha256": "6a5273b56f94f5da995a882b44208678dbbb8baf8871a4c3ccc37c286f222899",
+    "runtime_moe_implementation": "scatter",
+    "exp586_runtime": {
+      "state_mode": "fp32_device",
+      "prefetch_depth": 1,
+      "transition_id": "full-replica-dp-perf5-v1-20261102",
+      "code_sha256": "ff346da165819785a8bd9063263affc7f6dc2e963613e81bfb60c157c79b88be",
+      "cluster": "cw-rno2a",
+      "nodes": 8,
+      "parallelism": "full-replica-data-parallel",
+      "mesh": {
+        "replica_dcn": 64,
+        "data": 1,
+        "context": 1,
+        "expert": 1,
+        "model": 1
+      },
+      "moe_implementation": "scatter",
+      "compact_input_lookup_ids": [
+        64,
+        65,
+        66,
+        67,
+        68,
+        69,
+        70,
+        71,
+        72,
+        73,
+        74,
+        75,
+        76,
+        77,
+        78,
+        79,
+        80,
+        81,
+        82,
+        83,
+        84,
+        85,
+        86,
+        87,
+        88,
+        89
+      ],
+      "compact_input_lookup_one_hot": true,
+      "persistent_state_replication": "asserted",
+      "optimizer_newton_schulz_scope": "node-local-8-gpu",
+      "perf4_source_commit": "34aa317617c3a0ede609c76b01e44312dbd864e2",
+      "reader_options": {
+        "cache_files": true,
+        "cache_file_workers": 4,
+        "preload_all": true,
+        "preload_workers": 4,
+        "cache_groups": 4096
+      },
+      "compiler_options": {
+        "xla_gpu_enable_pdl": false,
+        "xla_gpu_enable_pdl_launch": false
+      },
+      "optimizer_group_size": 8,
+      "optimizer_normalize_before_split": false,
+      "optimizer_slice_before_cast": true,
+      "optimizer_cast_before_gather": false,
+      "physical_replica_checks": "canonical-restore-and-checkpoint-boundaries",
+      "perf5_source_commit": "9bfd900cb3e1f4da36830c56bd347a23e2759c8b",
+      "optimizer_state_placement": "expert-fp32-partitioned-on-replica-dcn",
+      "partitioned_master_banks": 3,
+      "partitioned_momentum_banks": 3,
+      "compute_model_replication": "complete-bf16-on-every-gpu",
+      "optimizer_hyperball_norm": "global-layer-expert-bank",
+      "checkpoint_optimizer_state": "canonical-fully-replicated",
+      "checkpoint_repartition_after_restore": true,
+      "diagnostic_transfer": "consumed-fp16-bf16-fp32-scalars-packed-exactly",
+      "runtime_source_paths": [
+        "src/exp586_moe/train.py",
+        "src/exp586_moe/perf5_optimizer.py",
+        "src/exp586_moe/perf5_metrics.py",
+        "src/exp586_moe/routing_probe.py",
+        "src/experiments/grug/moe_hero_ep/train.py"
+      ]
+    },
+    "step": 1907349,
+    "timestamp": "2026-11-03T20:08:53.951608",
+    "is_temporary": false
+  },
+  "metadata_raw_sha256": "52c4a4fd062b8a16dae680f0323dc81f1480308658916151e6e1a08975f7ebd2",
+  "canonical_metadata_sha256": "6efe6918ab8cf65da43836f5132708a6c129ba293979e48e8fdf6fed2a432e77",
+  "validation_sample": {
+    "bytes": 1338560,
+    "examples": 512,
+    "historical_token_sha256": null,
+    "input_bases": 4194304,
+    "sequence_sha256": "83517f1685a407b6e053691b2729dbc8e9cbf9edf076d3b4b8c783c0a2d710fe",
+    "sha256": "b1659547b8299d0824aeded0370518bd0c9e41bb029d9cb2f22980b4ea338c57",
+    "targets": 4193792,
+    "uri": "s3://marin-us-east-02a/MarinDNA/exp586_plantcad2_moe/evaluations/loss-correlation-v1/inputs/b1659547b8299d0824aeded0370518bd0c9e41bb029d9cb2f22980b4ea338c57-original-moe-512.parquet"
+  },
+  "common_validation_sample": {
+    "bytes": 171386800,
+    "examples": 65536,
+    "historical_token_sha256": "32417c4e434661cf2de2f82f4a3304f303cdfeb0dcabaccae66a2a6a48f9ccb8",
+    "input_bases": 536870912,
+    "sequence_sha256": "e71ca364c0304ea28ce23afdf3dc6c24f8c25b96d0600c0b79ee2d5dfa9bc02f",
+    "sha256": "da9530a08c76d783628a3538d8a5c9b473194a562024aaf262fe90dbe42d3a1c",
+    "targets": 536805376,
+    "uri": "s3://marin-us-east-02a/MarinDNA/exp586_plantcad2_moe/evaluations/loss-correlation-v1/inputs/da9530a08c76d783628a3538d8a5c9b473194a562024aaf262fe90dbe42d3a1c-common-65536.parquet"
+  }
+}

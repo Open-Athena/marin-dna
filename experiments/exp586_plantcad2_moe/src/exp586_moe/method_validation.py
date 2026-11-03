@@ -352,6 +352,10 @@ def parity_reference_config(
             "scatter",
             1,
         )
+    if runtime_moe_implementation == "scatter":
+        from exp586_moe.data_parallel import local_model
+
+        return local_model(d768_config(condition)), "scatter", 1
     if runtime_moe_implementation == "ring":
         return (
             dataclasses.replace(
