@@ -80,3 +80,8 @@ They never use the live run or its checkpoint owner.
 Final PlantCAD2 evaluation follows the appendable workflow in [`exp586_evaluation_operations.md`](exp586_evaluation_operations.md).
 It reuses the exp582 benchmark protocol and historical results while binding every new artifact to an exact exp586 checkpoint, tokenizer, input manifest, and evaluation wheel.
 The final 1T evaluation is governed by [`exp586_1t_evaluation_operations.md`](exp586_1t_evaluation_operations.md), including its frozen scorer and disjoint execution parts.
+
+Additional frozen classification probes are governed by [`exp586_probe_operations.md`](exp586_probe_operations.md).
+`python -m exp586_moe.classification_features` extracts final flank states for conservation/core tasks and real-token allele means for SV without projecting the full vocabulary.
+Its `--gate` mode checks repeats, batch composition, withheld-base and outcome counterfactuals, independent full-state reduction, and exact ordered-FP32 expert-reference parity before production extraction.
+Inputs and feature chunks are immutable and resumable; classifier fitting belongs to the PlantCAD2 evaluation project.
