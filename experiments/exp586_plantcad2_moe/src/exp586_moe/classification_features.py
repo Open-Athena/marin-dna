@@ -63,6 +63,30 @@ class FeatureConfig(SmokeConfig):
             raise ValueError("Unexpected probe output owner")
 
 
+def source_slice(
+    manifest: dict[str, Any], spec: dict[str, Any], chunk: dict[str, Any]
+) -> tuple[dict[str, Any], dict[str, Any], int, int]:
+    """Give the established reader a one-file view with local row coordinates."""
+    sources = [
+        source
+        for source in manifest["inputs"][spec["file"]]["files"]
+        if source["row_start"] <= chunk["start"] < chunk["stop"] <= source["row_stop"]
+    ]
+    if len(sources) != 1:
+        raise ValueError("A feature chunk must belong to exactly one pinned source")
+    source = sources[0]
+    view = {
+        **manifest,
+        "inputs": {spec["file"]: {"rows": source["rows"], "files": [source]}},
+    }
+    return (
+        source,
+        view,
+        chunk["start"] - source["row_start"],
+        chunk["stop"] - source["row_start"],
+    )
+
+
 def extract_rows(
     spec: dict[str, Any],
     rows: list[dict[str, Any]],
@@ -237,6 +261,17 @@ def run(config: FeatureConfig) -> None:
                 "sv_impact",
             )
         ]
+        # Exercise the final file of a multi-file input, not only row zero.
+        jobs.append(
+            max(
+                (
+                    piece
+                    for piece in manifest["plan"]
+                    if piece["task"] == "conservation_poaceae_non_tis"
+                ),
+                key=lambda piece: piece["start"],
+            )
+        )
     completed = []
     reference_cases = {}
     started = time.time()
@@ -256,11 +291,8 @@ def run(config: FeatureConfig) -> None:
         }
         for index, chunk in enumerate(jobs):
             spec = specs[chunk["task"]]
-            for source in manifest["inputs"][spec["file"]]["files"]:
-                if chunk["start"] < source.get("row_stop", 10**12) and chunk[
-                    "stop"
-                ] > source.get("row_start", 0):
-                    fetch_file(source, directory)
+            source, view, local_start, local_stop = source_slice(manifest, spec, chunk)
+            fetch_file(source, directory)
             receipt = (
                 load_chunk(config.output_prefix, chunk, binding)
                 if not config.gate
@@ -268,12 +300,10 @@ def run(config: FeatureConfig) -> None:
             )
             if receipt is None:
                 frame = protocol.inputs.read_frame(
-                    manifest,
+                    view,
                     spec,
-                    chunk["start"],
-                    min(chunk["stop"], chunk["start"] + 8)
-                    if config.gate
-                    else chunk["stop"],
+                    local_start,
+                    min(local_stop, local_start + 8) if config.gate else local_stop,
                 )
                 rows = frame.to_dict("records")
                 scorer = scorers[8192 if spec["kind"] == "sv" else 4096]

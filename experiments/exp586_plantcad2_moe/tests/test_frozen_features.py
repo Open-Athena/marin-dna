@@ -7,6 +7,7 @@ import numpy as np
 import pytest
 from levanter.grug.sharding import compact_grug_mesh
 
+from exp586_moe.classification_features import source_slice
 from exp586_moe.frozen_features import FrozenFeatures
 
 
@@ -31,3 +32,20 @@ def test_no_silent_truncation():
     scorer = FrozenFeatures(ToyCausalModel(), mesh, sequence_length=16)
     with pytest.raises(ValueError):
         scorer.evaluate([[1] * 17])
+
+
+def test_file_view_keeps_global_feature_ids_and_local_reader_coordinates():
+    first = {"rows": 5, "row_start": 0, "row_stop": 5, "path": "first.parquet"}
+    second = {"rows": 8, "row_start": 5, "row_stop": 13, "path": "second.parquet"}
+    manifest = {
+        "inputs": {"task.tsv": {"rows": 13, "files": [first, second]}},
+        "samples": "/tmp/example",
+    }
+    source, view, begin, end = source_slice(
+        manifest, {"file": "task.tsv"}, {"start": 7, "stop": 11}
+    )
+    assert source == second and (begin, end) == (2, 6)
+    assert view["inputs"]["task.tsv"] == {"rows": 8, "files": [second]}
+    assert manifest["inputs"]["task.tsv"]["rows"] == 13
+    with pytest.raises(ValueError):
+        source_slice(manifest, {"file": "task.tsv"}, {"start": 4, "stop": 8})
