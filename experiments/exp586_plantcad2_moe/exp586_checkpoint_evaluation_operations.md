@@ -64,3 +64,12 @@ Reduction reuses existing full-score chunks to derive matched classification bas
 2026-11-04: Following the current user instruction to use more idle H100s aggressively, expand the initial 256-GPU plan to 448 GPUs after both gates pass for every checkpoint.
 Overlap six classification workers per checkpoint with the eight zero-shot/AF workers per checkpoint, reserving all submitted but not-yet-running nodes against reported free capacity.
 Admission remains conditional on live capacity, and all jobs remain batch priority under eczech.
+
+## CPU analysis
+
+Publish the original zero-shot reduction and matched classification baselines first, without waiting for AF fits.
+Then use the PlantCAD2 `checkpoint_af.py` runner for separate 2K/8K CPU fits from verified cached AF embeddings and predictions.
+It calls the original four-readout fitter unchanged, with the same split, grids, bootstrap, and estimator checks.
+Use `scratch/checkpoint-evals/af-wheel-receipt.json` for its exact code identity and per-job content-pinned configs; no GPU inference is repeated.
+The unchanged classification fitter consumes the existing memberships and the checkpoint's matched zero-shot vectors.
+Keep CPU identities/results in ledger events and verify their native receipts before reporting completion.
