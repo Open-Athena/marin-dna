@@ -9,6 +9,10 @@ Evaluate permanent checkpoints from `exp586-plantcad2-d768-pretrained-lrm1-seed0
 The immutable `scratch/checkpoint-evals-022t/catalog.json` owns the selection and exact identities.
 Reuse complete verified language-only and final short-run results when checkpoint, rows, metrics and split contracts match.
 Use the unchanged `63da70cf56bdad5943ef6cad23ae5c69f8ae6778752caca3d6918b4d9ffa818b` scientific runtime and the previous trajectory's analysis wheels, memberships, grids and readouts.
+For the 2.16B peak checkpoint only, use the exact-identity admission compatibility in `codex-exp586-checkpoint-022t-compat`, pinned by `scratch/checkpoint-evals-022t/runtime-binding-legacy.json`.
+Only the metadata validator differs; all numerical scoring and model files remain byte-identical.
+The checkpoint predates the backend metadata field; retain that field as unknown rather than fabricate a training backend.
+Both numerical validation gates remain mandatory.
 Run all zero-shot scores, both contexts, AF zero-shot and all AF regression probes, and the twelve classification probe tasks.
 Exclude motif probes.
 Refit each new checkpoint's frozen heads independently, using development data only.
@@ -54,3 +58,10 @@ Use sixteen full workers and eight feature workers per new checkpoint; only part
 All source rows, chunk boundaries and scoring are unchanged.
 Only explicit agent decisions may start, stop or replace dispatches; helpers execute persisted selections.
 Verify complete native receipts, independent held-out metrics and raw-feature/head round trips before reporting results.
+
+## Compatibility change
+
+2026-11-04T11:59Z: The first permanent checkpoint lacks backend metadata and fails strict admission before inference.
+A separate pinned runtime accepts only its exact URI, canonical metadata digest and raw metadata digest, preserving the original metadata and all scientific computation.
+Existing later-checkpoint evaluations retain the original frozen runtime.
+The retry is permitted only after exact failed roots and descendants are terminal and both original dispatches have ended in SQLite.
