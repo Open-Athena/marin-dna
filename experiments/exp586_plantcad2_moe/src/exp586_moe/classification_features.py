@@ -133,9 +133,11 @@ def validate_features(
     first = extract_rows(spec, rows, scorer, tokenizer)
     repeat = extract_rows(spec, rows, scorer, tokenizer)
     alone = extract_rows(spec, rows[:1], scorer, tokenizer)
+    permuted = extract_rows(spec, rows[::-1], scorer, tokenizer)
     for key in first:
         np.testing.assert_array_equal(first[key], repeat[key])
         np.testing.assert_array_equal(first[key][:1], alone[key])
+        np.testing.assert_array_equal(first[key], permuted[key][::-1])
     counterfactual = []
     for row in rows:
         changed = dict(row)
@@ -149,6 +151,15 @@ def validate_features(
     changed_features = extract_rows(spec, counterfactual, scorer, tokenizer)
     for key in first:
         np.testing.assert_array_equal(first[key], changed_features[key])
+    visible_change = dict(rows[0])
+    field = "RefSeq" if spec["kind"] == "sv" else "sequence"
+    sequence = list(visible_change[field])
+    position = len(sequence) - 1 if spec["kind"] == "sv" else min(spec["positions"]) - 1
+    sequence[position] = "C" if sequence[position].upper() != "C" else "A"
+    visible_change[field] = "".join(sequence)
+    changed_visible = extract_rows(spec, [visible_change], scorer, tokenizer)
+    if all(np.array_equal(first[key][:1], changed_visible[key]) for key in first):
+        raise ValueError("Frozen features ignore a visible nucleotide change")
     # A separately implemented adapter materializes full real-token states,
     # then reduces them on CPU. No vocabulary projection is used in production.
     prepared = visible_sequences(spec, rows[0])
@@ -168,7 +179,9 @@ def validate_features(
         "rows": len(rows),
         "repeat_exact": True,
         "batch_exact": True,
+        "batch_permutation_exact": True,
         "target_and_label_counterfactual_exact": True,
+        "visible_change_affects_features": True,
         "independent_state_reduction_max_abs": float(
             np.max(np.abs(first[name][0] - reference))
         ),
