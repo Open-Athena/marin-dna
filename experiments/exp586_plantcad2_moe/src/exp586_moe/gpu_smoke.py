@@ -2,7 +2,6 @@
 
 import argparse
 import dataclasses
-import os
 import time
 from collections.abc import Callable
 from typing import Literal
@@ -35,6 +34,7 @@ from levanter.grug.sharding import compact_grug_mesh
 from levanter.tracker.wandb import WandbConfig
 from levanter.trainer import TrainerConfig
 from marin.training.training import resolve_training_env
+from rigging.secrets import require_secret
 from rigging.timing import Duration
 
 from exp586_moe.config import SOURCE_CHECKPOINT, SOURCE_METADATA_DIGEST, d768_config
@@ -381,7 +381,7 @@ def dispatch(
         {
             **_forwarded_env_vars(),
             "MARIN_PREFIX": "s3://marin-us-east-02a/marin",
-            "WANDB_API_KEY": os.environ["WANDB_API_KEY"],
+            "WANDB_API_KEY": require_secret("WANDB_API_KEY"),
             "WANDB_ENTITY": "eric-czech",
             "WANDB_PROJECT": "marin",
         },
