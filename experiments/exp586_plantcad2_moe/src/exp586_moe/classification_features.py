@@ -237,7 +237,7 @@ def run(config: FeatureConfig) -> None:
     record = manifest["models"][config.model_label]
     tokenizer = pretrained_dna_tokenizer()
     binding = validate_checkpoint_binding(
-        checkpoint_role="dna-trained",
+        checkpoint_role=record.get("checkpoint_role", "dna-trained"),
         condition="pretrained",
         checkpoint=record["checkpoint"],
         checkpoint_metadata_digest=record["canonical_metadata_sha256"],

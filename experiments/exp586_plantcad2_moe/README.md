@@ -85,3 +85,9 @@ Additional frozen classification probes are governed by [`exp586_probe_operation
 `python -m exp586_moe.classification_features` extracts final flank states for conservation/core tasks and real-token allele means for SV without projecting the full vocabulary.
 Its `--gate` mode checks repeats, batch composition, withheld-base and outcome counterfactuals, independent full-state reduction, and exact ordered-FP32 expert-reference parity before production extraction.
 Inputs and feature chunks are immutable and resumable; classifier fitting belongs to the PlantCAD2 evaluation project.
+
+The five-checkpoint 1T evaluation uses the original language checkpoint and permanent DNA checkpoints near 10B, 182B, 545B, and 1T tokens.
+`exp586_checkpoint_evaluation_operations.md` governs execution; the approved immutable catalog and control ledger are under `scratch/checkpoint-evals/` with directly verified CoreWeave S3 backups.
+`trajectory_gate.py` checks full readouts and the original loss against an independent ordered scatter reference before the established zero-shot, AF, and classification workflows run.
+The language-only checkpoint uses the same character-forced tokenizer and dropless inference.
+Existing final-checkpoint results are reused and no motif probes are fitted.
