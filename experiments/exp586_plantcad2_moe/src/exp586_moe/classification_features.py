@@ -272,6 +272,17 @@ def run(config: FeatureConfig) -> None:
                 key=lambda piece: piece["start"],
             )
         )
+        if manifest.get("gate_sv_start") is not None:
+            start = int(manifest["gate_sv_start"])
+            jobs.append(
+                {
+                    "task": "sv_impact",
+                    "start": start,
+                    "stop": start + 8,
+                    "worker": 0,
+                    "key": f"sv_impact--{start:06d}-{start + 8:06d}",
+                }
+            )
     completed = []
     reference_cases = {}
     started = time.time()
