@@ -26,7 +26,7 @@ Its unadapted routing is evaluated dropless, including stress and ambiguous-base
 
 ## Execution
 
-Use H100s only, whole eight-GPU nodes, on Reno and East, at most 448 GPUs concurrently.
+Use H100s only, whole eight-GPU nodes, on Reno and East, at most 544 GPUs concurrently.
 Every root uses `--priority batch --user eczech`; children explicitly use batch priority.
 Use W&B `eric-czech/marin`, experiment tag `dna-exp586`.
 Read the utilization helper before dispatch or capacity changes.
@@ -64,6 +64,13 @@ Reduction reuses existing full-score chunks to derive matched classification bas
 2026-11-04: Following the current user instruction to use more idle H100s aggressively, expand the initial 256-GPU plan to 448 GPUs after both gates pass for every checkpoint.
 Overlap six classification workers per checkpoint with the eight zero-shot/AF workers per checkpoint, reserving all submitted but not-yet-running nodes against reported free capacity.
 Admission remains conditional on live capacity, and all jobs remain batch priority under eczech.
+
+2026-11-04 06:05 UTC: The current user instruction explicitly asks for aggressive use of additional available GPUs.
+After the first full worker finished, live capacity showed another 102 free H100s across Reno/East.
+Expand the working fleet ceiling from 448 to 544 to permit splitting up to twelve remaining longer workers, subject to refreshed capacity before each selected group.
+The full candidate plan would use approximately 536 GPUs before other workers finish; the ledger records the smaller groups actually admitted as shared capacity changes.
+This revises an agent-selected allocation limit; the user has not imposed a smaller GPU or cost ceiling.
+Keep per-dispatch live-capacity checks and whole-node admission, and release every GPU after its scoring partition finishes.
 
 ## CPU analysis
 
