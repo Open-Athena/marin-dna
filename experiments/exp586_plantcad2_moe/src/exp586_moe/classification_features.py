@@ -333,7 +333,15 @@ def run(config: FeatureConfig) -> None:
                 scorer = scorers[8192 if spec["kind"] == "sv" else 4096]
                 if config.gate:
                     report = validate_features(spec, rows, scorer, tokenizer, mesh)
-                    reference_cases[chunk["task"]] = (spec, rows)
+                    report.update(
+                        {
+                            "task": spec["key"],
+                            "start": chunk["start"],
+                            "rows": len(rows),
+                            "input_sha256": source["sha256"],
+                        }
+                    )
+                    reference_cases[chunk["key"]] = (spec, rows)
                     tracker.log_summary({"validation/" + chunk["task"]: report})
                     if jax.process_index() == 0:
                         write_bytes(
