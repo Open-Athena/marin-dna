@@ -51,4 +51,8 @@ Keep research chronology in `.agents/logbooks/exp586.md`; do not duplicate fleet
 
 ## Change record
 
-None.
+2026-11-04: Both checkpoints passed six-case hidden-state validation against the independently restored FP32 ordered scatter backend, including ambiguous SV bases and the final source file of a multi-file task.
+The first full 0.22T worker has W&B-confirmed extraction progress.
+Admit up to sixteen identical one-node extraction workers per condition after its gate passes, overriding the skill's default pending-target limit of one for this bounded homogeneous evaluation workload.
+Keep the total submitted allocation at or below 256 H100s; place 0.22T in East and 1T in Reno while capacity permits.
+CPU-only classifier fitting may use batch roots with up to 32 CPUs and 128 GB RAM each after extraction, with identities and progress recorded as ledger events.
