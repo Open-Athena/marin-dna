@@ -21,8 +21,8 @@ Report tables and comparisons only in chat, with no GitHub updates.
 
 ## Operator choices
 
-Use H100s only, whole eight-GPU nodes, on Reno and East, at most 544 GPUs concurrently, conditional on refreshed live free capacity.
-The user authorizes aggressive use of idle GPUs; this ceiling retains the previous study's agent-selected limit.
+Use H100s only, whole eight-GPU nodes, on Reno and East, at most 576 GPUs concurrently, conditional on refreshed live free capacity.
+The user authorizes aggressive use of idle GPUs; the initial 544-GPU agent-selected ceiling is extended to fit this study's 72 whole-node workers when reported idle capacity permits.
 Every root and descendant must resolve to batch priority under `eczech`.
 Use W&B `eric-czech/marin`, tag `dna-exp586`.
 Follow W&B for progress; use Iris for exact-root liveness, startup failures or concrete placement questions.
@@ -65,3 +65,16 @@ Verify complete native receipts, independent held-out metrics and raw-feature/he
 A separate pinned runtime accepts only its exact URI, canonical metadata digest and raw metadata digest, preserving the original metadata and all scientific computation.
 Existing later-checkpoint evaluations retain the original frozen runtime.
 The retry is permitted only after exact failed roots and descendants are terminal and both original dispatches have ended in SQLite.
+
+2026-11-04T12:28Z: The user explicitly authorizes aggressive use of additional available GPUs.
+Raise the agent-selected ceiling from 544 to 576, the full three-checkpoint fleet of sixteen scoring and eight feature workers per checkpoint.
+Keep admission conditional on refreshed free capacity and existing unallocated reservations, with every root and child at batch priority under eczech.
+
+## Optional execution reslicing
+
+The existing two-part executor may reuse verified chunks and split a longer scoring worker across two whole H100 nodes when free capacity makes this beneficial.
+All numerical files and the lockfile must match the frozen per-file snapshot; only job membership, part manifests and W&B replication differ.
+Use `partition-runtime.json` for the original runtime and `partition-runtime-legacy.json` for the exact pinned legacy checkpoint.
+The legacy variant requires a remote six-object bitwise parity canary before production reslicing.
+Cancel the exact parent and verify all descendants terminal before replacement parts own its disjoint chunks.
+Require complete ordered coverage and provenance before merging canonical reports and completing the original logical trial.
