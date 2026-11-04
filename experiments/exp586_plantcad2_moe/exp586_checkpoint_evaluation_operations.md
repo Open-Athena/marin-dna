@@ -26,7 +26,7 @@ Its unadapted routing is evaluated dropless, including stress and ambiguous-base
 
 ## Execution
 
-Use H100s only, whole eight-GPU nodes, on Reno and East, at most 256 GPUs concurrently.
+Use H100s only, whole eight-GPU nodes, on Reno and East, at most 448 GPUs concurrently.
 Every root uses `--priority batch --user eczech`; children explicitly use batch priority.
 Use W&B `eric-czech/marin`, experiment tag `dna-exp586`.
 Read the utilization helper before dispatch or capacity changes.
@@ -58,3 +58,9 @@ Keep research chronology in `.agents/logbooks/exp586.md`.
 Admit up to four bounded validation dispatches per target concurrently because they share an established runtime and have disjoint checkpoint/output identities.
 For full extraction, admit homogeneous workers concurrently only after a checkpoint gate passes and its first worker proves W&B progress.
 Reduction reuses existing full-score chunks to derive matched classification baselines before fitting, avoiding another inference pass.
+
+## Capacity expansion
+
+2026-11-04: Following the current user instruction to use more idle H100s aggressively, expand the initial 256-GPU plan to 448 GPUs after both gates pass for every checkpoint.
+Overlap six classification workers per checkpoint with the eight zero-shot/AF workers per checkpoint, reserving all submitted but not-yet-running nodes against reported free capacity.
+Admission remains conditional on live capacity, and all jobs remain batch priority under eczech.
