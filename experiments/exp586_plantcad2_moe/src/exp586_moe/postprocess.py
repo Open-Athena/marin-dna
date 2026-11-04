@@ -33,9 +33,25 @@ class PostprocessConfig(SmokeConfig):
     reduced_analysis_root: str = ""
     reduced_analysis_wheel_sha256: str = ""
     checkpoint_role: CheckpointRole = "dna-trained"
+    classification_requests_uri: str = ""
+    classification_requests_sha256: str = ""
+    compute_kind: str = "H100"
 
     def __post_init__(self) -> None:
         super().__post_init__()
+        if self.compute_kind not in {"H100", "CPU"}:
+            raise ValueError("Unsupported analysis placement")
+        if bool(self.classification_requests_uri) != bool(
+            self.classification_requests_sha256
+        ) or (
+            self.classification_requests_uri
+            and (
+                not self.classification_requests_uri.startswith("s3://")
+                or len(self.classification_requests_sha256) != 64
+                or self.probe_only
+            )
+        ):
+            raise ValueError("Classification baselines require pinned full reductions")
         if (
             self.nodes != 1
             or len(self.requests_sha256) != 64
@@ -171,7 +187,7 @@ def run_postprocess(config: PostprocessConfig) -> None:
             "dna-exp586",
             "evaluation",
             "postprocess",
-            "H100",
+            config.compute_kind,
             config.condition,
             config.checkpoint_role,
         ],
@@ -225,6 +241,17 @@ def run_postprocess(config: PostprocessConfig) -> None:
 
             run.summary["evaluation/phase"] = "reducing"
             reduce(preparation_path, artifacts, output)
+            if config.classification_requests_uri:
+                from exp586_moe.trajectory_baselines import prepare
+
+                run.summary["evaluation/phase"] = "classification_baselines"
+                prepare(
+                    preparation,
+                    artifacts,
+                    output,
+                    config.classification_requests_uri,
+                    config.classification_requests_sha256,
+                )
         if config.probe_only or not config.skip_probes:
             from exp586_evals.full_probe import fit_probes
 
@@ -299,6 +326,8 @@ def main() -> None:
     parser.add_argument("--probe-only", action="store_true")
     parser.add_argument("--reduced-analysis-root", default="")
     parser.add_argument("--reduced-analysis-wheel-sha256", default="")
+    parser.add_argument("--classification-requests-uri", default="")
+    parser.add_argument("--classification-requests-sha256", default="")
     parser.add_argument(
         "--checkpoint-role",
         choices=("dna-trained", "language-base"),

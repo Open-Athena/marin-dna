@@ -52,3 +52,9 @@ Publish consistent immutable size/SHA256-verified backups under `operations/chec
 Recover the newest integrity-checked immutable backup if the local ledger is lost.
 Persist CPU job identities and results as ledger events.
 Keep research chronology in `.agents/logbooks/exp586.md`.
+
+## Operating exceptions
+
+Admit up to four bounded validation dispatches per target concurrently because they share an established runtime and have disjoint checkpoint/output identities.
+For full extraction, admit homogeneous workers concurrently only after a checkpoint gate passes and its first worker proves W&B progress.
+Reduction reuses existing full-score chunks to derive matched classification baselines before fitting, avoiding another inference pass.
