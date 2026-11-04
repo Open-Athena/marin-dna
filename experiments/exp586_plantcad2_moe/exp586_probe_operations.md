@@ -56,3 +56,7 @@ The first full 0.22T worker has W&B-confirmed extraction progress.
 Admit up to sixteen identical one-node extraction workers per condition after its gate passes, overriding the skill's default pending-target limit of one for this bounded homogeneous evaluation workload.
 Keep the total submitted allocation at or below 256 H100s; place 0.22T in East and 1T in Reno while capacity permits.
 CPU-only classifier fitting may use batch roots with up to 32 CPUs and 128 GB RAM each after extraction, with identities and progress recorded as ledger events.
+
+CPU fitting used disjoint `--task` subsets to overlap ready tasks with the final Andropogoneae extraction, then reused all completed task receipts in the unfiltered summary passes.
+Every fitted task retained the same analysis-manifest binding; no two active jobs wrote the same task.
+For future feature sweeps, balance expected inference work rather than source row counts: SV's four 8K passes left a longer tail than the two 4K flank passes.
