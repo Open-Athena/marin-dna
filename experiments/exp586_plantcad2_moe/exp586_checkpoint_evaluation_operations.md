@@ -73,3 +73,12 @@ It calls the original four-readout fitter unchanged, with the same split, grids,
 Use `scratch/checkpoint-evals/af-wheel-receipt.json` for its exact code identity and per-job content-pinned configs; no GPU inference is repeated.
 The unchanged classification fitter consumes the existing memberships and the checkpoint's matched zero-shot vectors.
 Keep CPU identities/results in ledger events and verify their native receipts before reporting completion.
+
+## Execution partitions
+
+The optional executor in `codex-exp586-trajectory-scale` preserves every frozen scoring file and verifies their aggregate identity before running.
+It selects `original_jobs[part::2]`, reuses the existing checksum-bound chunks, and writes separate part manifests.
+Remote canaries on East and Reno reproduced all six canonical task, AF-score, and AF-embedding objects bitwise at both context lengths.
+Before replacing a worker, cancel its exact root and verify every descendant is terminal; the control ledger records the selected parent and replacement parts.
+Keep the stopped parent's logical trial as an aggregate and never recover it independently while its two parts own the chunks.
+`scratch/checkpoint-evals/merge_selected_worker.py` validates complete disjoint coverage and provenance, publishes the canonical report, and records aggregate completion in W&B and SQLite.
