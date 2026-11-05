@@ -89,7 +89,7 @@ The entry point, model adapter, launch/persistence boundary, and policy are [dp_
 
 - [Initial 64-H100 comparison](https://forge.coreweave.com/wandb/eric-czech/marin/runs/exp586-plantcad2-d768-pretrained-lrm1-seed0-1t-v1-dp-scatter-prod64-a1-b64-verify-n8-live)
 - [Longer counterbalanced confirmation](https://forge.coreweave.com/wandb/eric-czech/marin/runs/exp586-plantcad2-d768-pretrained-lrm1-seed0-1t-v1-dp-scatter-prod64-balanced-a2-b64-verify-n8-live)
-- [Unmodified live training run](https://forge.coreweave.com/wandb/eric-czech/marin/runs/exp586-plantcad2-d768-pretrained-lrm1-seed0-1t-v1)
+- [Unmodified live training run](https://forge.coreweave.com/wandb/plantcad/marin-dna/runs/exp586-plantcad2-d768-pretrained-lrm1-seed0-1t-v1)
 
 Raw histories, summaries, checkpoint metadata, and baseline snapshots are in `scratch/exp586_dp/production-comparison-a1.json`, `production-comparison-balanced-a2.json`, `live-production-window-64gpu.json`, and `live-baseline-{before,after}-64gpu.json` at the checkout root.
 Result artifacts, compressed HLO, temporary checkpoints, and immutable SQLite backups are under `s3://marin-us-east-02a/tmp/ttl=7d/MarinDNA/exp586_plantcad2_moe/dp-20261031/`.
