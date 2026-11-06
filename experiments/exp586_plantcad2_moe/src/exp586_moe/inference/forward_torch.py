@@ -92,6 +92,7 @@ def run_trial(args: argparse.Namespace) -> dict[str, Any]:
     contract = token_contract(source)
     tokenizer = compact_dna_unigram_tokenizer()
     base_ids = [contract.output_ids[base] for base in "ACGT"]
+    print("STAGE loading-model", flush=True)
     model = EagerGrugMoE(
         args.model_dir,
         device,
@@ -123,6 +124,7 @@ def run_trial(args: argparse.Namespace) -> dict[str, Any]:
     if expected.shape != (len(validation), 8192, 4):
         raise ValueError("Reference must cover the complete validation fixture")
     actual_parts = []
+    print("STAGE compiling-and-validating", flush=True)
     with torch.inference_mode():
         for batch, real_rows in validation_batches(
             validation, sequences, args.batch_size
@@ -134,6 +136,7 @@ def run_trial(args: argparse.Namespace) -> dict[str, Any]:
     del actual_parts, actual, ids
     if not parity["accepted"]:
         return {"status": "parity_failed", "parity": parity}
+    print("STAGE parity-passed", flush=True)
 
     # CPU tokenization and H2D complete before recording each start event.
     # No prefetch worker or other process runs tokenizer work during forwards.
@@ -143,6 +146,7 @@ def run_trial(args: argparse.Namespace) -> dict[str, Any]:
         for offset in range(input_batches)
     ]
     torch.cuda.synchronize()
+    print("STAGE warmup", flush=True)
     with torch.inference_mode():
         for i in range(args.warmup):
             result = compiled(device_batches[i % len(device_batches)])
@@ -152,6 +156,7 @@ def run_trial(args: argparse.Namespace) -> dict[str, Any]:
         del result
         torch.cuda.reset_peak_memory_stats()
         timings: list[float] = []
+        print("STAGE timing", flush=True)
         # Synchronize every iteration: the interval includes the entire forward,
         # including any dispatch gaps, but no host-output copy or next-batch work.
         for i in range(args.iterations):
