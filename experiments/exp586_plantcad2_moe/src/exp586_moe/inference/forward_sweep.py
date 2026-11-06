@@ -19,6 +19,11 @@ def run_plan(plan: Path, root: Path, output: Path, results_prefix: str | None) -
         destination = output / f"{name}.json"
         if destination.exists():
             print(f"already recorded {name}", flush=True)
+            if (
+                spec.get("stop_on_oom", False)
+                and json.loads(destination.read_text())["status"] == "oom"
+            ):
+                break
             continue
         env = os.environ.copy()
         env.update(
