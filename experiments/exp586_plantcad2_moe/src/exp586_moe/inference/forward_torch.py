@@ -12,6 +12,7 @@ import platform
 import subprocess
 import time
 import traceback
+from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
 
@@ -42,6 +43,18 @@ def fixture_batch(sequences: list[str], batch_size: int, offset: int) -> list[st
     if not 1 <= batch_size <= len(sequences):
         raise ValueError("Batch size must fit the unique fixture")
     return [sequences[(offset + row) % len(sequences)] for row in range(batch_size)]
+
+
+def validation_batches(
+    validation: list[str], sequences: list[str], batch_size: int
+) -> Iterator[tuple[list[str], int]]:
+    """Keep validation shapes identical to timing without adding scored rows."""
+    if not 1 <= batch_size <= len(sequences):
+        raise ValueError("Batch size must fit the unique fixture")
+    for offset in range(0, len(validation), batch_size):
+        real = validation[offset : offset + batch_size]
+        padding = [sequence for sequence in sequences if sequence not in real]
+        yield real + padding[: batch_size - len(real)], len(real)
 
 
 def write_result(path: Path, payload: dict[str, Any]) -> None:
@@ -103,15 +116,18 @@ def run_trial(args: argparse.Namespace) -> dict[str, Any]:
         return torch.from_numpy(encode_dna_batch(tokenizer, batch)).to(device)
 
     # Always check precisely the same complete real-window fixture.
-    # Validation compiles its shape separately and is outside the measurement.
+    # Pad with other real fixture windows so validation cannot leave an unused
+    # second compiled graph/CUDA workspace that distorts maximum-fitting batch.
     expected = np.load(args.reference)["logits"]
     if expected.shape != (len(validation), 8192, 4):
         raise ValueError("Reference must cover the complete validation fixture")
     actual_parts = []
     with torch.inference_mode():
-        for offset in range(0, len(validation), args.batch_size):
-            ids = encode(validation[offset : offset + args.batch_size])
-            actual_parts.append(compiled(ids).float().cpu().numpy().copy())
+        for batch, real_rows in validation_batches(
+            validation, sequences, args.batch_size
+        ):
+            ids = encode(batch)
+            actual_parts.append(compiled(ids)[:real_rows].float().cpu().numpy().copy())
     actual = np.concatenate(actual_parts)
     parity = acgt_parity(actual, expected, validation)
     del actual_parts, actual, ids
