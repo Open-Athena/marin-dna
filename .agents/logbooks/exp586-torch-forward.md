@@ -53,3 +53,27 @@ The custom top-k kernel remains excluded from the restricted baseline.
 The maximum fitting power of two is batch 256; batch 304 also fits, while 320 and 512 OOM during the complete compile/validate/warmup protocol.
 Fine batch tuning and same-GPU confirmation are recorded in the next entry.
 No GitHub artifacts were updated.
+
+
+## 2026-11-06 23:43 UTC — Final confirmation and handoff
+
+Source before this result entry is local commit `689179c2`; the benchmark implementation overlay remains `0719a077`.
+The exact final trial list is `plans/batch-confirmation.json` in the native experiment S3 prefix.
+It runs three repetitions each at batch 96 and 256 in randomized order, eight warmups and 32 timed forwards, using the same device and baseline flags as the ablations.
+The batch-96 median is 736.010 ms / 1,068,507 DNA tokens/second, and batch 256 is 1979.807 ms / 1,059,271 DNA tokens/second, a 0.87% gain.
+The fine sweep shows a broad plateau; do not interpret 96 as an exact optimum across inputs or hardware.
+There are 49 successful timed cases, all passing the existing native-JAX gate, plus the two recorded capacity OOM cases.
+The final aggregation verifies a single model revision, checkpoint identity, weight-index/tokenizer/reference/fixture hashes and GPU UUID across the replicated comparisons, and confirms exactly one configuration flag changes per ablation.
+
+`examples/restricted_torch_logits.py` was smoke-tested with `/app/inference-venv/bin/python /app/examples/restricted_torch_logits.py --model-dir /app/forward-artifacts/hf-bf16`.
+It produced `A/C/G/T logits: (1, 8192, 4)`.
+The final process observation found no active benchmark workers, and all eight H100s reported zero device memory and zero GPU utilization.
+Iris reports the exact retained root running, zero failures and one preemption; its preemption diagnostic is stale relative to productive execution and the final successful task exec.
+The sequential successor uses a Linux `pidfd_open(2)` exit event after this Python build lacked the `os.pidfd_open` wrapper; no GPU trial was retried for that helper correction.
+Correction to the CPU reservation record above: the launch requested one CPU, while the Iris task-description snapshot reports `cpu_millicores=4000`; the cgroup CPU limit remains unlimited (`max 100000`).
+
+Final environment: Python 3.12.13, Torch 2.14.1+cu132, CUDA 13.2, vLLM 0.0.0.dev20261013+marin.ac3b5ea5e851.cu132, Triton 3.8.0, NVIDIA driver 595.71.05.
+CPU verification is 129 passed, 3 skipped; scoped pre-commit checks passed after formatting the new constructor condition.
+Final result tables are in `experiments/exp586_plantcad2_moe/forward_benchmark.md`.
+Machine-readable summary, all raw per-process results/logs, explicit plans, input/provenance hashes, final source archive and a verified checksum manifest remain owned by `s3://marin-us-east-02a/MarinDNA/exp586_plantcad2_moe/inference-optimization/forward-only/2026-11-06-r1`.
+Experimental work stops for user review, with the original batch-priority/eczech allocation kept up and no new jobs or GitHub updates.
