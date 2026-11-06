@@ -202,6 +202,8 @@ def main() -> int:
     payload: dict[str, Any] = {
         "schema": 1,
         "name": args.name,
+        "model_repository": "plantcad/marin-dna-exp586-1.5B-60M-216B",
+        "model_revision": "4130f71edcd117a7375af1ac78723d9a9173533f",
         "started_unix": began,
         "metric_scope": "CUDA-event device forward only; no H2D/D2H/tokenization",
         "config": {
