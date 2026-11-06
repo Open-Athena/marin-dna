@@ -7,6 +7,7 @@ Each process has one configuration so freezing is selected before Torch imports.
 import argparse
 import hashlib
 import json
+import math
 import os
 import platform
 import subprocess
@@ -136,9 +137,10 @@ def run_trial(args: argparse.Namespace) -> dict[str, Any]:
 
     # CPU tokenization and H2D complete before recording each start event.
     # No prefetch worker or other process runs tokenizer work during forwards.
+    input_batches = args.input_batches or math.ceil(len(sequences) / args.batch_size)
     device_batches = [
         encode(fixture_batch(sequences, args.batch_size, offset * args.batch_size))
-        for offset in range(args.input_batches)
+        for offset in range(input_batches)
     ]
     torch.cuda.synchronize()
     with torch.inference_mode():
@@ -166,6 +168,8 @@ def run_trial(args: argparse.Namespace) -> dict[str, Any]:
         "status": "passed",
         **latency_summary(timings, args.batch_size),
         "forward_ms": timings,
+        "timed_input_batches": input_batches,
+        "fixture_windows": len(sequences),
         "parity": parity,
         "peak_allocated_gib": torch.cuda.max_memory_allocated() / 2**30,
         "peak_reserved_gib": torch.cuda.max_memory_reserved() / 2**30,
@@ -197,7 +201,12 @@ def main() -> int:
     parser.add_argument("--batch-size", type=int, required=True)
     parser.add_argument("--iterations", type=int, default=24)
     parser.add_argument("--warmup", type=int, default=5)
-    parser.add_argument("--input-batches", type=int, default=2)
+    parser.add_argument(
+        "--input-batches",
+        type=int,
+        default=0,
+        help="Zero rotates through the complete fixture",
+    )
     parser.add_argument("--specialized-topk", action="store_true")
     parser.add_argument(
         "--sconv-backend", choices=["direct", "conv1d"], default="direct"
@@ -211,7 +220,7 @@ def main() -> int:
         args.batch_size < 1
         or args.iterations < 2
         or args.warmup < 1
-        or args.input_batches < 1
+        or args.input_batches < 0
     ):
         parser.error("Positive batch/input/warmup and at least two iterations required")
     began = time.time()
