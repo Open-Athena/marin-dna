@@ -169,6 +169,7 @@ def run_trial(args: argparse.Namespace) -> dict[str, Any]:
             timings.append(start.elapsed_time(end))
             del result
     config = json.loads((args.model_dir / "config.json").read_text())
+    free_bytes, total_bytes = torch.cuda.mem_get_info()
     return {
         "status": "passed",
         **latency_summary(timings, args.batch_size),
@@ -178,6 +179,7 @@ def run_trial(args: argparse.Namespace) -> dict[str, Any]:
         "parity": parity,
         "peak_allocated_gib": torch.cuda.max_memory_allocated() / 2**30,
         "peak_reserved_gib": torch.cuda.max_memory_reserved() / 2**30,
+        "device_used_gib_after_timing": (total_bytes - free_bytes) / 2**30,
         "gpu": torch.cuda.get_device_name(0),
         "torch": torch.__version__,
         "cuda": torch.version.cuda,
@@ -276,7 +278,7 @@ def main() -> int:
         payload["nvidia_smi"] = subprocess.run(
             [
                 "nvidia-smi",
-                "--query-gpu=index,uuid,name,temperature.gpu,clocks.sm,clocks.mem,power.draw",
+                "--query-gpu=index,uuid,name,temperature.gpu,clocks.sm,clocks.mem,power.draw,memory.used",
                 "--format=csv,noheader",
             ],
             capture_output=True,

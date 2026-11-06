@@ -109,6 +109,8 @@ def run_plan(plan: Path, root: Path, output: Path, results_prefix: str | None) -
                 fs.put_file(
                     str(artifact), results_prefix.rstrip("/") + "/" + artifact.name
                 )
+        if result["status"] == "oom" and spec.get("stop_on_oom", False):
+            break
 
 
 def main() -> None:
