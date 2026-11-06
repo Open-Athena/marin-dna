@@ -344,7 +344,9 @@ class EagerGrugMoE(torch.nn.Module):
             # AOTAutograd needs stable buffer storage during graph compilation.
             self.register_buffer(buffer_name, value.clone(), persistent=False)
             self._weight_names[name] = buffer_name
-        if _vllm_fused_experts is not None and (prepare_vllm_moe or fused_shared_experts):
+        if _vllm_fused_experts is not None and (
+            prepare_vllm_moe or fused_shared_experts
+        ):
             for layer in range(self.config.num_layers):
                 prefix = f"model.layers.{layer}.mlp.experts"
                 gate = weights[f"{prefix}.gate_proj.weight"]
