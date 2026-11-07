@@ -142,7 +142,9 @@ No per-expert histograms are collected.
 ## Optimized runtime and ownership
 
 The package depends on the optimized exp586 project at immutable commit `de5f428fc7b2bac8b6e40697f905c8b99ca3580d`.
-Its coherent Marin release set is `0.2.201.dev39243773500` with JAX `0.11.1`; the lock retains that project's transitive runtime versions.
+The coherent Marin runtime is `0.2.224.dev40027069267`, with JAX `0.11.1` and the original optimized model/optimizer source.
+The old Iris client missed the controller's build-date floor by one day.
+This release satisfies that floor while retaining the Haliax API used by the optimized model; later releases remove that API.
 The source model is `s3://marin-us-east-02a/marin/grug/rav-ladder-d768-v2/2026.08.18/checkpoints/step-11420`.
 It is a fresh DNA adaptation from text-pretrained weights.
 The optimized lowercase-only compact embedding shortcut must accommodate text and uppercase IDs before production use.

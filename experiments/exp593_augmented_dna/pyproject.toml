@@ -17,6 +17,7 @@ dependencies = [
     "boto3>=1.43.106",
     "pysam>=0.23",
     "filelock>=3.20",
+    "jax==0.11.1",
 ]
 
 [project.optional-dependencies]
@@ -31,6 +32,8 @@ gpu = [
     "torch==2.11.0",
     "torchvision==0.26.0",
     "jax-cuda13-pjrt==0.11.1",
+    "jax[cuda13]==0.11.1",
+    "jax-triton==0.3.1",
     "nvidia-cutlass-dsl[cu13]==4.6.2",
     "flash-attn-4[cu13]==4.0.0b28",
 ]
@@ -46,6 +49,18 @@ required-version = ">=0.13.5,<0.14"
 prerelease = "allow"
 environments = ["sys_platform == 'linux' and (platform_machine == 'x86_64' or platform_machine == 'aarch64')"]
 conflicts = [[{ extra = "cpu" }, { extra = "gpu" }]]
+# The model/optimizer code remains pinned to exp586; the coherent runtime must
+# satisfy the live controller's client freshness floor.
+override-dependencies = [
+    "marin-core==0.2.224.dev40027069267",
+    "marin-iris==0.2.224.dev40027069267",
+    "marin-fray==0.2.224.dev40027069267",
+    "marin-levanter==0.2.224.dev40027069267",
+    "marin-rigging[secrets]==0.2.224.dev40027069267",
+    "marin-zephyr==0.2.224.dev40027069267",
+    "marin-haliax==0.2.224.dev40027069267",
+    "marin-finestore==0.2.224.dev40027069267",
+]
 
 [tool.uv.sources]
 torch = [{ index = "pytorch-cpu", extra = "cpu" }, { index = "pytorch-cu128", extra = "gpu" }]
