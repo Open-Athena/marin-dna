@@ -206,7 +206,19 @@ def run_smoke(config: SmokeConfig) -> None:
 
             tracker.log_summary({"validation/phase": "frozen_panel_evaluation"})
             panels = ValidationPanels.open(inputs, encoder)
-            evaluation = Evaluator(panels, encoder, mesh, mp).evaluate(current)
+            evaluation = Evaluator(
+                panels,
+                encoder,
+                mesh,
+                mp,
+                progress=lambda stage, completed, total: tracker.log_summary(
+                    {
+                        "eval/phase": stage,
+                        "eval/phase_completed": completed,
+                        "eval/phase_total": total,
+                    }
+                ),
+            ).evaluate(current)
             tracker.log(evaluation, step=log_offset + int(current.step) + 1)
             tracker.log_summary({"validation/frozen_panels_passed": True, **evaluation})
 

@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import time
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from functools import partial
 from typing import Any
@@ -211,10 +211,14 @@ def make_evaluator(mp: jmp.Policy) -> tuple[Any, Any, Any]:
             model.output_proj,
             preferred_element_type=jnp.float32,
         )
-        nll = (
-            jax.nn.logsumexp(logits, axis=-1)
-            - jnp.take_along_axis(logits, targets[:, :, None], axis=-1)[:, :, 0]
-        )
+        # Vocabulary carries the explicit size-one model axis even in this
+        # replicated model; spell out the batch-sharded gather result.
+        target_logits = logits.at[
+            jnp.arange(logits.shape[0])[:, None],
+            jnp.arange(logits.shape[1])[None, :],
+            targets,
+        ].get(out_sharding=P(("replica_dcn", "data", "expert"), None))
+        nll = jax.nn.logsumexp(logits, axis=-1) - target_logits
         return nll, jnp.argmax(logits, axis=-1).astype(jnp.int32)
 
     @partial(eqx.filter_jit, compiler_options=COMPILER_OPTIONS)
@@ -241,9 +245,12 @@ class Evaluator:
         encoder: Encoder,
         mesh: jax.sharding.Mesh,
         mp: jmp.Policy,
+        *,
+        progress: Callable[[str, int, int], None] | None = None,
     ) -> None:
         self.panels, self.encoder, self.mesh = panels, encoder, mesh
         self.causal_step, self.fim_step, self.greedy_step = make_evaluator(mp)
+        self.progress = progress or (lambda stage, completed, total: None)
 
     def _put(self, values: np.ndarray) -> jax.Array:
         spec = P(("replica_dcn", "data", "expert"), *([None] * (values.ndim - 1)))
@@ -271,6 +278,8 @@ class Evaluator:
         prompts, targets = zip(*(prompt_and_target(e) for e in examples), strict=True)
         generated: list[list[int]] = [[] for _ in examples]
         for offset in range(max(map(len, targets))):
+            if offset % 64 == 0:
+                self.progress("generation", offset, max(map(len, targets)))
             contexts = [
                 np.concatenate((p, np.asarray(g, dtype=np.int32)))
                 for p, g in zip(prompts, generated, strict=True)
@@ -305,10 +314,12 @@ class Evaluator:
 
     def evaluate(self, state: Any, *, generate: bool = True) -> dict[str, float | int]:
         started = time.monotonic()
+        self.progress("primary", 0, 512)
         losses = self.causal_losses(state, self.panels.primary)
         result = loss_views([r.seq for r in self.panels.primary], losses)
         if result["eval/softmasked_targets"] != 396_290 or losses.size != 4_193_792:
             raise ValueError("Historical validation target counts changed")
+        self.progress("disjoint", 0, 512)
         disjoint = self.causal_losses(state, self.panels.disjoint)
         result.update(
             {
@@ -325,6 +336,7 @@ class Evaluator:
         result["eval/generation_seconds"] = time.monotonic() - generation_start
         observations = []
         for start in range(0, len(self.panels.fim), BATCH_SIZE):
+            self.progress("fim_teacher_forced", start, len(self.panels.fim))
             examples = self.panels.fim[start : start + BATCH_SIZE]
             positions = np.zeros((BATCH_SIZE, 512), dtype=np.int32)
             targets = np.zeros_like(positions)
@@ -356,4 +368,5 @@ class Evaluator:
         result["eval/seconds"] = time.monotonic() - started
         if any(not np.isfinite(v) for v in result.values()):
             raise ValueError("Nonfinite validation metric")
+        self.progress("complete", len(self.panels.fim), len(self.panels.fim))
         return result

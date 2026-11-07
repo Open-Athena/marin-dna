@@ -90,6 +90,18 @@ LOGGER = logging.getLogger(__name__)
 MAX_UPDATES = (TRAINING_TOKENS + 64 * 2048 - 1) // (64 * 2048)
 
 
+def evaluation_progress(stage: str, completed: int, total: int) -> None:
+    tracker.log_summary(
+        {
+            "eval/phase": stage,
+            "eval/phase_completed": completed,
+            "eval/phase_total": total,
+        }
+    )
+    if jax.process_index() == 0:
+        LOGGER.info("Evaluation %s: %d/%d", stage, completed, total)
+
+
 @dataclass(frozen=True)
 class TrainingConfig:
     cluster: str
@@ -308,7 +320,7 @@ def _run_training(config: TrainingConfig) -> None:
     )
     panels = ValidationPanels.open(inputs, encoder)
     mesh = replicated_mesh()
-    evaluator = Evaluator(panels, encoder, mesh, mp)
+    evaluator = Evaluator(panels, encoder, mesh, mp, progress=evaluation_progress)
     model = replace(
         local_model(d768_config("pretrained")),
         compact_input_lookup_ids=(),
@@ -355,6 +367,7 @@ def _run_training(config: TrainingConfig) -> None:
             }
         )
         train_step = make_train_step(optimizer, mp, norm_policy=norm_policy)
+        compiled_buckets: set[int] = set()
 
         def log(values: dict[str, Any]) -> None:
             nonlocal log_step
@@ -449,10 +462,12 @@ def _run_training(config: TrainingConfig) -> None:
                     ),
                 )
                 collect_norms = norm_policy.due(next_clock.updates)
+                first_compile = batch.bucket not in compiled_buckets
                 state, metrics, norms = train_step(
                     state, batch.model_batch, collect_norms
                 )
                 jax.block_until_ready((state, metrics, norms))
+                compiled_buckets.add(batch.bucket)
                 elapsed = time.monotonic() - start
                 previous = clock
                 clock = next_clock
@@ -482,6 +497,7 @@ def _run_training(config: TrainingConfig) -> None:
                         - (clock.input_tokens - previous.input_tokens)
                         / (64 * batch.bucket),
                         "throughput/step_seconds": elapsed,
+                        "throughput/includes_first_compile": int(first_compile),
                         "throughput/loading_seconds": loaded - start,
                         "throughput/tokens_per_second": (
                             clock.input_tokens - previous.input_tokens
@@ -493,6 +509,10 @@ def _run_training(config: TrainingConfig) -> None:
                         },
                     }
                 )
+                if first_compile:
+                    values[f"compile/bucket_{batch.bucket}_seconds"] = (
+                        time.monotonic() - loaded
+                    )
                 log(values)
                 tracker.log_summary(
                     {

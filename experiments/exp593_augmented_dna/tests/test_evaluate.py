@@ -95,6 +95,7 @@ def test_greedy_decode_never_sees_teacher_forced_gap_prefix(encoder):
     mesh = replicated_mesh()
     engine = object.__new__(Evaluator)
     engine.mesh = mesh
+    engine.progress = lambda stage, completed, total: None
     predicted = int(encoder.dna_lookup[ord("N")])
     calls = []
 
@@ -136,6 +137,13 @@ def test_raw_causal_nll_uses_the_native_unreduced_loss_api(monkeypatch):
     class TinyModel(eqx.Module):
         projection: jax.Array
 
+        @property
+        def output_proj(self):
+            return self.projection
+
+        def __call__(self, tokens, *, mask):
+            return jax.nn.one_hot(tokens, 4), {}
+
         def next_token_loss(
             self, tokens, weights, *, mask, reduction, logsumexp_weight
         ):
@@ -148,13 +156,18 @@ def test_raw_causal_nll_uses_the_native_unreduced_loss_api(monkeypatch):
     monkeypatch.setattr(module, "apply_qb_betas", lambda params, pending: params)
     mesh = replicated_mesh()
     with jax.set_mesh(mesh):
-        model = TinyModel(jnp.eye(4))
+        from jax.sharding import NamedSharding
+        from jax.sharding import PartitionSpec as P
+
+        model = TinyModel(
+            jax.device_put(jnp.eye(4), NamedSharding(mesh, P(None, "model")))
+        )
         tokens = np.tile(np.asarray([0, 1, 2, 3], dtype=np.int32), (64, 1))
         weights = np.tile(np.asarray([1, 1, 1, 0], dtype=np.float32), (64, 1))
         batch = device_batch(
             WindowBatch(tokens, np.zeros_like(tokens), weights, np.full(64, 4)), mesh
         )
-        causal, _, _ = module.make_evaluator(
+        causal, fim, greedy = module.make_evaluator(
             jmp.get_policy("params=float32,compute=float32,output=float32")
         )
         actual = np.asarray(causal(model, None, batch))
@@ -169,3 +182,14 @@ def test_raw_causal_nll_uses_the_native_unreduced_loss_api(monkeypatch):
             logsumexp_weight=None,
         )
         np.testing.assert_allclose(actual[:, :3].mean(), float(traditional), rtol=1e-6)
+        engine = object.__new__(Evaluator)
+        engine.mesh = mesh
+        positions = engine._put(np.tile(np.arange(3, dtype=np.int32), (64, 1)))
+        targets = engine._put(tokens[:, 1:])
+        nll, predictions = fim(model, None, batch, positions, targets)
+        np.testing.assert_allclose(np.asarray(nll), actual[:, :3], rtol=1e-6)
+        np.testing.assert_array_equal(np.asarray(predictions), tokens[:, :-1])
+        predictions = greedy(
+            model, None, batch, engine._put(np.full(64, 3, dtype=np.int32))
+        )
+        np.testing.assert_array_equal(np.asarray(predictions), np.full(64, 3))
