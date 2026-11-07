@@ -1,5 +1,6 @@
 import subprocess
 import sys
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -8,11 +9,13 @@ import torch.nn.functional as F
 
 from exp586_deployment import providers
 from exp586_deployment.benchmark import (
+    compiler_kwargs,
     fixture_batch,
     latency_summary,
     validation_batches,
 )
-from exp586_deployment.model import short_conv
+from exp586_deployment.fast import combined_shared_experts
+from exp586_deployment.model import MarinDNAMoE, short_conv
 from exp586_deployment.providers import RuntimeConfig
 
 
@@ -37,6 +40,8 @@ def test_short_conv_is_causal_and_matches_depthwise_conv(length: int) -> None:
 def test_core_import_does_not_load_optional_providers_or_training() -> None:
     code = """import json,sys
 import exp586_deployment.model
+from exp586_deployment import MarinDNAMoE, FastMarinDNAMoE
+assert 'exp586_deployment.router_topk' not in sys.modules
 for prefix in ['vllm','flash_attn','flash_attn_3','jax','marin','levanter','wandb','exp586_moe']:
  assert not any(n==prefix or n.startswith(prefix+'.') for n in sys.modules),prefix
 print('isolated')
@@ -123,3 +128,87 @@ def test_forward_counts_full_windows_and_validation_has_one_shape() -> None:
     batches = list(validation_batches(["a", "b", "c"], ["a", "b", "c", "d"], 2))
     assert all(len(batch) == 2 for batch, n in batches)
     assert [row for batch, n in batches for row in batch[:n]] == ["a", "b", "c"]
+
+
+def test_compile_defaults_keep_only_the_fullgraph_assertion() -> None:
+    assert compiler_kwargs("default", "auto") == {"fullgraph": True}
+    assert compiler_kwargs("reduce-overhead", "auto") == {
+        "fullgraph": True,
+        "mode": "reduce-overhead",
+    }
+    assert compiler_kwargs("default", "static") == {
+        "fullgraph": True,
+        "dynamic": False,
+    }
+    assert compiler_kwargs("reduce-overhead", "static") == {
+        "fullgraph": True,
+        "dynamic": False,
+        "mode": "reduce-overhead",
+    }
+
+
+def test_hf_fetch_preserves_revision_and_explicit_model_settings(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    fetched, constructed = [], []
+
+    def fetch(repository: str, **kwargs: object) -> str:
+        fetched.append((repository, kwargs))
+        return str(tmp_path)
+
+    def initialize(self: MarinDNAMoE, *args: object, **kwargs: object) -> None:
+        torch.nn.Module.__init__(self)
+        constructed.append((args, kwargs))
+
+    monkeypatch.setattr("huggingface_hub.snapshot_download", fetch)
+    monkeypatch.setattr(MarinDNAMoE, "__init__", initialize)
+    model = MarinDNAMoE.from_pretrained(
+        "plantcad/example",
+        revision="immutable-revision",
+        device="cpu",
+        use_vllm=True,
+        flash_attention_version=3,
+    )
+    assert isinstance(model, MarinDNAMoE)
+    assert fetched[0][0] == "plantcad/example"
+    assert fetched[0][1]["revision"] == "immutable-revision"
+    assert "*.safetensors" in fetched[0][1]["allow_patterns"]
+    assert constructed == [
+        ((tmp_path, "cpu"), {"use_vllm": True, "flash_attention_version": 3})
+    ]
+    MarinDNAMoE.from_pretrained(tmp_path, device="cpu")
+    assert len(fetched) == 1
+
+
+def test_missing_vllm_fails_before_checkpoint_load(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    from exp586_deployment import model
+
+    monkeypatch.setattr(model.TorchConfig, "load", lambda _: None)
+
+    def missing(*args: object) -> None:
+        raise RuntimeError("Selected provider requires importable vllm")
+
+    monkeypatch.setattr(model, "load_attention", missing)
+    with pytest.raises(RuntimeError, match="requires importable vllm"):
+        MarinDNAMoE(tmp_path, "cpu", use_vllm=True)
+
+
+@pytest.mark.parametrize("experts", [1, 2, 4])
+def test_fast_shared_projection_preserves_sum_of_separate_experts(experts: int) -> None:
+    torch.manual_seed(586)
+    x = torch.randn(2, 3, 8)
+    gate, up = torch.randn(experts, 5, 8), torch.randn(experts, 5, 8)
+    down = torch.randn(experts, 8, 5)
+    expected = sum(
+        F.linear(F.silu(F.linear(x, gate[i])) * F.linear(x, up[i]), down[i])
+        for i in range(experts)
+    )
+    actual = combined_shared_experts(
+        x,
+        torch.cat([weight for i in range(experts) for weight in (gate[i], up[i])]),
+        torch.cat(list(down), dim=1),
+        experts,
+    )
+    torch.testing.assert_close(actual, expected)

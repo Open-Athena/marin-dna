@@ -21,6 +21,16 @@ from typing import Any
 import numpy as np
 
 
+def compiler_kwargs(mode: str, dynamic: str) -> dict[str, Any]:
+    """Retain fullgraph as an assertion; omit all untuned compiler options."""
+    options: dict[str, Any] = {"fullgraph": True}
+    if mode != "default":
+        options["mode"] = mode
+    if dynamic == "static":
+        options["dynamic"] = False
+    return options
+
+
 def latency_summary(milliseconds: list[float], batch_size: int) -> dict[str, float]:
     """Convert CUDA-event milliseconds to dense full-window forward throughput."""
     if (
@@ -75,10 +85,9 @@ def run_trial(args: argparse.Namespace) -> dict[str, Any]:
 
     import torch
 
+    from exp586_deployment import FastMarinDNAMoE, MarinDNAMoE
     from exp586_deployment.correctness import acgt_parity
     from exp586_deployment.fixtures import load_fixture, sha256_file
-    from exp586_deployment.model import DeploymentModel
-    from exp586_deployment.providers import RuntimeConfig
     from exp586_deployment.tokenizer import (
         compact_dna_unigram_tokenizer,
         encode_dna_batch,
@@ -95,13 +104,18 @@ def run_trial(args: argparse.Namespace) -> dict[str, Any]:
     print("STAGE loading-model", flush=True)
     if args.require_no_vllm and importlib.util.find_spec("vllm") is not None:
         raise RuntimeError("The standalone comparison requires vLLM genuinely absent")
-    runtime = RuntimeConfig(args.attention_provider, args.fa_version, args.moe_backend)
-    model = DeploymentModel(args.model_dir, device, runtime)
+    model_class = FastMarinDNAMoE if args.model_class == "fast" else MarinDNAMoE
+    model = model_class(
+        args.model_dir,
+        device,
+        use_vllm=args.use_vllm,
+        flash_attention_version=args.fa_version,
+    )
     model.prepare_rope(8192, device)
     forward = model
 
     compiled = torch.compile(
-        forward, fullgraph=True, dynamic=False, mode=args.compile_mode
+        forward, **compiler_kwargs(args.compile_mode, args.dynamic)
     )
 
     def encode(batch: list[str]) -> torch.Tensor:
@@ -238,14 +252,20 @@ def main() -> int:
         help="Zero rotates through the complete fixture",
     )
     parser.add_argument(
-        "--attention-provider", choices=["standalone", "vllm"], required=True
+        "--model-class", choices=["ordinary", "fast"], default="ordinary"
     )
+    parser.add_argument("--use-vllm", action="store_true")
     parser.add_argument("--fa-version", type=int, choices=[2, 3], required=True)
-    parser.add_argument("--moe-backend", choices=["torch", "vllm"], default="torch")
     parser.add_argument("--require-no-vllm", action="store_true")
     parser.add_argument("--validate-eager", action="store_true")
     parser.add_argument("--source-revision", required=True)
-    parser.add_argument("--compile-mode", default="reduce-overhead")
+    parser.add_argument(
+        "--compile-mode",
+        choices=["default", "reduce-overhead", "max-autotune"],
+        default="default",
+    )
+    parser.add_argument("--dynamic", choices=["auto", "static"], default="auto")
+    parser.add_argument("--freezing", action="store_true")
     args = parser.parse_args()
     if (
         args.batch_size < 1
@@ -255,9 +275,13 @@ def main() -> int:
     ):
         parser.error("Positive batch/input/warmup and at least two iterations required")
     os.environ.pop("TORCHINDUCTOR_FREEZING", None)
+    if args.freezing:
+        os.environ["TORCHINDUCTOR_FREEZING"] = "1"
+    if args.use_vllm and args.require_no_vllm:
+        parser.error("vLLM cannot be both selected and required absent")
     began = time.time()
     payload: dict[str, Any] = {
-        "schema": 2,
+        "schema": 3,
         "source_revision": args.source_revision,
         "source_tree_sha256": hashlib.sha256(
             json.dumps(
@@ -279,19 +303,22 @@ def main() -> int:
             "warmup": args.warmup,
             "input_batches": args.input_batches,
             "freezing": os.environ.get("TORCHINDUCTOR_FREEZING", "0"),
-            "specialized_topk": False,
+            "model_class": args.model_class,
+            "specialized_topk": args.model_class == "fast",
             "sconv_backend": "direct",
-            "combined_shared_expert_projections": False,
+            "combined_shared_expert_projections": args.model_class == "fast",
             "precomputed_rope": True,
-            "attention_provider": args.attention_provider,
+            "use_vllm": args.use_vllm,
+            "attention_provider": "vllm" if args.use_vllm else "standalone",
             "flash_attention_version": args.fa_version,
-            "moe_backend": args.moe_backend,
+            "moe_backend": "vllm" if args.use_vllm else "torch",
             "compile_mode": args.compile_mode,
             "fullgraph": True,
-            "dynamic": False,
+            "dynamic": False if args.dynamic == "static" else None,
+            "torch_compile_kwargs": compiler_kwargs(args.compile_mode, args.dynamic),
             "compact_input": "ACGTN",
             "compact_output": "ACGT",
-            "packed_vllm_routed_weights": args.moe_backend == "vllm",
+            "packed_vllm_routed_weights": args.use_vllm,
         },
         "source_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
     }

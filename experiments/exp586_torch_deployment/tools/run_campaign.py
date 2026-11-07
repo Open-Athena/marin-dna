@@ -1,4 +1,4 @@
-"""Run an explicit six-variant catalog serially, preserving every process result."""
+"""Run an explicit trial catalog serially, preserving every process result."""
 
 import argparse
 import fcntl
@@ -12,11 +12,25 @@ from pathlib import Path
 
 def run(plan_path: Path, root: Path, output: Path, prefix: str, revision: str) -> None:
     """Use separately installed environments; no resource or recovery decisions."""
-    import fsspec
-    from rigging.filesystem.s3_compat import configure_coreweave_s3
+    import boto3
+    from botocore.config import Config
 
-    configure_coreweave_s3()
-    fs = fsspec.filesystem("s3")
+    s3 = boto3.client(
+        "s3",
+        endpoint_url="http://cwlota.com",
+        region_name="US-EAST-02A",
+        config=Config(
+            s3={"addressing_style": "virtual"},
+            retries={"total_max_attempts": 1},
+            connect_timeout=30,
+            read_timeout=120,
+        ),
+    )
+    bucket, key_prefix = prefix.removeprefix("s3://").strip("/").split("/", 1)
+
+    def upload(path: Path) -> None:
+        s3.upload_file(str(path), bucket, key_prefix + "/" + path.name)
+
     plan = json.loads(plan_path.read_text())
     output.mkdir(parents=True, exist_ok=True)
     with (output / "gpu.lock").open("w") as lock:
@@ -25,18 +39,31 @@ def run(plan_path: Path, root: Path, output: Path, prefix: str, revision: str) -
             name = spec["name"]
             result_path = output / (name + ".json")
             if result_path.exists():
-                assert json.loads(result_path.read_text())["status"] == "passed", name
+                recorded = json.loads(result_path.read_text())
+                assert recorded["status"] == "passed", name
+                assert recorded["source_revision"] == revision, name
+                assert recorded["campaign_spec"] == spec, name
                 print("ALREADY_RECORDED", name, flush=True)
                 continue
-            environment = "no-vllm" if spec["provider"] == "standalone" else "vllm"
+            environment = "vllm" if spec["use_vllm"] else "no-vllm"
             python = root / environment / "bin/python"
             env = os.environ.copy()
             env.pop("TORCHINDUCTOR_FREEZING", None)
+            compile_identity = {
+                key: value
+                for key, value in spec.items()
+                if key not in {"name", "iterations", "warmup", "validate_eager"}
+            }
+            cache_key = hashlib.sha256(
+                json.dumps(compile_identity, sort_keys=True).encode()
+            ).hexdigest()[:16]
             env.update(
                 CUDA_VISIBLE_DEVICES="0",
                 OMP_NUM_THREADS="1",
                 TORCHINDUCTOR_COMPILE_THREADS="1",
-                TORCHINDUCTOR_CACHE_DIR=str(root / "compiler-cache" / revision),
+                TORCHINDUCTOR_CACHE_DIR=str(
+                    root / "compiler-cache" / revision / cache_key
+                ),
             )
             command = [
                 str(python),
@@ -60,17 +87,23 @@ def run(plan_path: Path, root: Path, output: Path, prefix: str, revision: str) -
                 str(spec["iterations"]),
                 "--warmup",
                 str(spec["warmup"]),
-                "--attention-provider",
-                spec["provider"],
+                "--model-class",
+                spec.get("model_class", "ordinary"),
                 "--fa-version",
                 str(spec["fa"]),
-                "--moe-backend",
-                spec["moe"],
+                "--compile-mode",
+                spec.get("compile_mode", "default"),
+                "--dynamic",
+                spec.get("dynamic", "auto"),
                 "--source-revision",
                 revision,
             ]
             if environment == "no-vllm":
                 command.append("--require-no-vllm")
+            else:
+                command.append("--use-vllm")
+            if spec.get("freezing"):
+                command.append("--freezing")
             if spec.get("validate_eager"):
                 command.append("--validate-eager")
             print("START", name, json.dumps(spec), flush=True)
@@ -104,8 +137,10 @@ def run(plan_path: Path, root: Path, output: Path, prefix: str, revision: str) -
                     + "\n"
                 )
             result = json.loads(result_path.read_text())
+            result["campaign_spec"] = spec
+            result_path.write_text(json.dumps(result, indent=2) + "\n")
             for artifact in [result_path, log]:
-                fs.put_file(str(artifact), prefix.rstrip("/") + "/" + artifact.name)
+                upload(artifact)
             print(
                 "DONE",
                 name,
@@ -125,7 +160,7 @@ def run(plan_path: Path, root: Path, output: Path, prefix: str, revision: str) -
         }
         path = output / "campaign.complete.json"
         path.write_text(json.dumps(completion, indent=2) + "\n")
-        fs.put_file(str(path), prefix.rstrip("/") + "/" + path.name)
+        upload(path)
         print("CAMPAIGN_DONE", flush=True)
 
 

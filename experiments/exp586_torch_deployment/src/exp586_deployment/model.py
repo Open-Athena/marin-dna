@@ -130,13 +130,32 @@ def grouped_experts(
     return result
 
 
-class DeploymentModel(torch.nn.Module):
-    """Compact ACGTN-to-ACGT model with explicit optional kernel providers."""
+class MarinDNAMoE(torch.nn.Module):
+    """BF16 ACGTN-to-ACGT model with two explicit inference backend choices.
+
+    ``use_vllm`` selects both vLLM attention and its built-in fused experts.
+    Otherwise standalone attention and public Torch grouped GEMMs are required.
+    Selecting an unavailable provider always raises; there is no fallback.
+    Encoding and compilation belong to the caller, outside this actual module.
+    """
 
     def __init__(
-        self, directory: Path, device: torch.device, runtime: RuntimeConfig
+        self,
+        directory: str | Path,
+        device: str | torch.device = "cuda",
+        *,
+        use_vllm: bool = False,
+        flash_attention_version: int = 2,
     ) -> None:
         super().__init__()
+        if not isinstance(use_vllm, bool):
+            raise TypeError("use_vllm must be a bool")
+        runtime = RuntimeConfig(
+            "vllm" if use_vllm else "standalone",
+            flash_attention_version,
+            "vllm" if use_vllm else "torch",
+        )
+        directory, device = Path(directory), torch.device(device)
         self.config = TorchConfig.load(directory)
         self.runtime = runtime
         self.attend = load_attention(
@@ -171,6 +190,40 @@ class DeploymentModel(torch.nn.Module):
                 self.register_buffer(f"vllm_w1_{layer}", packed, persistent=False)
         self.prepare_rope(8192, device)
         self.eval()
+
+    @classmethod
+    def from_pretrained(
+        cls,
+        repository: str | Path,
+        *,
+        revision: str | None = None,
+        device: str | torch.device = "cuda",
+        use_vllm: bool = False,
+        flash_attention_version: int = 2,
+    ) -> "MarinDNAMoE":
+        """Load a local export or fetch a pinned Hugging Face snapshot."""
+        directory = Path(repository)
+        if not directory.is_dir():
+            from huggingface_hub import snapshot_download
+
+            directory = Path(
+                snapshot_download(
+                    str(repository),
+                    revision=revision,
+                    allow_patterns=[
+                        "config.json",
+                        "tokenizer.json",
+                        "model.safetensors.index.json",
+                        "*.safetensors",
+                    ],
+                )
+            )
+        return cls(
+            directory,
+            device,
+            use_vllm=use_vllm,
+            flash_attention_version=flash_attention_version,
+        )
 
     def prepare_rope(self, sequence_length: int, device: torch.device) -> None:
         """Prepare ordinary rotary caches outside compiled execution for a request shape."""
@@ -276,7 +329,7 @@ class DeploymentModel(torch.nn.Module):
             flat, self._weight(f"{prefix}.router.weight").to(flat.dtype)
         ).float()
         biased = router + self._weight(f"{prefix}.router.bias").float()
-        selected = torch.topk(biased, k=cfg.experts_per_token, dim=-1).indices
+        selected = self._select_experts(biased)
         combine = torch.sigmoid(torch.gather(router, 1, selected))
         combine = combine * (2.5 / (combine.sum(dim=-1, keepdim=True) + 1e-9))
         routed = F.linear(flat, self._weight(f"{prefix}.latent_down_proj.weight"))
@@ -304,6 +357,9 @@ class DeploymentModel(torch.nn.Module):
             )
         output = F.linear(output, self._weight(f"{prefix}.latent_up_proj.weight"))
         return output.reshape_as(x)
+
+    def _select_experts(self, biased: torch.Tensor) -> torch.Tensor:
+        return torch.topk(biased, k=self.config.experts_per_token, dim=-1).indices
 
     def _shared_experts(self, layer: int, x: torch.Tensor) -> torch.Tensor:
         output = torch.zeros_like(x)
