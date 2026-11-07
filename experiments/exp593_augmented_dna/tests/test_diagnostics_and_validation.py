@@ -82,11 +82,12 @@ def test_full_holdout_verification_checks_interval_edges_and_source_strands(tmp_
     train = [{"assembly": "A", "chrom": "chr1", "start": 100, "end": 200}]
     pq.write_table(pa.Table.from_pylist(train), tmp_path / "train.parquet")
     holdout = [
-        {"assembly": "A", "chrom": "chr1", "start": 200, "end": 300, "strand": "-"}
+        {"assembly": "A", "chrom": "chr1", "start": 201, "end": 300, "strand": "-"}
     ]
     assert verify_disjoint_metadata(holdout, tmp_path, expected_rows=1) == 1
     with pytest.raises(ValueError, match="training metadata row"):
         verify_disjoint_metadata(holdout, tmp_path)
-    holdout[0]["start"] = 199
-    with pytest.raises(ValueError, match="intersects a training"):
-        verify_disjoint_metadata(holdout, tmp_path, expected_rows=1)
+    for start, end in [(199, 300), (200, 300), (0, 100)]:
+        holdout[0].update(start=start, end=end)
+        with pytest.raises(ValueError, match="intersects a training"):
+            verify_disjoint_metadata(holdout, tmp_path, expected_rows=1)

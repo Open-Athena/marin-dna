@@ -94,6 +94,7 @@ The weighted loss is `(10 * unmasked_loss_sum + repeat_loss_sum) / (10 * unmaske
 
 An additional fixed 512-window diagnostic, `eval/loss_disjoint`, is sampled from the 11,581 previously screened validation candidates.
 Its recorded source intervals do not intersect any training source interval, considering both strands.
+Intervals touching at an endpoint are also excluded because the original source-coordinate convention is unverified.
 Selection is deterministic, covers all 65 species and also prevents overlaps between the selected source intervals themselves.
 This removes recorded genomic overlap; it does not guarantee absence of homology or repeats.
 The main validation sample and this diagnostic have separate immutable manifests.

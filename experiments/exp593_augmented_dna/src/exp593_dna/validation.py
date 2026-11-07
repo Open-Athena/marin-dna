@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from bisect import bisect_left
+from bisect import bisect_right
 from collections import defaultdict
 from collections.abc import Sequence
 from itertools import pairwise
@@ -82,7 +82,7 @@ def select_disjoint_validation(
                 r = candidates.pop()
                 key = (r["assembly"], r["chrom"])
                 if any(
-                    r["start"] < end and r["end"] > start
+                    r["start"] <= end and r["end"] >= start
                     for start, end in intervals[key]
                 ):
                     continue
@@ -110,7 +110,7 @@ def verify_disjoint_metadata(
         intervals[r["assembly"], r["chrom"]].append((r["start"], r["end"]))
     for values in intervals.values():
         values.sort()
-        if any(a[1] > b[0] for a, b in pairwise(values)):
+        if any(a[1] >= b[0] for a, b in pairwise(values)):
             raise ValueError("Selected validation source intervals intersect")
     checked = 0
     for path in sorted(metadata_root.glob("*.parquet")):
@@ -118,8 +118,8 @@ def verify_disjoint_metadata(
             path, columns=["assembly", "chrom", "start", "end"]
         ).to_pylist():
             values = intervals.get((r["assembly"], r["chrom"]), [])
-            prior = bisect_left(values, (r["end"],)) - 1
-            if prior >= 0 and values[prior][1] > r["start"]:
+            prior = bisect_right(values, (r["end"], float("inf"))) - 1
+            if prior >= 0 and values[prior][1] >= r["start"]:
                 raise ValueError(
                     "Validation source region intersects a training source region"
                 )
