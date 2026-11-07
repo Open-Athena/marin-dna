@@ -102,6 +102,14 @@ def evaluation_progress(stage: str, completed: int, total: int) -> None:
         LOGGER.info("Evaluation %s: %d/%d", stage, completed, total)
 
 
+def input_progress(completed: int, total: int) -> None:
+    if jax.process_index() == 0 and (completed % 4 == 0 or completed == total):
+        tracker.log_summary(
+            {"training/cached_train_shards": completed, "training/train_shards": total}
+        )
+        LOGGER.info("Verified training shards cached: %d/%d", completed, total)
+
+
 @dataclass(frozen=True)
 class TrainingConfig:
     cluster: str
@@ -312,7 +320,7 @@ def _run_training(config: TrainingConfig) -> None:
     tracker.log_hyperparameters({"bindings": bindings})
     # Every worker warms the same verified row groups. Eight workers together
     # require about 173 GB of decoded DNA, within the 600 GB node request.
-    dataset = open_corpus(inputs, "train", 0, preload=True)
+    dataset = open_corpus(inputs, "train", 0, preload=True, progress=input_progress)
     augmenter = Augmenter(
         encoder,
         AugmentationConfig(),
