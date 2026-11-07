@@ -205,6 +205,10 @@ class MarinDNAMoE(torch.nn.Module):
         runtime = RuntimeConfig(
             attention_provider, flash_attention_version, moe_backend
         )
+        if dtype == torch.float16 and runtime.moe_backend == "torch":
+            raise ValueError(
+                "The native Torch MoE backend requires bfloat16 with the pinned CUDA 13.2 build"
+            )
         directory, device = Path(directory), torch.device(device)
         self.config = TorchConfig.load(directory)
         self.runtime = runtime

@@ -20,6 +20,7 @@ def checkpoint(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Path:
         lambda _: SimpleNamespace(num_layers=0, head_dim=8, rope_theta=10000),
     )
     monkeypatch.setattr(model, "load_attention", lambda *_: None)
+    monkeypatch.setattr(model, "load_fused_experts", lambda: object())
     monkeypatch.setattr(
         model,
         "load_weights",
@@ -46,7 +47,12 @@ def test_full_vocab_and_selected_dtype_are_independent_options(
     checkpoint: Path,
 ) -> None:
     module = MarinDNAMoE(
-        checkpoint, "cpu", input_vocab=None, output_vocab=None, dtype=torch.float16
+        checkpoint,
+        "cpu",
+        input_vocab=None,
+        output_vocab=None,
+        dtype=torch.float16,
+        moe_backend="vllm",
     )
     assert module._weight("model.embed_tokens.weight").shape == (8, 3)
     assert module._weight("lm_head.weight").shape == (8, 3)
@@ -61,6 +67,7 @@ def test_full_vocab_and_selected_dtype_are_independent_options(
         {"output_vocab": ""},
         {"output_vocab": "XYZ"},
         {"dtype": torch.float32},
+        {"dtype": torch.float16, "moe_backend": "torch"},
         {"sconv_backend": "custom"},
         {"cache_rope": "yes"},
     ],

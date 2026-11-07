@@ -31,7 +31,8 @@ FA3 imports as `flash_attn_interface`; its extension is `flash_attn_3._C`.
 The restricted binary supports the tested Hopper/BF16/head-128 workload, including causal local/global attention, variable-length attention and GQA.
 These build switches omit unused features; the inference code does not set kernel tiles.
 The modular NVIDIA toolkit used by the executed recipe required an unversioned `libcudart.so` link to its `libcudart.so.13` for linking.
-FP16 model weights are an API option, but this particular restricted FA3 binary only supports BF16.
+FP16 model weights are an API option for compatible providers, but this particular restricted FA3 binary only supports BF16.
+The native Torch MoE backend also requires BF16 with the pinned CUDA 13.2 build; unsupported FP16/Torch combinations are rejected before loading checkpoint weights.
 
 ## vLLM providers
 
