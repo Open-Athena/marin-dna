@@ -1,0 +1,235 @@
+{
+  "model": "plantcad/marin-dna-exp586-1.5B-60M-216B",
+  "model_revision": "4130f71edcd117a7375af1ac78723d9a9173533f",
+  "measured_source_revision": "81821bd77dfee5e22904ca1cded3717a4ad1e3fd",
+  "final_benchmark_revision": "1fcee555cc4606c547c6210d8d31dd303929fa08",
+  "gpu": "NVIDIA H100 80GB HBM3",
+  "gpu_uuid": "GPU-6274e0ea-b6b6-6807-177a-3930c8dc6f65",
+  "estimator": "median of three fresh-process median CUDA-event forward throughputs",
+  "uncertainty": "min-max range of the three process medians; not a confidence interval",
+  "scope": "warmed full device forward; no tokenization, H2D/D2H, model load, compile, warmup",
+  "dtype": "BF16",
+  "sequence_length": 8192,
+  "fixture_windows": 512,
+  "warmup_forwards": 8,
+  "timed_forwards_per_process": 32,
+  "configurations": [
+    {
+      "id": "pt-fa2",
+      "label": "Torch MoE / FA2",
+      "batch_size": 64,
+      "median_tokens_per_second": 1047125.688739519,
+      "min_tokens_per_second": 1047106.1911508736,
+      "max_tokens_per_second": 1047732.3912533317,
+      "replicates": [
+        1047732.3912533317,
+        1047106.1911508736,
+        1047125.688739519
+      ],
+      "trial_names": [
+        "a-default-b64-r1",
+        "a-default-b64-r2",
+        "a-default-b64-r3"
+      ],
+      "config": {
+        "batch_size": 64,
+        "iterations": 32,
+        "warmup": 8,
+        "input_batches": 0,
+        "freezing": "0",
+        "model_class": "ordinary",
+        "specialized_topk": false,
+        "sconv_backend": "direct",
+        "combined_shared_expert_projections": false,
+        "precomputed_rope": true,
+        "use_vllm": false,
+        "attention_provider": "standalone",
+        "flash_attention_version": 2,
+        "moe_backend": "torch",
+        "compile_mode": "default",
+        "fullgraph": true,
+        "dynamic": null,
+        "torch_compile_kwargs": {
+          "fullgraph": true
+        },
+        "compact_input": "ACGTN",
+        "compact_output": "ACGT",
+        "packed_vllm_routed_weights": false
+      }
+    },
+    {
+      "id": "pt-fa3",
+      "label": "Torch MoE / FA3",
+      "batch_size": 64,
+      "median_tokens_per_second": 1145161.732096305,
+      "min_tokens_per_second": 1144786.143024526,
+      "max_tokens_per_second": 1145984.0496883257,
+      "replicates": [
+        1145984.0496883257,
+        1144786.143024526,
+        1145161.732096305
+      ],
+      "trial_names": [
+        "b-default-b64-r1",
+        "b-default-b64-r2",
+        "b-default-b64-r3"
+      ],
+      "config": {
+        "batch_size": 64,
+        "iterations": 32,
+        "warmup": 8,
+        "input_batches": 0,
+        "freezing": "0",
+        "model_class": "ordinary",
+        "specialized_topk": false,
+        "sconv_backend": "direct",
+        "combined_shared_expert_projections": false,
+        "precomputed_rope": true,
+        "use_vllm": false,
+        "attention_provider": "standalone",
+        "flash_attention_version": 3,
+        "moe_backend": "torch",
+        "compile_mode": "default",
+        "fullgraph": true,
+        "dynamic": null,
+        "torch_compile_kwargs": {
+          "fullgraph": true
+        },
+        "compact_input": "ACGTN",
+        "compact_output": "ACGT",
+        "packed_vllm_routed_weights": false
+      }
+    },
+    {
+      "id": "vl-fa2",
+      "label": "vLLM fused MoE / FA2",
+      "batch_size": 64,
+      "median_tokens_per_second": 1165334.1374516655,
+      "min_tokens_per_second": 1164908.8659698744,
+      "max_tokens_per_second": 1165727.7624285729,
+      "replicates": [
+        1165727.7624285729,
+        1164908.8659698744,
+        1165334.1374516655
+      ],
+      "trial_names": [
+        "e-default-b64-r1",
+        "e-default-b64-r2",
+        "e-default-b64-r3"
+      ],
+      "config": {
+        "batch_size": 64,
+        "iterations": 32,
+        "warmup": 8,
+        "input_batches": 0,
+        "freezing": "0",
+        "model_class": "ordinary",
+        "specialized_topk": false,
+        "sconv_backend": "direct",
+        "combined_shared_expert_projections": false,
+        "precomputed_rope": true,
+        "use_vllm": true,
+        "attention_provider": "vllm",
+        "flash_attention_version": 2,
+        "moe_backend": "vllm",
+        "compile_mode": "default",
+        "fullgraph": true,
+        "dynamic": null,
+        "torch_compile_kwargs": {
+          "fullgraph": true
+        },
+        "compact_input": "ACGTN",
+        "compact_output": "ACGT",
+        "packed_vllm_routed_weights": true
+      }
+    },
+    {
+      "id": "vl-fa3",
+      "label": "vLLM fused MoE / FA3",
+      "batch_size": 64,
+      "median_tokens_per_second": 1284062.7564664881,
+      "min_tokens_per_second": 1282946.8800312688,
+      "max_tokens_per_second": 1285403.757634902,
+      "replicates": [
+        1285403.757634902,
+        1284062.7564664881,
+        1282946.8800312688
+      ],
+      "trial_names": [
+        "f-default-b64-r1",
+        "f-default-b64-r2",
+        "f-default-b64-r3"
+      ],
+      "config": {
+        "batch_size": 64,
+        "iterations": 32,
+        "warmup": 8,
+        "input_batches": 0,
+        "freezing": "0",
+        "model_class": "ordinary",
+        "specialized_topk": false,
+        "sconv_backend": "direct",
+        "combined_shared_expert_projections": false,
+        "precomputed_rope": true,
+        "use_vllm": true,
+        "attention_provider": "vllm",
+        "flash_attention_version": 3,
+        "moe_backend": "vllm",
+        "compile_mode": "default",
+        "fullgraph": true,
+        "dynamic": null,
+        "torch_compile_kwargs": {
+          "fullgraph": true
+        },
+        "compact_input": "ACGTN",
+        "compact_output": "ACGT",
+        "packed_vllm_routed_weights": true
+      }
+    },
+    {
+      "id": "fast-fa3",
+      "label": "vLLM + project router / FA3",
+      "batch_size": 64,
+      "median_tokens_per_second": 1584105.3808772035,
+      "min_tokens_per_second": 1578271.100533695,
+      "max_tokens_per_second": 1584764.9960567371,
+      "replicates": [
+        1584105.3808772035,
+        1584764.9960567371,
+        1578271.100533695
+      ],
+      "trial_names": [
+        "fast-vllm-old-b64-r1",
+        "fast-vllm-old-b64-r2",
+        "fast-vllm-old-b64-r3"
+      ],
+      "config": {
+        "batch_size": 64,
+        "iterations": 32,
+        "warmup": 8,
+        "input_batches": 0,
+        "freezing": "1",
+        "model_class": "fast",
+        "specialized_topk": true,
+        "sconv_backend": "direct",
+        "combined_shared_expert_projections": true,
+        "precomputed_rope": true,
+        "use_vllm": true,
+        "attention_provider": "vllm",
+        "flash_attention_version": 3,
+        "moe_backend": "vllm",
+        "compile_mode": "reduce-overhead",
+        "fullgraph": true,
+        "dynamic": false,
+        "torch_compile_kwargs": {
+          "fullgraph": true,
+          "mode": "reduce-overhead",
+          "dynamic": false
+        },
+        "compact_input": "ACGTN",
+        "compact_output": "ACGT",
+        "packed_vllm_routed_weights": true
+      }
+    }
+  ]
+}

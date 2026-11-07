@@ -20,6 +20,18 @@ Graph freezing, combined shared projections, quantization, manual kernel tiles a
 Call `prepare_rope(length, device)` outside compilation when changing the request length.
 
 The preserved [Canonical usage](examples/canonical_usage.py) example loads the model directly and calls `torch.compile(model, fullgraph=True)`.
+This remains the named canonical usage for `pt-fa2`.
+The companion examples deliberately spell out each configuration without a CLI or wrapper:
+
+| Configuration | Canonical usage |
+| --- | --- |
+| `pt-fa2` | [Standalone FA2 and native Torch experts](examples/canonical_usage.py) |
+| `pt-fa3` | [Standalone FA3 and native Torch experts](examples/canonical_usage_fa3.py) |
+| `vl-fa2` | [vLLM FA2 and built-in fused experts](examples/canonical_usage_vllm_fa2.py) |
+| `vl-fa3` | [vLLM FA3 and built-in fused experts](examples/canonical_usage_vllm_fa3.py) |
+| `fast-fa3` | [FA3, vLLM fused experts, project Triton router, and compiler tuning](examples/canonical_usage_fast.py) |
+
+These examples run one window for readability; benchmark throughput uses the batch size stated with each result.
 Encoding and compilation stay explicit outside the model.
 `fullgraph=True` is our required assertion against graph breaks; it is not Torch's default.
 Compiler mode and dynamic-shape policy are otherwise left at their defaults.

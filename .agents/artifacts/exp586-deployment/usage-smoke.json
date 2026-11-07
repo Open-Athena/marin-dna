@@ -1,0 +1,61 @@
+{
+  "device": "H100 CUDA:0",
+  "all_finite_bf16": true,
+  "checks": [
+    {
+      "id": "fast-fa3",
+      "shape": [
+        1,
+        8192,
+        4
+      ],
+      "dtype": "torch.bfloat16",
+      "model": "FastMarinDNAMoE",
+      "example_sha256": "82355b227e6cb2e8927e4bb97d12b571fe6c7e39050c7899fdbf77f7863e63ae"
+    },
+    {
+      "id": "pt-fa2",
+      "shape": [
+        1,
+        8192,
+        4
+      ],
+      "dtype": "torch.bfloat16",
+      "model": "MarinDNAMoE",
+      "example_sha256": "567223cb0e749801141c342bd278f1bc9bcc34790667ae64e3a6d48fe9225d5b"
+    },
+    {
+      "id": "pt-fa3",
+      "shape": [
+        1,
+        8192,
+        4
+      ],
+      "dtype": "torch.bfloat16",
+      "model": "MarinDNAMoE",
+      "example_sha256": "4ebda4fccbd6724afb35519eb71ed676745dd59bc2628131936104e5b0acc924"
+    },
+    {
+      "id": "vl-fa2",
+      "shape": [
+        1,
+        8192,
+        4
+      ],
+      "dtype": "torch.bfloat16",
+      "model": "MarinDNAMoE",
+      "example_sha256": "eb2464bb489ead4e3ee34cf15116eae929a3999644760b4945f7957de09b164f"
+    },
+    {
+      "id": "vl-fa3",
+      "shape": [
+        1,
+        8192,
+        4
+      ],
+      "dtype": "torch.bfloat16",
+      "model": "MarinDNAMoE",
+      "example_sha256": "f690b655bd66433398913de64b0bf156897e7d51fa931b0195d7420e64cbfb5f"
+    }
+  ]
+}
