@@ -5,6 +5,9 @@ All implementation and artifacts belong to the permanent, unmerged [companion PR
 The user has authorized preparation, single-node H100 validation, and full training when ready.
 Data preparation and the single-node H100 smoke are complete.
 Production-loop and runtime validation integration are in progress; the production model has not started.
+The accelerator evaluator reads the immutable preparation bundle, rechecks historical membership and native-case FIM reconstruction, and scores raw token NLL with binary masks.
+Its fixed generation panel contains two minimal/formatted pairs for each of the nine gap lengths (36 presentations); each completion is greedy, uses the full original vocabulary, and stops at the caller-specified length.
+The `exp593_dna.smoke --evaluate-panels` option exercises all causal and FIM panels after the bounded training/checkpoint smoke.
 
 ## Reproduce preparation
 

@@ -75,6 +75,7 @@ class SmokeConfig:
     run_id: str
     cluster: str
     nodes: int = 1
+    evaluate_panels: bool = False
 
     def __post_init__(self) -> None:
         if self.nodes not in (1, 2, 4, 8) or self.cluster not in (
@@ -292,6 +293,14 @@ def run_smoke(config: SmokeConfig) -> None:
         gc.collect()
         final_checkpoint = f"{config.checkpoint_root}/step-{clock.updates}"
         save_training_checkpoint(state, clock, final_checkpoint, bindings)
+        if config.evaluate_panels:
+            from exp593_dna.evaluate import Evaluator, ValidationPanels
+
+            tracker.log_summary({"validation/phase": "frozen_panel_evaluation"})
+            panels = ValidationPanels.open(inputs, encoder)
+            evaluation = Evaluator(panels, encoder, mesh, mp).evaluate(state)
+            tracker.log(evaluation, step=clock.updates + 1)
+            tracker.log_summary({"validation/frozen_panels_passed": True, **evaluation})
         tracker.log_summary(
             {
                 "validation/phase": "complete",
@@ -300,7 +309,7 @@ def run_smoke(config: SmokeConfig) -> None:
                 **differences,
             }
         )
-        tracker.log({"run_progress": 1.0}, step=clock.updates + 1)
+        tracker.log({"run_progress": 1.0}, step=clock.updates + 2)
     tracker.current_tracker().finish()
 
 
@@ -353,6 +362,7 @@ def main() -> None:
         "--cluster", choices=["cw-rno2a", "cw-us-east-02a"], required=True
     )
     parser.add_argument("--nodes", type=int, choices=[1, 2, 4, 8], default=1)
+    parser.add_argument("--evaluate-panels", action="store_true")
     dispatch(SmokeConfig(**vars(parser.parse_args())))
 
 
