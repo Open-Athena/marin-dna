@@ -7,6 +7,7 @@ Data preparation and the single-node H100 smoke are complete.
 The full fixed-panel accelerator evaluator passed on eight H100s in about 65 seconds, including all 36 greedy completions.
 The four-node production loop passed sixteen bounded updates and native checkpoint discovery.
 The single production run has been submitted on one eight-H100 node as `dna-exp593-augmented-d768-pretrained-seed0-v1` in personal `eric-czech/marin`; worker initialization and numerical progress are being monitored.
+The detailed scheduler status currently reports a Kueue admission wait; no production optimizer update has been observed yet.
 The accelerator evaluator reads the immutable preparation bundle, rechecks historical membership and native-case FIM reconstruction, and scores raw token NLL with binary masks.
 Its fixed generation panel contains two minimal/formatted pairs for each of the nine gap lengths (36 presentations); each completion is greedy, uses the full original vocabulary, and stops at the caller-specified length.
 The `exp593_dna.smoke --evaluate-panels` option exercises all causal and FIM panels after the bounded training/checkpoint smoke.
@@ -31,6 +32,34 @@ Periodic checkpoints occur approximately every 30 minutes, with two temporary re
 The run stops after the first complete 64-example update reaching the nominal 216,158,699,520 input-token budget.
 It records the actual input count and overshoot, which is less than 524,288 tokens (2.43 parts per million), preserving the minimum example length and equal per-example objective at the last update.
 Padding never advances the schedule.
+
+## Development diagnostics
+
+The conservation development panel is frozen before any prediction in `artifacts/development-v1`.
+Its 512 sites contain 256 published conserved and 256 neutral labels, matched by Sorghum chromosome and target base, with nonoverlapping 512-base contexts.
+Selection uses odd Sorghum chromosomes from the upstream `Evolutionary_constraint/train.tsv`; these records are evaluation-only and never enter the language-model corpus or annotation sampler.
+Every selected context matches reference GCF_000003195.3 exactly and avoids the conservatively expanded source regions from every original Sorghum training row.
+The verifier checks all 44 original training metadata shards and all 2,638,656 row records against the immutable input manifest.
+This establishes coordinate separation, not absence of homologous sequence in other training genomes.
+
+The upstream file named `valid.tsv` is excluded: all 38,060 PlantCAD2 Andropogoneae benchmark windows contain its central 512-base contexts.
+That audit read only the benchmark sequence column.
+Published coordinates are one-based, with the labeled nucleotide at source sequence index 255; exact reference matching verifies the conversion to zero-based, half-open intervals.
+The scoring protocol is frozen in the manifest: average bare left/right-RC true-base log-probability for conservation, with a separate minimal-FIM view, AUROC and average precision.
+The junction panel contains 32 donor sites, 32 acceptor sites and 64 matched random controls from 64 existing held-out windows across 22 species.
+The two-base source motifs are canonical, and fixed reverse complements produce both sequence orientations; the rendered minimal prompts reveal no feature class.
+Random controls share the same DNA crop and orientation and stay more than 32 bases outside every annotated landmark neighborhood.
+The source-row metadata, native-case DNA hashes and annotation bank are checked against the immutable preparation bundle before selection.
+The scoring and quarterly scheduling integration remain pending; neither development panel has been scored.
+The large junction payload is native-only; the repository retains its manifest and four paired examples.
+
+```bash
+uv run --locked python -m exp593_dna.development \
+  --source-root /home/exedev/tmp/mdna-exp593-development \
+  --prep-root /home/exedev/tmp/mdna-exp593-data-prep \
+  --inputs-manifest artifacts/prep-v2/inputs_manifest.json \
+  --output artifacts/development-v1
+```
 
 ## Reproduce preparation
 

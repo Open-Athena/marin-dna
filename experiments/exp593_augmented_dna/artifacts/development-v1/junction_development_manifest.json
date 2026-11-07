@@ -1,0 +1,22 @@
+{
+  "annotation_bank_sha256": "821a6b2afff70bc157bfb538c7db18e77ba2cb9376694c5325765bd682cfa6e2",
+  "counts": {
+    "rc_pairs": 29,
+    "splice_acceptor": 32,
+    "splice_donor": 32
+  },
+  "eligible_unique_sites": {
+    "splice_acceptor": 395,
+    "splice_donor": 381
+  },
+  "heldout_manifest_sha256": "6fad190f8a5b4552d5bdb17eee3df3e133eb4538a92b1e9ba200dffc991f051e",
+  "lm_inputs_manifest_sha256": "33d8d87b7ee9edbba457504632936cfd7eccb00523a74726ed6a08098047f0e3",
+  "panel_sha256": "141f04a35906c800a090592c6e8b5399f681ba7a890bbdd5e2ca8042aff5e82c",
+  "presentations": 128,
+  "purpose": "evaluation_only; never training or annotation guidance",
+  "scoring_protocol": "Freeze per-example gap NLL, teacher-forced base accuracy, greedy case-sensitive and case-folded exact match, separated by donor, acceptor and random-control task. Do not use teacher-forced span agreement as greedy exact match.",
+  "source_policy": "Only the existing 512 source-disjoint validation windows; one source row per guided example. Two-base GT/AG source motifs; blind minimal FIM prompts; uniform lowercase, fixed RC Bernoulli draw, 8064-base shared crop; random controls avoid all known landmark neighborhoods by more than 32 bases.",
+  "source_rows": 64,
+  "species": 22,
+  "tokenizer_sha256": "a43c95c64d7293d06f0c6c4713f95e0036738248f881315910c703307bdd2a2b"
+}

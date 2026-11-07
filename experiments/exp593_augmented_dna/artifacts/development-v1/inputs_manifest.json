@@ -1,0 +1,51 @@
+{
+  "files": {
+    "conservation_development.jsonl": {
+      "bytes": 438249,
+      "complete_readback_verified": true,
+      "etag": "\"7f81ed5119b143305eb417d0b17912fa\"",
+      "sha256": "50f84f2a68425fe1d494a1bd92dfe3fbafe87ef48c05be3e40100dcbf58ea7fe",
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/validation/development-v1-09067653218f16aad613263fe30d51bbb2a66c796903145df6243ca244cdff48/conservation_development.jsonl"
+    },
+    "conservation_development_manifest.json": {
+      "bytes": 2166,
+      "complete_readback_verified": true,
+      "etag": "\"aae2a556012c1f203dac326c6393d8e2\"",
+      "sha256": "54e92ed1a587e5f3255f8c466fbebe4bdf443bb008278ae0ada49abea0142264",
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/validation/development-v1-09067653218f16aad613263fe30d51bbb2a66c796903145df6243ca244cdff48/conservation_development_manifest.json"
+    },
+    "junction_development.jsonl": {
+      "bytes": 1143114,
+      "complete_readback_verified": true,
+      "etag": "\"45560669f72176ac58eb7d5fd3277e8d\"",
+      "sha256": "141f04a35906c800a090592c6e8b5399f681ba7a890bbdd5e2ca8042aff5e82c",
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/validation/development-v1-09067653218f16aad613263fe30d51bbb2a66c796903145df6243ca244cdff48/junction_development.jsonl"
+    },
+    "junction_development_examples.jsonl": {
+      "bytes": 71427,
+      "complete_readback_verified": true,
+      "etag": "\"fa5493aa35fd5771cddf9e9b8e7996d7\"",
+      "sha256": "5bb1b5f29a1c211b6c04073406887f58d294e2f72ca8521c33a5103801f55285",
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/validation/development-v1-09067653218f16aad613263fe30d51bbb2a66c796903145df6243ca244cdff48/junction_development_examples.jsonl"
+    },
+    "junction_development_manifest.json": {
+      "bytes": 1348,
+      "complete_readback_verified": true,
+      "etag": "\"cb92cf11d3a962fec1b7e3848ee53223\"",
+      "sha256": "9b9a1864fdf29455eafb7d7b2c27f64d5258efc1b3e9803839de88459b038890",
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/validation/development-v1-09067653218f16aad613263fe30d51bbb2a66c796903145df6243ca244cdff48/junction_development_manifest.json"
+    },
+    "source_scope_audit.json": {
+      "bytes": 542,
+      "complete_readback_verified": true,
+      "etag": "\"59120e5c65d0f0a36bcb79228b1c0632\"",
+      "sha256": "e1e4ce22fa83770c71c52c407056eeb3c127878ac1ae1cd98a75b44a5b9cd6e4",
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/validation/development-v1-09067653218f16aad613263fe30d51bbb2a66c796903145df6243ca244cdff48/source_scope_audit.json"
+    }
+  },
+  "fingerprint": "09067653218f16aad613263fe30d51bbb2a66c796903145df6243ca244cdff48",
+  "prefix": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/validation/development-v1-09067653218f16aad613263fe30d51bbb2a66c796903145df6243ca244cdff48",
+  "purpose": "evaluation_only; never training or annotation guidance",
+  "schema": 1,
+  "scoring_status": "unscored; scoring and quarterly scheduling integration pending"
+}

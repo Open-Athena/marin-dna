@@ -1,0 +1,7 @@
+{
+  "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/validation/development-v1-09067653218f16aad613263fe30d51bbb2a66c796903145df6243ca244cdff48/manifest.json",
+  "sha256": "73904d171e8d90b1345b0688d20338f31dc9146de9e5c7ff1be3ab66d98a2c0a",
+  "bytes": 3081,
+  "etag": "\"d9bca2372a950ae4bee0bd86bbd2282d\"",
+  "complete_readback_verified": true
+}
