@@ -85,7 +85,8 @@ def load_attention(provider: str, version: int) -> Callable[..., torch.Tensor]:
                 causal=True,
                 window_size=(-1, -1) if window_left < 0 else (window_left, 0),
             )
-        return result[0] if isinstance(result, tuple) else result
+        result = result[0] if isinstance(result, tuple) else result
+        return result.contiguous()
 
     @attention.register_fake
     def fake_attention(
@@ -96,7 +97,7 @@ def load_attention(provider: str, version: int) -> Callable[..., torch.Tensor]:
         sequence_length: int,
         window_left: int,
     ) -> torch.Tensor:
-        return torch.empty_like(q)
+        return torch.empty(q.shape, device=q.device, dtype=q.dtype)
 
     return attention
 

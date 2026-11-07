@@ -78,10 +78,16 @@ def test_attention_adapter_preserves_gqa_and_window_contract(
         lambda name: SimpleNamespace(flash_attn_varlen_func=attention),
     )
     operation = providers.load_attention(provider, version)
-    q, k, v = torch.randn(8, 6, 4), torch.randn(8, 1, 4), torch.randn(8, 1, 4)
+    q, k, v = (
+        torch.randn(6, 8, 4).transpose(0, 1),
+        torch.randn(8, 1, 4),
+        torch.randn(8, 1, 4),
+    )
     cu = torch.tensor([0, 4, 8], dtype=torch.int32)
     for left in [-1, 3]:
-        torch.testing.assert_close(operation(q, k, v, cu, 4, left), q)
+        result = operation(q, k, v, cu, 4, left)
+        torch.testing.assert_close(result, q)
+        assert result.is_contiguous()
         args, kwargs = calls[-1]
         assert args[1].shape[1] == 1
         assert kwargs["causal"] is True
@@ -96,6 +102,11 @@ def test_attention_adapter_preserves_gqa_and_window_contract(
         else:
             assert args[3] is cu and args[4] is cu
             assert args[5:] == (4, 4)
+        torch.library.opcheck(
+            operation,
+            (q, k, v, cu, 4, left),
+            test_utils=("test_schema", "test_faketensor"),
+        )
 
 
 def test_forward_counts_full_windows_and_validation_has_one_shape() -> None:
