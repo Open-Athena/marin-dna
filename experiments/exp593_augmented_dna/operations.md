@@ -65,4 +65,5 @@ The November 7 single-node smoke validated all context buckets and global batch 
 See the companion's `artifacts/smoke-v1/result.json` for numerical limits and source bindings.
 The one-node profile is eligible for production once runtime evaluation and production-loop validation pass.
 The two-, four- and eight-node profiles remain candidates for bounded validation; they have not yet been exercised by this experiment.
-There is no active GPU gang after the completed smoke.
+The subsequent fixed-panel evaluator passed both causal panels, 1,024 FIM presentations and 36 greedy completions on the same one-node profile; see artifacts/eval-smoke-v2/result.json.
+The four-node production-loop validation uses the same scientific batch and bindings, with its own validation namespace.

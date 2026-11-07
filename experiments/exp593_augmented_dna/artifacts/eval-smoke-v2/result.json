@@ -2,7 +2,6 @@
   "run_id": "dna-exp593-eval-smoke-20261107-v2",
   "state": "finished",
   "url": "https://forge.coreweave.com/api/wandb/eric-czech/marin/runs/dna-exp593-eval-smoke-20261107-v2",
-  "source_commit": "6f27b4bb7a376c7a1d52225621f285fb55c8470f",
   "iris_root": "/eczech/exp593-eval-smoke-20261107-v2-a3",
   "metrics": {
     "eval/disjoint_examples": 512,
@@ -163,5 +162,8 @@
       "root": "/eczech/exp593-eval-smoke-20261107-v2-a2",
       "cause": "FIM target-logit gather needs explicit batch output sharding"
     }
-  ]
+  ],
+  "evaluation_source_commit": "6f27b4bb7a376c7a1d52225621f285fb55c8470f",
+  "checkpoint_training_source_commit": "14aa2bc316c8b4374498de34f91f8f29088e009f",
+  "iris_child_state": "JOB_STATE_SUCCEEDED"
 }
