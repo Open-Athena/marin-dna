@@ -19,6 +19,18 @@ from exp586_deployment.benchmark import (
 from exp586_deployment.fast import combined_shared_experts
 from exp586_deployment.model import MarinDNAMoE, short_conv
 from exp586_deployment.providers import RuntimeConfig
+from exp586_deployment.tokenizer import dna_nucleotide_tokenizer, encode_dna_batch
+
+
+def test_nucleotide_tokenizer_preserves_single_base_ids_and_case() -> None:
+    sequence = "AcGtN" * 1638 + "aC"
+    tokenizer = dna_nucleotide_tokenizer()
+    encoded = encode_dna_batch(tokenizer, [sequence.upper()])
+    assert encoded.shape == (1, 8192)
+    assert encoded.tolist() == [[0, 1, 2, 3, 4] * 1638 + [0, 1]]
+    assert (
+        tokenizer.encode(sequence, add_special_tokens=False).ids == encoded[0].tolist()
+    )
 
 
 @pytest.mark.parametrize("length", [1, 2, 8, 13])

@@ -104,7 +104,7 @@ def run_trial(args: argparse.Namespace) -> dict[str, Any]:
     from exp586_deployment.correctness import acgt_parity
     from exp586_deployment.fixtures import load_fixture, sha256_file
     from exp586_deployment.tokenizer import (
-        compact_dna_unigram_tokenizer,
+        dna_nucleotide_tokenizer,
         encode_dna_batch,
     )
 
@@ -115,7 +115,7 @@ def run_trial(args: argparse.Namespace) -> dict[str, Any]:
     device = torch.device("cuda:0")
     sequences = load_fixture(args.fixture)
     validation = load_fixture(args.validation_fixture)
-    tokenizer = compact_dna_unigram_tokenizer()
+    tokenizer = dna_nucleotide_tokenizer()
     print("STAGE loading-model", flush=True)
     if args.require_no_vllm and importlib.util.find_spec("vllm") is not None:
         raise RuntimeError("The standalone comparison requires vLLM genuinely absent")

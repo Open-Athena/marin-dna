@@ -15,7 +15,7 @@
   "timed_forwards_per_process": 32,
   "configurations": [
     {
-      "id": "pt-fa2",
+      "id": "torch-fa2",
       "label": "Torch MoE / FA2",
       "batch_size": 64,
       "median_tokens_per_second": 1047125.688739519,
@@ -58,7 +58,7 @@
       }
     },
     {
-      "id": "pt-fa3",
+      "id": "torch-fa3",
       "label": "Torch MoE / FA3",
       "batch_size": 64,
       "median_tokens_per_second": 1145161.732096305,
@@ -101,7 +101,7 @@
       }
     },
     {
-      "id": "vl-fa2",
+      "id": "vllm-fa2",
       "label": "vLLM fused MoE / FA2",
       "batch_size": 64,
       "median_tokens_per_second": 1165334.1374516655,
@@ -144,7 +144,7 @@
       }
     },
     {
-      "id": "vl-fa3",
+      "id": "vllm-fa3",
       "label": "vLLM fused MoE / FA3",
       "batch_size": 64,
       "median_tokens_per_second": 1284062.7564664881,
@@ -188,7 +188,7 @@
     },
     {
       "id": "fast-fa3",
-      "label": "vLLM + project router / FA3",
+      "label": "vLLM + router kernel / FA3",
       "batch_size": 64,
       "median_tokens_per_second": 1584105.3808772035,
       "min_tokens_per_second": 1578271.100533695,

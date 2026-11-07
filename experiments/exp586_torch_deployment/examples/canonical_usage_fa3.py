@@ -1,10 +1,10 @@
-"""Canonical usage for pt-fa3: native Torch experts with standalone FA3."""
+"""Canonical usage for torch-fa3: native Torch experts with standalone FA3."""
 
 import torch
 
 from exp586_deployment import MarinDNAMoE
 from exp586_deployment.tokenizer import (
-    compact_dna_unigram_tokenizer,
+    dna_nucleotide_tokenizer,
     encode_dna_batch,
 )
 
@@ -17,7 +17,7 @@ model = MarinDNAMoE.from_pretrained(
 )
 forward = torch.compile(model, fullgraph=True)
 
-tokenizer = compact_dna_unigram_tokenizer()
+tokenizer = dna_nucleotide_tokenizer()
 input_ids = torch.from_numpy(encode_dna_batch(tokenizer, ["ACGT" * 2048])).to("cuda")
 
 with torch.inference_mode():

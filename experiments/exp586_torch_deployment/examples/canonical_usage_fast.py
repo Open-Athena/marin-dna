@@ -1,7 +1,7 @@
 """Canonical usage for fast-fa3: custom router, vLLM fused experts, FA3.
 
 Run in a fresh Python process so freezing is set before Torch is imported.
-The project-specific Triton router is JIT-compiled for the installed GPU stack.
+The custom Triton router kernel is JIT-compiled for the installed GPU stack.
 """
 
 import os
@@ -12,7 +12,7 @@ import torch
 
 from exp586_deployment import FastMarinDNAMoE
 from exp586_deployment.tokenizer import (
-    compact_dna_unigram_tokenizer,
+    dna_nucleotide_tokenizer,
     encode_dna_batch,
 )
 
@@ -25,7 +25,7 @@ model = FastMarinDNAMoE.from_pretrained(
 )
 forward = torch.compile(model, fullgraph=True, dynamic=False, mode="reduce-overhead")
 
-tokenizer = compact_dna_unigram_tokenizer()
+tokenizer = dna_nucleotide_tokenizer()
 input_ids = torch.from_numpy(encode_dna_batch(tokenizer, ["ACGT" * 2048])).to("cuda")
 
 with torch.inference_mode():

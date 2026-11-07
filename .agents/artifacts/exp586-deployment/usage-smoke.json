@@ -1,5 +1,7 @@
 {
   "device": "H100 CUDA:0",
+  "tokenizer_helper": "dna_nucleotide_tokenizer",
+  "tokenizer_implementation_unchanged": true,
   "all_finite_bf16": true,
   "checks": [
     {
@@ -11,10 +13,10 @@
       ],
       "dtype": "torch.bfloat16",
       "model": "FastMarinDNAMoE",
-      "example_sha256": "82355b227e6cb2e8927e4bb97d12b571fe6c7e39050c7899fdbf77f7863e63ae"
+      "example_sha256": "06b0875c1db14634c40cd319dc6608885521f2ba2c5260c3e44acb01406a66a5"
     },
     {
-      "id": "pt-fa2",
+      "id": "torch-fa2",
       "shape": [
         1,
         8192,
@@ -22,10 +24,10 @@
       ],
       "dtype": "torch.bfloat16",
       "model": "MarinDNAMoE",
-      "example_sha256": "567223cb0e749801141c342bd278f1bc9bcc34790667ae64e3a6d48fe9225d5b"
+      "example_sha256": "d82e51e469b7174b9f435da1e8d060eab8aa53d4159334c62b2bf0191edde971"
     },
     {
-      "id": "pt-fa3",
+      "id": "torch-fa3",
       "shape": [
         1,
         8192,
@@ -33,10 +35,10 @@
       ],
       "dtype": "torch.bfloat16",
       "model": "MarinDNAMoE",
-      "example_sha256": "4ebda4fccbd6724afb35519eb71ed676745dd59bc2628131936104e5b0acc924"
+      "example_sha256": "e7d0e89497821993e9416efdf07ac4f596a7beccd757fad111d3e9a4cf43520b"
     },
     {
-      "id": "vl-fa2",
+      "id": "vllm-fa2",
       "shape": [
         1,
         8192,
@@ -44,10 +46,10 @@
       ],
       "dtype": "torch.bfloat16",
       "model": "MarinDNAMoE",
-      "example_sha256": "eb2464bb489ead4e3ee34cf15116eae929a3999644760b4945f7957de09b164f"
+      "example_sha256": "b540bf90d230bb8985c951819e02fa6d614e6bb96381ec84821029368926d713"
     },
     {
-      "id": "vl-fa3",
+      "id": "vllm-fa3",
       "shape": [
         1,
         8192,
@@ -55,7 +57,7 @@
       ],
       "dtype": "torch.bfloat16",
       "model": "MarinDNAMoE",
-      "example_sha256": "f690b655bd66433398913de64b0bf156897e7d51fa931b0195d7420e64cbfb5f"
+      "example_sha256": "67d6a3f84cc92a41ab9e2bc2ad2c3556037ced7a32486171a4b072428895ffbb"
     }
   ]
 }

@@ -20,7 +20,7 @@ labels = [f"{row['id']}  ·  {row['label']}" for row in rows]
 with plt.rc_context(
     {"svg.fonttype": "none", "svg.hashsalt": "exp586-deployment-five-configs"}
 ):
-    fig, ax = plt.subplots(figsize=(10, 6))
+    fig, ax = plt.subplots(figsize=(11.5, 3.1))
     positions = np.arange(len(rows))
     ax.barh(positions, values, height=0.64)
     ax.errorbar(
@@ -38,9 +38,8 @@ with plt.rc_context(
     ax.invert_yaxis()
     ax.set_xlim(0, 1.80)
     ax.set_xticks(np.arange(0, 1.81, 0.3))
-    ax.set_xlabel("Forward throughput (million DNA tokens/s)")
+    ax.set_xlabel("Forward throughput (million tokens/s)")
     ax.set_title("Single-H100 inference at batch 64")
-    ax.set_box_aspect(1)
     ax.set_axisbelow(True)
     ax.grid(axis="x", alpha=0.25)
     ax.spines[["top", "right"]].set_visible(False)

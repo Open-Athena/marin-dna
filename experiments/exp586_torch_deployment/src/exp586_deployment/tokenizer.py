@@ -36,8 +36,8 @@ def compact_dna_tokenizer() -> Tokenizer:
     return tokenizer
 
 
-def compact_dna_unigram_tokenizer() -> Tokenizer:
-    """Build the compact tokenizer without materializing isolated pre-tokens."""
+def dna_nucleotide_tokenizer() -> Tokenizer:
+    """Encode one A/C/G/T/N nucleotide per token with compact IDs 0 through 4."""
     return _character_unigram({base: index for index, base in enumerate("acgtn")})
 
 

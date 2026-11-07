@@ -9,6 +9,7 @@ Every plotted case passed the fixed native-JAX correctness gate.
 `measurements.jsonl` preserves all 173 trials from this round: 166 passed and seven expected batch-512 capacity OOMs.
 The `stage` field identifies preflight, compiler, batch search, refinement, confirmation, robustness, or uniform-fixture verification.
 `final-summary.json` records compiler ablations, corrected batch comparisons, and numerical acceptance results.
+`earlier-experiments.json` preserves the earlier restricted pilot’s 15 ablation trials and the six-provider run’s 18 timed trials, with separate within-round controls.
 The separate historical benchmark remains frozen at commit `8b0b7997c4fd4c3c5a63377c047b4e52c103d8ff`; its timing included tokenization and host output.
 
 The model and API were measured at `81821bd77dfee5e22904ca1cded3717a4ad1e3fd`.
@@ -23,11 +24,14 @@ To regenerate the figure in an environment with Matplotlib and NumPy:
 python .agents/artifacts/exp586-deployment/plot_throughput.py
 ```
 
-The preserved named canonical usage is `experiments/exp586_torch_deployment/examples/canonical_usage.py` (`pt-fa2`).
-The companion examples spell out `pt-fa3`, `vl-fa2`, `vl-fa3` and `fast-fa3` directly.
+The preserved named canonical usage is `experiments/exp586_torch_deployment/examples/canonical_usage.py` (`torch-fa2`).
+The companion examples spell out `torch-fa3`, `vllm-fa2`, `vllm-fa3` and `fast-fa3` directly.
 The first four use compiler defaults plus the required `fullgraph=True` graph-break assertion.
 Fast explicitly enables freezing before importing Torch, then selects static shapes and reduce-overhead mode.
-All five require Triton for compiled CUDA execution; only Fast additionally imports this project's custom Triton router source.
+All five require Triton for compiled CUDA execution; only Fast additionally imports this custom Triton router-kernel source from this repository.
 
 Complete native provenance and provider-binary archives are linked from `s3://marin-us-east-02a/MarinDNA/exp586_plantcad2_moe/inference-deployment/2026-11-07-r2` and its DEPLOY-002 references.
 These files are supporting code and data for a locally drafted PR comment; the comment requires user approval before publication.
+
+The current canonical examples use `dna_nucleotide_tokenizer`, which still emits exactly one A/C/G/T/N nucleotide per token.
+This is a naming change; its Unigram implementation and compact token-ID mapping are unchanged.
