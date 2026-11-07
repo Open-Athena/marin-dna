@@ -91,5 +91,8 @@ It supports the global-array checkpoint mechanism; it does not establish target 
 
 The first Reno eight-node validation completed its initial causal/FIM/functional panels and update one, then stalled in XLA ConfigAssigner's distributed autotuning key-value exchange.
 All eight nodes had idle GPUs and approximately idle Python CPUs; sampled native stacks identified the compiler wait after cache compaction had finished.
-The training dispatcher now applies `--xla_gpu_shard_autotuning=false` only to GPU workers, preserving the other optimized runtime flags.
-The bounded retry must pass all buckets, final validation and checkpoint discovery before this placement becomes eligible.
+The first workaround applied `--xla_gpu_shard_autotuning=false` only to GPU workers, preserving the other optimized runtime flags.
+That retry passed the initial panels but stalled inside its first training update, with sampled GPU streams waiting in ConditionalThunk execution.
+Two NCCL RAS reads found all 64 ranks present and identical, nonadvancing collective counters; they did not identify the underlying cause.
+The eight-node placement remains unvalidated.
+Restore the original optimized runtime settings and validate four Reno nodes before production; do not keep retrying the optional eight-node target while a smaller demonstrated shape can advance the primary experiment.

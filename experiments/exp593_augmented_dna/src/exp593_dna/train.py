@@ -663,14 +663,6 @@ def dispatch(config: TrainingConfig) -> None:
     env.update(
         WANDB_BASE_URL=WANDB_BASE_URL, WANDB_ENTITY="eric-czech", WANDB_PROJECT="marin"
     )
-    # The 64-rank Reno check stalled in ConfigAssigner's distributed KV exchange.
-    # Tune per compiler instead; apply GPU flags only to the worker environment.
-    worker_flags = [
-        flag
-        for flag in env.get("XLA_FLAGS", "").split()
-        if flag.partition("=")[0] != "--xla_gpu_shard_autotuning"
-    ]
-    env["XLA_FLAGS"] = " ".join([*worker_flags, "--xla_gpu_shard_autotuning=false"])
     job = current_client().submit(
         JobRequest(
             name=f"train-{config.run_id}",

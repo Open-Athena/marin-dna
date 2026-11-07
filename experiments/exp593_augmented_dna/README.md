@@ -8,7 +8,9 @@ The full fixed-panel accelerator evaluator passed on eight H100s in about 65 sec
 The four-node production loop passed sixteen bounded updates and native checkpoint discovery.
 The queued East production dispatch was stopped before any optimizer update to validate an eight-node Reno placement as capacity became available.
 The first 64-H100 Reno check passed the initial causal, FIM and functional panels and one training update, then stalled in distributed compiler autotuning.
-The bounded retry disables autotuning sharding in the GPU worker environment; production remains the single `dna-exp593-augmented-d768-pretrained-seed0-v1` identity in personal `eric-czech/marin`.
+A retry with autotuning sharding disabled passed the initial panels but stalled in its first training update.
+The next bounded validation uses four Reno nodes / 32 H100s with the original optimized runtime settings that passed on East.
+Production remains the single `dna-exp593-augmented-d768-pretrained-seed0-v1` identity in personal `eric-czech/marin`.
 The accelerator evaluator reads the immutable preparation bundle, rechecks historical membership and native-case FIM reconstruction, and scores raw token NLL with binary masks.
 Its fixed generation panel contains two minimal/formatted pairs for each of the nine gap lengths (36 presentations); each completion is greedy, uses the full original vocabulary, and stops at the caller-specified length.
 The `exp593_dna.smoke --evaluate-panels` option exercises all causal and FIM panels after the bounded training/checkpoint smoke.
@@ -208,8 +210,8 @@ No per-expert histograms are collected.
 
 The package depends on the optimized exp586 project at immutable commit `de5f428fc7b2bac8b6e40697f905c8b99ca3580d`.
 The coherent Marin runtime is `0.2.224.dev40027069267`, with JAX `0.11.1` and the original optimized model/optimizer source.
-GPU workers use `--xla_gpu_shard_autotuning=false` after the first Reno eight-node check stalled waiting for distributed autotuning results.
-This changes compiler coordination while retaining the optimized model, optimizer and scientific bindings.
+The eight-node Reno checks did not establish a usable training placement; the autotuning-sharding workaround did not resolve the overall runtime problem and was removed.
+The four-node Reno validation retains the original optimized runtime settings and scientific bindings.
 The old Iris client missed the controller's build-date floor by one day.
 This release satisfies that floor while retaining the Haliax API used by the optimized model; later releases remove that API.
 The source model is `s3://marin-us-east-02a/marin/grug/rav-ladder-d768-v2/2026.08.18/checkpoints/step-11420`.
