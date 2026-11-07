@@ -63,6 +63,12 @@ from exp593_dna.batches import (
     prepare_local_batch,
 )
 from exp593_dna.corpus import open_corpus
+from exp593_dna.development_evaluate import DevelopmentEvaluator
+from exp593_dna.development_readout import fetch_development
+from exp593_dna.development_results import (
+    publish_development_protocol,
+    publish_development_result,
+)
 from exp593_dna.diagnostics import NormPolicy
 from exp593_dna.evaluate import Evaluator, ValidationPanels
 from exp593_dna.inputs import INPUTS_MANIFEST_SHA256, PreparedInputs
@@ -329,6 +335,20 @@ def _run_training(config: TrainingConfig) -> None:
     panels = ValidationPanels.open(inputs, encoder)
     mesh = replicated_mesh()
     evaluator = Evaluator(panels, encoder, mesh, mp, progress=evaluation_progress)
+    development = DevelopmentEvaluator(
+        fetch_development(Path("/tmp/exp593-development"), encoder),
+        encoder,
+        mesh,
+        mp,
+        progress=evaluation_progress,
+    )
+    development_root = (
+        config.checkpoint_root.removesuffix("/checkpoints") + "/development"
+    )
+    development_protocol = primary_json(
+        lambda: publish_development_protocol(development_root)
+    )
+    tracker.log_summary({"eval/development_protocol": development_protocol["uri"]})
     model = replace(
         local_model(d768_config("pretrained")),
         compact_input_lookup_ids=(),
@@ -389,7 +409,7 @@ def _run_training(config: TrainingConfig) -> None:
                 step=log_step,
             )
 
-        def evaluate(event: str) -> None:
+        def evaluate(event: str, *, functional: bool = False) -> None:
             tracker.log_summary(
                 {"training/phase": "evaluating", "training/eval_event": event}
             )
@@ -405,6 +425,24 @@ def _run_training(config: TrainingConfig) -> None:
                 clock.input_tokens,
                 values["eval/loss"],
             )
+            if functional:
+                values, predictions = development.evaluate_development(state)
+                receipt = primary_json(
+                    lambda: publish_development_result(
+                        development_root,
+                        clock,
+                        event,
+                        development_protocol,
+                        bindings,
+                        values,
+                        predictions,
+                    )
+                )
+                log(values)
+                tracker.log_summary(
+                    {**values, "eval/development_result": receipt["uri"]}
+                )
+                LOGGER.info("Functional development complete: %s", receipt["uri"])
 
         def save(permanent: bool) -> str:
             if not bool(state_all_finite(state)):
@@ -433,7 +471,7 @@ def _run_training(config: TrainingConfig) -> None:
                 )
             return destination
 
-        evaluate("initial" if checkpoint is None else "resume")
+        evaluate("initial" if checkpoint is None else "resume", functional=True)
         last_save = time.monotonic()
         # Prefetch only host rendering. Ownership reductions and all device
         # collectives remain ordered on this thread, including eval/checkpoints.
@@ -543,7 +581,11 @@ def _run_training(config: TrainingConfig) -> None:
                 if (events or permanent or finished) and future is not None:
                     future.result()
                 if events or permanent or finished:
-                    evaluate(",".join(events + permanent) or "bounded_validation_end")
+                    evaluate(
+                        ",".join(events + permanent) or "bounded_validation_end",
+                        functional=finished
+                        or any(e.startswith("quarter_") for e in permanent),
+                    )
                 due = primary_json(
                     lambda saved_at=last_save, milestone=bool(permanent), done=finished: (
                         time.monotonic() - saved_at >= 1800 or milestone or done

@@ -50,7 +50,14 @@ The junction panel contains 32 donor sites, 32 acceptor sites and 64 matched ran
 The two-base source motifs are canonical, and fixed reverse complements produce both sequence orientations; the rendered minimal prompts reveal no feature class.
 Random controls share the same DNA crop and orientation and stay more than 32 bases outside every annotated landmark neighborhood.
 The source-row metadata, native-case DNA hashes and annotation bank are checked against the immutable preparation bundle before selection.
-The scoring and quarterly scheduling integration remain pending; neither development panel has been scored.
+The native trainer scores these panels at initialization/resume, each quarter-budget milestone and completion, using the same allocation as training.
+The custom inference loop reuses the validated Grug kernels because generic prediction loops do not accept this sharded model state or character-forced DNA encoding.
+It uses BF16 model computation and an FP32 full-vocabulary projection/logsumexp; it never renormalizes probabilities over DNA tokens alone.
+The conservation contexts are padded to a fixed 1024-token inference bucket; junction recovery uses the existing 8192-token decoder and generates both missing bases without gold prefixes.
+Per-site predictions, metrics, input manifest and scorer implementation hashes are published as immutable content-addressed native objects before their W&B metrics are reported.
+The primary `eval/loss` protocol and scientific training bindings remain unchanged.
+The readout passes a compiled FP32 reference comparison and a separate BF16 tolerance check on a small synthetic model, including a partial final batch.
+Full-model accelerator execution of the new panels remains to be observed; neither panel has been scored with the production model yet.
 The large junction payload is native-only; the repository retains its manifest and four paired examples.
 
 ```bash
