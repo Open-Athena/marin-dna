@@ -56,3 +56,11 @@ Iris owns preemption recovery; do not replace a dispatch solely because it was p
 Reassess placement after one hour without progress and diagnose a restart after three hours.
 Do not silently alter model/data/schedule semantics to obtain capacity.
 Completion requires the full input-token horizon, a readable verified final checkpoint, promised diagnostics, and a terminal Iris root.
+
+## Placement evidence
+
+The November 7 single-node smoke validated all context buckets and global batch 64 on eight H100s, including full-state checkpoint restoration and one resumed update.
+See the companion's `artifacts/smoke-v1/result.json` for numerical limits and source bindings.
+The one-node profile is eligible for production once runtime evaluation and production-loop validation pass.
+The two-, four- and eight-node profiles remain candidates for bounded validation; they have not yet been exercised by this experiment.
+There is no active GPU gang after the completed smoke.

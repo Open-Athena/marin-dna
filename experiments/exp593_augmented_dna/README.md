@@ -3,7 +3,8 @@
 Train one model for [experiment #593](https://github.com/Open-Athena/marin-dna/issues/593), starting from the same text-pretrained checkpoint as #586.
 All implementation and artifacts belong to the permanent, unmerged [companion PR #594](https://github.com/Open-Athena/marin-dna/pull/594).
 The user has authorized preparation, single-node H100 validation, and full training when ready.
-CPU data preparation and validation panels are implemented; training-loop integration is in progress and no #593 accelerator job has started.
+Data preparation and the single-node H100 smoke are complete.
+Production-loop and runtime validation integration are in progress; the production model has not started.
 
 ## Reproduce preparation
 
@@ -157,6 +158,11 @@ Its input-token schedule is shortened for validation; the optimizer peak still c
 It uses complete BF16 compute replicas and the perf5 partitioned FP32 expert masters/momentum, with the generic embedding gather supporting metadata and both DNA cases.
 Norms are exercised on every smoke update; production retains the approved 1,000-update cadence.
 This entry point cannot run the full production horizon.
+
+The November 7 one-node smoke passed all four buckets at global batch 64, recorded twenty finite norm scalars, and restored the complete checkpoint exactly.
+One subsequent GPU update had FP32 master relative L2 variation of 0.0003148; update replay is therefore not bitwise deterministic.
+The successful smoke used 1,369,620 actual input tokens over five updates.
+See `artifacts/smoke-v1/result.json` for the checkpoint binding and [personal W&B run](https://forge.coreweave.com/api/wandb/eric-czech/marin/runs/dna-exp593-smoke-20261107-v1).
 
 W&B belongs to the personal `eric-czech/marin` project on `https://forge.coreweave.com/api/wandb`.
 Artifacts belong under `s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/`.

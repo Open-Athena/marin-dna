@@ -1,0 +1,101 @@
+{
+  "state": "finished",
+  "url": "https://forge.coreweave.com/api/wandb/eric-czech/marin/runs/dna-exp593-smoke-20261107-v1",
+  "phase": "complete",
+  "run_progress": 1,
+  "bucket_passes": {
+    "validation/bucket_2048/passed": true,
+    "validation/bucket_4096/passed": true,
+    "validation/bucket_6144/passed": true,
+    "validation/bucket_8192/passed": true
+  },
+  "checkpoint_roundtrip_error": 0,
+  "final_checkpoint": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/validation/dna-exp593-smoke-20261107-v1/checkpoints/step-5",
+  "replay": {
+    "validation/replay/master_params/max_abs": 0.0013909488916397097,
+    "validation/replay/master_params/relative_l2": 0.00031475574360229075,
+    "validation/replay/opt_state/max_abs": 0.0546875,
+    "validation/replay/opt_state/relative_l2": 0.007572617381811142,
+    "validation/replay/params/max_abs": 0.015625,
+    "validation/replay/params/relative_l2": 0.0005442116525955498,
+    "validation/replay/pending_qb_betas/max_abs": 0.03682248294353485,
+    "validation/replay/pending_qb_betas/relative_l2": 0.002508473116904497,
+    "validation/replay/step/max_abs": 0,
+    "validation/replay/step/relative_l2": 0
+  },
+  "norm_scalar_count": 20,
+  "norms_all_finite": true,
+  "checkpoint_clock": {
+    "input_tokens": 1369620,
+    "dna_tokens": 1354776,
+    "text_tokens": 14844,
+    "loss_targets": 672342,
+    "examples": 320,
+    "fim_examples": 164,
+    "rc_examples": 169,
+    "updates": 5
+  },
+  "checkpoint_metadata_sha256": "59c5dfdadf9fadfd6e153b4e46ce4d70eaa29c2eff63ed93c8c79c00551d90b1",
+  "checkpoint_schema": 1,
+  "checkpoint_step": 5,
+  "checkpoint_bindings": {
+    "inputs_manifest": "33d8d87b7ee9edbba457504632936cfd7eccb00523a74726ed6a08098047f0e3",
+    "tokenizer": "a43c95c64d7293d06f0c6c4713f95e0036738248f881315910c703307bdd2a2b",
+    "source_checkpoint": "s3://marin-us-east-02a/marin/grug/rav-ladder-d768-v2/2026.08.18/checkpoints/step-11420",
+    "source_metadata": "01cbe71d30793c7a66dd7fe1f54a50e1198490a58cc364a28b5cf27a26e76cf4",
+    "validation": true,
+    "augmentation": {
+      "seed": 472,
+      "kind_probabilities": [
+        0.4,
+        0.1,
+        0.375,
+        0.125
+      ],
+      "case_probabilities": [
+        0.5,
+        0.25,
+        0.25
+      ],
+      "length_buckets": [
+        2048,
+        4096,
+        6144,
+        8192
+      ],
+      "bucket_probabilities": [
+        0.15,
+        0.25,
+        0.25,
+        0.35
+      ],
+      "global_batch_size": 64,
+      "minimum_fill_fraction": 0.875,
+      "species_probability": 0.7,
+      "taxonomy_probability": 0.35,
+      "chrom_probability": 0.25,
+      "assembly_probability": 0.15,
+      "source_strand_probability": 0.15,
+      "orientation_probability": 0.2,
+      "mask_description_probability": 0.85,
+      "description_probability": 0.8,
+      "center_gap_probability": 0.2,
+      "minimal_fim_probability": 0.25,
+      "gap_length_probability": 0.8,
+      "guided_probability": 0.75
+    }
+  },
+  "source_commit": "14668d7a788431c969ed39d5bd1c0b067b2830ec",
+  "iris_root": "/eczech/exp593-smoke-20261107-v1-a2",
+  "iris_child": "/eczech/exp593-smoke-20261107-v1-a2/validate-dna-exp593-smoke-20261107-v1",
+  "iris_root_state": "JOB_STATE_SUCCEEDED",
+  "iris_child_state": "JOB_STATE_SUCCEEDED",
+  "gpu_type": "H100",
+  "nodes": 1,
+  "gpus": 8,
+  "global_batch": 64,
+  "notes": [
+    "Full checkpoint restore is exact; subsequent updates have measured GPU numerical variation.",
+    "No production model has been trained yet."
+  ]
+}
