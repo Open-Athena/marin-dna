@@ -1,0 +1,7 @@
+{
+  "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/training/dna-exp593-augmented-d768-pretrained-seed0-v1/development/7b9845c6f614c115fc4c354900d6f812cbe46886c2d81f18826b3eda9efeb996/protocol.json",
+  "sha256": "7b9845c6f614c115fc4c354900d6f812cbe46886c2d81f18826b3eda9efeb996",
+  "bytes": 1114,
+  "etag": "\"8e0f4573e828f7137a8a74436261d468\"",
+  "complete_readback_verified": true
+}
