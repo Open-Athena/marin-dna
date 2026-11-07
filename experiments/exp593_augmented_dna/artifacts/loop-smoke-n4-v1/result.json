@@ -359,28 +359,6 @@
       "actual_input_tokens": 365417.0
     }
   ],
-  "steady_state": {
-    "updates": 12,
-    "input_tokens_per_second": 189384.7256763999,
-    "by_bucket": {
-      "2048": {
-        "updates": 1,
-        "input_tokens_per_second": 6314.667296599038
-      },
-      "4096": {
-        "updates": 3,
-        "input_tokens_per_second": 1313286.2708180556
-      },
-      "6144": {
-        "updates": 3,
-        "input_tokens_per_second": 1460752.1563810916
-      },
-      "8192": {
-        "updates": 5,
-        "input_tokens_per_second": 1951986.714566432
-      }
-    }
-  },
   "final_evaluation": {
     "eval/disjoint_examples": 512,
     "eval/examples": 512,
@@ -510,5 +488,33 @@
     "eval/softmasked_targets": 396290,
     "eval/unknown_N_targets": 5286
   },
-  "scope": "Bounded 16-update correctness/throughput check, not the final scientific model."
+  "scope": "Bounded 16-update correctness/throughput check, not the final scientific model.",
+  "native_checkpoint_discovery_verified": true,
+  "after_first_bucket_encounter": {
+    "updates": 12,
+    "input_tokens_per_second": 189384.7256763999,
+    "by_bucket": {
+      "2048": {
+        "updates": 1,
+        "input_tokens_per_second": 6314.667296599038
+      },
+      "4096": {
+        "updates": 3,
+        "input_tokens_per_second": 1313286.2708180556
+      },
+      "6144": {
+        "updates": 3,
+        "input_tokens_per_second": 1460752.1563810916
+      },
+      "8192": {
+        "updates": 5,
+        "input_tokens_per_second": 1951986.714566432
+      }
+    }
+  },
+  "warmed_4096_to_8192": {
+    "updates": 11,
+    "input_tokens_per_second": 1668970.0807533637
+  },
+  "performance_caveat": "The second 2048-token visit took 20.76 seconds despite the first-encounter flag being false, consistent with an additional compilation after initial state-layout changes. No warmed 2048 measurement was obtained. Raw history is retained; the 4096-8192 rate excludes every first bucket visit and the unmeasured 2048 case."
 }
