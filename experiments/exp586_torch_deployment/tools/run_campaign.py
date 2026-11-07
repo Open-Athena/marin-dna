@@ -36,6 +36,7 @@ def run(plan_path: Path, root: Path, output: Path, prefix: str, revision: str) -
                 CUDA_VISIBLE_DEVICES="0",
                 OMP_NUM_THREADS="1",
                 TORCHINDUCTOR_COMPILE_THREADS="1",
+                TORCHINDUCTOR_CACHE_DIR=str(root / "compiler-cache" / revision),
             )
             command = [
                 str(python),
