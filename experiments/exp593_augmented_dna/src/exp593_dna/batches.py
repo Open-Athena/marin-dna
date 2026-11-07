@@ -28,10 +28,23 @@ class TrainingBatch:
     input_fingerprint: str
 
 
-def distributed_batch(
+@dataclass(frozen=True)
+class LocalBatch:
+    """CPU-only preparation, safe to prefetch without device collectives."""
+
+    tokens: np.ndarray
+    weights: np.ndarray
+    segments: np.ndarray
+    lengths: np.ndarray
+    details: np.ndarray
+    start: int
+    bucket: int
+
+
+def prepare_local_batch(
     dataset: Any, augmenter: Augmenter, mesh: jax.sharding.Mesh, start: int
-) -> TrainingBatch:
-    """Load local rows only; sum their counts once across process ownership."""
+) -> LocalBatch:
+    """Load and render local rows without entering any device collective."""
     size = augmenter.config.global_batch_size
     if start < 0 or start % size:
         raise ValueError(
@@ -90,6 +103,15 @@ def distributed_batch(
             ).digest(),
             dtype=np.uint8,
         )
+    return LocalBatch(tokens, weights, segments, lengths, details, start, bucket)
+
+
+def assemble_distributed_batch(
+    local: LocalBatch, mesh: jax.sharding.Mesh
+) -> TrainingBatch:
+    """Run ownership/count reductions on the main thread before the train step."""
+    details = local.details
+    size = len(local.lengths)
     gathered = np.asarray(multihost_utils.process_allgather(details, tiled=True))
     global_details = gathered.reshape(-1, size, details.shape[1]).sum(
         axis=0, dtype=np.int64
@@ -113,7 +135,18 @@ def distributed_batch(
     }
     mixture.update(annotation_guided=int(sums[9]), minimal_fim=int(sums[10]))
     fingerprint = hashlib.sha256(
-        str(start).encode() + b":" + global_details.astype("<i8").tobytes()
+        str(local.start).encode() + b":" + global_details.astype("<i8").tobytes()
     ).hexdigest()
-    model_batch = device_batch(WindowBatch(tokens, segments, weights, lengths), mesh)
-    return TrainingBatch(model_batch, counts, mixture, bucket, fingerprint)
+    model_batch = device_batch(
+        WindowBatch(local.tokens, local.segments, local.weights, local.lengths), mesh
+    )
+    return TrainingBatch(model_batch, counts, mixture, local.bucket, fingerprint)
+
+
+def distributed_batch(
+    dataset: Any, augmenter: Augmenter, mesh: jax.sharding.Mesh, start: int
+) -> TrainingBatch:
+    """Load local rows only; sum their counts once across process ownership."""
+    return assemble_distributed_batch(
+        prepare_local_batch(dataset, augmenter, mesh, start), mesh
+    )

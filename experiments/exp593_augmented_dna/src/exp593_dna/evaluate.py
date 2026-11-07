@@ -192,7 +192,7 @@ def make_evaluator(mp: jmp.Policy) -> tuple[Any, Any, Any]:
             batch.tokens,
             batch.loss_weight,
             mask=batch.attn_mask,
-            reduction=None,
+            reduction="none",
             logsumexp_weight=None,
         )
 

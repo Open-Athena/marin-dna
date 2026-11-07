@@ -38,6 +38,8 @@ Use the existing transactional persistence helper; keep observations and attempt
 Back up each mutation to a new operations/<UTC>-<uuid>.sqlite object and verify size and SHA-256 by reading it back.
 Recover the newest valid immutable backup if local state is lost.
 Never overwrite committed checkpoints or allow two writers for one run.
+The production entry point is `exp593_dna.train`; its checkpoint manager is `exp593_dna.recovery`.
+The final update remains a complete global batch, and the exact token overshoot is recorded rather than masking part of its objective.
 
 Use documented CW credentials from marin.env or current Secret Manager entries as described in marin-agent-kb/docs/coreweave.md.
 Do not print or commit credential values.

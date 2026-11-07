@@ -4,10 +4,31 @@ Train one model for [experiment #593](https://github.com/Open-Athena/marin-dna/i
 All implementation and artifacts belong to the permanent, unmerged [companion PR #594](https://github.com/Open-Athena/marin-dna/pull/594).
 The user has authorized preparation, single-node H100 validation, and full training when ready.
 Data preparation and the single-node H100 smoke are complete.
-Production-loop and runtime validation integration are in progress; the production model has not started.
+The production loop is implemented and awaiting accelerator validation; the production model has not started.
 The accelerator evaluator reads the immutable preparation bundle, rechecks historical membership and native-case FIM reconstruction, and scores raw token NLL with binary masks.
 Its fixed generation panel contains two minimal/formatted pairs for each of the nine gap lengths (36 presentations); each completion is greedy, uses the full original vocabulary, and stops at the caller-specified length.
 The `exp593_dna.smoke --evaluate-panels` option exercises all causal and FIM panels after the bounded training/checkpoint smoke.
+An evaluation-only retry can restore that validation run's own full-state checkpoint with `--evaluate-checkpoint`.
+
+## Run training
+
+```bash
+# Bounded validation uses a separate run and checkpoint namespace.
+python -m exp593_dna.train --cluster cw-us-east-02a --nodes 1 \
+  --run-id dna-exp593-loop-smoke-v1 --validation-updates 16
+# Submit production only after this exact profile passes validation.
+python -m exp593_dna.train --cluster cw-us-east-02a --nodes 1
+```
+
+These entry points dispatch eight processes and eight H100s per node through Iris at batch priority.
+Use the explicit Iris user and target configuration in [operations.md](operations.md), and forward current CoreWeave and personal W&B credentials without recording their values.
+The single production identity is `dna-exp593-augmented-d768-pretrained-seed0-v1` in `eric-czech/marin` at the CoreWeave endpoint.
+Scientific bindings exclude placement and are read back before checkpoint discovery; resumed execution restores the latest complete optimizer/data state and preserves that run identity.
+CPU rendering prefetches one batch while device collectives stay ordered on the main thread.
+Periodic checkpoints occur approximately every 30 minutes, with two temporary recovery saves retained; warmup, quarter-budget and final checkpoints are permanent.
+The run stops after the first complete 64-example update reaching the nominal 216,158,699,520 input-token budget.
+It records the actual input count and overshoot, which is less than 524,288 tokens (2.43 parts per million), preserving the minimum example length and equal per-example objective at the last update.
+Padding never advances the schedule.
 
 ## Reproduce preparation
 

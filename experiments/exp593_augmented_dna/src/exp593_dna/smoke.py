@@ -30,6 +30,7 @@ from exp586_moe.state import (
     state_error_by_group,
     state_max_abs_error,
 )
+from exp586_moe.tracking import wandb_history_offset
 from experiments.grug.dispatch import _forwarded_env_vars
 from experiments.grug.moe_hero_ep.train import (
     _apply_hero_ep_runtime_defaults,
@@ -76,6 +77,7 @@ class SmokeConfig:
     cluster: str
     nodes: int = 1
     evaluate_panels: bool = False
+    evaluate_checkpoint: str | None = None
 
     def __post_init__(self) -> None:
         if self.nodes not in (1, 2, 4, 8) or self.cluster not in (
@@ -85,6 +87,11 @@ class SmokeConfig:
             raise ValueError("Unapproved H100 smoke placement")
         if not self.run_id.startswith("dna-exp593-") or "smoke" not in self.run_id:
             raise ValueError("Validation requires a separate exp593 smoke identity")
+        if self.evaluate_checkpoint is not None and (
+            not self.evaluate_panels
+            or not self.evaluate_checkpoint.startswith(self.checkpoint_root + "/step-")
+        ):
+            raise ValueError("Evaluation recovery requires this smoke's own checkpoint")
 
     @property
     def checkpoint_root(self) -> str:
@@ -119,6 +126,7 @@ def run_smoke(config: SmokeConfig) -> None:
         ),
     )
     trainer.initialize()
+    log_offset = wandb_history_offset()
     if jax.device_count() != config.nodes * 8 or not all(
         "H100" in d.device_kind for d in jax.devices()
     ):
@@ -193,6 +201,30 @@ def run_smoke(config: SmokeConfig) -> None:
         train_step = make_train_step(optimizer, mp)
         clock = TokenClock()
 
+        def evaluate(current: Any) -> None:
+            from exp593_dna.evaluate import Evaluator, ValidationPanels
+
+            tracker.log_summary({"validation/phase": "frozen_panel_evaluation"})
+            panels = ValidationPanels.open(inputs, encoder)
+            evaluation = Evaluator(panels, encoder, mesh, mp).evaluate(current)
+            tracker.log(evaluation, step=log_offset + int(current.step) + 1)
+            tracker.log_summary({"validation/frozen_panels_passed": True, **evaluation})
+
+        if config.evaluate_checkpoint is not None:
+            state, clock = restore_training_checkpoint(
+                state, config.evaluate_checkpoint, mesh, bindings
+            )
+            evaluate(state)
+            tracker.log_summary(
+                {
+                    "validation/phase": "complete",
+                    "validation/final_checkpoint": config.evaluate_checkpoint,
+                }
+            )
+            tracker.log({"run_progress": 1.0}, step=log_offset + clock.updates + 2)
+            tracker.current_tracker().finish()
+            return
+
         def update(
             current: Any, current_clock: TokenClock, bucket: int, *, log: bool = True
         ) -> tuple[Any, TokenClock, str]:
@@ -249,7 +281,7 @@ def run_smoke(config: SmokeConfig) -> None:
                         **host_norms,
                         **routing,
                     },
-                    step=next_clock.updates,
+                    step=log_offset + next_clock.updates,
                 )
                 tracker.log_summary({f"validation/bucket_{bucket}/passed": True})
             return current, next_clock, batch.input_fingerprint
@@ -294,13 +326,7 @@ def run_smoke(config: SmokeConfig) -> None:
         final_checkpoint = f"{config.checkpoint_root}/step-{clock.updates}"
         save_training_checkpoint(state, clock, final_checkpoint, bindings)
         if config.evaluate_panels:
-            from exp593_dna.evaluate import Evaluator, ValidationPanels
-
-            tracker.log_summary({"validation/phase": "frozen_panel_evaluation"})
-            panels = ValidationPanels.open(inputs, encoder)
-            evaluation = Evaluator(panels, encoder, mesh, mp).evaluate(state)
-            tracker.log(evaluation, step=clock.updates + 1)
-            tracker.log_summary({"validation/frozen_panels_passed": True, **evaluation})
+            evaluate(state)
         tracker.log_summary(
             {
                 "validation/phase": "complete",
@@ -309,7 +335,7 @@ def run_smoke(config: SmokeConfig) -> None:
                 **differences,
             }
         )
-        tracker.log({"run_progress": 1.0}, step=clock.updates + 2)
+        tracker.log({"run_progress": 1.0}, step=log_offset + clock.updates + 2)
     tracker.current_tracker().finish()
 
 
@@ -363,6 +389,7 @@ def main() -> None:
     )
     parser.add_argument("--nodes", type=int, choices=[1, 2, 4, 8], default=1)
     parser.add_argument("--evaluate-panels", action="store_true")
+    parser.add_argument("--evaluate-checkpoint")
     dispatch(SmokeConfig(**vars(parser.parse_args())))
 
 

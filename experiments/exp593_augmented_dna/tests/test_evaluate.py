@@ -121,3 +121,51 @@ def test_greedy_decode_never_sees_teacher_forced_gap_prefix(encoder):
         )
     assert len(calls) == 3
     assert [o.tolist() for o in outputs] == [[predicted] * 3] * 2
+
+
+def test_raw_causal_nll_uses_the_native_unreduced_loss_api(monkeypatch):
+    import equinox as eqx
+    import jax.numpy as jnp
+    import jmp
+    from exp586_moe.data import WindowBatch
+    from exp586_moe.gpu_smoke import device_batch
+    from levanter.grug.loss import fused_linear_softmax_cross_entropy_loss
+
+    import exp593_dna.evaluate as module
+
+    class TinyModel(eqx.Module):
+        projection: jax.Array
+
+        def next_token_loss(
+            self, tokens, weights, *, mask, reduction, logsumexp_weight
+        ):
+            hidden = jax.nn.one_hot(tokens, 4)
+            labels = jnp.pad(tokens[:, 1:], ((0, 0), (0, 1)))
+            return fused_linear_softmax_cross_entropy_loss(
+                hidden, self.projection, labels, weight=weights, reduction=reduction
+            )
+
+    monkeypatch.setattr(module, "apply_qb_betas", lambda params, pending: params)
+    mesh = replicated_mesh()
+    with jax.set_mesh(mesh):
+        model = TinyModel(jnp.eye(4))
+        tokens = np.tile(np.asarray([0, 1, 2, 3], dtype=np.int32), (64, 1))
+        weights = np.tile(np.asarray([1, 1, 1, 0], dtype=np.float32), (64, 1))
+        batch = device_batch(
+            WindowBatch(tokens, np.zeros_like(tokens), weights, np.full(64, 4)), mesh
+        )
+        causal, _, _ = module.make_evaluator(
+            jmp.get_policy("params=float32,compute=float32,output=float32")
+        )
+        actual = np.asarray(causal(model, None, batch))
+        assert actual.shape == (64, 4)
+        np.testing.assert_allclose(actual[:, :3], np.log(np.e + 3), rtol=1e-6)
+        assert not actual[:, -1].any()
+        traditional = model.next_token_loss(
+            batch.tokens,
+            batch.loss_weight,
+            mask=batch.attn_mask,
+            reduction="mean",
+            logsumexp_weight=None,
+        )
+        np.testing.assert_allclose(actual[:, :3].mean(), float(traditional), rtol=1e-6)
