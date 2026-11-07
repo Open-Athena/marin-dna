@@ -57,6 +57,21 @@ def fixture_batch(sequences: list[str], batch_size: int, offset: int) -> list[st
     return [sequences[(offset + row) % len(sequences)] for row in range(batch_size)]
 
 
+def measurement_schedule(
+    fixture_size: int, batch_size: int, iterations: int, input_batches: int = 0
+) -> tuple[int, int]:
+    """Time whole cyclic periods so default trials weight every window equally.
+
+    For non-divisor batches, merely rounding fixture_size / batch_size up would
+    repeatedly overrepresent the first windows. The complete cyclic period has
+    fixture_size / gcd(fixture_size, batch_size) batches instead.
+    """
+    if not 1 <= batch_size <= fixture_size or iterations < 1 or input_batches < 0:
+        raise ValueError("Invalid fixture, batch, iteration or input-batch count")
+    batches = input_batches or fixture_size // math.gcd(fixture_size, batch_size)
+    return batches, math.ceil(iterations / batches) * batches
+
+
 def validation_batches(
     validation: list[str], sequences: list[str], batch_size: int
 ) -> Iterator[tuple[list[str], int]]:
@@ -163,7 +178,9 @@ def run_trial(args: argparse.Namespace) -> dict[str, Any]:
 
     # CPU tokenization and H2D complete before recording each start event.
     # No prefetch worker or other process runs tokenizer work during forwards.
-    input_batches = args.input_batches or math.ceil(len(sequences) / args.batch_size)
+    input_batches, iterations = measurement_schedule(
+        len(sequences), args.batch_size, args.iterations, args.input_batches
+    )
     device_batches = [
         encode(fixture_batch(sequences, args.batch_size, offset * args.batch_size))
         for offset in range(input_batches)
@@ -182,7 +199,7 @@ def run_trial(args: argparse.Namespace) -> dict[str, Any]:
         print("STAGE timing", flush=True)
         # Synchronize every iteration: the interval includes the entire forward,
         # including any dispatch gaps, but no host-output copy or next-batch work.
-        for i in range(args.iterations):
+        for i in range(iterations):
             start = torch.cuda.Event(enable_timing=True)
             end = torch.cuda.Event(enable_timing=True)
             start.record()
@@ -212,6 +229,10 @@ def run_trial(args: argparse.Namespace) -> dict[str, Any]:
         **latency_summary(timings, args.batch_size),
         "forward_ms": timings,
         "timed_input_batches": input_batches,
+        "timed_forwards": iterations,
+        "fixture_weighting": "uniform over complete cyclic periods"
+        if not args.input_batches
+        else "explicit input-batch subset",
         "fixture_windows": len(sequences),
         "parity": parity,
         "peak_allocated_gib": torch.cuda.max_memory_allocated() / 2**30,
@@ -249,7 +270,7 @@ def main() -> int:
         "--input-batches",
         type=int,
         default=0,
-        help="Zero rotates through the complete fixture",
+        help="Zero uses the complete uniform cyclic fixture period",
     )
     parser.add_argument(
         "--model-class", choices=["ordinary", "fast"], default="ordinary"
@@ -281,7 +302,7 @@ def main() -> int:
         parser.error("vLLM cannot be both selected and required absent")
     began = time.time()
     payload: dict[str, Any] = {
-        "schema": 3,
+        "schema": 4,
         "source_revision": args.source_revision,
         "source_tree_sha256": hashlib.sha256(
             json.dumps(

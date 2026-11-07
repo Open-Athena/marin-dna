@@ -1,5 +1,6 @@
 import subprocess
 import sys
+from collections import Counter
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -12,6 +13,7 @@ from exp586_deployment.benchmark import (
     compiler_kwargs,
     fixture_batch,
     latency_summary,
+    measurement_schedule,
     validation_batches,
 )
 from exp586_deployment.fast import combined_shared_experts
@@ -145,6 +147,22 @@ def test_compile_defaults_keep_only_the_fullgraph_assertion() -> None:
         "dynamic": False,
         "mode": "reduce-overhead",
     }
+
+
+@pytest.mark.parametrize("batch", [8, 12, 16, 32, 64, 96, 128, 240, 256])
+def test_timing_weights_every_real_window_equally(batch: int) -> None:
+    fixture = [str(i) for i in range(512)]
+    batches, iterations = measurement_schedule(len(fixture), batch, 32)
+    inputs = [fixture_batch(fixture, batch, i * batch) for i in range(batches)]
+    counts = Counter(
+        window for i in range(iterations) for window in inputs[i % batches]
+    )
+    assert len(counts) == len(fixture)
+    assert len(set(counts.values())) == 1
+    assert iterations >= 32
+    assert all(len(set(rows)) == batch for rows in inputs)
+    if batch in {16, 32, 64, 128, 256}:
+        assert iterations == 32
 
 
 def test_hf_fetch_preserves_revision_and_explicit_model_settings(

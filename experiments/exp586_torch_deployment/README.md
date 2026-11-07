@@ -35,6 +35,8 @@ Fast must pass exactly the same numerical gate as the ordinary model; a failed a
 
 The benchmark uses unique complete 8,192-base windows and returns dense four-base logits at every position.
 It measures only warmed CUDA-event forwards, with loading, compilation, tokenization and transfers outside timing and no prefetch worker.
+Final batch comparisons time whole cyclic fixture periods, weighting every real window equally even for non-power-of-two batches.
+The requested iteration count is a minimum and rounds up to a whole period; receipts record the actual event count.
 All variants must pass the unchanged fixed 32-window native-JAX probability/NLL/accuracy gate before timing.
 The current four ordinary variants compare standalone FA2/FA3 with native Torch experts and vLLM FA2/FA3 with built-in fused experts.
 Each trial runs in a fresh process, with isolated compiler caches shared only by matching source and configuration, and records every CUDA-event sample.
