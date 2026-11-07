@@ -1,0 +1,4617 @@
+{
+  "seed": 593,
+  "dataset_revision": "4a444fff5520b992aa978d92a5af509a81977098",
+  "candidate_pool_sha256": "5aabba6ee8a27d98325c05316d0f9f243f8f666a25d40aeb2b692e03bec5675e",
+  "examples": [
+    {
+      "split": "validation",
+      "row": 569,
+      "assembly": "Carabica",
+      "chrom": "chr2e",
+      "start": 13926978,
+      "end": 13937976,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 693,
+      "assembly": "Soleracea",
+      "chrom": "Spov3_chr4",
+      "start": 7213357,
+      "end": 7224788,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 1098,
+      "assembly": "Ecoracana",
+      "chrom": "3A",
+      "start": 5158094,
+      "end": 5168895,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 1134,
+      "assembly": "Pvaginatum",
+      "chrom": "Chr10",
+      "start": 35634750,
+      "end": 35645598,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 1966,
+      "assembly": "Esalsugineum",
+      "chrom": "scaffold_5",
+      "start": 13153043,
+      "end": 13164535,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 2195,
+      "assembly": "Lsativa",
+      "chrom": "Lsat_1_v8_lg_4",
+      "start": 373021367,
+      "end": 373032723,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 2642,
+      "assembly": "Othomaeum",
+      "chrom": "Oropetium_genomic_20141112_011",
+      "start": 3442985,
+      "end": 3454411,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 2715,
+      "assembly": "Mdomestica",
+      "chrom": "Chr16",
+      "start": 26380919,
+      "end": 26391487,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 2796,
+      "assembly": "Gmax",
+      "chrom": "Gm07",
+      "start": 2663165,
+      "end": 2675230,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 3224,
+      "assembly": "Rcommunis",
+      "chrom": "29458",
+      "start": 12709,
+      "end": 23497,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 3337,
+      "assembly": "Vdarrowii",
+      "chrom": "scaffold24",
+      "start": 123636,
+      "end": 138792,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 3919,
+      "assembly": "Vfaba",
+      "chrom": "chr2",
+      "start": 251101676,
+      "end": 251117145,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 4242,
+      "assembly": "Vdarrowii",
+      "chrom": "chr2",
+      "start": 55372514,
+      "end": 55382883,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 5808,
+      "assembly": "Msinensis",
+      "chrom": "Chr01",
+      "start": 33583341,
+      "end": 33593968,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 6185,
+      "assembly": "Lsativa",
+      "chrom": "Lsat_1_v8_lg_2",
+      "start": 209220197,
+      "end": 209233064,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 6905,
+      "assembly": "Dalata",
+      "chrom": "Chr14",
+      "start": 10617478,
+      "end": 10627943,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 7588,
+      "assembly": "Taestivum",
+      "chrom": "Chr5A",
+      "start": 506192844,
+      "end": 506204827,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 7980,
+      "assembly": "Ncolorata",
+      "chrom": "GWHAAYW00000005",
+      "start": 6787462,
+      "end": 6797768,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 8692,
+      "assembly": "Cquinoa",
+      "chrom": "C_Quinoa_Scaffold_3422",
+      "start": 1223079,
+      "end": 1236293,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 9260,
+      "assembly": "Bvulgaris",
+      "chrom": "EL10_2_Chr2",
+      "start": 10949654,
+      "end": 10963411,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 9585,
+      "assembly": "Cquinoa",
+      "chrom": "C_Quinoa_Scaffold_2716",
+      "start": 4093273,
+      "end": 4106920,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 10822,
+      "assembly": "Vunguiculata",
+      "chrom": "Vu02",
+      "start": 19720258,
+      "end": 19731693,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 11951,
+      "assembly": "Osativa",
+      "chrom": "Chr5",
+      "start": 24410648,
+      "end": 24421167,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 13167,
+      "assembly": "Vvinifera",
+      "chrom": "chr6",
+      "start": 21407212,
+      "end": 21420373,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 14249,
+      "assembly": "Ckanehirae",
+      "chrom": "CKAN.scaff0002",
+      "start": 75706788,
+      "end": 75722639,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 14501,
+      "assembly": "Cillinoinensis",
+      "chrom": "Chr15",
+      "start": 7174469,
+      "end": 7184991,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 14752,
+      "assembly": "Msinensis",
+      "chrom": "Chr18",
+      "start": 56762991,
+      "end": 56773501,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 17130,
+      "assembly": "Ptrichocarpa",
+      "chrom": "Chr15",
+      "start": 1664472,
+      "end": 1677072,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 17655,
+      "assembly": "Bstricta",
+      "chrom": "Scaffold26326",
+      "start": 23606,
+      "end": 35967,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 17833,
+      "assembly": "Mtruncatula",
+      "chrom": "chr4",
+      "start": 2084053,
+      "end": 2095670,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 17977,
+      "assembly": "Ckanehirae",
+      "chrom": "CKAN.scaff0010",
+      "start": 28282232,
+      "end": 28293466,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 18454,
+      "assembly": "Acomosus",
+      "chrom": "scaffold_2136",
+      "start": 2301,
+      "end": 14351,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 18483,
+      "assembly": "Ahypochondriacus",
+      "chrom": "Scaffold_6",
+      "start": 10269426,
+      "end": 10284974,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 18630,
+      "assembly": "Bplatyphylla",
+      "chrom": "Chr01",
+      "start": 17853412,
+      "end": 17865176,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 18920,
+      "assembly": "Carabica",
+      "chrom": "chr10e",
+      "start": 35751938,
+      "end": 35764065,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 18967,
+      "assembly": "Vfaba",
+      "chrom": "chr5",
+      "start": 934139173,
+      "end": 934150496,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 19157,
+      "assembly": "Oeuropaea",
+      "chrom": "scaffold311",
+      "start": 403339,
+      "end": 414383,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 20531,
+      "assembly": "Ahypochondriacus",
+      "chrom": "Scaffold_15",
+      "start": 7886900,
+      "end": 7898353,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 20847,
+      "assembly": "Acoerulea",
+      "chrom": "Chr_01",
+      "start": 30322472,
+      "end": 30332907,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 20857,
+      "assembly": "Cclementina",
+      "chrom": "scaffold_9",
+      "start": 24449857,
+      "end": 24461367,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 22302,
+      "assembly": "Esalsugineum",
+      "chrom": "scaffold_5",
+      "start": 874021,
+      "end": 885710,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 23030,
+      "assembly": "Aofficinalis",
+      "chrom": "AsparagusV1_05",
+      "start": 126838037,
+      "end": 126848813,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 24802,
+      "assembly": "Mesculenta",
+      "chrom": "Chromosome04",
+      "start": 32007855,
+      "end": 32018674,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 26199,
+      "assembly": "Taestivum",
+      "chrom": "Chr5A",
+      "start": 645087125,
+      "end": 645099174,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 26457,
+      "assembly": "Gmax",
+      "chrom": "Gm01",
+      "start": 7346198,
+      "end": 7358399,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 26759,
+      "assembly": "Vvinifera",
+      "chrom": "chr10",
+      "start": 523912,
+      "end": 534347,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 27717,
+      "assembly": "Fvesca",
+      "chrom": "Fvb1",
+      "start": 20729443,
+      "end": 20740433,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 28365,
+      "assembly": "Pvirgatum",
+      "chrom": "Chr09N",
+      "start": 40218439,
+      "end": 40228937,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 29202,
+      "assembly": "Msinensis",
+      "chrom": "Chr06",
+      "start": 43762088,
+      "end": 43772622,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 29327,
+      "assembly": "Spolyrhiza",
+      "chrom": "pseudo11",
+      "start": 2162641,
+      "end": 2173698,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 29715,
+      "assembly": "Taestivum",
+      "chrom": "Chr4D",
+      "start": 400572075,
+      "end": 400583971,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 29930,
+      "assembly": "Ptrifoliata",
+      "chrom": "scaffold_8",
+      "start": 16084634,
+      "end": 16095831,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 30945,
+      "assembly": "Cclementina",
+      "chrom": "scaffold_8",
+      "start": 1519850,
+      "end": 1532735,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 31634,
+      "assembly": "Vvinifera",
+      "chrom": "chr10_random",
+      "start": 603265,
+      "end": 613895,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 31673,
+      "assembly": "Pamilis",
+      "chrom": "scaffold_7",
+      "start": 14532097,
+      "end": 14544205,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 32278,
+      "assembly": "Bvulgaris",
+      "chrom": "EL10_2_Chr7",
+      "start": 6590524,
+      "end": 6602741,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 32428,
+      "assembly": "Qrubra",
+      "chrom": "LG2",
+      "start": 50210882,
+      "end": 50222750,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 33438,
+      "assembly": "Cclementina",
+      "chrom": "scaffold_3",
+      "start": 28641473,
+      "end": 28653673,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 33777,
+      "assembly": "Bdistachyon",
+      "chrom": "Bd3",
+      "start": 49140891,
+      "end": 49151253,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 34105,
+      "assembly": "Msinensis",
+      "chrom": "Chr16",
+      "start": 78430461,
+      "end": 78440626,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 36553,
+      "assembly": "Egrandis",
+      "chrom": "Chr05",
+      "start": 12623016,
+      "end": 12634318,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 36744,
+      "assembly": "Macuminata",
+      "chrom": "chr9",
+      "start": 32022238,
+      "end": 32036507,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 37253,
+      "assembly": "Qrubra",
+      "chrom": "LG3",
+      "start": 21899135,
+      "end": 21910144,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 37307,
+      "assembly": "Bplatyphylla",
+      "chrom": "Chr11",
+      "start": 21240072,
+      "end": 21252287,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 37407,
+      "assembly": "Aofficinalis",
+      "chrom": "AsparagusV1_01",
+      "start": 90700189,
+      "end": 90710672,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 38170,
+      "assembly": "Mtruncatula",
+      "chrom": "chr7",
+      "start": 215907,
+      "end": 227331,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 38549,
+      "assembly": "Vfaba",
+      "chrom": "chr2",
+      "start": 68658021,
+      "end": 68668833,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 39001,
+      "assembly": "Mesculenta",
+      "chrom": "Chromosome04",
+      "start": 1192994,
+      "end": 1204128,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 39208,
+      "assembly": "Ecoracana",
+      "chrom": "7B",
+      "start": 24573774,
+      "end": 24585827,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 41150,
+      "assembly": "Msinensis",
+      "chrom": "scaffold01789",
+      "start": 0,
+      "end": 9944,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 41315,
+      "assembly": "Lervoides",
+      "chrom": "Ler.1DRT.Chr3",
+      "start": 267827018,
+      "end": 267838224,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 41756,
+      "assembly": "Spolyrhiza",
+      "chrom": "pseudo16",
+      "start": 1519627,
+      "end": 1533097,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 42579,
+      "assembly": "Vdarrowii",
+      "chrom": "chr1",
+      "start": 23964139,
+      "end": 23985974,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 42909,
+      "assembly": "Taestivum",
+      "chrom": "Chr2D",
+      "start": 651356307,
+      "end": 651367495,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 43221,
+      "assembly": "Mesculenta",
+      "chrom": "Chromosome13",
+      "start": 12321262,
+      "end": 12331986,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 43416,
+      "assembly": "Oeuropaea",
+      "chrom": "chr14",
+      "start": 1938805,
+      "end": 1951290,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 44191,
+      "assembly": "Cillinoinensis",
+      "chrom": "Chr16",
+      "start": 9866435,
+      "end": 9877548,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 44283,
+      "assembly": "Bstricta",
+      "chrom": "Scaffold13129",
+      "start": 372248,
+      "end": 385595,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 49677,
+      "assembly": "Cquinoa",
+      "chrom": "C_Quinoa_Scaffold_3784",
+      "start": 1786277,
+      "end": 1797213,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 49845,
+      "assembly": "Sparvula",
+      "chrom": "ch4-6",
+      "start": 1810206,
+      "end": 1821866,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 49935,
+      "assembly": "Lusitatissimum",
+      "chrom": "scaffold130",
+      "start": 97676,
+      "end": 108036,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 50010,
+      "assembly": "Vfaba",
+      "chrom": "chr6",
+      "start": 901967532,
+      "end": 901978231,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 50196,
+      "assembly": "Qrubra",
+      "chrom": "LG2",
+      "start": 3152597,
+      "end": 3162882,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 50624,
+      "assembly": "Carabica",
+      "chrom": "chr8c",
+      "start": 40008065,
+      "end": 40018752,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 50811,
+      "assembly": "Bdistachyon",
+      "chrom": "Bd2",
+      "start": 25882235,
+      "end": 25892898,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 51883,
+      "assembly": "Tintermedium",
+      "chrom": "J03",
+      "start": 519678115,
+      "end": 519689923,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 52139,
+      "assembly": "Ppersica",
+      "chrom": "Pp02",
+      "start": 10005906,
+      "end": 10017242,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 52406,
+      "assembly": "Spolyrhiza",
+      "chrom": "pseudo17",
+      "start": 205696,
+      "end": 216050,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 52588,
+      "assembly": "Ljaponicus",
+      "chrom": "chr1",
+      "start": 10876972,
+      "end": 10888588,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 53072,
+      "assembly": "Cillinoinensis",
+      "chrom": "Chr02",
+      "start": 33025475,
+      "end": 33036690,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 53146,
+      "assembly": "Gmax",
+      "chrom": "Gm08",
+      "start": 7737715,
+      "end": 7748102,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 54765,
+      "assembly": "Ljaponicus",
+      "chrom": "chr5",
+      "start": 5233257,
+      "end": 5244472,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 56559,
+      "assembly": "Bstricta",
+      "chrom": "Scaffold8111",
+      "start": 101913,
+      "end": 115161,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 57393,
+      "assembly": "Vunguiculata",
+      "chrom": "Vu10",
+      "start": 7857081,
+      "end": 7869406,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 58490,
+      "assembly": "Sbicolor",
+      "chrom": "Chr03",
+      "start": 14759535,
+      "end": 14770511,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 58628,
+      "assembly": "Qrubra",
+      "chrom": "LG8",
+      "start": 38110790,
+      "end": 38121549,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 59123,
+      "assembly": "Spurpurea",
+      "chrom": "Chr10",
+      "start": 11583328,
+      "end": 11595851,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 59330,
+      "assembly": "Gmax",
+      "chrom": "Gm03",
+      "start": 43779558,
+      "end": 43790041,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 60594,
+      "assembly": "Ljaponicus",
+      "chrom": "Contig00310",
+      "start": 215086,
+      "end": 231605,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 60971,
+      "assembly": "Ckanehirae",
+      "chrom": "CKAN.scaff0007",
+      "start": 40592575,
+      "end": 40603226,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 61762,
+      "assembly": "Macuminata",
+      "chrom": "chr4",
+      "start": 8832334,
+      "end": 8843307,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 63059,
+      "assembly": "Lusitatissimum",
+      "chrom": "scaffold329",
+      "start": 172779,
+      "end": 187175,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 63436,
+      "assembly": "Bstricta",
+      "chrom": "Scaffold15697",
+      "start": 1577914,
+      "end": 1589638,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 63712,
+      "assembly": "Lervoides",
+      "chrom": "Ler.1DRT.Chr3",
+      "start": 105269699,
+      "end": 105280678,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 63774,
+      "assembly": "Vfaba",
+      "chrom": "chr4",
+      "start": 1016513956,
+      "end": 1016524463,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 64265,
+      "assembly": "Cillinoinensis",
+      "chrom": "Chr04",
+      "start": 10339743,
+      "end": 10350110,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 65348,
+      "assembly": "Hannuus",
+      "chrom": "HanXRQChr16",
+      "start": 134458844,
+      "end": 134469500,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 66255,
+      "assembly": "Hvulgare",
+      "chrom": "chr2H",
+      "start": 358526329,
+      "end": 358537914,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 66269,
+      "assembly": "Hvulgare",
+      "chrom": "chr7H",
+      "start": 578711315,
+      "end": 578725355,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 66616,
+      "assembly": "Lalbus",
+      "chrom": "Lalb_Chr02",
+      "start": 3918591,
+      "end": 3930589,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 66680,
+      "assembly": "Esalsugineum",
+      "chrom": "scaffold_8",
+      "start": 6788893,
+      "end": 6800681,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 68257,
+      "assembly": "Cquinoa",
+      "chrom": "C_Quinoa_Scaffold_1257",
+      "start": 1404199,
+      "end": 1418584,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 68532,
+      "assembly": "Aofficinalis",
+      "chrom": "AsparagusV1_07",
+      "start": 70109808,
+      "end": 70121088,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 69973,
+      "assembly": "Ahypogaea",
+      "chrom": "arahy.Tifrunner.gnm1.Arahy.06",
+      "start": 100585289,
+      "end": 100596532,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 70332,
+      "assembly": "Cavellana",
+      "chrom": "Corylus.Jeff.hap1.Chr.04_LG4",
+      "start": 6555299,
+      "end": 6566517,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 70523,
+      "assembly": "Carabica",
+      "chrom": "chr11c",
+      "start": 36017531,
+      "end": 36028456,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 71022,
+      "assembly": "Dalata",
+      "chrom": "Chr15",
+      "start": 15149042,
+      "end": 15160642,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 72582,
+      "assembly": "Ccitriodora",
+      "chrom": "chr8",
+      "start": 16260736,
+      "end": 16270982,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 72699,
+      "assembly": "Oeuropaea",
+      "chrom": "chr17",
+      "start": 19047677,
+      "end": 19058397,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 73339,
+      "assembly": "Sbicolor",
+      "chrom": "Chr06",
+      "start": 38695722,
+      "end": 38706053,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 73539,
+      "assembly": "Pvirgatum",
+      "chrom": "Chr06K",
+      "start": 44069634,
+      "end": 44080294,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 73721,
+      "assembly": "Lalbus",
+      "chrom": "Lalb_Chr01",
+      "start": 12703614,
+      "end": 12715305,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 73988,
+      "assembly": "Spurpurea",
+      "chrom": "Chr12",
+      "start": 8102750,
+      "end": 8114712,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 75111,
+      "assembly": "Ccitriodora",
+      "chrom": "chr11",
+      "start": 11075952,
+      "end": 11086642,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 76376,
+      "assembly": "Hannuus",
+      "chrom": "HanXRQChr13",
+      "start": 173292192,
+      "end": 173303368,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 77016,
+      "assembly": "Lalbus",
+      "chrom": "Lalb_Chr24",
+      "start": 6370665,
+      "end": 6381057,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 77826,
+      "assembly": "Acoerulea",
+      "chrom": "Chr_03",
+      "start": 20122129,
+      "end": 20132810,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 79420,
+      "assembly": "Fvesca",
+      "chrom": "Fvb6",
+      "start": 13490528,
+      "end": 13501905,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 79463,
+      "assembly": "Pvaginatum",
+      "chrom": "Chr03",
+      "start": 29431949,
+      "end": 29447977,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 79717,
+      "assembly": "Macuminata",
+      "chrom": "chr2",
+      "start": 18970553,
+      "end": 18984994,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 80245,
+      "assembly": "Ckanehirae",
+      "chrom": "CKAN.scaff0002",
+      "start": 40327699,
+      "end": 40338336,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 80921,
+      "assembly": "Oeuropaea",
+      "chrom": "chr18",
+      "start": 3504585,
+      "end": 3516508,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 82206,
+      "assembly": "Ptrichocarpa",
+      "chrom": "Chr15",
+      "start": 7749720,
+      "end": 7761433,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 82457,
+      "assembly": "Msinensis",
+      "chrom": "Chr06",
+      "start": 102645753,
+      "end": 102657719,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 82477,
+      "assembly": "Pamilis",
+      "chrom": "scaffold_9",
+      "start": 15959116,
+      "end": 15970172,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 82638,
+      "assembly": "Cavellana",
+      "chrom": "Corylus.Jeff.hap1.Chr.08_LG6",
+      "start": 7508074,
+      "end": 7518389,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 83006,
+      "assembly": "Athaliana",
+      "chrom": "Chr2",
+      "start": 4719035,
+      "end": 4729143,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 83248,
+      "assembly": "Carietinum",
+      "chrom": "Ca5",
+      "start": 8106793,
+      "end": 8117409,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 83476,
+      "assembly": "Vvinifera",
+      "chrom": "chr4",
+      "start": 17587400,
+      "end": 17598543,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 85071,
+      "assembly": "Dcarota",
+      "chrom": "DCARv3_Chr3",
+      "start": 3896812,
+      "end": 3907337,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 85532,
+      "assembly": "Mtruncatula",
+      "chrom": "chr2",
+      "start": 17030379,
+      "end": 17040694,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 86662,
+      "assembly": "Ptrifoliata",
+      "chrom": "scaffold_5",
+      "start": 6283893,
+      "end": 6295453,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 87162,
+      "assembly": "Csativus",
+      "chrom": "scaffold02601",
+      "start": 67762,
+      "end": 81321,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 87265,
+      "assembly": "Zmays",
+      "chrom": "2",
+      "start": 198107858,
+      "end": 198121927,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 87845,
+      "assembly": "Pvirgatum",
+      "chrom": "Chr08K",
+      "start": 48584063,
+      "end": 48594890,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 87906,
+      "assembly": "Pvirgatum",
+      "chrom": "Chr01K",
+      "start": 4412045,
+      "end": 4423117,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 88960,
+      "assembly": "Taestivum",
+      "chrom": "Chr5D",
+      "start": 356061729,
+      "end": 356072917,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 89220,
+      "assembly": "Ncolorata",
+      "chrom": "GWHAAYW00000013",
+      "start": 12075069,
+      "end": 12085387,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 90307,
+      "assembly": "Sbicolor",
+      "chrom": "Chr01",
+      "start": 56833491,
+      "end": 56843964,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 90399,
+      "assembly": "Athaliana",
+      "chrom": "Chr3",
+      "start": 13122478,
+      "end": 13133165,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 90545,
+      "assembly": "Csativus",
+      "chrom": "scaffold00862",
+      "start": 114022,
+      "end": 133073,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 90645,
+      "assembly": "Zmarina",
+      "chrom": "scaffold_152",
+      "start": 21839,
+      "end": 32744,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 92427,
+      "assembly": "Dalata",
+      "chrom": "Chr15",
+      "start": 1345620,
+      "end": 1359440,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 93993,
+      "assembly": "Lsativa",
+      "chrom": "Lsat_1_v8_lg_2",
+      "start": 177040733,
+      "end": 177050901,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 94659,
+      "assembly": "Hannuus",
+      "chrom": "HanXRQChr10",
+      "start": 110365891,
+      "end": 110376615,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 94714,
+      "assembly": "Sviridis",
+      "chrom": "Chr_09",
+      "start": 42170552,
+      "end": 42182236,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 97750,
+      "assembly": "Sbicolor",
+      "chrom": "Chr02",
+      "start": 42273788,
+      "end": 42284094,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 98126,
+      "assembly": "Ccitriodora",
+      "chrom": "chr8",
+      "start": 11497799,
+      "end": 11508264,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 98897,
+      "assembly": "Osativa",
+      "chrom": "Chr9",
+      "start": 14971448,
+      "end": 14982551,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 98962,
+      "assembly": "Lusitatissimum",
+      "chrom": "scaffold612",
+      "start": 571003,
+      "end": 582433,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 99262,
+      "assembly": "Gmax",
+      "chrom": "Gm05",
+      "start": 24252010,
+      "end": 24262587,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 99323,
+      "assembly": "Mtruncatula",
+      "chrom": "chr1",
+      "start": 31679465,
+      "end": 31690469,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 99505,
+      "assembly": "Bdistachyon",
+      "chrom": "Bd4",
+      "start": 16114712,
+      "end": 16124953,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 102591,
+      "assembly": "Crubella",
+      "chrom": "scaffold_1",
+      "start": 13006803,
+      "end": 13016905,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 102807,
+      "assembly": "Rcommunis",
+      "chrom": "29755",
+      "start": 61642,
+      "end": 74237,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 103733,
+      "assembly": "Carietinum",
+      "chrom": "scaffold186",
+      "start": 101546,
+      "end": 111990,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 103780,
+      "assembly": "Ncolorata",
+      "chrom": "GWHAAYW00000014",
+      "start": 2451214,
+      "end": 2463203,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 104821,
+      "assembly": "Zmays",
+      "chrom": "1",
+      "start": 242452447,
+      "end": 242464615,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 104996,
+      "assembly": "Ahypochondriacus",
+      "chrom": "Scaffold_11",
+      "start": 8474365,
+      "end": 8484984,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 105352,
+      "assembly": "Csativus",
+      "chrom": "scaffold03578",
+      "start": 417549,
+      "end": 429026,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 107247,
+      "assembly": "Dcarota",
+      "chrom": "DCARv3_Chr9",
+      "start": 4908072,
+      "end": 4918447,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 108018,
+      "assembly": "Othomaeum",
+      "chrom": "Oropetium_genomic_20141112_004",
+      "start": 2399645,
+      "end": 2410089,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 108691,
+      "assembly": "Aofficinalis",
+      "chrom": "AsparagusV1_Un106",
+      "start": 214356,
+      "end": 224716,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 109038,
+      "assembly": "Esalsugineum",
+      "chrom": "scaffold_12",
+      "start": 621716,
+      "end": 632189,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 109052,
+      "assembly": "Ljaponicus",
+      "chrom": "chr2",
+      "start": 13668046,
+      "end": 13682275,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 109402,
+      "assembly": "Cclementina",
+      "chrom": "scaffold_9",
+      "start": 25425783,
+      "end": 25442071,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 109693,
+      "assembly": "Ptrifoliata",
+      "chrom": "scaffold_8",
+      "start": 10792274,
+      "end": 10804467,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 110125,
+      "assembly": "Ecoracana",
+      "chrom": "5A",
+      "start": 48801540,
+      "end": 48812283,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 112926,
+      "assembly": "Carietinum",
+      "chrom": "scaffold1128",
+      "start": 188668,
+      "end": 199134,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 115979,
+      "assembly": "Spolyrhiza",
+      "chrom": "pseudo21",
+      "start": 1018251,
+      "end": 1029805,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 116300,
+      "assembly": "Qrubra",
+      "chrom": "LG8",
+      "start": 28087353,
+      "end": 28099508,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 116534,
+      "assembly": "Ljaponicus",
+      "chrom": "chr2",
+      "start": 50929703,
+      "end": 50940134,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 117425,
+      "assembly": "Egrandis",
+      "chrom": "Chr11",
+      "start": 15283900,
+      "end": 15296431,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 117782,
+      "assembly": "Osativa",
+      "chrom": "Chr8",
+      "start": 25773455,
+      "end": 25784361,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 118972,
+      "assembly": "Bplatyphylla",
+      "chrom": "Chr10",
+      "start": 9728799,
+      "end": 9739487,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 119068,
+      "assembly": "Cavellana",
+      "chrom": "Corylus.Jeff.hap1.Chr.04_LG4",
+      "start": 7147096,
+      "end": 7159166,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 119924,
+      "assembly": "Taestivum",
+      "chrom": "Chr1B",
+      "start": 293392150,
+      "end": 293403686,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 122977,
+      "assembly": "Lalbus",
+      "chrom": "Lalb_Chr07",
+      "start": 8447034,
+      "end": 8458993,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 123816,
+      "assembly": "Ppersica",
+      "chrom": "Pp02",
+      "start": 6455426,
+      "end": 6469494,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 125466,
+      "assembly": "Lervoides",
+      "chrom": "Ler.1DRT.Chr6",
+      "start": 65711413,
+      "end": 65721809,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 126110,
+      "assembly": "Fvesca",
+      "chrom": "Fvb5",
+      "start": 23548254,
+      "end": 23560335,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 126158,
+      "assembly": "Oeuropaea",
+      "chrom": "chr19",
+      "start": 9152939,
+      "end": 9169033,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 126429,
+      "assembly": "Dalata",
+      "chrom": "Chr10",
+      "start": 36380267,
+      "end": 36390675,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 126504,
+      "assembly": "Egrandis",
+      "chrom": "Chr04",
+      "start": 7238922,
+      "end": 7249189,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 126871,
+      "assembly": "Gmax",
+      "chrom": "Gm01",
+      "start": 57115276,
+      "end": 57127331,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 127083,
+      "assembly": "Cavellana",
+      "chrom": "Corylus.Jeff.hap1.Chr.05_LG5",
+      "start": 1901498,
+      "end": 1912750,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 127296,
+      "assembly": "Tintermedium",
+      "chrom": "S06",
+      "start": 386754909,
+      "end": 386765497,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 127631,
+      "assembly": "Spurpurea",
+      "chrom": "Chr19",
+      "start": 880652,
+      "end": 890865,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 128892,
+      "assembly": "Mtruncatula",
+      "chrom": "chr8",
+      "start": 8565446,
+      "end": 8575626,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 131254,
+      "assembly": "Ppersica",
+      "chrom": "Pp04",
+      "start": 15222369,
+      "end": 15232666,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 132066,
+      "assembly": "Cavellana",
+      "chrom": "Corylus.Jeff.hap1.Chr.02_LG2",
+      "start": 35836192,
+      "end": 35848029,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 132846,
+      "assembly": "Lalbus",
+      "chrom": "Lalb_Chr20",
+      "start": 17846198,
+      "end": 17856852,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 133309,
+      "assembly": "Mesculenta",
+      "chrom": "Chromosome12",
+      "start": 5999119,
+      "end": 6010289,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 133446,
+      "assembly": "Zmays",
+      "chrom": "4",
+      "start": 202956505,
+      "end": 202971809,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 134379,
+      "assembly": "Vunguiculata",
+      "chrom": "Vu05",
+      "start": 2778669,
+      "end": 2790643,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 136637,
+      "assembly": "Macuminata",
+      "chrom": "chr3",
+      "start": 23594985,
+      "end": 23606548,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 136893,
+      "assembly": "Aofficinalis",
+      "chrom": "AsparagusV1_06",
+      "start": 11708911,
+      "end": 11720805,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 137092,
+      "assembly": "Ahypogaea",
+      "chrom": "arahy.Tifrunner.gnm1.Arahy.19",
+      "start": 9597315,
+      "end": 9608891,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 138294,
+      "assembly": "Crubella",
+      "chrom": "scaffold_1",
+      "start": 14531993,
+      "end": 14543052,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 139067,
+      "assembly": "Csativus",
+      "chrom": "scaffold01286",
+      "start": 32210,
+      "end": 42520,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 139406,
+      "assembly": "Mdomestica",
+      "chrom": "Chr10",
+      "start": 24333257,
+      "end": 24344841,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 139952,
+      "assembly": "Lusitatissimum",
+      "chrom": "scaffold490",
+      "start": 17119,
+      "end": 29106,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 140268,
+      "assembly": "Ncolorata",
+      "chrom": "GWHAAYW00000001",
+      "start": 15282012,
+      "end": 15292633,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 140731,
+      "assembly": "Tintermedium",
+      "chrom": "S03",
+      "start": 122507261,
+      "end": 122522982,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 142520,
+      "assembly": "Bplatyphylla",
+      "chrom": "Chr05",
+      "start": 182384,
+      "end": 192840,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 142720,
+      "assembly": "Mesculenta",
+      "chrom": "Chromosome05",
+      "start": 31283192,
+      "end": 31296578,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 142985,
+      "assembly": "Soleracea",
+      "chrom": "Spov3_chr2",
+      "start": 124713504,
+      "end": 124727301,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 143733,
+      "assembly": "Pvirgatum",
+      "chrom": "Chr09N",
+      "start": 4391649,
+      "end": 4403836,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 143762,
+      "assembly": "Sparvula",
+      "chrom": "ch7-4",
+      "start": 56008,
+      "end": 67226,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 143884,
+      "assembly": "Vunguiculata",
+      "chrom": "Vu08",
+      "start": 12671428,
+      "end": 12683282,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 144515,
+      "assembly": "Mdomestica",
+      "chrom": "Chr10",
+      "start": 34456107,
+      "end": 34467489,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 145327,
+      "assembly": "Crubella",
+      "chrom": "scaffold_7",
+      "start": 4117579,
+      "end": 4127783,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 146039,
+      "assembly": "Pvaginatum",
+      "chrom": "Chr04",
+      "start": 39671624,
+      "end": 39683595,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 146100,
+      "assembly": "Acomosus",
+      "chrom": "LG16",
+      "start": 10284637,
+      "end": 10299151,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 146313,
+      "assembly": "Hvulgare",
+      "chrom": "chr2H",
+      "start": 450508366,
+      "end": 450519422,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 146883,
+      "assembly": "Bplatyphylla",
+      "chrom": "Chr08",
+      "start": 16186424,
+      "end": 16196628,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 147619,
+      "assembly": "Ptrifoliata",
+      "chrom": "scaffold_3",
+      "start": 27452538,
+      "end": 27464251,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 148452,
+      "assembly": "Pvaginatum",
+      "chrom": "scaffold_17",
+      "start": 887988,
+      "end": 899443,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 148489,
+      "assembly": "Carietinum",
+      "chrom": "Ca5",
+      "start": 43930966,
+      "end": 43941587,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 149151,
+      "assembly": "Cquinoa",
+      "chrom": "C_Quinoa_Scaffold_1000",
+      "start": 7302921,
+      "end": 7313158,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 149461,
+      "assembly": "Vunguiculata",
+      "chrom": "Vu05",
+      "start": 13274361,
+      "end": 13288550,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 150746,
+      "assembly": "Cavellana",
+      "chrom": "Corylus.Jeff.hap1.Chr.04_LG4",
+      "start": 31751787,
+      "end": 31762420,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 150900,
+      "assembly": "Hannuus",
+      "chrom": "HanXRQChr15",
+      "start": 144154403,
+      "end": 144165587,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 151015,
+      "assembly": "Ahypochondriacus",
+      "chrom": "Scaffold_2",
+      "start": 16888572,
+      "end": 16898898,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 151715,
+      "assembly": "Tintermedium",
+      "chrom": "J05",
+      "start": 157944577,
+      "end": 157954763,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 152030,
+      "assembly": "Qrubra",
+      "chrom": "LG2",
+      "start": 12008298,
+      "end": 12022233,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 152719,
+      "assembly": "Acoerulea",
+      "chrom": "Chr_03",
+      "start": 13259013,
+      "end": 13269544,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 154195,
+      "assembly": "Lsativa",
+      "chrom": "Lsat_1_v8_lg_3",
+      "start": 140799690,
+      "end": 140811045,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 154752,
+      "assembly": "Sbicolor",
+      "chrom": "Chr01",
+      "start": 66670963,
+      "end": 66681488,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 154863,
+      "assembly": "Ckanehirae",
+      "chrom": "CKAN.scaff0003",
+      "start": 35019291,
+      "end": 35031978,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 154999,
+      "assembly": "Ckanehirae",
+      "chrom": "CKAN.scaff0008",
+      "start": 19286602,
+      "end": 19297490,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 155129,
+      "assembly": "Zmays",
+      "chrom": "4",
+      "start": 87737036,
+      "end": 87747879,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 155949,
+      "assembly": "Pamilis",
+      "chrom": "scaffold_4",
+      "start": 39078745,
+      "end": 39089828,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 156078,
+      "assembly": "Hannuus",
+      "chrom": "HanXRQChr17",
+      "start": 42131634,
+      "end": 42143197,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 156892,
+      "assembly": "Ptrichocarpa",
+      "chrom": "Chr08",
+      "start": 11338944,
+      "end": 11350807,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 157092,
+      "assembly": "Vdarrowii",
+      "chrom": "chr6",
+      "start": 22285414,
+      "end": 22296288,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 157337,
+      "assembly": "Oeuropaea",
+      "chrom": "chr3",
+      "start": 3910591,
+      "end": 3921506,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 157589,
+      "assembly": "Ncolorata",
+      "chrom": "GWHAAYW00000001",
+      "start": 44156207,
+      "end": 44167050,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 157994,
+      "assembly": "Ahypochondriacus",
+      "chrom": "Scaffold_10",
+      "start": 3296189,
+      "end": 3306518,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 158168,
+      "assembly": "Ahypochondriacus",
+      "chrom": "Scaffold_3",
+      "start": 6733567,
+      "end": 6744616,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 158465,
+      "assembly": "Pamilis",
+      "chrom": "scaffold_6",
+      "start": 30567161,
+      "end": 30579302,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 158831,
+      "assembly": "Ccitriodora",
+      "chrom": "scaffold609",
+      "start": 171940,
+      "end": 182336,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 158980,
+      "assembly": "Ljaponicus",
+      "chrom": "chr2",
+      "start": 19318630,
+      "end": 19329815,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 159040,
+      "assembly": "Bstricta",
+      "chrom": "Scaffold2392",
+      "start": 712678,
+      "end": 724815,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 160591,
+      "assembly": "Lervoides",
+      "chrom": "Ler.1DRT.Chr5",
+      "start": 74105284,
+      "end": 74115613,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 161179,
+      "assembly": "Macuminata",
+      "chrom": "chr1",
+      "start": 10064538,
+      "end": 10074667,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 161508,
+      "assembly": "Lalbus",
+      "chrom": "Lalb_Chr13",
+      "start": 10475456,
+      "end": 10486816,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 161673,
+      "assembly": "Lusitatissimum",
+      "chrom": "scaffold1073",
+      "start": 50468,
+      "end": 62007,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 162835,
+      "assembly": "Dcarota",
+      "chrom": "DCARv3_Chr8",
+      "start": 30148947,
+      "end": 30159836,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 162887,
+      "assembly": "Carietinum",
+      "chrom": "scaffold284",
+      "start": 511814,
+      "end": 527892,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 163098,
+      "assembly": "Ljaponicus",
+      "chrom": "chr1",
+      "start": 22587944,
+      "end": 22598444,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 163111,
+      "assembly": "Ppersica",
+      "chrom": "Pp06",
+      "start": 20800339,
+      "end": 20810912,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 163963,
+      "assembly": "Bdistachyon",
+      "chrom": "Bd5",
+      "start": 9294495,
+      "end": 9304891,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 164405,
+      "assembly": "Ecoracana",
+      "chrom": "2A",
+      "start": 45783510,
+      "end": 45794414,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 165410,
+      "assembly": "Hvulgare",
+      "chrom": "chr1H",
+      "start": 472347333,
+      "end": 472363854,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 165463,
+      "assembly": "Lusitatissimum",
+      "chrom": "scaffold23",
+      "start": 529190,
+      "end": 540881,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 165654,
+      "assembly": "Bvulgaris",
+      "chrom": "EL10_2_Chr1",
+      "start": 53316282,
+      "end": 53327386,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 165740,
+      "assembly": "Csativus",
+      "chrom": "scaffold00227",
+      "start": 82483,
+      "end": 96552,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 165814,
+      "assembly": "Crubella",
+      "chrom": "scaffold_6",
+      "start": 11659932,
+      "end": 11671688,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 166258,
+      "assembly": "Ccitriodora",
+      "chrom": "chr4",
+      "start": 21397286,
+      "end": 21407904,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 168809,
+      "assembly": "Acoerulea",
+      "chrom": "Chr_06",
+      "start": 25108470,
+      "end": 25118584,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 171036,
+      "assembly": "Carabica",
+      "chrom": "chr11c",
+      "start": 1518624,
+      "end": 1530196,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 171431,
+      "assembly": "Ptrifoliata",
+      "chrom": "scaffold_6",
+      "start": 227095,
+      "end": 238748,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 173308,
+      "assembly": "Ptrichocarpa",
+      "chrom": "Chr16",
+      "start": 14451152,
+      "end": 14461770,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 174363,
+      "assembly": "Vunguiculata",
+      "chrom": "Vu07",
+      "start": 15135794,
+      "end": 15145890,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 175800,
+      "assembly": "Ecoracana",
+      "chrom": "6B",
+      "start": 59738080,
+      "end": 59748641,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 176588,
+      "assembly": "Pvirgatum",
+      "chrom": "Chr07N",
+      "start": 14938083,
+      "end": 14949964,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 177125,
+      "assembly": "Lusitatissimum",
+      "chrom": "scaffold123",
+      "start": 1819540,
+      "end": 1830252,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 179148,
+      "assembly": "Gmax",
+      "chrom": "Gm06",
+      "start": 8688356,
+      "end": 8701507,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 179248,
+      "assembly": "Sbicolor",
+      "chrom": "Chr09",
+      "start": 53999401,
+      "end": 54011566,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 179746,
+      "assembly": "Egrandis",
+      "chrom": "Chr04",
+      "start": 14590722,
+      "end": 14604243,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 180510,
+      "assembly": "Soleracea",
+      "chrom": "Spov3_chr2",
+      "start": 3031157,
+      "end": 3042389,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 180619,
+      "assembly": "Ecoracana",
+      "chrom": "9B",
+      "start": 27404994,
+      "end": 27415789,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 180635,
+      "assembly": "Othomaeum",
+      "chrom": "Oropetium_genomic_20141112_010",
+      "start": 2029477,
+      "end": 2041695,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 180921,
+      "assembly": "Bvulgaris",
+      "chrom": "EL10_2_Chr7",
+      "start": 27294909,
+      "end": 27305062,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 182170,
+      "assembly": "Pamilis",
+      "chrom": "scaffold_6",
+      "start": 28570516,
+      "end": 28581141,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 182672,
+      "assembly": "Bvulgaris",
+      "chrom": "EL10_2_Chr7",
+      "start": 2203502,
+      "end": 2217972,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 182730,
+      "assembly": "Ptrichocarpa",
+      "chrom": "Chr01",
+      "start": 25511360,
+      "end": 25526979,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 183814,
+      "assembly": "Ahypochondriacus",
+      "chrom": "Scaffold_10",
+      "start": 15708336,
+      "end": 15719759,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 183901,
+      "assembly": "Dcarota",
+      "chrom": "DCARv3_Chr3",
+      "start": 61906633,
+      "end": 61916885,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 183965,
+      "assembly": "Dalata",
+      "chrom": "Chr2",
+      "start": 14277963,
+      "end": 14288197,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 185557,
+      "assembly": "Fvesca",
+      "chrom": "Fvb3",
+      "start": 30157160,
+      "end": 30167418,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 185680,
+      "assembly": "Sviridis",
+      "chrom": "Chr_07",
+      "start": 529067,
+      "end": 539343,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 185904,
+      "assembly": "Sviridis",
+      "chrom": "Chr_06",
+      "start": 2676265,
+      "end": 2686544,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 186531,
+      "assembly": "Lalbus",
+      "chrom": "Lalb_Chr14",
+      "start": 7843284,
+      "end": 7854476,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 186642,
+      "assembly": "Ptrichocarpa",
+      "chrom": "Chr12",
+      "start": 278484,
+      "end": 293721,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 187037,
+      "assembly": "Ahypogaea",
+      "chrom": "arahy.Tifrunner.gnm1.Arahy.17",
+      "start": 22711957,
+      "end": 22723906,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 187168,
+      "assembly": "Sviridis",
+      "chrom": "Chr_07",
+      "start": 25170198,
+      "end": 25181665,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 187222,
+      "assembly": "Egrandis",
+      "chrom": "Chr02",
+      "start": 57674713,
+      "end": 57686327,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 189157,
+      "assembly": "Ecoracana",
+      "chrom": "2B",
+      "start": 17637468,
+      "end": 17648839,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 189363,
+      "assembly": "Lervoides",
+      "chrom": "Ler.1DRT.Chr7",
+      "start": 122563947,
+      "end": 122574530,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 189624,
+      "assembly": "Rcommunis",
+      "chrom": "30093",
+      "start": 237227,
+      "end": 247587,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 190954,
+      "assembly": "Osativa",
+      "chrom": "Chr4",
+      "start": 4238282,
+      "end": 4248962,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 191832,
+      "assembly": "Zmarina",
+      "chrom": "Chr06",
+      "start": 137372,
+      "end": 149507,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 192515,
+      "assembly": "Crubella",
+      "chrom": "scaffold_93",
+      "start": 3562,
+      "end": 13853,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 192601,
+      "assembly": "Hvulgare",
+      "chrom": "chr5H",
+      "start": 285519075,
+      "end": 285529571,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 195410,
+      "assembly": "Ccitriodora",
+      "chrom": "chr11",
+      "start": 28330615,
+      "end": 28341788,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 195743,
+      "assembly": "Cquinoa",
+      "chrom": "C_Quinoa_Scaffold_3086",
+      "start": 853342,
+      "end": 865255,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 195964,
+      "assembly": "Qrubra",
+      "chrom": "LG1",
+      "start": 21495139,
+      "end": 21506517,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 196256,
+      "assembly": "Vfaba",
+      "chrom": "chr6",
+      "start": 260099837,
+      "end": 260115690,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 196283,
+      "assembly": "Hannuus",
+      "chrom": "HanXRQChr16",
+      "start": 147614917,
+      "end": 147626505,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 196292,
+      "assembly": "Fvesca",
+      "chrom": "Fvb6",
+      "start": 20460090,
+      "end": 20472276,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 196408,
+      "assembly": "Sparvula",
+      "chrom": "un0108",
+      "start": 0,
+      "end": 11093,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 198549,
+      "assembly": "Acomosus",
+      "chrom": "LG20",
+      "start": 10028749,
+      "end": 10041176,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 198596,
+      "assembly": "Ckanehirae",
+      "chrom": "CKAN.scaff0005",
+      "start": 766598,
+      "end": 778545,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 199078,
+      "assembly": "Dalata",
+      "chrom": "Chr15",
+      "start": 2557339,
+      "end": 2567678,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 199267,
+      "assembly": "Othomaeum",
+      "chrom": "Oropetium_genomic_20141112_126",
+      "start": 68314,
+      "end": 78749,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 199439,
+      "assembly": "Qrubra",
+      "chrom": "scaffold_1562",
+      "start": 14570,
+      "end": 24515,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 199453,
+      "assembly": "Vunguiculata",
+      "chrom": "Vu01",
+      "start": 7625873,
+      "end": 7640601,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 199584,
+      "assembly": "Carietinum",
+      "chrom": "Ca3",
+      "start": 30417065,
+      "end": 30439595,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 199613,
+      "assembly": "Mdomestica",
+      "chrom": "Chr11",
+      "start": 41442728,
+      "end": 41454991,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 200423,
+      "assembly": "Osativa",
+      "chrom": "Chr2",
+      "start": 9435862,
+      "end": 9446171,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 201225,
+      "assembly": "Pamilis",
+      "chrom": "scaffold_5",
+      "start": 28047128,
+      "end": 28057415,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 201754,
+      "assembly": "Vdarrowii",
+      "chrom": "chr5",
+      "start": 4578914,
+      "end": 4590270,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 202410,
+      "assembly": "Crubella",
+      "chrom": "scaffold_2",
+      "start": 6159336,
+      "end": 6170116,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 204014,
+      "assembly": "Athaliana",
+      "chrom": "Chr4",
+      "start": 18106040,
+      "end": 18116193,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 205241,
+      "assembly": "Oeuropaea",
+      "chrom": "chr17",
+      "start": 5492904,
+      "end": 5503372,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 205520,
+      "assembly": "Pvirgatum",
+      "chrom": "Chr03K",
+      "start": 26348569,
+      "end": 26358780,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 207213,
+      "assembly": "Carabica",
+      "chrom": "chr8c",
+      "start": 1512230,
+      "end": 1523192,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 211997,
+      "assembly": "Cclementina",
+      "chrom": "scaffold_2",
+      "start": 7587923,
+      "end": 7598388,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 212065,
+      "assembly": "Osativa",
+      "chrom": "Chr1",
+      "start": 20120568,
+      "end": 20131743,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 212714,
+      "assembly": "Vvinifera",
+      "chrom": "chr5",
+      "start": 11180872,
+      "end": 11191238,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 212884,
+      "assembly": "Othomaeum",
+      "chrom": "Oropetium_genomic_20141112_004",
+      "start": 3856908,
+      "end": 3868301,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 213155,
+      "assembly": "Ncolorata",
+      "chrom": "GWHAAYW00000014",
+      "start": 10016518,
+      "end": 10030774,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 213713,
+      "assembly": "Sviridis",
+      "chrom": "Chr_05",
+      "start": 7444352,
+      "end": 7456452,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 214391,
+      "assembly": "Bdistachyon",
+      "chrom": "Bd1",
+      "start": 3931579,
+      "end": 3943323,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 214939,
+      "assembly": "Tintermedium",
+      "chrom": "J03",
+      "start": 401231588,
+      "end": 401242998,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 215287,
+      "assembly": "Dcarota",
+      "chrom": "DCARv3_Chr6",
+      "start": 13564280,
+      "end": 13575714,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 215955,
+      "assembly": "Bdistachyon",
+      "chrom": "Bd4",
+      "start": 9670512,
+      "end": 9681518,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 216453,
+      "assembly": "Sparvula",
+      "chrom": "un0007",
+      "start": 21014,
+      "end": 32695,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 216937,
+      "assembly": "Spurpurea",
+      "chrom": "Chr18",
+      "start": 9564697,
+      "end": 9578468,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 217152,
+      "assembly": "Lervoides",
+      "chrom": "Ler.1DRT.Chr7",
+      "start": 340594292,
+      "end": 340606016,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 217262,
+      "assembly": "Pamilis",
+      "chrom": "scaffold_7",
+      "start": 13612088,
+      "end": 13626416,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 218290,
+      "assembly": "Vvinifera",
+      "chrom": "chr10",
+      "start": 12670292,
+      "end": 12682402,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 219255,
+      "assembly": "Cclementina",
+      "chrom": "scaffold_3",
+      "start": 32390449,
+      "end": 32401230,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 219771,
+      "assembly": "Carietinum",
+      "chrom": "Ca3",
+      "start": 33741125,
+      "end": 33751478,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 221768,
+      "assembly": "Esalsugineum",
+      "chrom": "scaffold_5",
+      "start": 1176768,
+      "end": 1188046,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 222600,
+      "assembly": "Taestivum",
+      "chrom": "Chr3D",
+      "start": 352186410,
+      "end": 352197803,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 223875,
+      "assembly": "Msinensis",
+      "chrom": "scaffold00564",
+      "start": 61198,
+      "end": 71848,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 224653,
+      "assembly": "Aofficinalis",
+      "chrom": "AsparagusV1_08",
+      "start": 6186860,
+      "end": 6200129,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 224697,
+      "assembly": "Mtruncatula",
+      "chrom": "scaffold0001",
+      "start": 435095,
+      "end": 445515,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 225373,
+      "assembly": "Rcommunis",
+      "chrom": "29680",
+      "start": 294416,
+      "end": 310702,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 228154,
+      "assembly": "Esalsugineum",
+      "chrom": "scaffold_8",
+      "start": 4664595,
+      "end": 4675167,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 229392,
+      "assembly": "Tintermedium",
+      "chrom": "S02",
+      "start": 373574181,
+      "end": 373588056,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 230953,
+      "assembly": "Hannuus",
+      "chrom": "HanXRQChr07",
+      "start": 101426657,
+      "end": 101444905,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 231253,
+      "assembly": "Vfaba",
+      "chrom": "chr1L",
+      "start": 1498186029,
+      "end": 1498196566,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 231683,
+      "assembly": "Sviridis",
+      "chrom": "Chr_02",
+      "start": 35958482,
+      "end": 35972223,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 232405,
+      "assembly": "Spurpurea",
+      "chrom": "Chr16",
+      "start": 8008577,
+      "end": 8020161,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 232860,
+      "assembly": "Cillinoinensis",
+      "chrom": "Chr08",
+      "start": 30323145,
+      "end": 30334135,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 232878,
+      "assembly": "Athaliana",
+      "chrom": "Chr3",
+      "start": 14513020,
+      "end": 14523467,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 232979,
+      "assembly": "Acomosus",
+      "chrom": "LG02",
+      "start": 14014537,
+      "end": 14025011,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 233270,
+      "assembly": "Taestivum",
+      "chrom": "Chr4D",
+      "start": 344190165,
+      "end": 344202195,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 233464,
+      "assembly": "Spurpurea",
+      "chrom": "Chr16",
+      "start": 12708252,
+      "end": 12718915,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 234144,
+      "assembly": "Acoerulea",
+      "chrom": "Chr_07",
+      "start": 20552979,
+      "end": 20563708,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 234432,
+      "assembly": "Acoerulea",
+      "chrom": "Chr_04",
+      "start": 25898099,
+      "end": 25908708,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 234987,
+      "assembly": "Vfaba",
+      "chrom": "chr3",
+      "start": 892138962,
+      "end": 892150168,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 235224,
+      "assembly": "Bplatyphylla",
+      "chrom": "Chr06",
+      "start": 47224094,
+      "end": 47235986,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 235613,
+      "assembly": "Zmays",
+      "chrom": "7",
+      "start": 178857158,
+      "end": 178869312,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 235988,
+      "assembly": "Csativus",
+      "chrom": "scaffold02140",
+      "start": 307546,
+      "end": 318713,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 237606,
+      "assembly": "Dalata",
+      "chrom": "Chr14",
+      "start": 6806662,
+      "end": 6818222,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 237892,
+      "assembly": "Rcommunis",
+      "chrom": "29005",
+      "start": 121433,
+      "end": 132114,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 238766,
+      "assembly": "Zmarina",
+      "chrom": "scaffold_1564",
+      "start": 7130,
+      "end": 17466,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 238830,
+      "assembly": "Ckanehirae",
+      "chrom": "CKAN.scaff0005",
+      "start": 45906908,
+      "end": 45919164,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 238905,
+      "assembly": "Dcarota",
+      "chrom": "DCARv3_Chr7",
+      "start": 34609173,
+      "end": 34620400,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 239077,
+      "assembly": "Mesculenta",
+      "chrom": "Chromosome15",
+      "start": 18692165,
+      "end": 18703139,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 239548,
+      "assembly": "Osativa",
+      "chrom": "Chr4",
+      "start": 32460057,
+      "end": 32470963,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 240643,
+      "assembly": "Pvaginatum",
+      "chrom": "Chr06",
+      "start": 28502371,
+      "end": 28513040,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 240856,
+      "assembly": "Ahypochondriacus",
+      "chrom": "Scaffold_3",
+      "start": 11009482,
+      "end": 11020088,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 241386,
+      "assembly": "Vunguiculata",
+      "chrom": "Vu10",
+      "start": 19956465,
+      "end": 19966648,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 241557,
+      "assembly": "Bdistachyon",
+      "chrom": "Bd2",
+      "start": 23331131,
+      "end": 23342358,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 241629,
+      "assembly": "Ptrifoliata",
+      "chrom": "scaffold_7",
+      "start": 11692746,
+      "end": 11703348,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 242631,
+      "assembly": "Cquinoa",
+      "chrom": "C_Quinoa_Scaffold_1817",
+      "start": 143838,
+      "end": 154936,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 242716,
+      "assembly": "Ppersica",
+      "chrom": "Pp03",
+      "start": 10620523,
+      "end": 10632208,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 243107,
+      "assembly": "Sviridis",
+      "chrom": "Chr_07",
+      "start": 32349180,
+      "end": 32361509,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 243186,
+      "assembly": "Lsativa",
+      "chrom": "Lsat_1_v8_lg_4",
+      "start": 304155233,
+      "end": 304168765,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 243507,
+      "assembly": "Macuminata",
+      "chrom": "chr3",
+      "start": 28120279,
+      "end": 28134140,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 243815,
+      "assembly": "Mesculenta",
+      "chrom": "Chromosome01",
+      "start": 9968911,
+      "end": 9979280,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 243886,
+      "assembly": "Ahypogaea",
+      "chrom": "arahy.Tifrunner.gnm1.Arahy.09",
+      "start": 29683334,
+      "end": 29693735,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 244295,
+      "assembly": "Spurpurea",
+      "chrom": "Chr19",
+      "start": 11512514,
+      "end": 11522919,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 244376,
+      "assembly": "Esalsugineum",
+      "chrom": "scaffold_8",
+      "start": 7521494,
+      "end": 7534270,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 244406,
+      "assembly": "Macuminata",
+      "chrom": "chr11",
+      "start": 15873991,
+      "end": 15895048,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 245255,
+      "assembly": "Carietinum",
+      "chrom": "scaffold40",
+      "start": 10829,
+      "end": 21147,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 245555,
+      "assembly": "Crubella",
+      "chrom": "scaffold_3",
+      "start": 10207976,
+      "end": 10219719,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 245765,
+      "assembly": "Mdomestica",
+      "chrom": "Chr16",
+      "start": 20027348,
+      "end": 20038368,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 246489,
+      "assembly": "Rcommunis",
+      "chrom": "29903",
+      "start": 259684,
+      "end": 270161,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 246958,
+      "assembly": "Tintermedium",
+      "chrom": "V05",
+      "start": 432429247,
+      "end": 432440549,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 246976,
+      "assembly": "Sbicolor",
+      "chrom": "Chr02",
+      "start": 6534632,
+      "end": 6545991,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 248028,
+      "assembly": "Bstricta",
+      "chrom": "Scaffold5224",
+      "start": 470507,
+      "end": 481560,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 248717,
+      "assembly": "Dalata",
+      "chrom": "Chr7",
+      "start": 17892582,
+      "end": 17904702,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 249443,
+      "assembly": "Osativa",
+      "chrom": "Chr8",
+      "start": 11941209,
+      "end": 11951506,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 249906,
+      "assembly": "Ptrifoliata",
+      "chrom": "scaffold_3",
+      "start": 5447294,
+      "end": 5458245,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 250951,
+      "assembly": "Pvirgatum",
+      "chrom": "Chr04N",
+      "start": 31020858,
+      "end": 31031401,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 251231,
+      "assembly": "Ppersica",
+      "chrom": "Pp07",
+      "start": 4784138,
+      "end": 4795529,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 251425,
+      "assembly": "Spolyrhiza",
+      "chrom": "pseudo10",
+      "start": 2295726,
+      "end": 2313724,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 252785,
+      "assembly": "Oeuropaea",
+      "chrom": "chr17",
+      "start": 20965911,
+      "end": 20976910,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 254041,
+      "assembly": "Rcommunis",
+      "chrom": "29828",
+      "start": 133733,
+      "end": 143994,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 254162,
+      "assembly": "Soleracea",
+      "chrom": "Spov3_chr1",
+      "start": 43175733,
+      "end": 43187794,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 254383,
+      "assembly": "Macuminata",
+      "chrom": "chrUn_random",
+      "start": 70157196,
+      "end": 70168118,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 255265,
+      "assembly": "Lusitatissimum",
+      "chrom": "scaffold272",
+      "start": 564900,
+      "end": 575735,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 255973,
+      "assembly": "Sparvula",
+      "chrom": "un0034",
+      "start": 28272,
+      "end": 39413,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 257143,
+      "assembly": "Zmarina",
+      "chrom": "scaffold_39",
+      "start": 183996,
+      "end": 194434,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 257212,
+      "assembly": "Bvulgaris",
+      "chrom": "EL10_2_Chr3",
+      "start": 20443521,
+      "end": 20453990,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 257812,
+      "assembly": "Hvulgare",
+      "chrom": "chr4H",
+      "start": 461496479,
+      "end": 461506872,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 260210,
+      "assembly": "Zmarina",
+      "chrom": "Chr02",
+      "start": 2160869,
+      "end": 2171192,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 260358,
+      "assembly": "Mtruncatula",
+      "chrom": "chr4",
+      "start": 46716598,
+      "end": 46729163,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 260419,
+      "assembly": "Vdarrowii",
+      "chrom": "chr3",
+      "start": 37139118,
+      "end": 37150231,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 260887,
+      "assembly": "Egrandis",
+      "chrom": "Chr06",
+      "start": 305529,
+      "end": 319033,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 261087,
+      "assembly": "Carabica",
+      "chrom": "chr4e",
+      "start": 7968065,
+      "end": 7979667,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 261597,
+      "assembly": "Pvaginatum",
+      "chrom": "Chr02",
+      "start": 50914949,
+      "end": 50925620,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 261604,
+      "assembly": "Ppersica",
+      "chrom": "Pp02",
+      "start": 11471312,
+      "end": 11481564,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 262244,
+      "assembly": "Acoerulea",
+      "chrom": "Chr_01",
+      "start": 36161623,
+      "end": 36172575,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 263177,
+      "assembly": "Aofficinalis",
+      "chrom": "AsparagusV1_02",
+      "start": 6719547,
+      "end": 6730489,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 263402,
+      "assembly": "Cclementina",
+      "chrom": "scaffold_4",
+      "start": 23753908,
+      "end": 23764823,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 263796,
+      "assembly": "Ahypogaea",
+      "chrom": "arahy.Tifrunner.gnm1.Arahy.20",
+      "start": 142720442,
+      "end": 142734965,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 264886,
+      "assembly": "Carabica",
+      "chrom": "chr4e",
+      "start": 13521078,
+      "end": 13531492,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 264945,
+      "assembly": "Crubella",
+      "chrom": "scaffold_5",
+      "start": 2888452,
+      "end": 2900222,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 265394,
+      "assembly": "Mdomestica",
+      "chrom": "Chr14",
+      "start": 30175024,
+      "end": 30185687,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 265879,
+      "assembly": "Soleracea",
+      "chrom": "Spov3_chr2",
+      "start": 72743207,
+      "end": 72753572,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 266334,
+      "assembly": "Zmarina",
+      "chrom": "Chr05",
+      "start": 17665530,
+      "end": 17676223,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 266728,
+      "assembly": "Vdarrowii",
+      "chrom": "chr1",
+      "start": 45703551,
+      "end": 45714625,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 269589,
+      "assembly": "Ptrichocarpa",
+      "chrom": "Chr01",
+      "start": 11277965,
+      "end": 11288460,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 269880,
+      "assembly": "Lervoides",
+      "chrom": "Ler.1DRT.Chr2",
+      "start": 350620130,
+      "end": 350631003,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 272101,
+      "assembly": "Bstricta",
+      "chrom": "Scaffold25993",
+      "start": 2828571,
+      "end": 2839621,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 272381,
+      "assembly": "Spurpurea",
+      "chrom": "Chr16",
+      "start": 5580562,
+      "end": 5591906,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 273255,
+      "assembly": "Zmarina",
+      "chrom": "Chr01",
+      "start": 17846263,
+      "end": 17856975,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 273626,
+      "assembly": "Ccitriodora",
+      "chrom": "chr6",
+      "start": 26538756,
+      "end": 26551967,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 275395,
+      "assembly": "Ncolorata",
+      "chrom": "GWHAAYW00000013",
+      "start": 5354423,
+      "end": 5369444,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 275532,
+      "assembly": "Csativus",
+      "chrom": "scaffold01043",
+      "start": 8585,
+      "end": 18790,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 277064,
+      "assembly": "Lalbus",
+      "chrom": "Lalb_Chr19",
+      "start": 12197388,
+      "end": 12210669,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 277276,
+      "assembly": "Soleracea",
+      "chrom": "Spov3_chr6",
+      "start": 54706215,
+      "end": 54719746,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 277441,
+      "assembly": "Athaliana",
+      "chrom": "Chr2",
+      "start": 16798284,
+      "end": 16809586,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 279653,
+      "assembly": "Sviridis",
+      "chrom": "Chr_02",
+      "start": 15175710,
+      "end": 15185848,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 282282,
+      "assembly": "Ahypogaea",
+      "chrom": "arahy.Tifrunner.gnm1.Arahy.11",
+      "start": 3315987,
+      "end": 3327399,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 282531,
+      "assembly": "Ppersica",
+      "chrom": "Pp02",
+      "start": 1657058,
+      "end": 1669107,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 282546,
+      "assembly": "Vvinifera",
+      "chrom": "chr10",
+      "start": 7636173,
+      "end": 7646560,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 283395,
+      "assembly": "Ptrichocarpa",
+      "chrom": "Chr12",
+      "start": 12460411,
+      "end": 12472118,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 283469,
+      "assembly": "Ncolorata",
+      "chrom": "GWHAAYW00000009",
+      "start": 21659399,
+      "end": 21669871,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 283595,
+      "assembly": "Egrandis",
+      "chrom": "Chr04",
+      "start": 4881690,
+      "end": 4892382,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 283805,
+      "assembly": "Bvulgaris",
+      "chrom": "EL10_2_Chr4",
+      "start": 53047818,
+      "end": 53059345,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 283816,
+      "assembly": "Spolyrhiza",
+      "chrom": "pseudo0",
+      "start": 8182509,
+      "end": 8193656,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 284731,
+      "assembly": "Bdistachyon",
+      "chrom": "Bd1",
+      "start": 15259965,
+      "end": 15270208,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 286127,
+      "assembly": "Csativus",
+      "chrom": "scaffold00585",
+      "start": 242964,
+      "end": 255905,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 287816,
+      "assembly": "Aofficinalis",
+      "chrom": "AsparagusV1_04",
+      "start": 13323154,
+      "end": 13338820,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 290487,
+      "assembly": "Acomosus",
+      "chrom": "LG07",
+      "start": 9397755,
+      "end": 9408349,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 290921,
+      "assembly": "Ccitriodora",
+      "chrom": "chr3",
+      "start": 25327762,
+      "end": 25339340,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 292447,
+      "assembly": "Hvulgare",
+      "chrom": "chr5H",
+      "start": 344165422,
+      "end": 344176520,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 292552,
+      "assembly": "Cillinoinensis",
+      "chrom": "Chr01",
+      "start": 57660848,
+      "end": 57671452,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 293352,
+      "assembly": "Sbicolor",
+      "chrom": "Chr08",
+      "start": 50823602,
+      "end": 50834283,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 294420,
+      "assembly": "Zmays",
+      "chrom": "8",
+      "start": 17424570,
+      "end": 17434936,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 297537,
+      "assembly": "Lsativa",
+      "chrom": "Lsat_1_v8_lg_9",
+      "start": 148494683,
+      "end": 148507107,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 297558,
+      "assembly": "Cillinoinensis",
+      "chrom": "Chr12",
+      "start": 14594871,
+      "end": 14607131,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 298130,
+      "assembly": "Cavellana",
+      "chrom": "Corylus.Jeff.hap1.Chr.09_LG3",
+      "start": 1951464,
+      "end": 1963474,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 300180,
+      "assembly": "Pvaginatum",
+      "chrom": "Chr03",
+      "start": 10506138,
+      "end": 10516950,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 300338,
+      "assembly": "Cquinoa",
+      "chrom": "C_Quinoa_Scaffold_4206",
+      "start": 4154289,
+      "end": 4170859,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 300561,
+      "assembly": "Dcarota",
+      "chrom": "DCARv3_Chr5",
+      "start": 36238141,
+      "end": 36249759,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 301365,
+      "assembly": "Ptrifoliata",
+      "chrom": "scaffold_7",
+      "start": 23982282,
+      "end": 23994522,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 302300,
+      "assembly": "Pvaginatum",
+      "chrom": "Chr03",
+      "start": 28766572,
+      "end": 28776767,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 303289,
+      "assembly": "Egrandis",
+      "chrom": "Chr03",
+      "start": 57693009,
+      "end": 57704818,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 303593,
+      "assembly": "Othomaeum",
+      "chrom": "Oropetium_genomic_20141112_030",
+      "start": 654466,
+      "end": 666600,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 303856,
+      "assembly": "Bstricta",
+      "chrom": "Scaffold26833",
+      "start": 1840965,
+      "end": 1853361,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 304130,
+      "assembly": "Bplatyphylla",
+      "chrom": "Chr05",
+      "start": 598522,
+      "end": 614675,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 305478,
+      "assembly": "Mdomestica",
+      "chrom": "Chr11",
+      "start": 8113510,
+      "end": 8125535,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 306605,
+      "assembly": "Ecoracana",
+      "chrom": "2B",
+      "start": 57068199,
+      "end": 57079550,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 307203,
+      "assembly": "Fvesca",
+      "chrom": "Fvb2",
+      "start": 9231421,
+      "end": 9241740,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 307397,
+      "assembly": "Acomosus",
+      "chrom": "LG04",
+      "start": 8650267,
+      "end": 8662391,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 307740,
+      "assembly": "Tintermedium",
+      "chrom": "J04",
+      "start": 42699353,
+      "end": 42709638,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 308240,
+      "assembly": "Pamilis",
+      "chrom": "scaffold_6",
+      "start": 28265430,
+      "end": 28276870,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 308526,
+      "assembly": "Acomosus",
+      "chrom": "scaffold_1613",
+      "start": 0,
+      "end": 15248,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 309175,
+      "assembly": "Lervoides",
+      "chrom": "Ler.1DRT.Chr1",
+      "start": 16649943,
+      "end": 16661737,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 309716,
+      "assembly": "Mdomestica",
+      "chrom": "Chr00",
+      "start": 22464798,
+      "end": 22476871,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 309788,
+      "assembly": "Soleracea",
+      "chrom": "Spov3_chr1",
+      "start": 32673914,
+      "end": 32685496,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 310361,
+      "assembly": "Ahypogaea",
+      "chrom": "arahy.Tifrunner.gnm1.Arahy.13",
+      "start": 8532430,
+      "end": 8542679,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 312666,
+      "assembly": "Cavellana",
+      "chrom": "Corylus.Jeff.hap1.Chr.07_LG11",
+      "start": 5748080,
+      "end": 5758320,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 312764,
+      "assembly": "Vvinifera",
+      "chrom": "chr12",
+      "start": 18447796,
+      "end": 18459628,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 313002,
+      "assembly": "Acoerulea",
+      "chrom": "Chr_05",
+      "start": 18655362,
+      "end": 18665812,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 313195,
+      "assembly": "Cillinoinensis",
+      "chrom": "Chr02",
+      "start": 16246385,
+      "end": 16257699,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 313524,
+      "assembly": "Cclementina",
+      "chrom": "scaffold_3",
+      "start": 8885902,
+      "end": 8896263,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 313644,
+      "assembly": "Hvulgare",
+      "chrom": "chr4H",
+      "start": 128175829,
+      "end": 128186297,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 313756,
+      "assembly": "Zmays",
+      "chrom": "5",
+      "start": 3599321,
+      "end": 3610335,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 313762,
+      "assembly": "Ljaponicus",
+      "chrom": "chr5",
+      "start": 58361587,
+      "end": 58372187,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 315474,
+      "assembly": "Spolyrhiza",
+      "chrom": "pseudo16",
+      "start": 3056327,
+      "end": 3071271,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 315502,
+      "assembly": "Hannuus",
+      "chrom": "HanXRQChr09",
+      "start": 182506906,
+      "end": 182521366,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 316661,
+      "assembly": "Othomaeum",
+      "chrom": "Oropetium_genomic_20141112_099",
+      "start": 309034,
+      "end": 322758,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 319295,
+      "assembly": "Athaliana",
+      "chrom": "Chr3",
+      "start": 11306426,
+      "end": 11317604,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 320326,
+      "assembly": "Othomaeum",
+      "chrom": "Oropetium_genomic_20141112_004",
+      "start": 2876631,
+      "end": 2887563,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 320657,
+      "assembly": "Fvesca",
+      "chrom": "Fvb4",
+      "start": 15523633,
+      "end": 15534488,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 320958,
+      "assembly": "Soleracea",
+      "chrom": "Spov3_chr6",
+      "start": 71811535,
+      "end": 71822249,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 320967,
+      "assembly": "Fvesca",
+      "chrom": "Fvb4",
+      "start": 13593811,
+      "end": 13605455,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 322632,
+      "assembly": "Mesculenta",
+      "chrom": "Chromosome13",
+      "start": 28370578,
+      "end": 28382051,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 322730,
+      "assembly": "Rcommunis",
+      "chrom": "30148",
+      "start": 227974,
+      "end": 239439,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 323462,
+      "assembly": "Lsativa",
+      "chrom": "Lsat_1_v8_lg_7",
+      "start": 103159295,
+      "end": 103172585,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 324212,
+      "assembly": "Athaliana",
+      "chrom": "Chr3",
+      "start": 6985253,
+      "end": 6996462,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 325073,
+      "assembly": "Dcarota",
+      "chrom": "DCARv3_Chr6",
+      "start": 20716608,
+      "end": 20727210,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 325431,
+      "assembly": "Ahypogaea",
+      "chrom": "arahy.Tifrunner.gnm1.Arahy.12",
+      "start": 9632088,
+      "end": 9644089,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 325661,
+      "assembly": "Bplatyphylla",
+      "chrom": "Chr05",
+      "start": 7268755,
+      "end": 7280946,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 326026,
+      "assembly": "Gmax",
+      "chrom": "Gm16",
+      "start": 2130899,
+      "end": 2141730,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 326203,
+      "assembly": "Bvulgaris",
+      "chrom": "EL10_2_Chr8",
+      "start": 17838684,
+      "end": 17853653,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 327030,
+      "assembly": "Msinensis",
+      "chrom": "Chr02",
+      "start": 100916035,
+      "end": 100927064,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 328370,
+      "assembly": "Lsativa",
+      "chrom": "Lsat_1_v8_lg_5",
+      "start": 250743322,
+      "end": 250753802,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 328608,
+      "assembly": "Esalsugineum",
+      "chrom": "scaffold_8",
+      "start": 4827060,
+      "end": 4838046,
+      "strand": "+"
+    },
+    {
+      "split": "validation",
+      "row": 328787,
+      "assembly": "Spolyrhiza",
+      "chrom": "pseudo24",
+      "start": 1493832,
+      "end": 1509488,
+      "strand": "-"
+    },
+    {
+      "split": "validation",
+      "row": 328998,
+      "assembly": "Zmays",
+      "chrom": "1",
+      "start": 11555744,
+      "end": 11567193,
+      "strand": "-"
+    }
+  ],
+  "metric": "eval/loss_disjoint",
+  "species": 65
+}

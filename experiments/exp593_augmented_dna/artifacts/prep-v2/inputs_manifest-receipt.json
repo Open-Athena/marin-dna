@@ -1,0 +1,661 @@
+{
+  "dataset_revision": "4a444fff5520b992aa978d92a5af509a81977098",
+  "source_code_commit": "65f3ea461065fd4217e5f30424d5748eb6e5ed77",
+  "fingerprint": "46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a",
+  "prefix": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a",
+  "files": {
+    "annotations/coverage.json": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/annotations/coverage.json",
+      "sha256": "3c5d25b64fa0339135f6bd680e1aa09a65321f61fb45db69c629059180761901",
+      "bytes": 174731,
+      "etag": "\"14e50f081e0923ffebd14c45b98182f6\"",
+      "complete_readback_verified": true
+    },
+    "annotations/manifest.json": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/annotations/manifest.json",
+      "sha256": "e4d57b435217872ac41c68f331703810c0904d6b28c846803fe893f80224e962",
+      "bytes": 1172,
+      "etag": "\"9fce97f6f0653a70b981d4b6b41f605b\"",
+      "complete_readback_verified": true
+    },
+    "annotations/train.parquet": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/annotations/train.parquet",
+      "sha256": "0a3dce62628d2f83241a4b6259d59214fb081e9e2b9d28ebf28ce1a37cd6e827",
+      "bytes": 109003131,
+      "etag": "\"25823b738ec00806851cebffaa4b1462\"",
+      "complete_readback_verified": true
+    },
+    "annotations/validation.parquet": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/annotations/validation.parquet",
+      "sha256": "821a6b2afff70bc157bfb538c7db18e77ba2cb9376694c5325765bd682cfa6e2",
+      "bytes": 13643356,
+      "etag": "\"00053c72022ca1c06dfc970d0b3c9ced\"",
+      "complete_readback_verified": true
+    },
+    "audit/augmentation_report.json": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/audit/augmentation_report.json",
+      "sha256": "19b59129bab237d6512f3998762c1861f0cfed0e3820374c55b8bb90f17fcad9",
+      "bytes": 69057,
+      "etag": "\"ec678a61c18e059a4dbafb05b3b77b4f\"",
+      "complete_readback_verified": true
+    },
+    "audit/examples.jsonl": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/audit/examples.jsonl",
+      "sha256": "2929231c3be3b837b46eca0342d6dfafff830fe5de938e60cf11c3643e90f915",
+      "bytes": 388287,
+      "etag": "\"d0f71d153e5a4a30611a2830b2a1a9c1\"",
+      "complete_readback_verified": true
+    },
+    "audit/fim_validation_manifest.json": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/audit/fim_validation_manifest.json",
+      "sha256": "099f19b989cf7b2fedf1ae9038f903fd8e9b1eac20c8684d279b32cb88a71dd6",
+      "bytes": 1968,
+      "etag": "\"e7d07ae1b45b1e6498efac1b3fc3bbec\"",
+      "complete_readback_verified": true
+    },
+    "audit/fim_validation_pairs.jsonl": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/audit/fim_validation_pairs.jsonl",
+      "sha256": "e19d6352643032252c0855206be2e02aa878498f25490e4ef39f111f03dd7848",
+      "bytes": 9453785,
+      "etag": "\"933c1e2100f57999655b67103f98b146\"",
+      "complete_readback_verified": true
+    },
+    "audit/holdout_verification.json": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/audit/holdout_verification.json",
+      "sha256": "ace8f5d9b4d84570b74b971a8f3b4b1adf3fff3b1721985617d9bb1efe34ab47",
+      "bytes": 230,
+      "etag": "\"8c63e694f1b9d3bd7889bb1ab6d4608c\"",
+      "complete_readback_verified": true
+    },
+    "audit/template_catalog.json": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/audit/template_catalog.json",
+      "sha256": "a9765496a3adb190e921b0b4c2f434ae0acc6e6f6516eaf5695ec0902bf1fe4c",
+      "bytes": 40655,
+      "etag": "\"c91f93e597813e431b45d00a60a819a2\"",
+      "complete_readback_verified": true
+    },
+    "audit/validation_disjoint_512.json": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/audit/validation_disjoint_512.json",
+      "sha256": "6fad190f8a5b4552d5bdb17eee3df3e133eb4538a92b1e9ba200dffc991f051e",
+      "bytes": 96596,
+      "etag": "\"e500109fb368188c4b12a10f2e42bc0c\"",
+      "complete_readback_verified": true
+    },
+    "audit/validation_primary_512.json": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/audit/validation_primary_512.json",
+      "sha256": "4194d5c74c6ed0bd59b6f406f4facadcf75a6d25afbc263281f84e60cb2eff16",
+      "bytes": 6208,
+      "etag": "\"5c22ab692b9b7cbdf99add2c32a8213b\"",
+      "complete_readback_verified": true
+    },
+    "corpus/sources.json": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/corpus/sources.json",
+      "sha256": "fdfecee6200ee4c480248ac099741b6813d5c72268ad8e16c9e64bebd6b350d2",
+      "bytes": 66650,
+      "etag": "\"a6b2ed2121cd58563425d39ce70d7632\"",
+      "complete_readback_verified": true
+    },
+    "metadata/train/data-00000-of-00044.parquet": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/metadata/train/data-00000-of-00044.parquet",
+      "sha256": "949331ae1da019b014424a7b8f32f8451915ee985176da846e11fa4fc7fff756",
+      "bytes": 1008083,
+      "etag": "\"4aa9e9c40e13f4a5e444e8b20a10dbbd\"",
+      "complete_readback_verified": true
+    },
+    "metadata/train/data-00001-of-00044.parquet": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/metadata/train/data-00001-of-00044.parquet",
+      "sha256": "844186949ee0734633d76d3a696220c6a9b889a53e3f94a7d3a51dddc4983b0c",
+      "bytes": 1008561,
+      "etag": "\"3252e77b70cfc13d50743abfd15911aa\"",
+      "complete_readback_verified": true
+    },
+    "metadata/train/data-00002-of-00044.parquet": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/metadata/train/data-00002-of-00044.parquet",
+      "sha256": "7dc1f830d7a8cf9cc325244281b296d3cb31d78549c68d972d6c22ff3e638ce3",
+      "bytes": 1007473,
+      "etag": "\"a63f22f6b24ada8e44f95bb577e68abe\"",
+      "complete_readback_verified": true
+    },
+    "metadata/train/data-00003-of-00044.parquet": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/metadata/train/data-00003-of-00044.parquet",
+      "sha256": "013b433fecdb1673855276e7a8c677ea0eb2b99cfa956e71cb1087eea5b1e514",
+      "bytes": 1008146,
+      "etag": "\"ff269f905b7f77e917e0e2b8e3068734\"",
+      "complete_readback_verified": true
+    },
+    "metadata/train/data-00004-of-00044.parquet": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/metadata/train/data-00004-of-00044.parquet",
+      "sha256": "7438cf06f88f9b8efa54e18c621affcdc8936e902b122fb32f43ab4a10b0aa0b",
+      "bytes": 1006673,
+      "etag": "\"f7cbb058ca1b619da2243d7893491701\"",
+      "complete_readback_verified": true
+    },
+    "metadata/train/data-00005-of-00044.parquet": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/metadata/train/data-00005-of-00044.parquet",
+      "sha256": "d8827825ff8ae725a9032cf74a05a282a261fcb92146b542b51827a692429aa3",
+      "bytes": 1008112,
+      "etag": "\"c304c94fb92b8025c54b4e526d39342e\"",
+      "complete_readback_verified": true
+    },
+    "metadata/train/data-00006-of-00044.parquet": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/metadata/train/data-00006-of-00044.parquet",
+      "sha256": "aeb30ddd08c8dcd137980dfefbb062e34610f2e349cbd581860605d6624c7423",
+      "bytes": 1007606,
+      "etag": "\"c9aaa803b702755c1e9e3229fad074ad\"",
+      "complete_readback_verified": true
+    },
+    "metadata/train/data-00007-of-00044.parquet": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/metadata/train/data-00007-of-00044.parquet",
+      "sha256": "f715c2af6d0c8642b6f2a74a4af04092c8f6ea951f928422ae7ef635875e3748",
+      "bytes": 1007825,
+      "etag": "\"f131a32e2441474269bb7136f8f47ae0\"",
+      "complete_readback_verified": true
+    },
+    "metadata/train/data-00008-of-00044.parquet": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/metadata/train/data-00008-of-00044.parquet",
+      "sha256": "37320c5c82916347535055223b429ac365fdd412eded0cab6bca2f1ab489c67f",
+      "bytes": 1008156,
+      "etag": "\"5973b41ac9e4d810519abe0b676a9fa7\"",
+      "complete_readback_verified": true
+    },
+    "metadata/train/data-00009-of-00044.parquet": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/metadata/train/data-00009-of-00044.parquet",
+      "sha256": "03ae609eeb3ab31e96675665ec9fcd455e482f40a2dcdc5a30193dd9974984f6",
+      "bytes": 1007055,
+      "etag": "\"3ed71afed44a2986817b014152468ed0\"",
+      "complete_readback_verified": true
+    },
+    "metadata/train/data-00010-of-00044.parquet": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/metadata/train/data-00010-of-00044.parquet",
+      "sha256": "639d472da6384f8cd79e1c0974b1ca19e7a9d51acd6ccff9096a53369fec7a60",
+      "bytes": 1008905,
+      "etag": "\"d7df259916ef6dd1e9469ab1cc2668ca\"",
+      "complete_readback_verified": true
+    },
+    "metadata/train/data-00011-of-00044.parquet": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/metadata/train/data-00011-of-00044.parquet",
+      "sha256": "23f9c1c6115cdac77255eae8e913bc21000b444736273377d22b9cffadedd95a",
+      "bytes": 1008096,
+      "etag": "\"ef8bb1cf408b7eb292f3f17cd5eb1ed6\"",
+      "complete_readback_verified": true
+    },
+    "metadata/train/data-00012-of-00044.parquet": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/metadata/train/data-00012-of-00044.parquet",
+      "sha256": "184034a9720aa8960fc9cd91f4001695cf5e8713fa10c4bab428408ef9d2ae1b",
+      "bytes": 1008140,
+      "etag": "\"5fb8ac121e24fa42569315ca0e0b6648\"",
+      "complete_readback_verified": true
+    },
+    "metadata/train/data-00013-of-00044.parquet": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/metadata/train/data-00013-of-00044.parquet",
+      "sha256": "fbb52e06d2c8f6b5f2478a8460eb766a0c5b3519dae35dd6eaecde31b04dd3b4",
+      "bytes": 1008094,
+      "etag": "\"8ee54dffe69bff4af924e82da6a3c9b5\"",
+      "complete_readback_verified": true
+    },
+    "metadata/train/data-00014-of-00044.parquet": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/metadata/train/data-00014-of-00044.parquet",
+      "sha256": "05f037f2f1e8e2fd8eb335dc999931ce36cdb0cb137a2c6e254f21ef4ec63fca",
+      "bytes": 1008308,
+      "etag": "\"ef899dc1dc6feffaefdc13b9deeb6444\"",
+      "complete_readback_verified": true
+    },
+    "metadata/train/data-00015-of-00044.parquet": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/metadata/train/data-00015-of-00044.parquet",
+      "sha256": "e829f24ab8e89baab45ccda1dda8d948c8db62547ac18ebcc6abf6d961d48301",
+      "bytes": 1008180,
+      "etag": "\"f3be7f44f6fb2ddc8fccd4b681767d16\"",
+      "complete_readback_verified": true
+    },
+    "metadata/train/data-00016-of-00044.parquet": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/metadata/train/data-00016-of-00044.parquet",
+      "sha256": "3c98800678ee8a8b38d9cb250e7f55403ee1d189dc86710f20e68916fc7930da",
+      "bytes": 1008585,
+      "etag": "\"b5d377f231a4b8f4d7f9b184c36e0eda\"",
+      "complete_readback_verified": true
+    },
+    "metadata/train/data-00017-of-00044.parquet": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/metadata/train/data-00017-of-00044.parquet",
+      "sha256": "edd35ebe51e3e9c8cb935d5ef201464baff1673cc778eba5ff5b148a0571564a",
+      "bytes": 1008183,
+      "etag": "\"7cef5f6abba3fa5f1cdb16c16e849301\"",
+      "complete_readback_verified": true
+    },
+    "metadata/train/data-00018-of-00044.parquet": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/metadata/train/data-00018-of-00044.parquet",
+      "sha256": "1229f632777a37c00440bf423ad9d73c6daed88283ac4f3a7036eeafa2d92112",
+      "bytes": 1007136,
+      "etag": "\"960d0e59da75948ae7607f6a0d73467e\"",
+      "complete_readback_verified": true
+    },
+    "metadata/train/data-00019-of-00044.parquet": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/metadata/train/data-00019-of-00044.parquet",
+      "sha256": "6c3c92ac774033e3ce09a3d97b2434c637c67a0b3ac8c52349ab59c39ba57a5b",
+      "bytes": 1008757,
+      "etag": "\"06b03b8753c67dd05bc6e3f8ba5684bf\"",
+      "complete_readback_verified": true
+    },
+    "metadata/train/data-00020-of-00044.parquet": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/metadata/train/data-00020-of-00044.parquet",
+      "sha256": "ac2a15424985fba4e620263cd38fde6f68ed937c1a8fc59b727f189157a00c84",
+      "bytes": 1007118,
+      "etag": "\"5130d4388fad5b3f2ddc5b9016dbca0b\"",
+      "complete_readback_verified": true
+    },
+    "metadata/train/data-00021-of-00044.parquet": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/metadata/train/data-00021-of-00044.parquet",
+      "sha256": "f7ed9357d24c47152bfa2775779c7843c53c4c3809c86fb8481c96cd4a7f600b",
+      "bytes": 1007486,
+      "etag": "\"4578e6309fac9793a1cc7494bc718ea9\"",
+      "complete_readback_verified": true
+    },
+    "metadata/train/data-00022-of-00044.parquet": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/metadata/train/data-00022-of-00044.parquet",
+      "sha256": "b5785a1d62f328aef67c5e504666acb0d1993224b434a6429318bf35a2c97ea1",
+      "bytes": 1007552,
+      "etag": "\"8708927a2384387bd12a97bdbd965262\"",
+      "complete_readback_verified": true
+    },
+    "metadata/train/data-00023-of-00044.parquet": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/metadata/train/data-00023-of-00044.parquet",
+      "sha256": "1e2d3264112c15a5d92b5f4bcef90eb7aa8b00a8b89a096ac7429c92573d10d4",
+      "bytes": 1007516,
+      "etag": "\"2ec70270d4efc27c6715111b0914ae32\"",
+      "complete_readback_verified": true
+    },
+    "metadata/train/data-00024-of-00044.parquet": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/metadata/train/data-00024-of-00044.parquet",
+      "sha256": "282f23d8a29fe9cad0eceb34c6538719a72b51dbe29f20359b6c2718128e6f9d",
+      "bytes": 1007993,
+      "etag": "\"f1d175127f170793c6c5a7aa187f423a\"",
+      "complete_readback_verified": true
+    },
+    "metadata/train/data-00025-of-00044.parquet": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/metadata/train/data-00025-of-00044.parquet",
+      "sha256": "bcecf14b65f40eaaf4a5c4cb34387366b8fcb93e5616e0dce345214b804dabb8",
+      "bytes": 1007544,
+      "etag": "\"de5079a23e77c869e6af956c47c544af\"",
+      "complete_readback_verified": true
+    },
+    "metadata/train/data-00026-of-00044.parquet": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/metadata/train/data-00026-of-00044.parquet",
+      "sha256": "a1fd2be7507f6588102595865cca969d88c4831afa0fae13f2a0786e32895015",
+      "bytes": 1008197,
+      "etag": "\"f040ee166ccc46b4c4a19d62271b2a12\"",
+      "complete_readback_verified": true
+    },
+    "metadata/train/data-00027-of-00044.parquet": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/metadata/train/data-00027-of-00044.parquet",
+      "sha256": "31448e20e08ae03a2699c68547d3fcab71ff25c66080519cb28d819b4f254c32",
+      "bytes": 1007764,
+      "etag": "\"67fe7b9fd301cb5a071a18d73bfc9b69\"",
+      "complete_readback_verified": true
+    },
+    "metadata/train/data-00028-of-00044.parquet": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/metadata/train/data-00028-of-00044.parquet",
+      "sha256": "0754d0d11c4d75e4d8f845844505d54edf0ced914650c7e92d2dff41a73bdb1f",
+      "bytes": 1008306,
+      "etag": "\"4d1e67041ae6d562626f81bef9a14c24\"",
+      "complete_readback_verified": true
+    },
+    "metadata/train/data-00029-of-00044.parquet": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/metadata/train/data-00029-of-00044.parquet",
+      "sha256": "f937e32dfa0153df00f6c6eb2352fa9643ce51a66c3d834ddd566f1a3d623604",
+      "bytes": 1006734,
+      "etag": "\"c347fc609e51aca6186e551194797221\"",
+      "complete_readback_verified": true
+    },
+    "metadata/train/data-00030-of-00044.parquet": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/metadata/train/data-00030-of-00044.parquet",
+      "sha256": "0d36866397ee9a3f91267629b8d964a5152a90f721bfb743623decfb6e71f87e",
+      "bytes": 1008113,
+      "etag": "\"2ce8cec7ae0ec140404dd0d1c981c865\"",
+      "complete_readback_verified": true
+    },
+    "metadata/train/data-00031-of-00044.parquet": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/metadata/train/data-00031-of-00044.parquet",
+      "sha256": "4d54e92fbc616f7bc7a96ddb61f766079ca366f2258914a15122cf68829d5990",
+      "bytes": 1007182,
+      "etag": "\"487e90ba48b8e9d9796648ed5111444e\"",
+      "complete_readback_verified": true
+    },
+    "metadata/train/data-00032-of-00044.parquet": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/metadata/train/data-00032-of-00044.parquet",
+      "sha256": "c48e227d8cc0edfe8ad1af576e298860fceb9a9916209668f124822071c48ccf",
+      "bytes": 1007447,
+      "etag": "\"0f31e8ef5e50230c8df8bd38cce409e2\"",
+      "complete_readback_verified": true
+    },
+    "metadata/train/data-00033-of-00044.parquet": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/metadata/train/data-00033-of-00044.parquet",
+      "sha256": "71a0c39c745b9a593f75841e2706d32d1b09580cc122adf14fdbc93695bd1a36",
+      "bytes": 1007536,
+      "etag": "\"233608a3fd26cedf35b153a5bcf10c79\"",
+      "complete_readback_verified": true
+    },
+    "metadata/train/data-00034-of-00044.parquet": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/metadata/train/data-00034-of-00044.parquet",
+      "sha256": "e726933c5fb9b610ac69041d56ba1e45e72afbcc2f7a34600c074a773dfc3f39",
+      "bytes": 1007242,
+      "etag": "\"27b5fb3b7833d1bcb1f6d9ece1112f34\"",
+      "complete_readback_verified": true
+    },
+    "metadata/train/data-00035-of-00044.parquet": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/metadata/train/data-00035-of-00044.parquet",
+      "sha256": "f80f474f802b3a802fb0bc18c3aa13f34e551d19dfdfc80eb88129200387893a",
+      "bytes": 1006932,
+      "etag": "\"88a2525c18f00d8e777228926ba82444\"",
+      "complete_readback_verified": true
+    },
+    "metadata/train/data-00036-of-00044.parquet": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/metadata/train/data-00036-of-00044.parquet",
+      "sha256": "53a1e60571ef6ceb3e17df97ad088c521692b5d89dde1e277baedf89fd7d74f1",
+      "bytes": 1007008,
+      "etag": "\"cd85414d4cdf8fc9c0a09b94ad491fb3\"",
+      "complete_readback_verified": true
+    },
+    "metadata/train/data-00037-of-00044.parquet": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/metadata/train/data-00037-of-00044.parquet",
+      "sha256": "7a8775709671b961e7d7968bbd05adaf37f12627a0baeca9f1e2006029cd63a4",
+      "bytes": 1007866,
+      "etag": "\"6b977b7990d14f511626dcbd6f6ef4bc\"",
+      "complete_readback_verified": true
+    },
+    "metadata/train/data-00038-of-00044.parquet": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/metadata/train/data-00038-of-00044.parquet",
+      "sha256": "47827165ecb63792984cf2c77c2eca4e0d2cad0b061c7349d4d050bda1e85f49",
+      "bytes": 1007297,
+      "etag": "\"7cd939f9543c9d9f14536c6e972cb760\"",
+      "complete_readback_verified": true
+    },
+    "metadata/train/data-00039-of-00044.parquet": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/metadata/train/data-00039-of-00044.parquet",
+      "sha256": "4a5db1a0285daed839932b683976de785e0079d97c3542b5374c8a45c83ce009",
+      "bytes": 1007352,
+      "etag": "\"fdb96ce5058f3d258baa543ea8049e60\"",
+      "complete_readback_verified": true
+    },
+    "metadata/train/data-00040-of-00044.parquet": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/metadata/train/data-00040-of-00044.parquet",
+      "sha256": "14e1ca5f12534b07340e6149abba75a72069efbfbddb14e0f803077d24e15008",
+      "bytes": 1006616,
+      "etag": "\"f653f26ee3b49d47039d90d0540c161f\"",
+      "complete_readback_verified": true
+    },
+    "metadata/train/data-00041-of-00044.parquet": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/metadata/train/data-00041-of-00044.parquet",
+      "sha256": "fde1b3ba09385694e244d13ddd79797de261b6b468424804e59d052474f73f0a",
+      "bytes": 1007516,
+      "etag": "\"7f86efeaee406aaa86561fa8b2b48b9d\"",
+      "complete_readback_verified": true
+    },
+    "metadata/train/data-00042-of-00044.parquet": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/metadata/train/data-00042-of-00044.parquet",
+      "sha256": "1c5a52604f5389f74e9ee980bc96117b4a148559059cdcae111038e79f1cb731",
+      "bytes": 1006655,
+      "etag": "\"2883eaf5cd38f32458ee05b04e45c7e6\"",
+      "complete_readback_verified": true
+    },
+    "metadata/train/data-00043-of-00044.parquet": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/metadata/train/data-00043-of-00044.parquet",
+      "sha256": "020aa6123451a9cda0063eabd3631f02e35ff118ceef9f26d49581bc732bad2b",
+      "bytes": 1008042,
+      "etag": "\"d5003ae463461c98361601df42547686\"",
+      "complete_readback_verified": true
+    },
+    "metadata/validation/data-00000-of-00006.parquet": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/metadata/validation/data-00000-of-00006.parquet",
+      "sha256": "768759828fb210ec9004eca7b47f0c3d0b4c1080ce0bde36ab46fbe45747595c",
+      "bytes": 925626,
+      "etag": "\"03ca7b7b0629e9e39937e586d7f69196\"",
+      "complete_readback_verified": true
+    },
+    "metadata/validation/data-00001-of-00006.parquet": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/metadata/validation/data-00001-of-00006.parquet",
+      "sha256": "32b35f70f07a88efd94310f340448ea017fbfee731980bb720942533daa28462",
+      "bytes": 924889,
+      "etag": "\"7ee381c2115c66146640da92d04ddca6\"",
+      "complete_readback_verified": true
+    },
+    "metadata/validation/data-00002-of-00006.parquet": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/metadata/validation/data-00002-of-00006.parquet",
+      "sha256": "337ecbd0709ed9cb6a830ecf7701e2d742bf21b62928edf486e9522f070755dd",
+      "bytes": 923482,
+      "etag": "\"f6c5e4491e2fbb1d6667479f1a846548\"",
+      "complete_readback_verified": true
+    },
+    "metadata/validation/data-00003-of-00006.parquet": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/metadata/validation/data-00003-of-00006.parquet",
+      "sha256": "0d39ae02ae77fee8b10c549bb59e25e595696368622cc8a91096cc83f581ad53",
+      "bytes": 923942,
+      "etag": "\"ea6ab8163313099db5c6de9fc94b3b26\"",
+      "complete_readback_verified": true
+    },
+    "metadata/validation/data-00004-of-00006.parquet": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/metadata/validation/data-00004-of-00006.parquet",
+      "sha256": "56ea29477669323a42b7eb4dcc7fc32b7c46c7971dd7336f29f9c3a5931be999",
+      "bytes": 922950,
+      "etag": "\"dd636afc060724a855b3fec8fe365fbc\"",
+      "complete_readback_verified": true
+    },
+    "metadata/validation/data-00005-of-00006.parquet": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/metadata/validation/data-00005-of-00006.parquet",
+      "sha256": "92a714cc7497763a746292b8d7727d31d121900ddb6db6c4db72113aedfedb2a",
+      "bytes": 923517,
+      "etag": "\"23263ff26ec9d8250eb150be986bd699\"",
+      "complete_readback_verified": true
+    },
+    "provenance/annotation_research.md": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/provenance/annotation_research.md",
+      "sha256": "b84e6d64cf00ee5df0520b2e8395403d5bdd814b2c26f33c34a51d1dc0cb96a6",
+      "bytes": 4442,
+      "etag": "\"078ee4e5dc190ac40e94a7852c362f1b\"",
+      "complete_readback_verified": true
+    },
+    "provenance/assembly_candidate_registry.json": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/provenance/assembly_candidate_registry.json",
+      "sha256": "cf6da7e109d42fa64bf12a946ba609071b58bea5ecac21d0c613e36e823b8afb",
+      "bytes": 48761,
+      "etag": "\"ba7e6e251e34ab11d465d0a7664f4acb\"",
+      "complete_readback_verified": true
+    },
+    "provenance/dataset_api.json": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/provenance/dataset_api.json",
+      "sha256": "299427c5ec4e3254c7641a04e000cead657d67db759959ed07d8ac918608c992",
+      "bytes": 4319,
+      "etag": "\"70da4ae532f8103414e6e6bacdf52071\"",
+      "complete_readback_verified": true
+    },
+    "provenance/maize_annotation_verification.json": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/provenance/maize_annotation_verification.json",
+      "sha256": "3e6f09620bc2876950ac53122a0783754716511a4ac76aec6663c27ba1262a2a",
+      "bytes": 26736,
+      "etag": "\"93deae205eaf9eadc51a0b38c9a6c5fa\"",
+      "complete_readback_verified": true
+    },
+    "provenance/maize_reference_verification.json": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/provenance/maize_reference_verification.json",
+      "sha256": "c9a86b23b9345c8d304d2c109e2a0b4a9839d98dd251ed7c6b54de39b057ce9e",
+      "bytes": 25561,
+      "etag": "\"90e02ef4c245a9ab2c6a67fae78764d6\"",
+      "complete_readback_verified": true
+    },
+    "references/Acomosus.json": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/references/Acomosus.json",
+      "sha256": "db0bffeab8f5f000c7d6990b85af2410d114550f5725d0c6ee797348ae3249ac",
+      "bytes": 1725,
+      "etag": "\"302663f0f54ac7c3804bc31b969c0270\"",
+      "complete_readback_verified": true
+    },
+    "references/Ahypogaea.json": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/references/Ahypogaea.json",
+      "sha256": "8c1a1a034a6eab4cf6e1cbf0759500329e41050181fc9012597b994fb26ad844",
+      "bytes": 1883,
+      "etag": "\"a1d73ccc1e05a4b32f3844dcf4df3385\"",
+      "complete_readback_verified": true
+    },
+    "references/Aofficinalis.json": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/references/Aofficinalis.json",
+      "sha256": "e6f6829f2b5011272fb86986fb77f0b45e354eba9ec82d1e29bd10f196a0e3b9",
+      "bytes": 1728,
+      "etag": "\"e6e7a43d40d181db6bc371806d7227aa\"",
+      "complete_readback_verified": true
+    },
+    "references/Athaliana.json": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/references/Athaliana.json",
+      "sha256": "168dc657712e64fbcea9b8942ddd784eefa594f7274d1f60d6b117d7f3d94f8b",
+      "bytes": 1707,
+      "etag": "\"61e73b8da24350f8137145a373ce86d3\"",
+      "complete_readback_verified": true
+    },
+    "references/Bdistachyon.json": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/references/Bdistachyon.json",
+      "sha256": "009709888040753e51ccd4ccc612eca7d94dcbf2c0ca7cc739e032a3e0482488",
+      "bytes": 1922,
+      "etag": "\"3eb12f11eca51a522b7d4473077a51e7\"",
+      "complete_readback_verified": true
+    },
+    "references/Bvulgaris.json": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/references/Bvulgaris.json",
+      "sha256": "a49d571b20b7f4a6a87b147a8a6bb54ec0e839831ef331de9f334f98f3db4860",
+      "bytes": 1705,
+      "etag": "\"9f456cbd2ad9070a6ab52fd2718ca56f\"",
+      "complete_readback_verified": true
+    },
+    "references/Carietinum.json": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/references/Carietinum.json",
+      "sha256": "56083450b00b3d1312af516c7090406597f4e4c07a835cc1026a4dccbbe18fad",
+      "bytes": 1835,
+      "etag": "\"bfc7b0827033cdc4b23859bf4832f002\"",
+      "complete_readback_verified": true
+    },
+    "references/Cclementina.json": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/references/Cclementina.json",
+      "sha256": "925347479d61c7fa8c07d51c4a7cb096f158aefe5dcd969d31d67ef1d3824979",
+      "bytes": 1841,
+      "etag": "\"6b436dbd31094d9f6c5dc817b14f3aa7\"",
+      "complete_readback_verified": true
+    },
+    "references/Cillinoinensis.json": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/references/Cillinoinensis.json",
+      "sha256": "9a44480422005ed18b0ab59d7c8316472f87ee2848fa5fde55e7ab465a997474",
+      "bytes": 1877,
+      "etag": "\"7820588ac2cb5bae65bd2822465d9aad\"",
+      "complete_readback_verified": true
+    },
+    "references/Ckanehirae.json": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/references/Ckanehirae.json",
+      "sha256": "5dafad604dad61f2ab54205e297a5ddd12c6b053fab9ad95b525c8f4b0f7aef2",
+      "bytes": 1768,
+      "etag": "\"ca40c0eed4de6c3e6f5c0cc5f4cd3e8f\"",
+      "complete_readback_verified": true
+    },
+    "references/Dalata.json": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/references/Dalata.json",
+      "sha256": "bc7a92ce5ff4a75ed7e7e8689a511bceec4a6f41041aa35ea23e7f402dbf53b0",
+      "bytes": 1696,
+      "etag": "\"6c5b08add879158a1f982d9c1e981003\"",
+      "complete_readback_verified": true
+    },
+    "references/Ecoracana.json": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/references/Ecoracana.json",
+      "sha256": "0cbd785ec966a26178f5bb058053784967246a9d54dc852348ebe3cd519bc532",
+      "bytes": 1833,
+      "etag": "\"280859f0d27ac05887f749d659639a75\"",
+      "complete_readback_verified": true
+    },
+    "references/Esalsugineum.json": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/references/Esalsugineum.json",
+      "sha256": "a74a36a887bb7ff85e2ef25899abcabba0cb781cb2ccb6926ca8cac4149569ce",
+      "bytes": 1739,
+      "etag": "\"3326f5e815539038c904e5cbd7256648\"",
+      "complete_readback_verified": true
+    },
+    "references/Gmax.json": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/references/Gmax.json",
+      "sha256": "7b45e9c8584e0dcdfbe2288c25dc4363c8138e62da6556abf733e7a661a2ab1a",
+      "bytes": 1820,
+      "etag": "\"9d361a13477752d43324ef5688260da6\"",
+      "complete_readback_verified": true
+    },
+    "references/Lalbus.json": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/references/Lalbus.json",
+      "sha256": "ff5cdd0453fc897fbc8855e9fa7eac3101f2e3241db5747583e19dba4d8b74bd",
+      "bytes": 1730,
+      "etag": "\"56eca5cf6741433d5c55370763e92a0b\"",
+      "complete_readback_verified": true
+    },
+    "references/Mesculenta.json": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/references/Mesculenta.json",
+      "sha256": "6efdd19df885ff25de8608efdf304f3ad3e5c4b8cc1e4c584f02dccba35f7bb6",
+      "bytes": 1787,
+      "etag": "\"d4e2747ee9fc824cdf450730ee8f6bb5\"",
+      "complete_readback_verified": true
+    },
+    "references/Ppersica.json": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/references/Ppersica.json",
+      "sha256": "351e4b759964a6644f4587b870d8adff67e51c5dba231b3ece15a0996eebd5d5",
+      "bytes": 1836,
+      "etag": "\"1e003b3a47e4df76228782b14145f7c4\"",
+      "complete_readback_verified": true
+    },
+    "references/Ptrichocarpa.json": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/references/Ptrichocarpa.json",
+      "sha256": "5af302828d5f89377a774158e06d658d6c7711ead946d895fbf11b65832f6385",
+      "bytes": 1834,
+      "etag": "\"17016e0135b63b1d7144b36f05b7fa0e\"",
+      "complete_readback_verified": true
+    },
+    "references/Pvirgatum.json": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/references/Pvirgatum.json",
+      "sha256": "84d5dba76a86a959f270642893022601dce89877df944cfdfaa975bc04ce51fb",
+      "bytes": 1775,
+      "etag": "\"7fd371190eec310edad806edd4afe2e2\"",
+      "complete_readback_verified": true
+    },
+    "references/Qrubra.json": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/references/Qrubra.json",
+      "sha256": "ec525f5c56c3c6e9e50d74148d57b9450de2095d8694048d590a3e3aeaadeb4c",
+      "bytes": 1749,
+      "etag": "\"3fee0cdb32cabdc6c76b42341d013dd8\"",
+      "complete_readback_verified": true
+    },
+    "references/Sbicolor.json": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/references/Sbicolor.json",
+      "sha256": "5f0bad01a863e60a8ef9e6a6e6e08be354585991e9c0b504c36e7f051f949dc8",
+      "bytes": 1824,
+      "etag": "\"191963eb9bc9ec62fe2f7cf7cf248443\"",
+      "complete_readback_verified": true
+    },
+    "references/Sviridis.json": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/references/Sviridis.json",
+      "sha256": "67ea9ac1d0e923389392f46779610fab93ceb1843f58b49cac5330759eb848f2",
+      "bytes": 1828,
+      "etag": "\"8061b4413037a335bfbd8b5ad496850d\"",
+      "complete_readback_verified": true
+    },
+    "references/Vdarrowii.json": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/references/Vdarrowii.json",
+      "sha256": "dc1964c39d1cae2db6043aa3b5359200fdd6d44aa16be7c3068d0f4d5bf4a8b3",
+      "bytes": 1796,
+      "etag": "\"e4af77dcaf54a425370db9ca7d32e4ad\"",
+      "complete_readback_verified": true
+    },
+    "validation/primary_validation_512.jsonl": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/validation/primary_validation_512.jsonl",
+      "sha256": "01348a2df1d2c17efc10e5d925d828e43f7adb50034175ce05481970387a9ca3",
+      "bytes": 4321948,
+      "etag": "\"6ebae33c9e52399646e4cf0f34deae46\"",
+      "complete_readback_verified": true
+    }
+  },
+  "training_sequences": "Original exp586 train objects only; external reference FASTA is used for annotation mapping and is not part of this training inventory.",
+  "manifest_object": {
+    "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/manifest.json",
+    "sha256": "33d8d87b7ee9edbba457504632936cfd7eccb00523a74726ed6a08098047f0e3",
+    "bytes": 41091,
+    "etag": "\"a3cd4bd40deea96213be91b0383444c8\"",
+    "complete_readback_verified": true
+  },
+  "readback_completed_utc": "2026-11-07T17:03:04.900046+00:00"
+}
