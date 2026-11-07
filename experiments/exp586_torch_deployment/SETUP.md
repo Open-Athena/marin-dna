@@ -5,13 +5,15 @@ The reference environment uses Python 3.12.13, Torch 2.14.1+cu132, CUDA 13.2, Tr
 Install the project independently from the training environment:
 
 ```bash
+# From experiments/exp586_torch_deployment:
 uv sync --locked --extra cuda --group dev
+source .venv/bin/activate
 ```
 
 ## FlashAttention providers
 
 The tested FA2 2.8.4 and FA3 3.0.1 builds come from upstream revision `7c53542eab6a1c4fe760d1101b8d57d6307d1dbe`.
-The exact executed build recipe and provider provenance are archived alongside the benchmark artifacts under `.agents/artifacts/exp586-deployment/`.
+The [executed build recipe](../../.agents/artifacts/exp586-deployment/provider-build-recipe.sh), [vLLM environment recipe](../../.agents/artifacts/exp586-deployment/vllm-environment-recipe.sh), and [provider provenance](../../.agents/artifacts/exp586-deployment/provider-provenance.json) are archived alongside the benchmark artifacts.
 With a working CUDA 13.2 compiler toolkit, the corresponding source installation is:
 
 ```bash
@@ -36,6 +38,13 @@ The native Torch MoE backend also requires BF16 with the pinned CUDA 13.2 build;
 
 ## vLLM providers
 
+Use a separate environment so the Torch/FlashAttention comparison can genuinely run with vLLM absent:
+
+```bash
+UV_PROJECT_ENVIRONMENT=.venv-vllm uv sync --locked --extra cuda --group dev
+source .venv-vllm/bin/activate
+```
+
 The tested dependency is the Marin vLLM build at `ac3b5ea5e851`, not a verified stock PyPI release:
 
 ```bash
@@ -50,7 +59,10 @@ Fast additionally compiles the repository's custom Triton router kernel.
 ## Full benchmark reproduction
 
 Inputs are `benchmark-fixture-512.json`, `benchmark-fixture-32.json`, `jax-reference32-latest.reference.npz`, and the pinned Hugging Face model snapshot.
+Real inputs are the first 512 unique valid 8,192-base windows from the PlantCAD `conservation_within_andropogoneae` evaluation shard identified in [the fixture contract](src/exp586_deployment/contract.py).
 Their hashes and exact native storage owner are recorded in the benchmark artifacts.
+The fixture and JAX-reference files are stored under `s3://marin-us-east-02a/MarinDNA/exp586_plantcad2_moe/inference-optimization/forward-only/2026-11-06-r1/inputs/`; accessing them requires credentials for that bucket.
+The examples' random-input path only needs the public Hugging Face checkpoint.
 The lightweight examples use random data; the benchmark below validates the unchanged 32-window native-JAX gate before timing all 512 real windows equally.
 
 ```bash

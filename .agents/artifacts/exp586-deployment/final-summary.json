@@ -1,191 +1,26 @@
 {
-  "source_revision_model_and_api": "81821bd77dfee5e22904ca1cded3717a4ad1e3fd",
-  "source_revision_final_benchmark": "1fcee555cc4606c547c6210d8d31dd303929fa08",
-  "counts": {
-    "passed": 166,
-    "oom": 7
+  "source_equivalence": {
+    "measured_source_revision": "d2f6cfec421c62c4110a4d7843a7f5c16b39204a",
+    "example_source_revision": "a27a0dcc76607c316089a0d9228be11f7317cb59",
+    "only_code_difference": "pre-load rejection of unsupported float16/Torch combination",
+    "all_other_model_ast_identical": true,
+    "measured_dtype": "bfloat16"
   },
-  "compiler_b64": [
-    {
-      "backend": "Standalone FA2 / native Torch",
-      "vanilla": {
-        "tokens_per_second": 1047125.688739519,
-        "median_forward_ms": 500.69252014160156,
-        "repeat_range_percent": 0.059801808817422517,
-        "peak_reserved_gib": 18.34765625,
-        "trials": [
-          "a-default-b64-r1",
-          "a-default-b64-r3",
-          "a-default-b64-r2"
-        ]
-      },
-      "previous": {
-        "tokens_per_second": 1052696.1901789194,
-        "median_forward_ms": 498.04302978515625,
-        "repeat_range_percent": 0.011602158915363456,
-        "peak_reserved_gib": 16.330078125,
-        "trials": [
-          "a-old-b64-r2",
-          "a-old-b64-r1",
-          "a-old-b64-r3"
-        ]
-      },
-      "vanilla_delta_percent": -0.529165156231215
-    },
-    {
-      "backend": "Standalone FA3 / native Torch",
-      "vanilla": {
-        "tokens_per_second": 1145161.732096305,
-        "median_forward_ms": 457.8287811279297,
-        "repeat_range_percent": 0.10460589366768308,
-        "peak_reserved_gib": 18.34765625,
-        "trials": [
-          "b-default-b64-r2",
-          "b-default-b64-r1",
-          "b-default-b64-r3"
-        ]
-      },
-      "previous": {
-        "tokens_per_second": 1152082.1114888676,
-        "median_forward_ms": 455.07867431640625,
-        "repeat_range_percent": 0.07863326006545898,
-        "peak_reserved_gib": 16.330078125,
-        "trials": [
-          "b-old-b64-r2",
-          "b-old-b64-r3",
-          "b-old-b64-r1"
-        ]
-      },
-      "vanilla_delta_percent": -0.6006845626323698
-    },
-    {
-      "backend": "vLLM FA2 / built-in fused experts",
-      "vanilla": {
-        "tokens_per_second": 1165334.1374516655,
-        "median_forward_ms": 449.90357971191406,
-        "repeat_range_percent": 0.0702713867534325,
-        "peak_reserved_gib": 21.53515625,
-        "trials": [
-          "e-default-b64-r3",
-          "e-default-b64-r1",
-          "e-default-b64-r2"
-        ]
-      },
-      "previous": {
-        "tokens_per_second": 1166608.6482009492,
-        "median_forward_ms": 449.4120635986328,
-        "repeat_range_percent": 0.07255543180734814,
-        "peak_reserved_gib": 19.142578125,
-        "trials": [
-          "e-old-b64-r1",
-          "e-old-b64-r2",
-          "e-old-b64-r3"
-        ]
-      },
-      "vanilla_delta_percent": -0.10924921148571798
-    },
-    {
-      "backend": "vLLM FA3 / built-in fused experts",
-      "vanilla": {
-        "tokens_per_second": 1284062.7564664881,
-        "median_forward_ms": 408.3040313720703,
-        "repeat_range_percent": 0.19133625605605023,
-        "peak_reserved_gib": 21.53515625,
-        "trials": [
-          "f-default-b64-r2",
-          "f-default-b64-r1",
-          "f-default-b64-r3"
-        ]
-      },
-      "previous": {
-        "tokens_per_second": 1285536.0109775735,
-        "median_forward_ms": 407.8361053466797,
-        "repeat_range_percent": 0.11981680110326923,
-        "peak_reserved_gib": 19.142578125,
-        "trials": [
-          "f-old-b64-r2",
-          "f-old-b64-r3",
-          "f-old-b64-r1"
-        ]
-      },
-      "vanilla_delta_percent": -0.11460235252103157
-    }
-  ],
-  "fast": {
-    "default_128": {
-      "tokens_per_second": 1578850.5553267726,
-      "median_forward_ms": 664.1388549804688,
-      "repeat_range_percent": 0.12572902453294235,
-      "peak_reserved_gib": 37.53515625,
-      "trials": [
-        "fast-vllm-default-uniform-b128-r2",
-        "fast-vllm-default-uniform-b128-r1",
-        "fast-vllm-default-uniform-b128-r3"
-      ]
-    },
-    "ceiling_128": {
-      "tokens_per_second": 1588435.471513509,
-      "median_forward_ms": 660.1313171386719,
-      "repeat_range_percent": 0.23144005875345164,
-      "peak_reserved_gib": 40.287109375,
-      "trials": [
-        "fast-vllm-old-uniform-b128-r2",
-        "fast-vllm-old-uniform-b128-r3",
-        "fast-vllm-old-uniform-b128-r1"
-      ]
-    },
-    "ceiling_240": {
-      "tokens_per_second": 1585280.3522904862,
-      "median_forward_ms": 1240.2096557617188,
-      "repeat_range_percent": 0.018039304379929077,
-      "peak_reserved_gib": 72.1171875,
-      "trials": [
-        "fast-vllm-old-uniform-b240-r2",
-        "fast-vllm-old-uniform-b240-r3",
-        "fast-vllm-old-uniform-b240-r1"
-      ]
-    },
-    "ceiling_12": {
-      "tokens_per_second": 1566260.972973952,
-      "median_forward_ms": 62.76348686218262,
-      "repeat_range_percent": 0.6026813748189304,
-      "peak_reserved_gib": 7.607421875,
-      "trials": [
-        "fast-vllm-old-uniform-b12-r1",
-        "fast-vllm-old-uniform-b12-r3",
-        "fast-vllm-old-uniform-b12-r2"
-      ]
-    },
-    "native_128": {
-      "tokens_per_second": 1412093.0402146694,
-      "median_forward_ms": 742.5686340332031,
-      "repeat_range_percent": 0.149752859081711,
-      "peak_reserved_gib": 33.369140625,
-      "trials": [
-        "fast-native-old-confirm-b128-r2",
-        "fast-native-old-confirm-b128-r1",
-        "fast-native-old-confirm-b128-r3"
-      ]
-    }
-  },
-  "ordinary_standalone_fa2_b96": {
-    "tokens_per_second": 1049283.8054576365,
-    "median_forward_ms": 749.4940795898438,
-    "repeat_range_percent": 0.05962515923588954,
-    "peak_reserved_gib": 26.03515625,
-    "trials": [
-      "a-uniform-b96-r2",
-      "a-uniform-b96-r3",
-      "a-uniform-b96-r1"
-    ]
-  },
+  "native_owner": "s3://marin-us-east-02a/MarinDNA/exp586_plantcad2_moe/inference-deployment/2026-11-07-r3",
+  "public_trial_count": 35,
+  "figure_processes": 15,
+  "random_processes": 15,
+  "preflights": 5,
+  "all_correctness_gates_passed": true,
+  "all_fullgraph_compilations_passed": true,
   "worst_parity": {
-    "probability_mean_abs_error": 0.0025234236381947994,
-    "probability_p99_abs_error": 0.02617468684911728,
-    "next_base_nll_abs_delta": 8.177757263183594e-05,
-    "next_base_accuracy_abs_delta": 0.00023654010499318812
+    "probability_mean_abs_error": 0.002520236885175109,
+    "probability_p99_abs_error": 0.02611093968153,
+    "next_base_nll_abs_delta": 4.1484832763671875e-05,
+    "next_base_accuracy_abs_delta": 0.0002212794530581652
   },
-  "canonical_usage_sha256": "567223cb0e749801141c342bd278f1bc9bcc34790667ae64e3a6d48fe9225d5b",
-  "owner": "s3://marin-us-east-02a/MarinDNA/exp586_plantcad2_moe/inference-deployment/2026-11-07-r2",
-  "kept_job": "/eczech/exp586-torch-deployment-20261107-r2-a1"
+  "max_abs_random_delta_percent": 0.3286285577847936,
+  "random_rankings_match_real": true,
+  "literal_examples_passed": 5,
+  "max_abs_literal_example_delta_percent": 1.9712684630634025
 }

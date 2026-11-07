@@ -1,37 +1,35 @@
 # exp586 Torch deployment comparison
 
-`throughput.svg` and `throughput.png` compare the five configurations at the same batch size of 64 on one H100 80GB GPU.
-Each value is the median of three fresh-process medians; error bars show their minimum-to-maximum range, not a confidence interval.
-All samples measure warmed BF16 device forwards over complete 8,192-base windows, with tokenization, transfers, loading, compilation and warmup excluded.
-Every plotted case passed the fixed native-JAX correctness gate.
+`throughput.svg` and `throughput.png` compare five configurations at batch 64 on one H100 80GB GPU.
+Each value is the median of three fresh-process median throughputs; error bars show the minimum-to-maximum range of those three medians.
+All samples measure warmed BF16 device forwards over complete 8,192-base windows, returning four raw A/C/G/T logits at every position.
+Tokenization, transfers, model loading, compilation and eight warmup passes are outside the timed interval.
 
-`comparison.json` names the exact 15 plotted trials, configurations, source revisions, and summary statistics.
-`measurements.jsonl` preserves all 173 trials from this round: 166 passed and seven expected batch-512 capacity OOMs.
-The `stage` field identifies preflight, compiler, batch search, refinement, confirmation, robustness, or uniform-fixture verification.
-`final-summary.json` records compiler ablations, corrected batch comparisons, and numerical acceptance results.
-`earlier-experiments.json` preserves the earlier restricted pilot’s 15 ablation trials and the six-provider run’s 18 timed trials, with separate within-round controls.
-The separate historical benchmark remains frozen at commit `8b0b7997c4fd4c3c5a63377c047b4e52c103d8ff`; its timing included tokenization and host output.
+`comparison.json` names the 15 plotted trials, exact model/source identities, configurations and aggregation.
+`random-input-comparison.json` compares the real fixture against seed-0 uniformly random A/C/G/T inputs using three fresh processes per configuration and input distribution.
+`measurements.jsonl` contains those 30 timed trials plus five eager/compiled preflights.
+Every reported process passed the fixed 32-window native-JAX gate and the fullgraph compilation assertion.
+`usage-smoke.json` records execution of all five literal canonical examples, including finite BF16 outputs of shape `[64, 8192, 4]` and their single-forward timings.
+`final-summary.json` records validation counts, numerical-error maxima and random-input sensitivity.
 
-The model and API were measured at `81821bd77dfee5e22904ca1cded3717a4ad1e3fd`.
-Benchmark-only correction `1fcee555cc4606c547c6210d8d31dd303929fa08` makes non-power-of-two batch comparisons weight every fixture window equally.
-The batch-64 figure already used equal weighting: eight pre-encoded batches and 32 timed forwards per process.
-Short exploratory screens remain in the raw ledger; the final corrected batch-12/128/240 comparisons are under stage `uniform`.
-The best confirmed Fast result is 1,588,435 tokens/s at batch 128; the matched batch-64 figure uses 1,584,105 tokens/s.
+The canonical usage files under `experiments/exp586_torch_deployment/examples/` show explicit precision, vocabulary and implementation choices.
+Their preamble is identical across all five files; freezing is selected by the per-example launch command before importing Torch.
+Ordinary configurations leave compiler mode and shape policy at defaults while asserting `fullgraph=True`.
+Fast additionally enables freezing, static shapes and reduce-overhead mode; its router kernel, combined shared projections, convolution and rotary-cache choices are fixed inside the distinct class.
 
-To regenerate the figure in an environment with Matplotlib and NumPy:
+The source revisions are recorded in `comparison.json`.
+`source-equivalence.json` verifies that the sole model-code difference between the measurement and literal-example snapshots is an early rejection of unsupported FP16/native-Torch execution in the pinned CUDA build.
+All other model AST nodes are identical, including every BF16 forward implementation.
+
+See `experiments/exp586_torch_deployment/SETUP.md` for environment and full reproduction instructions.
+The provider build recipes and provenance in this directory identify the exact upstream FlashAttention source, restricted FA3 build and Marin vLLM distribution.
+The standalone environment has no vLLM installed.
+The native owner for full receipts and manifests is `s3://marin-us-east-02a/MarinDNA/exp586_plantcad2_moe/inference-deployment/2026-11-07-r3`.
+
+To regenerate the compact figure with Matplotlib and NumPy:
 
 ```bash
 python .agents/artifacts/exp586-deployment/plot_throughput.py
 ```
 
-The preserved named canonical usage is `experiments/exp586_torch_deployment/examples/canonical_usage.py` (`torch-fa2`).
-The companion examples spell out `torch-fa3`, `vllm-fa2`, `vllm-fa3` and `fast-fa3` directly.
-The first four use compiler defaults plus the required `fullgraph=True` graph-break assertion.
-Fast explicitly enables freezing before importing Torch, then selects static shapes and reduce-overhead mode.
-All five require Triton for compiled CUDA execution; only Fast additionally imports this custom Triton router-kernel source from this repository.
-
-Complete native provenance and provider-binary archives are linked from `s3://marin-us-east-02a/MarinDNA/exp586_plantcad2_moe/inference-deployment/2026-11-07-r2` and its DEPLOY-002 references.
-These files are supporting code and data for a locally drafted PR comment; the comment requires user approval before publication.
-
-The current canonical examples use `dna_nucleotide_tokenizer`, which still emits exactly one A/C/G/T/N nucleotide per token.
-This is a naming change; its Unigram implementation and compact token-ID mapping are unchanged.
+These artifacts support https://github.com/Open-Athena/marin-dna/pull/590#issuecomment-6710081437.

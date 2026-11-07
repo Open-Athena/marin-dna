@@ -1,0 +1,180 @@
+{
+  "seed": 0,
+  "alphabet": "ACGT",
+  "windows": 512,
+  "batch_size": 64,
+  "sequence_length": 8192,
+  "processes_per_cell": 3,
+  "rows": [
+    {
+      "id": "torch-fa2",
+      "real": {
+        "median": 1046882.9301147917,
+        "min": 1046859.8054842892,
+        "max": 1047268.7996467787,
+        "values": [
+          1046882.9301147917,
+          1047268.7996467787,
+          1046859.8054842892
+        ],
+        "trials": [
+          "figure-torch-fa2-r1",
+          "figure-torch-fa2-r2",
+          "figure-torch-fa2-r3"
+        ]
+      },
+      "random": {
+        "median": 1045296.3380793981,
+        "min": 1045279.6432733978,
+        "max": 1045297.7372873593,
+        "values": [
+          1045297.7372873593,
+          1045296.3380793981,
+          1045279.6432733978
+        ],
+        "trials": [
+          "random-control-torch-fa2-r1",
+          "random-control-torch-fa2-r2",
+          "random-control-torch-fa2-r3"
+        ]
+      },
+      "random_delta_percent": -0.1515539120711007
+    },
+    {
+      "id": "torch-fa3",
+      "real": {
+        "median": 1144875.9735351708,
+        "min": 1144796.5176330826,
+        "max": 1144944.9103695578,
+        "values": [
+          1144944.9103695578,
+          1144875.9735351708,
+          1144796.5176330826
+        ],
+        "trials": [
+          "figure-torch-fa3-r1",
+          "figure-torch-fa3-r2",
+          "figure-torch-fa3-r3"
+        ]
+      },
+      "random": {
+        "median": 1143915.3466900561,
+        "min": 1143162.8151723214,
+        "max": 1144071.205989092,
+        "values": [
+          1143915.3466900561,
+          1144071.205989092,
+          1143162.8151723214
+        ],
+        "trials": [
+          "random-control-torch-fa3-r1",
+          "random-control-torch-fa3-r2",
+          "random-control-torch-fa3-r3"
+        ]
+      },
+      "random_delta_percent": -0.08390662982894481
+    },
+    {
+      "id": "vllm-fa2",
+      "real": {
+        "median": 1164581.3136624696,
+        "min": 1164048.6451366618,
+        "max": 1166395.5874335058,
+        "values": [
+          1164048.6451366618,
+          1166395.5874335058,
+          1164581.3136624696
+        ],
+        "trials": [
+          "figure-vllm-fa2-r1",
+          "figure-vllm-fa2-r2",
+          "figure-vllm-fa2-r3"
+        ]
+      },
+      "random": {
+        "median": 1164073.687509628,
+        "min": 1163071.8480580614,
+        "max": 1164990.5853396684,
+        "values": [
+          1164990.5853396684,
+          1164073.687509628,
+          1163071.8480580614
+        ],
+        "trials": [
+          "random-control-vllm-fa2-r1",
+          "random-control-vllm-fa2-r2",
+          "random-control-vllm-fa2-r3"
+        ]
+      },
+      "random_delta_percent": -0.04358872556912141
+    },
+    {
+      "id": "vllm-fa3",
+      "real": {
+        "median": 1284286.6543659277,
+        "min": 1284227.7566115714,
+        "max": 1285438.7660531893,
+        "values": [
+          1285438.7660531893,
+          1284286.6543659277,
+          1284227.7566115714
+        ],
+        "trials": [
+          "figure-vllm-fa3-r1",
+          "figure-vllm-fa3-r2",
+          "figure-vllm-fa3-r3"
+        ]
+      },
+      "random": {
+        "median": 1280066.1216558623,
+        "min": 1279619.6256264774,
+        "max": 1281323.4743268515,
+        "values": [
+          1280066.1216558623,
+          1279619.6256264774,
+          1281323.4743268515
+        ],
+        "trials": [
+          "random-control-vllm-fa3-r1",
+          "random-control-vllm-fa3-r2",
+          "random-control-vllm-fa3-r3"
+        ]
+      },
+      "random_delta_percent": -0.3286285577847936
+    },
+    {
+      "id": "fast-fa3",
+      "real": {
+        "median": 1582372.6748132156,
+        "min": 1580497.9769379855,
+        "max": 1582551.307132391,
+        "values": [
+          1580497.9769379855,
+          1582372.6748132156,
+          1582551.307132391
+        ],
+        "trials": [
+          "figure-fast-fa3-r1",
+          "figure-fast-fa3-r2",
+          "figure-fast-fa3-r3"
+        ]
+      },
+      "random": {
+        "median": 1580693.7112109484,
+        "min": 1579727.5808007387,
+        "max": 1580826.0701735693,
+        "values": [
+          1580693.7112109484,
+          1580826.0701735693,
+          1579727.5808007387
+        ],
+        "trials": [
+          "random-control-fast-fa3-r1",
+          "random-control-fast-fa3-r2",
+          "random-control-fast-fa3-r3"
+        ]
+      },
+      "random_delta_percent": -0.10610418323012683
+    }
+  ]
+}

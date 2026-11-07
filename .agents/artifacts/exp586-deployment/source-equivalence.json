@@ -1,0 +1,7 @@
+{
+  "measured_source_revision": "d2f6cfec421c62c4110a4d7843a7f5c16b39204a",
+  "example_source_revision": "a27a0dcc76607c316089a0d9228be11f7317cb59",
+  "only_code_difference": "pre-load rejection of unsupported float16/Torch combination",
+  "all_other_model_ast_identical": true,
+  "measured_dtype": "bfloat16"
+}
