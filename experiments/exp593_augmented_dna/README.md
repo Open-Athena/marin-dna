@@ -1,127 +1,154 @@
-# Augmented d768 DNA preparation
+# Augmented d768 Grug MoE DNA adaptation
 
-Prepare deterministic training presentations for [experiment #593](https://github.com/Open-Athena/marin-dna/issues/593).
-This project runs on CPU and has no training or dispatch entry point.
-Training remains subject to explicit approval.
+Train one model for [experiment #593](https://github.com/Open-Athena/marin-dna/issues/593), starting from the same text-pretrained checkpoint as #586.
+All implementation and artifacts belong to the permanent, unmerged [companion PR #594](https://github.com/Open-Athena/marin-dna/pull/594).
+The user has authorized preparation, single-node H100 validation, and full training when ready.
+CPU data preparation and validation panels are implemented; training-loop integration is in progress and no #593 accelerator job has started.
 
-## Generate and inspect examples
+## Reproduce preparation
 
 ```bash
-uv sync --locked
+uv sync --locked --extra cpu
 uv run --locked pytest
 uv run --locked exp593-prep \
   --prep /home/exedev/tmp/mdna-exp593-data-prep \
-  --output artifacts/prep-v1 --examples 100000 --samples 24
+  --annotations /home/exedev/tmp/mdna-exp593-data-prep/frozen-annotations/train.parquet \
+  --output artifacts/prep-v2 --examples 100000 --samples 32
+uv run --locked python -m exp593_dna.fim_validation \
+  --manifest artifacts/prep-v2/validation_disjoint_512.json \
+  --partitions /home/exedev/tmp/mdna-exp593-data-prep/by-species \
+  --annotations /home/exedev/tmp/mdna-exp593-data-prep/frozen-annotations/validation.parquet \
+  --output artifacts/prep-v2
 ```
 
-The prep directory contains the earlier metadata audit: pinned raw training record-batch samples, and a screened validation candidate pool.
-The audit reuses the sampled training windows over independently keyed absolute occurrences; it does not replay the complete training shuffle.
-The JSON report gives realized example rates, conditional RC rates, input-token rates, scored-target rates, length quantiles and padding.
-Example JSONL includes the rendered text, typed text/DNA spans and transform provenance.
-The stored audit generated 100,000 examples from 2,640 raw training windows covering all 65 species.
-Observed FIM frequency was 50.066%, RC frequency 50.060%, and RC frequency within bare DNA 50.018%.
-Padding occupied 5.917% of allocated tokens, and text occupied 0.884% of actual input tokens.
-The median input length was 5,651 tokens, with a range of 2,048–8,192.
-The 576 semantic components produced 59,983 distinct rendered prompt signatures, excluding DNA content from the signature.
-The report separates marginal augmentation counts, pairwise joint counts and conditional counts within FIM, causal and bare-DNA examples.
-These augmentation counts overlap and do not sum to 100%.
+`prepare_inputs` downloads and verifies the original sequence-only exp586 Parquet objects.
+`partition_inputs` joins their original flat row indices to pinned Hugging Face metadata and checks frozen native-case sequence samples.
+`reference_sources` obtains versioned public reference FASTA, GFF and assembly reports with official checksum verification.
+`build_annotations` projects those features onto exact existing DNA windows.
+`freeze_annotations` builds compact split-specific Parquet annotation banks with row/hash bindings.
+`publish_inputs` uploads a content-addressed input bundle and verifies every object's complete readback.
+The remote trainer must consume the original train objects plus the frozen metadata and annotation bundle; reference FASTA is never training input.
 
-## Presentation policy
+## Source restriction and annotations
 
-| Objective | Probability | Observed in audit | Scored DNA |
+Training is restricted to the original 2,638,656 PlantCAD train windows of 8,192 bases, at dataset revision `4a444fff5520b992aa978d92a5af509a81977098`.
+No new sequences, reconstructed parent regions, validation rows or evaluation data enter training.
+The native corpus contains 21,615,869,952 DNA bases.
+The stored metadata field `assembly` identifies organism codes, rather than providing assembly accessions or release versions.
+The packaged registry resolves all 65 codes to source-paper identities and NCBI lineages.
+It preserves species-only names and partial/full taxonomy paths; ambiguous common names are excluded from sampled species aliases.
+The published dated phylogeny has 59 exact species matches and six unresolved species; the complete packaged taxonomy tree has no branch lengths.
+
+Reference features cover translation starts, translation stops, splice donors and splice acceptors across mapped training windows.
+They are not selected from evaluation coordinates or labels.
+Each accepted annotation requires one exact full-window DNA match, at a documented original tiling offset, in the recorded parent interval and strand.
+Case is ignored only for mapping identity; the original source DNA and its case are retained as targets.
+Contig aliases are explicit and DNA-verified; ambiguous mappings fall back to random placement.
+Unsupported trans-spliced or conflicting transcripts are skipped.
+Start/stop bounds are inferred from complete CDS when explicit codon features are absent; annotation biology can therefore be imperfect.
+
+The first frozen bank annotates 909,773 train windows across 23 species, 34.479% of the original corpus.
+The train bank is approximately 109 MB compressed and uses an Arrow-backed row index rather than materializing millions of Python feature objects per worker.
+The corresponding validation bank is separate and cannot pass the training augmentation entry point.
+All other genomes and rows remain in training, with random FIM placement when no usable annotation exists.
+
+## Objective and joint augmentation
+
+| Exclusive objective lane | Configured examples | Observed examples | Scored DNA |
 | --- | ---: | ---: | --- |
 | Bare causal DNA | 40% | 39.992% | Every available next base |
 | Annotated causal DNA | 10% | 9.942% | DNA following the prompt |
 | Short FIM | 37.5% | 37.556% | Missing 1, 2 or 3 bases, equally likely |
 | Longer FIM | 12.5% | 12.510% | Missing 16, 32, 64, 128, 256 or 512 bases, equally likely |
 
-This table describes exclusive objective lanes, not exclusive augmentation types.
-Both FIM lanes receive metadata, mask descriptions, case availability, RC and length augmentation jointly.
-Only the bare-DNA lane suppresses all text and metadata to preserve context-free DNA capability.
-In the audit, 45,799 of 50,066 FIM examples (91.477%) carry metadata fields.
-Within FIM, species appears in 70.030%, taxonomy in 34.806%, mask descriptions in 85.277%, and RC in 49.936%.
-These subsets overlap; for example, FIM, taxonomy, native softmask, RC and variable length can all be active in the same example.
+Loss weights sum to one per example, so FIM receives approximately 50% of the objective despite its few target tokens.
+The model's fused cross-entropy must reduce the weighted numerator and denominator globally.
+Only DNA targets are scored: causal DNA or the missing FIM span.
+Prompt text, flanks and padding have zero loss weight, and no EOS/end-fill token is supervised.
+Completion length remains caller-controlled, including prompts that omit a length hint.
+There is no training loss weighting by repeat status, landmark class or species.
 
-Both FIM flanks precede the answer, with at least 128 bases in each flank.
-Twenty percent of FIM gaps are explicitly centered; the rest have uniformly sampled valid positions.
-The right flank is presented first in 25% of FIM examples, with labels retaining its identity.
-Instruction position, flank labels, separators and syntax vary independently.
+All objectives independently receive 50% Bernoulli reverse complement augmentation, including bare causal DNA and minimal FIM.
+RC preserves case and supports the full IUPAC alphabet.
+The seed-472 draw is keyed by absolute occurrence, retaining the exp586 draw independently of presentation choices and process placement.
+Half of examples preserve the native PlantCAD convention: lowercase nucleotides indicate masked repeats.
+One quarter remove masks by lowercasing all DNA; one quarter uppercase all DNA.
+No presentation inverts the repeat-mask convention.
+Bare DNA therefore supports uniformly uppercase or uniformly lowercase input without instructions.
+Formatted uniform-case examples describe masks as unavailable.
 
-Every training objective uses the historical 50% Bernoulli RC draw, including bare DNA.
-RC preserves case and complements all IUPAC bases before cropping and gap selection.
-The draw is keyed by seed 472 and absolute occurrence, reproducing exp586 independently of presentation choices.
-Separate random streams make replay independent of call order or process reslicing.
+Within FIM, 25% of examples use minimal structural labels without optional metadata or prose.
+The remaining FIM examples share metadata augmentation with the annotated-causal lane.
+Conditional on formatted eligibility, species appears with probability 70%, taxonomy 35%, chromosome/contig 25%, assembly code 15%, source strand 15%, presentation orientation 20%, mask availability 85%, and descriptive prose 80%.
+Source strand describes the recorded source metadata, not an inferred orientation of the cropped presentation.
+Unverified genomic window coordinates are never rendered.
+Eight metadata syntaxes, three FIM layouts and 584 curated semantic components combine field subsets, order, labels and phrasings without runtime LLM generation.
 
-Half of examples preserve native PlantCAD softmask case: lowercase bases mark repeats.
-The other half remove case-based mask information, equally split between uniform lowercase and uppercase DNA.
-No example inverts repeat-mask case.
-Bare DNA has no instructions or metadata; it may use any of these three case modes.
-Formatted examples explain mask availability in 85% of cases.
-Uniform-case explanations say that case does not encode repeat masks; uppercase never means repeat-masked.
+Both FIM flanks precede the answer, retaining at least 128 bases per flank.
+The right flank is presented first in 25% of FIM examples, with labels preserving its meaning.
+Eighty percent include an explicit gap length; minimal examples use a compact form such as `[gap:3]`.
+Random control gaps are centered with probability 20% and otherwise uniformly positioned in the valid interior.
+Short FIM uses landmark guidance with probability 75% among examples with eligible sites, retaining random controls and all unmapped examples.
+Guidance samples an available landmark class uniformly, then a unique site uniformly.
+Half of guided gaps maximize motif overlap and half lie fully outside the motif within a 32-base neighborhood.
+RC and crop transforms are applied to feature coordinates before choosing gaps.
+Long FIM retains random positions.
 
-For formatted examples, species names appear with probability 70%, taxonomy paths 35%, chromosome/contig 25%, assembly code 15%, recorded source strand 15%, and presentation orientation 20%.
-These independent probabilities are conditional on a formatted example.
-Species-only names and partial/full lineage strings coexist, with source-paper and accepted NCBI species names where applicable.
-Source strand is explicitly described as recorded metadata, never as the orientation of the cropped sequence.
-Exact genomic window coordinates are omitted because their offsets and coordinate convention are not established.
-The complete registry retains the source paper identities, taxonomy provenance, common names and published-tree coverage; ambiguous common names are not sampled as species aliases.
+The updated audit exercised 100,000 occurrences over 2,640 frozen train-window samples covering all 65 species.
+It measures realized transforms on those reused samples, rather than replaying the full shuffled training corpus.
+FIM accounts for 50.066% of examples and normalized objective mass; RC is active in 50.060% of all examples.
+Minimal FIM accounts for 12.422% of all examples.
+Annotation guidance is active in 9.310% of all examples and 24.790% of short FIM examples.
+The JSON report separates overlapping marginal, conditional and joint counts; those counts do not sum to 100%.
+The earlier prep-v1 artifacts remain historical and predate minimal FIM, length hints and landmark guidance.
 
-The finite phrase catalog contains curated semantic components, with eight metadata syntaxes and three FIM layouts.
-Field subsets, ordering, labels, structural renderers, lineages, length, crop, gap and RC combine these components into many presentations.
-No runtime LLM paraphrasing is used.
+## Tokenization, lengths and scheduling
 
-## Tokenization, lengths and objective weights
+Language text uses the pinned Marin BPE tokenizer at revision `a5ca45f2feb6c959bd87b81689aa7279b5bdcaa2`.
+DNA uses one original token ID per character, preserving case and disabling cross-base BPE merges.
+The full 128,256-token vocabulary remains available and no new tokens are introduced.
+Global batches contain 64 independent examples in one shared length bucket: 2,048, 4,096, 6,144 or 8,192 tokens with probabilities 15%, 25%, 25% and 35%.
+Examples fill 87.5–100% of their bucket, with a minimum total length of 2,048 tokens.
+Text is budgeted before selecting the DNA crop; documents are never packed.
+Observed padding is 5.917% of allocated tokens, and the median actual length is 5,651 tokens.
 
-Language text uses the pinned Marin BPE tokenizer.
-DNA spans always use one existing token per character, preserving case and disabling cross-base BPE merges.
-The full vocabulary is retained and no new special tokens are added.
+The budget is 216,158,699,520 actual input tokens, including text and flanks and excluding padding.
+Variable-length training uses the actual input-token clock, with 2,161,115,136 warmup tokens and immediate linear decay to 5% of peak.
+The original 524,288-token reference batch and horizon anchor the 1x Hero optimizer heuristic; weight decay remains zero.
+Track input DNA, input text, scored targets, consumed examples, FIM examples and RC examples separately.
+Update count and row epochs are not substitutes for the input-token budget.
 
-Global batches choose 2,048, 4,096, 6,144 or 8,192 allocated tokens with probabilities 15%, 25%, 25% and 35%.
-Each example independently fills 87.5–100% of its batch bucket, with a minimum total input length of 2,048.
-The 2,048 bucket is therefore always fully occupied.
-Text tokens are budgeted before selecting a DNA crop; there is no truncation of an assembled example.
-One raw window contributes one example, and each row has its own attention segment with padding marked invalid.
-Documents are never packed together.
+## Validation and diagnostics
 
-Loss is applied only to scored DNA positions; prompt text, FIM flanks and padding have zero loss weight.
-Weights sum to one per example, so short FIM contributes its intended example-mixture weight despite having few output targets.
-The later trainer must aggregate these weights globally, including the denominator, before reducing the loss.
-It must not normalize each device's loss separately when local example counts differ.
+The primary sample preserves the historical 512 row indices, lowercase character tokenization and metric name `eval/loss`.
+Its 4,193,792 targets include 396,290 originally lowercase targets; uppercase `N` remains in the primary and unmasked partitions and is also counted separately.
+Three diagnostic views reuse the same predictions: `eval/loss_softmasked`, `eval/loss_nonsoftmasked` and `eval/loss_weighted_10to1`.
+The last metric is `(10 * unmasked_loss_sum + masked_loss_sum) / (10 * unmasked_count + masked_count)` and does not alter training loss.
 
-The planned training budget remains 216,158,699,520 actual input tokens, including text and excluding padding.
-With variable lengths, 412,290 updates no longer correspond to that budget; the trainer must bind the warmup and decay to the actual input-token clock.
-The optimized exp586 perf5 production runtime at `de5f428fc7b2bac8b6e40697f905c8b99ca3580d` is the intended training baseline.
-Its compact lowercase embedding lookup needs adaptation for the larger input vocabulary.
-This preparation has not measured augmented training throughput or integrated the training loop.
+An additional fixed 512-window panel, `eval/loss_disjoint`, covers all 65 species and has no recorded source-interval overlap with any train row, considering both strands and excluding touching endpoints.
+This controls source-region overlap, not sequence homology.
+The FIM panel reuses those same 512 held-out windows as 1,024 matched minimal/formatted presentations.
+Each pair shares the exact DNA crop, gap, case, orientation and length hint; formatted members always include species and mask-availability text.
+NLL is averaged per example; teacher-forced base accuracy is measured per target.
+Autoregressive exact match uses actual caller-length generation, with a separate case-folded DNA exact match.
+Metrics are stratified by presentation, short/long gaps, gap length and guided/random selection, with explicit example and target counts.
+The fixed manifest marks up to two generation candidates per gap length; accelerator profiling will set the bounded generation budget, and exact-match denominators count only generated completions.
 
-## Validation and norms
+Evaluate initially, after warmup, every 5,242,880,000 actual input tokens, and at the final budget.
+Parameter and gradient norms are collected every 1,000 updates: overall plus attention Q, router and expert-down projection norms in layers 0, 4 and 7.
+The twenty scalars use logical global arrays, FP32 master weights and globally reduced, unscaled gradients before optimizer transforms.
+No per-expert histograms are collected.
 
-The original 512 validation indices and lowercased one-base tokenization remain fixed, with the metric `eval/loss`.
-Three additional loss views reuse the same predictions and original case: softmasked targets, unmasked targets, and a 10:1 unmasked:softmasked weighted token loss.
-Uppercase `N` stays in the primary loss and unmasked partition; its target count is separately reported.
-The weighted loss is `(10 * unmasked_loss_sum + repeat_loss_sum) / (10 * unmasked_count + repeat_count)`.
+## Optimized runtime and ownership
 
-An additional fixed 512-window diagnostic, `eval/loss_disjoint`, is sampled from the 11,581 previously screened validation candidates.
-Its recorded source intervals do not intersect any training source interval, considering both strands.
-Intervals touching at an endpoint are also excluded because the original source-coordinate convention is unverified.
-Selection is deterministic, covers all 65 species and also prevents overlaps between the selected source intervals themselves.
-This removes recorded genomic overlap; it does not guarantee absence of homology or repeats.
-The main validation sample and this diagnostic have separate immutable manifests.
-The later trainer should evaluate initially, at the end of warmup, approximately every 10,000 original-length-update equivalents of input tokens, and at the final token budget.
+The package depends on the optimized exp586 project at immutable commit `de5f428fc7b2bac8b6e40697f905c8b99ca3580d`.
+Its coherent Marin release set is `0.2.201.dev39243773500` with JAX `0.11.1`; the lock retains that project's transitive runtime versions.
+The source model is `s3://marin-us-east-02a/marin/grug/rav-ladder-d768-v2/2026.08.18/checkpoints/step-11420`.
+It is a fresh DNA adaptation from text-pretrained weights.
+The optimized lowercase-only compact embedding shortcut must accommodate text and uppercase IDs before production use.
+The H100 smoke must validate all four buckets, loss aggregation, diagnostics and checkpoint replay before full training.
+Controller freshness and live capacity must be rechecked at dispatch.
 
-`diagnostics.model_norms` returns W&B-ready scalar metrics for the optimized Grug parameter/gradient trees.
-The policy collects norms every 1,000 updates: global parameter/gradient L2 norms, plus attention Q, router and expert-down projection norms in layers 0, 4 and 7.
-This is twenty scalars total, with each expert bank aggregated and no per-expert histograms.
-Pass FP32 master weights and globally reduced, unscaled gradients before clipping or optimizer transforms.
-Reduce logical global arrays on device; never sum physical copies of replicated parameters.
-The collected scalars should join the ordinary log payload in `eric-czech/marin` on the CoreWeave W&B endpoint when training is authorized.
-There is no W&B run created by this preparation.
-
-## Provenance
-
-Raw dataset revision: `4a444fff5520b992aa978d92a5af509a81977098`.
-Language tokenizer revision: `a5ca45f2feb6c959bd87b81689aa7279b5bdcaa2`.
-The packaged species registry matches all 65 raw organism codes to the paper's Table S2 and current NCBI lineages.
-Its complete taxonomy tree has no branch lengths; it is not a dated phylogeny.
-The published phylogeny has 59 exact species matches and six explicitly unresolved species.
-Source URLs are packaged alongside the registry.
+W&B belongs to the personal `eric-czech/marin` project on `https://forge.coreweave.com/api/wandb`.
+Artifacts belong under `s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/`.
+See `operations.md` for the approved single-model placement and recovery policy.

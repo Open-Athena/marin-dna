@@ -78,6 +78,16 @@ def phrase_catalog() -> dict[str, list[str]]:
         **unmasked,
         "causal_description": causal,
         "fim_instruction": fim,
+        "gap_length": [
+            "The missing span contains {length} {unit}.",
+            "Recover exactly {length} {unit}.",
+            "Gap length: {length}.",
+            "Fill a gap of {length} {unit}.",
+            "Expected answer length = {length} {unit}.",
+            "The omitted DNA is {length} {unit} long.",
+            "Number of missing nucleotides: {length}.",
+            "Return {length} missing {unit}.",
+        ],
         "left_label": [
             "Left flank",
             "Upstream context in the presented sequence",

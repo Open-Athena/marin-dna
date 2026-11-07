@@ -1,0 +1,34 @@
+[
+  {
+    "dataset_revision": "4a444fff5520b992aa978d92a5af509a81977098",
+    "split": "train",
+    "source_sha256": "03e4330793bec099540b8529a1275d0f4fe5eb6121fecef0f7022be8a355e3ab",
+    "parquet_sha256": "0a3dce62628d2f83241a4b6259d59214fb081e9e2b9d28ebf28ce1a37cd6e827",
+    "parquet_bytes": 109003131,
+    "counts": {
+      "splice_acceptor": 5190500,
+      "splice_donor": 5077468,
+      "translation_start": 1087920,
+      "annotated_rows": 909773,
+      "translation_stop": 1161886
+    },
+    "source_rows": 2638656,
+    "fraction_source_rows_annotated": 0.3447865125275898
+  },
+  {
+    "dataset_revision": "4a444fff5520b992aa978d92a5af509a81977098",
+    "split": "validation",
+    "source_sha256": "7e620ed9ecb453b0d19d7584a31caccc14933a5310edcadc86a6dcfc6d5f41c4",
+    "parquet_sha256": "821a6b2afff70bc157bfb538c7db18e77ba2cb9376694c5325765bd682cfa6e2",
+    "parquet_bytes": 13643356,
+    "counts": {
+      "splice_acceptor": 646231,
+      "splice_donor": 632448,
+      "translation_start": 135908,
+      "translation_stop": 144609,
+      "annotated_rows": 113468
+    },
+    "source_rows": 329832,
+    "fraction_source_rows_annotated": 0.3440175604550195
+  }
+]

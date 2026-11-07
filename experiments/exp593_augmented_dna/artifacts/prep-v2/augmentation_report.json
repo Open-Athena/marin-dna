@@ -1,0 +1,2579 @@
+{
+  "scope": "CPU augmentation only; 100% train-split sources. Raw record-batch samples are reused to exercise deterministic occurrence choices, not a full-corpus training-order replay.",
+  "examples": 100000,
+  "unique_raw_train_windows": 2640,
+  "species": 65,
+  "dataset_revision": "4a444fff5520b992aa978d92a5af509a81977098",
+  "annotation_sidecar": {
+    "path": "/home/exedev/tmp/mdna-exp593-data-prep/frozen-annotations/train.parquet",
+    "sha256": "0a3dce62628d2f83241a4b6259d59214fb081e9e2b9d28ebf28ce1a37cd6e827",
+    "sampled_rows_with_annotations": 945,
+    "fraction_sampled_rows_with_annotations": 0.35795454545454547
+  },
+  "tokenizer_sha256": "a43c95c64d7293d06f0c6c4713f95e0036738248f881315910c703307bdd2a2b",
+  "config": {
+    "seed": 472,
+    "kind_probabilities": [
+      0.4,
+      0.1,
+      0.375,
+      0.125
+    ],
+    "case_probabilities": [
+      0.5,
+      0.25,
+      0.25
+    ],
+    "length_buckets": [
+      2048,
+      4096,
+      6144,
+      8192
+    ],
+    "bucket_probabilities": [
+      0.15,
+      0.25,
+      0.25,
+      0.35
+    ],
+    "global_batch_size": 64,
+    "minimum_fill_fraction": 0.875,
+    "species_probability": 0.7,
+    "taxonomy_probability": 0.35,
+    "chrom_probability": 0.25,
+    "assembly_probability": 0.15,
+    "source_strand_probability": 0.15,
+    "orientation_probability": 0.2,
+    "mask_description_probability": 0.85,
+    "description_probability": 0.8,
+    "center_gap_probability": 0.2,
+    "minimal_fim_probability": 0.25,
+    "gap_length_probability": 0.8,
+    "guided_probability": 0.75
+  },
+  "marginal_augmentations": {
+    "annotated": {
+      "examples": 47472,
+      "fraction_all_examples": 0.47472
+    },
+    "annotation_eligible": {
+      "examples": 12231,
+      "fraction_all_examples": 0.12231
+    },
+    "annotation_guided": {
+      "examples": 9310,
+      "fraction_all_examples": 0.0931
+    },
+    "assembly": {
+      "examples": 7168,
+      "fraction_all_examples": 0.07168
+    },
+    "bare_dna": {
+      "examples": 39992,
+      "fraction_all_examples": 0.39992
+    },
+    "causal": {
+      "examples": 49934,
+      "fraction_all_examples": 0.49934
+    },
+    "center_gap": {
+      "examples": 8189,
+      "fraction_all_examples": 0.08189
+    },
+    "chrom": {
+      "examples": 11964,
+      "fraction_all_examples": 0.11964
+    },
+    "description": {
+      "examples": 38125,
+      "fraction_all_examples": 0.38125
+    },
+    "fim": {
+      "examples": 50066,
+      "fraction_all_examples": 0.50066
+    },
+    "gap_length_visible": {
+      "examples": 40214,
+      "fraction_all_examples": 0.40214
+    },
+    "long_fim": {
+      "examples": 12510,
+      "fraction_all_examples": 0.1251
+    },
+    "mask_description": {
+      "examples": 40695,
+      "fraction_all_examples": 0.40695
+    },
+    "metadata": {
+      "examples": 43456,
+      "fraction_all_examples": 0.43456
+    },
+    "minimal_fim": {
+      "examples": 12422,
+      "fraction_all_examples": 0.12422
+    },
+    "native_softmask": {
+      "examples": 49953,
+      "fraction_all_examples": 0.49953
+    },
+    "orientation": {
+      "examples": 9493,
+      "fraction_all_examples": 0.09493
+    },
+    "rc": {
+      "examples": 50060,
+      "fraction_all_examples": 0.5006
+    },
+    "right_flank_first": {
+      "examples": 12458,
+      "fraction_all_examples": 0.12458
+    },
+    "short_fim": {
+      "examples": 37556,
+      "fraction_all_examples": 0.37556
+    },
+    "shorter_than_8192": {
+      "examples": 99973,
+      "fraction_all_examples": 0.99973
+    },
+    "source_strand": {
+      "examples": 7152,
+      "fraction_all_examples": 0.07152
+    },
+    "species": {
+      "examples": 33202,
+      "fraction_all_examples": 0.33202
+    },
+    "taxonomy": {
+      "examples": 16472,
+      "fraction_all_examples": 0.16472
+    },
+    "unmasked_lower": {
+      "examples": 24908,
+      "fraction_all_examples": 0.24908
+    },
+    "unmasked_upper": {
+      "examples": 25139,
+      "fraction_all_examples": 0.25139
+    }
+  },
+  "joint_augmentations": {
+    "annotated & annotation_eligible": {
+      "examples": 9118,
+      "fraction_all_examples": 0.09118
+    },
+    "annotated & annotation_guided": {
+      "examples": 6939,
+      "fraction_all_examples": 0.06939
+    },
+    "annotated & assembly": {
+      "examples": 7168,
+      "fraction_all_examples": 0.07168
+    },
+    "annotated & causal": {
+      "examples": 9915,
+      "fraction_all_examples": 0.09915
+    },
+    "annotated & center_gap": {
+      "examples": 6172,
+      "fraction_all_examples": 0.06172
+    },
+    "annotated & chrom": {
+      "examples": 11964,
+      "fraction_all_examples": 0.11964
+    },
+    "annotated & description": {
+      "examples": 38125,
+      "fraction_all_examples": 0.38125
+    },
+    "annotated & fim": {
+      "examples": 37557,
+      "fraction_all_examples": 0.37557
+    },
+    "annotated & gap_length_visible": {
+      "examples": 30196,
+      "fraction_all_examples": 0.30196
+    },
+    "annotated & long_fim": {
+      "examples": 9398,
+      "fraction_all_examples": 0.09398
+    },
+    "annotated & mask_description": {
+      "examples": 40695,
+      "fraction_all_examples": 0.40695
+    },
+    "annotated & metadata": {
+      "examples": 43456,
+      "fraction_all_examples": 0.43456
+    },
+    "annotated & native_softmask": {
+      "examples": 23766,
+      "fraction_all_examples": 0.23766
+    },
+    "annotated & orientation": {
+      "examples": 9493,
+      "fraction_all_examples": 0.09493
+    },
+    "annotated & rc": {
+      "examples": 23757,
+      "fraction_all_examples": 0.23757
+    },
+    "annotated & right_flank_first": {
+      "examples": 9385,
+      "fraction_all_examples": 0.09385
+    },
+    "annotated & short_fim": {
+      "examples": 28159,
+      "fraction_all_examples": 0.28159
+    },
+    "annotated & shorter_than_8192": {
+      "examples": 47456,
+      "fraction_all_examples": 0.47456
+    },
+    "annotated & source_strand": {
+      "examples": 7152,
+      "fraction_all_examples": 0.07152
+    },
+    "annotated & species": {
+      "examples": 33202,
+      "fraction_all_examples": 0.33202
+    },
+    "annotated & taxonomy": {
+      "examples": 16472,
+      "fraction_all_examples": 0.16472
+    },
+    "annotated & unmasked_lower": {
+      "examples": 11763,
+      "fraction_all_examples": 0.11763
+    },
+    "annotated & unmasked_upper": {
+      "examples": 11943,
+      "fraction_all_examples": 0.11943
+    },
+    "annotation_eligible & annotation_guided": {
+      "examples": 9310,
+      "fraction_all_examples": 0.0931
+    },
+    "annotation_eligible & assembly": {
+      "examples": 1395,
+      "fraction_all_examples": 0.01395
+    },
+    "annotation_eligible & center_gap": {
+      "examples": 629,
+      "fraction_all_examples": 0.00629
+    },
+    "annotation_eligible & chrom": {
+      "examples": 2360,
+      "fraction_all_examples": 0.0236
+    },
+    "annotation_eligible & description": {
+      "examples": 7293,
+      "fraction_all_examples": 0.07293
+    },
+    "annotation_eligible & fim": {
+      "examples": 12231,
+      "fraction_all_examples": 0.12231
+    },
+    "annotation_eligible & gap_length_visible": {
+      "examples": 9748,
+      "fraction_all_examples": 0.09748
+    },
+    "annotation_eligible & mask_description": {
+      "examples": 7758,
+      "fraction_all_examples": 0.07758
+    },
+    "annotation_eligible & metadata": {
+      "examples": 8375,
+      "fraction_all_examples": 0.08375
+    },
+    "annotation_eligible & minimal_fim": {
+      "examples": 3092,
+      "fraction_all_examples": 0.03092
+    },
+    "annotation_eligible & native_softmask": {
+      "examples": 6101,
+      "fraction_all_examples": 0.06101
+    },
+    "annotation_eligible & orientation": {
+      "examples": 1816,
+      "fraction_all_examples": 0.01816
+    },
+    "annotation_eligible & rc": {
+      "examples": 6100,
+      "fraction_all_examples": 0.061
+    },
+    "annotation_eligible & right_flank_first": {
+      "examples": 3001,
+      "fraction_all_examples": 0.03001
+    },
+    "annotation_eligible & short_fim": {
+      "examples": 12231,
+      "fraction_all_examples": 0.12231
+    },
+    "annotation_eligible & shorter_than_8192": {
+      "examples": 12224,
+      "fraction_all_examples": 0.12224
+    },
+    "annotation_eligible & source_strand": {
+      "examples": 1409,
+      "fraction_all_examples": 0.01409
+    },
+    "annotation_eligible & species": {
+      "examples": 6373,
+      "fraction_all_examples": 0.06373
+    },
+    "annotation_eligible & taxonomy": {
+      "examples": 3128,
+      "fraction_all_examples": 0.03128
+    },
+    "annotation_eligible & unmasked_lower": {
+      "examples": 3026,
+      "fraction_all_examples": 0.03026
+    },
+    "annotation_eligible & unmasked_upper": {
+      "examples": 3104,
+      "fraction_all_examples": 0.03104
+    },
+    "annotation_guided & assembly": {
+      "examples": 1066,
+      "fraction_all_examples": 0.01066
+    },
+    "annotation_guided & chrom": {
+      "examples": 1795,
+      "fraction_all_examples": 0.01795
+    },
+    "annotation_guided & description": {
+      "examples": 5567,
+      "fraction_all_examples": 0.05567
+    },
+    "annotation_guided & fim": {
+      "examples": 9310,
+      "fraction_all_examples": 0.0931
+    },
+    "annotation_guided & gap_length_visible": {
+      "examples": 7441,
+      "fraction_all_examples": 0.07441
+    },
+    "annotation_guided & mask_description": {
+      "examples": 5867,
+      "fraction_all_examples": 0.05867
+    },
+    "annotation_guided & metadata": {
+      "examples": 6388,
+      "fraction_all_examples": 0.06388
+    },
+    "annotation_guided & minimal_fim": {
+      "examples": 2355,
+      "fraction_all_examples": 0.02355
+    },
+    "annotation_guided & native_softmask": {
+      "examples": 4638,
+      "fraction_all_examples": 0.04638
+    },
+    "annotation_guided & orientation": {
+      "examples": 1381,
+      "fraction_all_examples": 0.01381
+    },
+    "annotation_guided & rc": {
+      "examples": 4643,
+      "fraction_all_examples": 0.04643
+    },
+    "annotation_guided & right_flank_first": {
+      "examples": 2276,
+      "fraction_all_examples": 0.02276
+    },
+    "annotation_guided & short_fim": {
+      "examples": 9310,
+      "fraction_all_examples": 0.0931
+    },
+    "annotation_guided & shorter_than_8192": {
+      "examples": 9304,
+      "fraction_all_examples": 0.09304
+    },
+    "annotation_guided & source_strand": {
+      "examples": 1077,
+      "fraction_all_examples": 0.01077
+    },
+    "annotation_guided & species": {
+      "examples": 4855,
+      "fraction_all_examples": 0.04855
+    },
+    "annotation_guided & taxonomy": {
+      "examples": 2378,
+      "fraction_all_examples": 0.02378
+    },
+    "annotation_guided & unmasked_lower": {
+      "examples": 2291,
+      "fraction_all_examples": 0.02291
+    },
+    "annotation_guided & unmasked_upper": {
+      "examples": 2381,
+      "fraction_all_examples": 0.02381
+    },
+    "assembly & causal": {
+      "examples": 1529,
+      "fraction_all_examples": 0.01529
+    },
+    "assembly & center_gap": {
+      "examples": 899,
+      "fraction_all_examples": 0.00899
+    },
+    "assembly & chrom": {
+      "examples": 1800,
+      "fraction_all_examples": 0.018
+    },
+    "assembly & description": {
+      "examples": 5699,
+      "fraction_all_examples": 0.05699
+    },
+    "assembly & fim": {
+      "examples": 5639,
+      "fraction_all_examples": 0.05639
+    },
+    "assembly & gap_length_visible": {
+      "examples": 4587,
+      "fraction_all_examples": 0.04587
+    },
+    "assembly & long_fim": {
+      "examples": 1432,
+      "fraction_all_examples": 0.01432
+    },
+    "assembly & mask_description": {
+      "examples": 6103,
+      "fraction_all_examples": 0.06103
+    },
+    "assembly & metadata": {
+      "examples": 7168,
+      "fraction_all_examples": 0.07168
+    },
+    "assembly & native_softmask": {
+      "examples": 3558,
+      "fraction_all_examples": 0.03558
+    },
+    "assembly & orientation": {
+      "examples": 1419,
+      "fraction_all_examples": 0.01419
+    },
+    "assembly & rc": {
+      "examples": 3516,
+      "fraction_all_examples": 0.03516
+    },
+    "assembly & right_flank_first": {
+      "examples": 1435,
+      "fraction_all_examples": 0.01435
+    },
+    "assembly & short_fim": {
+      "examples": 4207,
+      "fraction_all_examples": 0.04207
+    },
+    "assembly & shorter_than_8192": {
+      "examples": 7164,
+      "fraction_all_examples": 0.07164
+    },
+    "assembly & source_strand": {
+      "examples": 1094,
+      "fraction_all_examples": 0.01094
+    },
+    "assembly & species": {
+      "examples": 5042,
+      "fraction_all_examples": 0.05042
+    },
+    "assembly & taxonomy": {
+      "examples": 2534,
+      "fraction_all_examples": 0.02534
+    },
+    "assembly & unmasked_lower": {
+      "examples": 1804,
+      "fraction_all_examples": 0.01804
+    },
+    "assembly & unmasked_upper": {
+      "examples": 1806,
+      "fraction_all_examples": 0.01806
+    },
+    "bare_dna & causal": {
+      "examples": 39992,
+      "fraction_all_examples": 0.39992
+    },
+    "bare_dna & native_softmask": {
+      "examples": 19952,
+      "fraction_all_examples": 0.19952
+    },
+    "bare_dna & rc": {
+      "examples": 20003,
+      "fraction_all_examples": 0.20003
+    },
+    "bare_dna & shorter_than_8192": {
+      "examples": 39983,
+      "fraction_all_examples": 0.39983
+    },
+    "bare_dna & unmasked_lower": {
+      "examples": 10035,
+      "fraction_all_examples": 0.10035
+    },
+    "bare_dna & unmasked_upper": {
+      "examples": 10005,
+      "fraction_all_examples": 0.10005
+    },
+    "causal & chrom": {
+      "examples": 2437,
+      "fraction_all_examples": 0.02437
+    },
+    "causal & description": {
+      "examples": 7943,
+      "fraction_all_examples": 0.07943
+    },
+    "causal & mask_description": {
+      "examples": 8541,
+      "fraction_all_examples": 0.08541
+    },
+    "causal & metadata": {
+      "examples": 9082,
+      "fraction_all_examples": 0.09082
+    },
+    "causal & native_softmask": {
+      "examples": 24949,
+      "fraction_all_examples": 0.24949
+    },
+    "causal & orientation": {
+      "examples": 1952,
+      "fraction_all_examples": 0.01952
+    },
+    "causal & rc": {
+      "examples": 25059,
+      "fraction_all_examples": 0.25059
+    },
+    "causal & shorter_than_8192": {
+      "examples": 49921,
+      "fraction_all_examples": 0.49921
+    },
+    "causal & source_strand": {
+      "examples": 1539,
+      "fraction_all_examples": 0.01539
+    },
+    "causal & species": {
+      "examples": 6954,
+      "fraction_all_examples": 0.06954
+    },
+    "causal & taxonomy": {
+      "examples": 3443,
+      "fraction_all_examples": 0.03443
+    },
+    "causal & unmasked_lower": {
+      "examples": 12530,
+      "fraction_all_examples": 0.1253
+    },
+    "causal & unmasked_upper": {
+      "examples": 12455,
+      "fraction_all_examples": 0.12455
+    },
+    "center_gap & chrom": {
+      "examples": 1552,
+      "fraction_all_examples": 0.01552
+    },
+    "center_gap & description": {
+      "examples": 4940,
+      "fraction_all_examples": 0.0494
+    },
+    "center_gap & fim": {
+      "examples": 8189,
+      "fraction_all_examples": 0.08189
+    },
+    "center_gap & gap_length_visible": {
+      "examples": 6566,
+      "fraction_all_examples": 0.06566
+    },
+    "center_gap & long_fim": {
+      "examples": 2520,
+      "fraction_all_examples": 0.0252
+    },
+    "center_gap & mask_description": {
+      "examples": 5346,
+      "fraction_all_examples": 0.05346
+    },
+    "center_gap & metadata": {
+      "examples": 5649,
+      "fraction_all_examples": 0.05649
+    },
+    "center_gap & minimal_fim": {
+      "examples": 2005,
+      "fraction_all_examples": 0.02005
+    },
+    "center_gap & native_softmask": {
+      "examples": 4102,
+      "fraction_all_examples": 0.04102
+    },
+    "center_gap & orientation": {
+      "examples": 1222,
+      "fraction_all_examples": 0.01222
+    },
+    "center_gap & rc": {
+      "examples": 4127,
+      "fraction_all_examples": 0.04127
+    },
+    "center_gap & right_flank_first": {
+      "examples": 2026,
+      "fraction_all_examples": 0.02026
+    },
+    "center_gap & short_fim": {
+      "examples": 5669,
+      "fraction_all_examples": 0.05669
+    },
+    "center_gap & shorter_than_8192": {
+      "examples": 8187,
+      "fraction_all_examples": 0.08187
+    },
+    "center_gap & source_strand": {
+      "examples": 991,
+      "fraction_all_examples": 0.00991
+    },
+    "center_gap & species": {
+      "examples": 4355,
+      "fraction_all_examples": 0.04355
+    },
+    "center_gap & taxonomy": {
+      "examples": 2146,
+      "fraction_all_examples": 0.02146
+    },
+    "center_gap & unmasked_lower": {
+      "examples": 2012,
+      "fraction_all_examples": 0.02012
+    },
+    "center_gap & unmasked_upper": {
+      "examples": 2075,
+      "fraction_all_examples": 0.02075
+    },
+    "chrom & description": {
+      "examples": 9609,
+      "fraction_all_examples": 0.09609
+    },
+    "chrom & fim": {
+      "examples": 9527,
+      "fraction_all_examples": 0.09527
+    },
+    "chrom & gap_length_visible": {
+      "examples": 7628,
+      "fraction_all_examples": 0.07628
+    },
+    "chrom & long_fim": {
+      "examples": 2348,
+      "fraction_all_examples": 0.02348
+    },
+    "chrom & mask_description": {
+      "examples": 10212,
+      "fraction_all_examples": 0.10212
+    },
+    "chrom & metadata": {
+      "examples": 11964,
+      "fraction_all_examples": 0.11964
+    },
+    "chrom & native_softmask": {
+      "examples": 6023,
+      "fraction_all_examples": 0.06023
+    },
+    "chrom & orientation": {
+      "examples": 2398,
+      "fraction_all_examples": 0.02398
+    },
+    "chrom & rc": {
+      "examples": 5926,
+      "fraction_all_examples": 0.05926
+    },
+    "chrom & right_flank_first": {
+      "examples": 2355,
+      "fraction_all_examples": 0.02355
+    },
+    "chrom & short_fim": {
+      "examples": 7179,
+      "fraction_all_examples": 0.07179
+    },
+    "chrom & shorter_than_8192": {
+      "examples": 11958,
+      "fraction_all_examples": 0.11958
+    },
+    "chrom & source_strand": {
+      "examples": 1785,
+      "fraction_all_examples": 0.01785
+    },
+    "chrom & species": {
+      "examples": 8365,
+      "fraction_all_examples": 0.08365
+    },
+    "chrom & taxonomy": {
+      "examples": 4150,
+      "fraction_all_examples": 0.0415
+    },
+    "chrom & unmasked_lower": {
+      "examples": 2946,
+      "fraction_all_examples": 0.02946
+    },
+    "chrom & unmasked_upper": {
+      "examples": 2995,
+      "fraction_all_examples": 0.02995
+    },
+    "description & fim": {
+      "examples": 30182,
+      "fraction_all_examples": 0.30182
+    },
+    "description & gap_length_visible": {
+      "examples": 24293,
+      "fraction_all_examples": 0.24293
+    },
+    "description & long_fim": {
+      "examples": 7604,
+      "fraction_all_examples": 0.07604
+    },
+    "description & mask_description": {
+      "examples": 32548,
+      "fraction_all_examples": 0.32548
+    },
+    "description & metadata": {
+      "examples": 34830,
+      "fraction_all_examples": 0.3483
+    },
+    "description & native_softmask": {
+      "examples": 19087,
+      "fraction_all_examples": 0.19087
+    },
+    "description & orientation": {
+      "examples": 7556,
+      "fraction_all_examples": 0.07556
+    },
+    "description & rc": {
+      "examples": 19116,
+      "fraction_all_examples": 0.19116
+    },
+    "description & right_flank_first": {
+      "examples": 7549,
+      "fraction_all_examples": 0.07549
+    },
+    "description & short_fim": {
+      "examples": 22578,
+      "fraction_all_examples": 0.22578
+    },
+    "description & shorter_than_8192": {
+      "examples": 38113,
+      "fraction_all_examples": 0.38113
+    },
+    "description & source_strand": {
+      "examples": 5676,
+      "fraction_all_examples": 0.05676
+    },
+    "description & species": {
+      "examples": 26650,
+      "fraction_all_examples": 0.2665
+    },
+    "description & taxonomy": {
+      "examples": 13264,
+      "fraction_all_examples": 0.13264
+    },
+    "description & unmasked_lower": {
+      "examples": 9447,
+      "fraction_all_examples": 0.09447
+    },
+    "description & unmasked_upper": {
+      "examples": 9591,
+      "fraction_all_examples": 0.09591
+    },
+    "fim & gap_length_visible": {
+      "examples": 40214,
+      "fraction_all_examples": 0.40214
+    },
+    "fim & long_fim": {
+      "examples": 12510,
+      "fraction_all_examples": 0.1251
+    },
+    "fim & mask_description": {
+      "examples": 32154,
+      "fraction_all_examples": 0.32154
+    },
+    "fim & metadata": {
+      "examples": 34374,
+      "fraction_all_examples": 0.34374
+    },
+    "fim & minimal_fim": {
+      "examples": 12422,
+      "fraction_all_examples": 0.12422
+    },
+    "fim & native_softmask": {
+      "examples": 25004,
+      "fraction_all_examples": 0.25004
+    },
+    "fim & orientation": {
+      "examples": 7541,
+      "fraction_all_examples": 0.07541
+    },
+    "fim & rc": {
+      "examples": 25001,
+      "fraction_all_examples": 0.25001
+    },
+    "fim & right_flank_first": {
+      "examples": 12458,
+      "fraction_all_examples": 0.12458
+    },
+    "fim & short_fim": {
+      "examples": 37556,
+      "fraction_all_examples": 0.37556
+    },
+    "fim & shorter_than_8192": {
+      "examples": 50052,
+      "fraction_all_examples": 0.50052
+    },
+    "fim & source_strand": {
+      "examples": 5613,
+      "fraction_all_examples": 0.05613
+    },
+    "fim & species": {
+      "examples": 26248,
+      "fraction_all_examples": 0.26248
+    },
+    "fim & taxonomy": {
+      "examples": 13029,
+      "fraction_all_examples": 0.13029
+    },
+    "fim & unmasked_lower": {
+      "examples": 12378,
+      "fraction_all_examples": 0.12378
+    },
+    "fim & unmasked_upper": {
+      "examples": 12684,
+      "fraction_all_examples": 0.12684
+    },
+    "gap_length_visible & long_fim": {
+      "examples": 10093,
+      "fraction_all_examples": 0.10093
+    },
+    "gap_length_visible & mask_description": {
+      "examples": 25828,
+      "fraction_all_examples": 0.25828
+    },
+    "gap_length_visible & metadata": {
+      "examples": 27641,
+      "fraction_all_examples": 0.27641
+    },
+    "gap_length_visible & minimal_fim": {
+      "examples": 9952,
+      "fraction_all_examples": 0.09952
+    },
+    "gap_length_visible & native_softmask": {
+      "examples": 20104,
+      "fraction_all_examples": 0.20104
+    },
+    "gap_length_visible & orientation": {
+      "examples": 6093,
+      "fraction_all_examples": 0.06093
+    },
+    "gap_length_visible & rc": {
+      "examples": 20110,
+      "fraction_all_examples": 0.2011
+    },
+    "gap_length_visible & right_flank_first": {
+      "examples": 10050,
+      "fraction_all_examples": 0.1005
+    },
+    "gap_length_visible & short_fim": {
+      "examples": 30121,
+      "fraction_all_examples": 0.30121
+    },
+    "gap_length_visible & shorter_than_8192": {
+      "examples": 40204,
+      "fraction_all_examples": 0.40204
+    },
+    "gap_length_visible & source_strand": {
+      "examples": 4509,
+      "fraction_all_examples": 0.04509
+    },
+    "gap_length_visible & species": {
+      "examples": 21138,
+      "fraction_all_examples": 0.21138
+    },
+    "gap_length_visible & taxonomy": {
+      "examples": 10475,
+      "fraction_all_examples": 0.10475
+    },
+    "gap_length_visible & unmasked_lower": {
+      "examples": 9930,
+      "fraction_all_examples": 0.0993
+    },
+    "gap_length_visible & unmasked_upper": {
+      "examples": 10180,
+      "fraction_all_examples": 0.1018
+    },
+    "long_fim & mask_description": {
+      "examples": 8043,
+      "fraction_all_examples": 0.08043
+    },
+    "long_fim & metadata": {
+      "examples": 8611,
+      "fraction_all_examples": 0.08611
+    },
+    "long_fim & minimal_fim": {
+      "examples": 3090,
+      "fraction_all_examples": 0.0309
+    },
+    "long_fim & native_softmask": {
+      "examples": 6265,
+      "fraction_all_examples": 0.06265
+    },
+    "long_fim & orientation": {
+      "examples": 1894,
+      "fraction_all_examples": 0.01894
+    },
+    "long_fim & rc": {
+      "examples": 6262,
+      "fraction_all_examples": 0.06262
+    },
+    "long_fim & right_flank_first": {
+      "examples": 3158,
+      "fraction_all_examples": 0.03158
+    },
+    "long_fim & shorter_than_8192": {
+      "examples": 12509,
+      "fraction_all_examples": 0.12509
+    },
+    "long_fim & source_strand": {
+      "examples": 1387,
+      "fraction_all_examples": 0.01387
+    },
+    "long_fim & species": {
+      "examples": 6665,
+      "fraction_all_examples": 0.06665
+    },
+    "long_fim & taxonomy": {
+      "examples": 3281,
+      "fraction_all_examples": 0.03281
+    },
+    "long_fim & unmasked_lower": {
+      "examples": 3091,
+      "fraction_all_examples": 0.03091
+    },
+    "long_fim & unmasked_upper": {
+      "examples": 3154,
+      "fraction_all_examples": 0.03154
+    },
+    "mask_description & metadata": {
+      "examples": 37160,
+      "fraction_all_examples": 0.3716
+    },
+    "mask_description & native_softmask": {
+      "examples": 20380,
+      "fraction_all_examples": 0.2038
+    },
+    "mask_description & orientation": {
+      "examples": 8087,
+      "fraction_all_examples": 0.08087
+    },
+    "mask_description & rc": {
+      "examples": 20377,
+      "fraction_all_examples": 0.20377
+    },
+    "mask_description & right_flank_first": {
+      "examples": 8114,
+      "fraction_all_examples": 0.08114
+    },
+    "mask_description & short_fim": {
+      "examples": 24111,
+      "fraction_all_examples": 0.24111
+    },
+    "mask_description & shorter_than_8192": {
+      "examples": 40680,
+      "fraction_all_examples": 0.4068
+    },
+    "mask_description & source_strand": {
+      "examples": 6055,
+      "fraction_all_examples": 0.06055
+    },
+    "mask_description & species": {
+      "examples": 28389,
+      "fraction_all_examples": 0.28389
+    },
+    "mask_description & taxonomy": {
+      "examples": 14056,
+      "fraction_all_examples": 0.14056
+    },
+    "mask_description & unmasked_lower": {
+      "examples": 10056,
+      "fraction_all_examples": 0.10056
+    },
+    "mask_description & unmasked_upper": {
+      "examples": 10259,
+      "fraction_all_examples": 0.10259
+    },
+    "metadata & native_softmask": {
+      "examples": 21732,
+      "fraction_all_examples": 0.21732
+    },
+    "metadata & orientation": {
+      "examples": 9493,
+      "fraction_all_examples": 0.09493
+    },
+    "metadata & rc": {
+      "examples": 21768,
+      "fraction_all_examples": 0.21768
+    },
+    "metadata & right_flank_first": {
+      "examples": 8602,
+      "fraction_all_examples": 0.08602
+    },
+    "metadata & short_fim": {
+      "examples": 25763,
+      "fraction_all_examples": 0.25763
+    },
+    "metadata & shorter_than_8192": {
+      "examples": 43440,
+      "fraction_all_examples": 0.4344
+    },
+    "metadata & source_strand": {
+      "examples": 7152,
+      "fraction_all_examples": 0.07152
+    },
+    "metadata & species": {
+      "examples": 33202,
+      "fraction_all_examples": 0.33202
+    },
+    "metadata & taxonomy": {
+      "examples": 16472,
+      "fraction_all_examples": 0.16472
+    },
+    "metadata & unmasked_lower": {
+      "examples": 10796,
+      "fraction_all_examples": 0.10796
+    },
+    "metadata & unmasked_upper": {
+      "examples": 10928,
+      "fraction_all_examples": 0.10928
+    },
+    "minimal_fim & native_softmask": {
+      "examples": 6180,
+      "fraction_all_examples": 0.0618
+    },
+    "minimal_fim & rc": {
+      "examples": 6244,
+      "fraction_all_examples": 0.06244
+    },
+    "minimal_fim & right_flank_first": {
+      "examples": 3054,
+      "fraction_all_examples": 0.03054
+    },
+    "minimal_fim & short_fim": {
+      "examples": 9332,
+      "fraction_all_examples": 0.09332
+    },
+    "minimal_fim & shorter_than_8192": {
+      "examples": 12420,
+      "fraction_all_examples": 0.1242
+    },
+    "minimal_fim & unmasked_lower": {
+      "examples": 3074,
+      "fraction_all_examples": 0.03074
+    },
+    "minimal_fim & unmasked_upper": {
+      "examples": 3168,
+      "fraction_all_examples": 0.03168
+    },
+    "native_softmask & orientation": {
+      "examples": 4832,
+      "fraction_all_examples": 0.04832
+    },
+    "native_softmask & rc": {
+      "examples": 24914,
+      "fraction_all_examples": 0.24914
+    },
+    "native_softmask & right_flank_first": {
+      "examples": 6141,
+      "fraction_all_examples": 0.06141
+    },
+    "native_softmask & short_fim": {
+      "examples": 18739,
+      "fraction_all_examples": 0.18739
+    },
+    "native_softmask & shorter_than_8192": {
+      "examples": 49942,
+      "fraction_all_examples": 0.49942
+    },
+    "native_softmask & source_strand": {
+      "examples": 3617,
+      "fraction_all_examples": 0.03617
+    },
+    "native_softmask & species": {
+      "examples": 16564,
+      "fraction_all_examples": 0.16564
+    },
+    "native_softmask & taxonomy": {
+      "examples": 8268,
+      "fraction_all_examples": 0.08268
+    },
+    "orientation & rc": {
+      "examples": 4774,
+      "fraction_all_examples": 0.04774
+    },
+    "orientation & right_flank_first": {
+      "examples": 1882,
+      "fraction_all_examples": 0.01882
+    },
+    "orientation & short_fim": {
+      "examples": 5647,
+      "fraction_all_examples": 0.05647
+    },
+    "orientation & shorter_than_8192": {
+      "examples": 9490,
+      "fraction_all_examples": 0.0949
+    },
+    "orientation & source_strand": {
+      "examples": 1359,
+      "fraction_all_examples": 0.01359
+    },
+    "orientation & species": {
+      "examples": 6649,
+      "fraction_all_examples": 0.06649
+    },
+    "orientation & taxonomy": {
+      "examples": 3255,
+      "fraction_all_examples": 0.03255
+    },
+    "orientation & unmasked_lower": {
+      "examples": 2334,
+      "fraction_all_examples": 0.02334
+    },
+    "orientation & unmasked_upper": {
+      "examples": 2327,
+      "fraction_all_examples": 0.02327
+    },
+    "rc & right_flank_first": {
+      "examples": 6227,
+      "fraction_all_examples": 0.06227
+    },
+    "rc & short_fim": {
+      "examples": 18739,
+      "fraction_all_examples": 0.18739
+    },
+    "rc & shorter_than_8192": {
+      "examples": 50045,
+      "fraction_all_examples": 0.50045
+    },
+    "rc & source_strand": {
+      "examples": 3623,
+      "fraction_all_examples": 0.03623
+    },
+    "rc & species": {
+      "examples": 16646,
+      "fraction_all_examples": 0.16646
+    },
+    "rc & taxonomy": {
+      "examples": 8200,
+      "fraction_all_examples": 0.082
+    },
+    "rc & unmasked_lower": {
+      "examples": 12518,
+      "fraction_all_examples": 0.12518
+    },
+    "rc & unmasked_upper": {
+      "examples": 12628,
+      "fraction_all_examples": 0.12628
+    },
+    "right_flank_first & short_fim": {
+      "examples": 9300,
+      "fraction_all_examples": 0.093
+    },
+    "right_flank_first & shorter_than_8192": {
+      "examples": 12456,
+      "fraction_all_examples": 0.12456
+    },
+    "right_flank_first & source_strand": {
+      "examples": 1409,
+      "fraction_all_examples": 0.01409
+    },
+    "right_flank_first & species": {
+      "examples": 6551,
+      "fraction_all_examples": 0.06551
+    },
+    "right_flank_first & taxonomy": {
+      "examples": 3287,
+      "fraction_all_examples": 0.03287
+    },
+    "right_flank_first & unmasked_lower": {
+      "examples": 3111,
+      "fraction_all_examples": 0.03111
+    },
+    "right_flank_first & unmasked_upper": {
+      "examples": 3206,
+      "fraction_all_examples": 0.03206
+    },
+    "short_fim & shorter_than_8192": {
+      "examples": 37543,
+      "fraction_all_examples": 0.37543
+    },
+    "short_fim & source_strand": {
+      "examples": 4226,
+      "fraction_all_examples": 0.04226
+    },
+    "short_fim & species": {
+      "examples": 19583,
+      "fraction_all_examples": 0.19583
+    },
+    "short_fim & taxonomy": {
+      "examples": 9748,
+      "fraction_all_examples": 0.09748
+    },
+    "short_fim & unmasked_lower": {
+      "examples": 9287,
+      "fraction_all_examples": 0.09287
+    },
+    "short_fim & unmasked_upper": {
+      "examples": 9530,
+      "fraction_all_examples": 0.0953
+    },
+    "shorter_than_8192 & source_strand": {
+      "examples": 7151,
+      "fraction_all_examples": 0.07151
+    },
+    "shorter_than_8192 & species": {
+      "examples": 33189,
+      "fraction_all_examples": 0.33189
+    },
+    "shorter_than_8192 & taxonomy": {
+      "examples": 16466,
+      "fraction_all_examples": 0.16466
+    },
+    "shorter_than_8192 & unmasked_lower": {
+      "examples": 24899,
+      "fraction_all_examples": 0.24899
+    },
+    "shorter_than_8192 & unmasked_upper": {
+      "examples": 25132,
+      "fraction_all_examples": 0.25132
+    },
+    "source_strand & species": {
+      "examples": 4984,
+      "fraction_all_examples": 0.04984
+    },
+    "source_strand & taxonomy": {
+      "examples": 2477,
+      "fraction_all_examples": 0.02477
+    },
+    "source_strand & unmasked_lower": {
+      "examples": 1748,
+      "fraction_all_examples": 0.01748
+    },
+    "source_strand & unmasked_upper": {
+      "examples": 1787,
+      "fraction_all_examples": 0.01787
+    },
+    "species & taxonomy": {
+      "examples": 11561,
+      "fraction_all_examples": 0.11561
+    },
+    "species & unmasked_lower": {
+      "examples": 8208,
+      "fraction_all_examples": 0.08208
+    },
+    "species & unmasked_upper": {
+      "examples": 8430,
+      "fraction_all_examples": 0.0843
+    },
+    "taxonomy & unmasked_lower": {
+      "examples": 4122,
+      "fraction_all_examples": 0.04122
+    },
+    "taxonomy & unmasked_upper": {
+      "examples": 4082,
+      "fraction_all_examples": 0.04082
+    }
+  },
+  "conditional_augmentations": {
+    "causal": {
+      "annotated": {
+        "examples": 9915,
+        "fraction_within_group": 0.19856210197460647
+      },
+      "annotation_eligible": {
+        "examples": 0,
+        "fraction_within_group": 0.0
+      },
+      "annotation_guided": {
+        "examples": 0,
+        "fraction_within_group": 0.0
+      },
+      "assembly": {
+        "examples": 1529,
+        "fraction_within_group": 0.030620418953017984
+      },
+      "bare_dna": {
+        "examples": 39992,
+        "fraction_within_group": 0.8008971842832538
+      },
+      "causal": {
+        "examples": 49934,
+        "fraction_within_group": 1.0
+      },
+      "center_gap": {
+        "examples": 0,
+        "fraction_within_group": 0.0
+      },
+      "chrom": {
+        "examples": 2437,
+        "fraction_within_group": 0.04880442183682461
+      },
+      "description": {
+        "examples": 7943,
+        "fraction_within_group": 0.15906997236351986
+      },
+      "fim": {
+        "examples": 0,
+        "fraction_within_group": 0.0
+      },
+      "gap_length_visible": {
+        "examples": 0,
+        "fraction_within_group": 0.0
+      },
+      "long_fim": {
+        "examples": 0,
+        "fraction_within_group": 0.0
+      },
+      "mask_description": {
+        "examples": 8541,
+        "fraction_within_group": 0.17104578043016783
+      },
+      "metadata": {
+        "examples": 9082,
+        "fraction_within_group": 0.18188008170785436
+      },
+      "minimal_fim": {
+        "examples": 0,
+        "fraction_within_group": 0.0
+      },
+      "native_softmask": {
+        "examples": 24949,
+        "fraction_within_group": 0.49963952417190693
+      },
+      "orientation": {
+        "examples": 1952,
+        "fraction_within_group": 0.03909160091320543
+      },
+      "rc": {
+        "examples": 25059,
+        "fraction_within_group": 0.5018424320102536
+      },
+      "right_flank_first": {
+        "examples": 0,
+        "fraction_within_group": 0.0
+      },
+      "short_fim": {
+        "examples": 0,
+        "fraction_within_group": 0.0
+      },
+      "shorter_than_8192": {
+        "examples": 49921,
+        "fraction_within_group": 0.9997396563463772
+      },
+      "source_strand": {
+        "examples": 1539,
+        "fraction_within_group": 0.030820683301958585
+      },
+      "species": {
+        "examples": 6954,
+        "fraction_within_group": 0.13926382825329434
+      },
+      "taxonomy": {
+        "examples": 3443,
+        "fraction_within_group": 0.06895101534024912
+      },
+      "unmasked_lower": {
+        "examples": 12530,
+        "fraction_within_group": 0.25093122922257377
+      },
+      "unmasked_upper": {
+        "examples": 12455,
+        "fraction_within_group": 0.2494292466055193
+      }
+    },
+    "bare_dna": {
+      "annotated": {
+        "examples": 0,
+        "fraction_within_group": 0.0
+      },
+      "annotation_eligible": {
+        "examples": 0,
+        "fraction_within_group": 0.0
+      },
+      "annotation_guided": {
+        "examples": 0,
+        "fraction_within_group": 0.0
+      },
+      "assembly": {
+        "examples": 0,
+        "fraction_within_group": 0.0
+      },
+      "bare_dna": {
+        "examples": 39992,
+        "fraction_within_group": 1.0
+      },
+      "causal": {
+        "examples": 39992,
+        "fraction_within_group": 1.0
+      },
+      "center_gap": {
+        "examples": 0,
+        "fraction_within_group": 0.0
+      },
+      "chrom": {
+        "examples": 0,
+        "fraction_within_group": 0.0
+      },
+      "description": {
+        "examples": 0,
+        "fraction_within_group": 0.0
+      },
+      "fim": {
+        "examples": 0,
+        "fraction_within_group": 0.0
+      },
+      "gap_length_visible": {
+        "examples": 0,
+        "fraction_within_group": 0.0
+      },
+      "long_fim": {
+        "examples": 0,
+        "fraction_within_group": 0.0
+      },
+      "mask_description": {
+        "examples": 0,
+        "fraction_within_group": 0.0
+      },
+      "metadata": {
+        "examples": 0,
+        "fraction_within_group": 0.0
+      },
+      "minimal_fim": {
+        "examples": 0,
+        "fraction_within_group": 0.0
+      },
+      "native_softmask": {
+        "examples": 19952,
+        "fraction_within_group": 0.4988997799559912
+      },
+      "orientation": {
+        "examples": 0,
+        "fraction_within_group": 0.0
+      },
+      "rc": {
+        "examples": 20003,
+        "fraction_within_group": 0.5001750350070014
+      },
+      "right_flank_first": {
+        "examples": 0,
+        "fraction_within_group": 0.0
+      },
+      "short_fim": {
+        "examples": 0,
+        "fraction_within_group": 0.0
+      },
+      "shorter_than_8192": {
+        "examples": 39983,
+        "fraction_within_group": 0.9997749549909982
+      },
+      "source_strand": {
+        "examples": 0,
+        "fraction_within_group": 0.0
+      },
+      "species": {
+        "examples": 0,
+        "fraction_within_group": 0.0
+      },
+      "taxonomy": {
+        "examples": 0,
+        "fraction_within_group": 0.0
+      },
+      "unmasked_lower": {
+        "examples": 10035,
+        "fraction_within_group": 0.2509251850370074
+      },
+      "unmasked_upper": {
+        "examples": 10005,
+        "fraction_within_group": 0.2501750350070014
+      }
+    },
+    "fim": {
+      "annotated": {
+        "examples": 37557,
+        "fraction_within_group": 0.7501498022610155
+      },
+      "annotation_eligible": {
+        "examples": 12231,
+        "fraction_within_group": 0.2442975272640115
+      },
+      "annotation_guided": {
+        "examples": 9310,
+        "fraction_within_group": 0.1859545400071905
+      },
+      "assembly": {
+        "examples": 5639,
+        "fraction_within_group": 0.11263132664882355
+      },
+      "bare_dna": {
+        "examples": 0,
+        "fraction_within_group": 0.0
+      },
+      "causal": {
+        "examples": 0,
+        "fraction_within_group": 0.0
+      },
+      "center_gap": {
+        "examples": 8189,
+        "fraction_within_group": 0.16356409539407982
+      },
+      "chrom": {
+        "examples": 9527,
+        "fraction_within_group": 0.1902888187592378
+      },
+      "description": {
+        "examples": 30182,
+        "fraction_within_group": 0.6028442455958135
+      },
+      "fim": {
+        "examples": 50066,
+        "fraction_within_group": 1.0
+      },
+      "gap_length_visible": {
+        "examples": 40214,
+        "fraction_within_group": 0.8032197499300923
+      },
+      "long_fim": {
+        "examples": 12510,
+        "fraction_within_group": 0.24987017137378661
+      },
+      "mask_description": {
+        "examples": 32154,
+        "fraction_within_group": 0.6422322534254784
+      },
+      "metadata": {
+        "examples": 34374,
+        "fraction_within_group": 0.6865737226860544
+      },
+      "minimal_fim": {
+        "examples": 12422,
+        "fraction_within_group": 0.2481124915112052
+      },
+      "native_softmask": {
+        "examples": 25004,
+        "fraction_within_group": 0.4994207645907402
+      },
+      "orientation": {
+        "examples": 7541,
+        "fraction_within_group": 0.1506211800423441
+      },
+      "rc": {
+        "examples": 25001,
+        "fraction_within_group": 0.49936084368633404
+      },
+      "right_flank_first": {
+        "examples": 12458,
+        "fraction_within_group": 0.24883154236407942
+      },
+      "short_fim": {
+        "examples": 37556,
+        "fraction_within_group": 0.7501298286262134
+      },
+      "shorter_than_8192": {
+        "examples": 50052,
+        "fraction_within_group": 0.9997203691127712
+      },
+      "source_strand": {
+        "examples": 5613,
+        "fraction_within_group": 0.11211201214396996
+      },
+      "species": {
+        "examples": 26248,
+        "fraction_within_group": 0.5242679662845044
+      },
+      "taxonomy": {
+        "examples": 13029,
+        "fraction_within_group": 0.2602364878360564
+      },
+      "unmasked_lower": {
+        "examples": 12378,
+        "fraction_within_group": 0.2472336515799145
+      },
+      "unmasked_upper": {
+        "examples": 12684,
+        "fraction_within_group": 0.25334558382934524
+      }
+    },
+    "short_fim": {
+      "annotated": {
+        "examples": 28159,
+        "fraction_within_group": 0.749786984769411
+      },
+      "annotation_eligible": {
+        "examples": 12231,
+        "fraction_within_group": 0.3256736606667377
+      },
+      "annotation_guided": {
+        "examples": 9310,
+        "fraction_within_group": 0.24789647459793376
+      },
+      "assembly": {
+        "examples": 4207,
+        "fraction_within_group": 0.11201938438598359
+      },
+      "bare_dna": {
+        "examples": 0,
+        "fraction_within_group": 0.0
+      },
+      "causal": {
+        "examples": 0,
+        "fraction_within_group": 0.0
+      },
+      "center_gap": {
+        "examples": 5669,
+        "fraction_within_group": 0.150947917776121
+      },
+      "chrom": {
+        "examples": 7179,
+        "fraction_within_group": 0.1911545425497923
+      },
+      "description": {
+        "examples": 22578,
+        "fraction_within_group": 0.6011822345297689
+      },
+      "fim": {
+        "examples": 37556,
+        "fraction_within_group": 1.0
+      },
+      "gap_length_visible": {
+        "examples": 30121,
+        "fraction_within_group": 0.8020289700713601
+      },
+      "long_fim": {
+        "examples": 0,
+        "fraction_within_group": 0.0
+      },
+      "mask_description": {
+        "examples": 24111,
+        "fraction_within_group": 0.6420012780913835
+      },
+      "metadata": {
+        "examples": 25763,
+        "fraction_within_group": 0.6859889232080094
+      },
+      "minimal_fim": {
+        "examples": 9332,
+        "fraction_within_group": 0.24848226648205346
+      },
+      "native_softmask": {
+        "examples": 18739,
+        "fraction_within_group": 0.49896155075087867
+      },
+      "orientation": {
+        "examples": 5647,
+        "fraction_within_group": 0.1503621258920013
+      },
+      "rc": {
+        "examples": 18739,
+        "fraction_within_group": 0.49896155075087867
+      },
+      "right_flank_first": {
+        "examples": 9300,
+        "fraction_within_group": 0.24763020555969753
+      },
+      "short_fim": {
+        "examples": 37556,
+        "fraction_within_group": 1.0
+      },
+      "shorter_than_8192": {
+        "examples": 37543,
+        "fraction_within_group": 0.9996538502502929
+      },
+      "source_strand": {
+        "examples": 4226,
+        "fraction_within_group": 0.11252529555863244
+      },
+      "species": {
+        "examples": 19583,
+        "fraction_within_group": 0.5214346575780169
+      },
+      "taxonomy": {
+        "examples": 9748,
+        "fraction_within_group": 0.2595590584726808
+      },
+      "unmasked_lower": {
+        "examples": 9287,
+        "fraction_within_group": 0.2472840558099904
+      },
+      "unmasked_upper": {
+        "examples": 9530,
+        "fraction_within_group": 0.2537543934391309
+      }
+    },
+    "annotation_eligible": {
+      "annotated": {
+        "examples": 9118,
+        "fraction_within_group": 0.7454827896329
+      },
+      "annotation_eligible": {
+        "examples": 12231,
+        "fraction_within_group": 1.0
+      },
+      "annotation_guided": {
+        "examples": 9310,
+        "fraction_within_group": 0.7611806066552204
+      },
+      "assembly": {
+        "examples": 1395,
+        "fraction_within_group": 0.11405445180279618
+      },
+      "bare_dna": {
+        "examples": 0,
+        "fraction_within_group": 0.0
+      },
+      "causal": {
+        "examples": 0,
+        "fraction_within_group": 0.0
+      },
+      "center_gap": {
+        "examples": 629,
+        "fraction_within_group": 0.05142670264083068
+      },
+      "chrom": {
+        "examples": 2360,
+        "fraction_within_group": 0.19295233423268743
+      },
+      "description": {
+        "examples": 7293,
+        "fraction_within_group": 0.5962717684571989
+      },
+      "fim": {
+        "examples": 12231,
+        "fraction_within_group": 1.0
+      },
+      "gap_length_visible": {
+        "examples": 9748,
+        "fraction_within_group": 0.7969912517373886
+      },
+      "long_fim": {
+        "examples": 0,
+        "fraction_within_group": 0.0
+      },
+      "mask_description": {
+        "examples": 7758,
+        "fraction_within_group": 0.6342899190581309
+      },
+      "metadata": {
+        "examples": 8375,
+        "fraction_within_group": 0.6847355081350667
+      },
+      "minimal_fim": {
+        "examples": 3092,
+        "fraction_within_group": 0.2528002616302837
+      },
+      "native_softmask": {
+        "examples": 6101,
+        "fraction_within_group": 0.4988144877769602
+      },
+      "orientation": {
+        "examples": 1816,
+        "fraction_within_group": 0.1484751860027798
+      },
+      "rc": {
+        "examples": 6100,
+        "fraction_within_group": 0.4987327283133023
+      },
+      "right_flank_first": {
+        "examples": 3001,
+        "fraction_within_group": 0.24536015043741313
+      },
+      "short_fim": {
+        "examples": 12231,
+        "fraction_within_group": 1.0
+      },
+      "shorter_than_8192": {
+        "examples": 12224,
+        "fraction_within_group": 0.9994276837543946
+      },
+      "source_strand": {
+        "examples": 1409,
+        "fraction_within_group": 0.11519908429400703
+      },
+      "species": {
+        "examples": 6373,
+        "fraction_within_group": 0.521053061891914
+      },
+      "taxonomy": {
+        "examples": 3128,
+        "fraction_within_group": 0.25574360232196874
+      },
+      "unmasked_lower": {
+        "examples": 3026,
+        "fraction_within_group": 0.2474041370288611
+      },
+      "unmasked_upper": {
+        "examples": 3104,
+        "fraction_within_group": 0.2537813751941787
+      }
+    },
+    "annotation_guided": {
+      "annotated": {
+        "examples": 6939,
+        "fraction_within_group": 0.7453276047261009
+      },
+      "annotation_eligible": {
+        "examples": 9310,
+        "fraction_within_group": 1.0
+      },
+      "annotation_guided": {
+        "examples": 9310,
+        "fraction_within_group": 1.0
+      },
+      "assembly": {
+        "examples": 1066,
+        "fraction_within_group": 0.11450053705692803
+      },
+      "bare_dna": {
+        "examples": 0,
+        "fraction_within_group": 0.0
+      },
+      "causal": {
+        "examples": 0,
+        "fraction_within_group": 0.0
+      },
+      "center_gap": {
+        "examples": 0,
+        "fraction_within_group": 0.0
+      },
+      "chrom": {
+        "examples": 1795,
+        "fraction_within_group": 0.19280343716433943
+      },
+      "description": {
+        "examples": 5567,
+        "fraction_within_group": 0.5979591836734693
+      },
+      "fim": {
+        "examples": 9310,
+        "fraction_within_group": 1.0
+      },
+      "gap_length_visible": {
+        "examples": 7441,
+        "fraction_within_group": 0.7992481203007519
+      },
+      "long_fim": {
+        "examples": 0,
+        "fraction_within_group": 0.0
+      },
+      "mask_description": {
+        "examples": 5867,
+        "fraction_within_group": 0.6301825993555317
+      },
+      "metadata": {
+        "examples": 6388,
+        "fraction_within_group": 0.6861439312567132
+      },
+      "minimal_fim": {
+        "examples": 2355,
+        "fraction_within_group": 0.252953813104189
+      },
+      "native_softmask": {
+        "examples": 4638,
+        "fraction_within_group": 0.4981740064446831
+      },
+      "orientation": {
+        "examples": 1381,
+        "fraction_within_group": 0.14833512352309344
+      },
+      "rc": {
+        "examples": 4643,
+        "fraction_within_group": 0.49871106337271753
+      },
+      "right_flank_first": {
+        "examples": 2276,
+        "fraction_within_group": 0.24446831364124597
+      },
+      "short_fim": {
+        "examples": 9310,
+        "fraction_within_group": 1.0
+      },
+      "shorter_than_8192": {
+        "examples": 9304,
+        "fraction_within_group": 0.9993555316863587
+      },
+      "source_strand": {
+        "examples": 1077,
+        "fraction_within_group": 0.11568206229860366
+      },
+      "species": {
+        "examples": 4855,
+        "fraction_within_group": 0.5214822771213748
+      },
+      "taxonomy": {
+        "examples": 2378,
+        "fraction_within_group": 0.2554242749731472
+      },
+      "unmasked_lower": {
+        "examples": 2291,
+        "fraction_within_group": 0.24607948442534908
+      },
+      "unmasked_upper": {
+        "examples": 2381,
+        "fraction_within_group": 0.25574650912996777
+      }
+    },
+    "long_fim": {
+      "annotated": {
+        "examples": 9398,
+        "fraction_within_group": 0.7512390087929657
+      },
+      "annotation_eligible": {
+        "examples": 0,
+        "fraction_within_group": 0.0
+      },
+      "annotation_guided": {
+        "examples": 0,
+        "fraction_within_group": 0.0
+      },
+      "assembly": {
+        "examples": 1432,
+        "fraction_within_group": 0.11446842525979217
+      },
+      "bare_dna": {
+        "examples": 0,
+        "fraction_within_group": 0.0
+      },
+      "causal": {
+        "examples": 0,
+        "fraction_within_group": 0.0
+      },
+      "center_gap": {
+        "examples": 2520,
+        "fraction_within_group": 0.2014388489208633
+      },
+      "chrom": {
+        "examples": 2348,
+        "fraction_within_group": 0.1876898481215028
+      },
+      "description": {
+        "examples": 7604,
+        "fraction_within_group": 0.6078337330135891
+      },
+      "fim": {
+        "examples": 12510,
+        "fraction_within_group": 1.0
+      },
+      "gap_length_visible": {
+        "examples": 10093,
+        "fraction_within_group": 0.8067945643485211
+      },
+      "long_fim": {
+        "examples": 12510,
+        "fraction_within_group": 1.0
+      },
+      "mask_description": {
+        "examples": 8043,
+        "fraction_within_group": 0.6429256594724221
+      },
+      "metadata": {
+        "examples": 8611,
+        "fraction_within_group": 0.6883293365307753
+      },
+      "minimal_fim": {
+        "examples": 3090,
+        "fraction_within_group": 0.24700239808153476
+      },
+      "native_softmask": {
+        "examples": 6265,
+        "fraction_within_group": 0.5007993605115907
+      },
+      "orientation": {
+        "examples": 1894,
+        "fraction_within_group": 0.15139888089528378
+      },
+      "rc": {
+        "examples": 6262,
+        "fraction_within_group": 0.5005595523581136
+      },
+      "right_flank_first": {
+        "examples": 3158,
+        "fraction_within_group": 0.2524380495603517
+      },
+      "short_fim": {
+        "examples": 0,
+        "fraction_within_group": 0.0
+      },
+      "shorter_than_8192": {
+        "examples": 12509,
+        "fraction_within_group": 0.9999200639488409
+      },
+      "source_strand": {
+        "examples": 1387,
+        "fraction_within_group": 0.1108713029576339
+      },
+      "species": {
+        "examples": 6665,
+        "fraction_within_group": 0.5327737809752199
+      },
+      "taxonomy": {
+        "examples": 3281,
+        "fraction_within_group": 0.26227018385291767
+      },
+      "unmasked_lower": {
+        "examples": 3091,
+        "fraction_within_group": 0.24708233413269384
+      },
+      "unmasked_upper": {
+        "examples": 3154,
+        "fraction_within_group": 0.25211830535571544
+      }
+    },
+    "minimal_fim": {
+      "annotated": {
+        "examples": 0,
+        "fraction_within_group": 0.0
+      },
+      "annotation_eligible": {
+        "examples": 3092,
+        "fraction_within_group": 0.24891321848333603
+      },
+      "annotation_guided": {
+        "examples": 2355,
+        "fraction_within_group": 0.1895829979069393
+      },
+      "assembly": {
+        "examples": 0,
+        "fraction_within_group": 0.0
+      },
+      "bare_dna": {
+        "examples": 0,
+        "fraction_within_group": 0.0
+      },
+      "causal": {
+        "examples": 0,
+        "fraction_within_group": 0.0
+      },
+      "center_gap": {
+        "examples": 2005,
+        "fraction_within_group": 0.16140718080824343
+      },
+      "chrom": {
+        "examples": 0,
+        "fraction_within_group": 0.0
+      },
+      "description": {
+        "examples": 0,
+        "fraction_within_group": 0.0
+      },
+      "fim": {
+        "examples": 12422,
+        "fraction_within_group": 1.0
+      },
+      "gap_length_visible": {
+        "examples": 9952,
+        "fraction_within_group": 0.801159233617775
+      },
+      "long_fim": {
+        "examples": 3090,
+        "fraction_within_group": 0.24875221381420062
+      },
+      "mask_description": {
+        "examples": 0,
+        "fraction_within_group": 0.0
+      },
+      "metadata": {
+        "examples": 0,
+        "fraction_within_group": 0.0
+      },
+      "minimal_fim": {
+        "examples": 12422,
+        "fraction_within_group": 1.0
+      },
+      "native_softmask": {
+        "examples": 6180,
+        "fraction_within_group": 0.49750442762840125
+      },
+      "orientation": {
+        "examples": 0,
+        "fraction_within_group": 0.0
+      },
+      "rc": {
+        "examples": 6244,
+        "fraction_within_group": 0.5026565770407342
+      },
+      "right_flank_first": {
+        "examples": 3054,
+        "fraction_within_group": 0.2458541297697633
+      },
+      "short_fim": {
+        "examples": 9332,
+        "fraction_within_group": 0.7512477861857993
+      },
+      "shorter_than_8192": {
+        "examples": 12420,
+        "fraction_within_group": 0.9998389953308646
+      },
+      "source_strand": {
+        "examples": 0,
+        "fraction_within_group": 0.0
+      },
+      "species": {
+        "examples": 0,
+        "fraction_within_group": 0.0
+      },
+      "taxonomy": {
+        "examples": 0,
+        "fraction_within_group": 0.0
+      },
+      "unmasked_lower": {
+        "examples": 3074,
+        "fraction_within_group": 0.24746417646111737
+      },
+      "unmasked_upper": {
+        "examples": 3168,
+        "fraction_within_group": 0.2550313959104814
+      }
+    }
+  },
+  "histograms": {
+    "kind": {
+      "bare_causal": 39992,
+      "short_fim": 37556,
+      "annotated_causal": 9942,
+      "long_fim": 12510
+    },
+    "case": {
+      "native_softmask": 49953,
+      "unmasked_lower": 24908,
+      "unmasked_upper": 25139
+    },
+    "rc": {
+      "False": 49940,
+      "True": 50060
+    },
+    "bucket": {
+      "2048": 15232,
+      "6144": 26368,
+      "4096": 25152,
+      "8192": 33248
+    },
+    "mask_description": {
+      "False": 59305,
+      "True": 40695
+    },
+    "description": {
+      "False": 61875,
+      "True": 38125
+    },
+    "metadata_structure": {
+      "none": 52414,
+      "brackets": 6016,
+      "comments": 5942,
+      "xml": 5998,
+      "prose": 5904,
+      "json": 5922,
+      "inline": 6115,
+      "lines": 5840,
+      "fasta": 5849
+    },
+    "layout": {
+      "causal": 49934,
+      "instruction_first": 12525,
+      "compact": 24934,
+      "instruction_after_flanks": 12607
+    },
+    "right_flank_first": {
+      "False": 87542,
+      "True": 12458
+    },
+    "gap_length": {
+      "0": 49934,
+      "2": 12661,
+      "1": 12497,
+      "3": 12398,
+      "16": 2063,
+      "64": 2124,
+      "128": 2057,
+      "256": 2112,
+      "32": 2049,
+      "512": 2105
+    },
+    "center_gap": {
+      "False": 91811,
+      "True": 8189
+    },
+    "minimal_fim": {
+      "False": 87578,
+      "True": 12422
+    },
+    "gap_length_visible": {
+      "False": 59786,
+      "True": 40214
+    },
+    "annotation_eligible": {
+      "False": 87769,
+      "True": 12231
+    },
+    "annotation_guided": {
+      "False": 90690,
+      "True": 9310
+    },
+    "landmark_class": {
+      "": 90690,
+      "splice_donor": 2805,
+      "splice_acceptor": 2720,
+      "translation_stop": 1958,
+      "translation_start": 1827
+    },
+    "landmark_mode": {
+      "": 62444,
+      "overlap": 18646,
+      "nearby": 18910
+    },
+    "annotation_fallback": {
+      "not_short_fim": 62444,
+      "": 9310,
+      "no_annotation": 24040,
+      "random_control": 2921,
+      "no_valid_site": 1285
+    },
+    "species": {
+      "Hannuus": 1820,
+      "Ahypogaea": 1360,
+      "Lalbus": 1629,
+      "Mdomestica": 1816,
+      "Rcommunis": 1023,
+      "Soleracea": 1666,
+      "Bvulgaris": 2081,
+      "Vunguiculata": 1361,
+      "Dalata": 1741,
+      "Lervoides": 1745,
+      "Lsativa": 1364,
+      "Vdarrowii": 1668,
+      "Ecoracana": 1631,
+      "Cillinoinensis": 1670,
+      "Mesculenta": 1403,
+      "Cavellana": 1516,
+      "Acomosus": 1779,
+      "Pvaginatum": 1631,
+      "Ptrifoliata": 1743,
+      "Carietinum": 1480,
+      "Bdistachyon": 1250,
+      "Hvulgare": 1401,
+      "Qrubra": 1517,
+      "Esalsugineum": 1474,
+      "Cquinoa": 1551,
+      "Vvinifera": 1818,
+      "Dcarota": 1285,
+      "Ptrichocarpa": 2425,
+      "Sbicolor": 1629,
+      "Ahypochondriacus": 1778,
+      "Sparvula": 1557,
+      "Egrandis": 1402,
+      "Ljaponicus": 1480,
+      "Vfaba": 1859,
+      "Ppersica": 1593,
+      "Osativa": 1439,
+      "Carabica": 1209,
+      "Mtruncatula": 1440,
+      "Csativus": 1290,
+      "Fvesca": 1481,
+      "Ccitriodora": 1516,
+      "Lusitatissimum": 1174,
+      "Gmax": 1745,
+      "Tintermedium": 1854,
+      "Macuminata": 1551,
+      "Taestivum": 1214,
+      "Athaliana": 1400,
+      "Crubella": 1364,
+      "Othomaeum": 1362,
+      "Ckanehirae": 2041,
+      "Pvirgatum": 2043,
+      "Spurpurea": 1366,
+      "Pamilis": 1554,
+      "Acoerulea": 1288,
+      "Ncolorata": 1326,
+      "Cclementina": 1555,
+      "Aofficinalis": 2160,
+      "Bplatyphylla": 1629,
+      "Oeuropaea": 1285,
+      "Zmays": 1623,
+      "Sviridis": 1323,
+      "Bstricta": 1553,
+      "Spolyrhiza": 986,
+      "Msinensis": 948,
+      "Zmarina": 1135
+    },
+    "metadata_field": {
+      "species": 33202,
+      "taxonomy": 16472,
+      "orientation": 9493,
+      "source_strand": 7152,
+      "assembly": 7168,
+      "chrom": 11964
+    }
+  },
+  "kind_rates": {
+    "bare_causal": {
+      "configured": 0.4,
+      "observed": 0.39992,
+      "input_token_fraction": 0.4000254731590028,
+      "scored_target_fraction": 0.7953778012726448,
+      "normalized_objective_mass_fraction": 0.39992
+    },
+    "annotated_causal": {
+      "configured": 0.1,
+      "observed": 0.09942,
+      "input_token_fraction": 0.09985175495565038,
+      "scored_target_fraction": 0.19647612310901405,
+      "normalized_objective_mass_fraction": 0.09942
+    },
+    "short_fim": {
+      "configured": 0.375,
+      "observed": 0.37556,
+      "input_token_fraction": 0.3761071418101107,
+      "scored_target_fraction": 0.00027886399715533667,
+      "normalized_objective_mass_fraction": 0.37556
+    },
+    "long_fim": {
+      "configured": 0.125,
+      "observed": 0.1251,
+      "input_token_fraction": 0.12401563007523621,
+      "scored_target_fraction": 0.00786721162118579,
+      "normalized_objective_mass_fraction": 0.1251
+    }
+  },
+  "conditional_by_kind": {
+    "bare_causal": {
+      "examples": 39992,
+      "rc": 0.5001750350070014,
+      "native_softmask": 0.4988997799559912,
+      "unmasked_lower": 0.2509251850370074,
+      "unmasked_upper": 0.2501750350070014
+    },
+    "short_fim": {
+      "examples": 37556,
+      "rc": 0.49896155075087867,
+      "native_softmask": 0.49896155075087867,
+      "unmasked_upper": 0.2537543934391309,
+      "unmasked_lower": 0.2472840558099904
+    },
+    "annotated_causal": {
+      "examples": 9942,
+      "rc": 0.5085495876081272,
+      "native_softmask": 0.5026151679742507,
+      "unmasked_lower": 0.2509555421444377,
+      "unmasked_upper": 0.2464292898813116
+    },
+    "long_fim": {
+      "examples": 12510,
+      "rc": 0.5005595523581136,
+      "unmasked_lower": 0.24708233413269384,
+      "native_softmask": 0.5007993605115907,
+      "unmasked_upper": 0.25211830535571544
+    }
+  },
+  "active_rates": {
+    "rc": 0.5006,
+    "mask_description": 0.40695,
+    "description": 0.38125,
+    "right_flank_first": 0.12458,
+    "center_gap": 0.08189
+  },
+  "metadata_rates": {
+    "species": 0.33202,
+    "taxonomy": 0.16472,
+    "orientation": 0.09493,
+    "source_strand": 0.07152,
+    "assembly": 0.07168,
+    "chrom": 0.11964
+  },
+  "actual_input_tokens": 534947393,
+  "allocated_tokens": 568590336,
+  "pad_fraction": 0.05916903765314785,
+  "text_token_fraction": 0.007696782999370557,
+  "length_quantiles": {
+    "0": 2048.0,
+    "0.1": 2048.0,
+    "0.25": 3782.0,
+    "0.5": 5651.0,
+    "0.75": 7421.0,
+    "0.9": 7889.0,
+    "1": 8192.0
+  },
+  "distinct_rendered_prompt_signatures": 48099,
+  "semantic_component_count": 584,
+  "elapsed_seconds": 91.68927553715184,
+  "source_files": [
+    {
+      "path": "metadata/train/data-00000-of-00044.sample.jsonl",
+      "sha256": "d59ee4507157debc94542f492c14efe296484cfc9b27741671de92ed04716a9d"
+    },
+    {
+      "path": "metadata/train/data-00001-of-00044.sample.jsonl",
+      "sha256": "3cc605a9312c1e711922a49834dec76dab77bc7189c1c6e3ca725b60507bd721"
+    },
+    {
+      "path": "metadata/train/data-00002-of-00044.sample.jsonl",
+      "sha256": "cbf1cf725cbcc66272d3c46eb027225c982e99f029dba2f9bd87e5ab5b904f6b"
+    },
+    {
+      "path": "metadata/train/data-00003-of-00044.sample.jsonl",
+      "sha256": "9624e042164eea353d8ffcdd8fb9e3f34edae9b951001098cf7159fa92e95f10"
+    },
+    {
+      "path": "metadata/train/data-00004-of-00044.sample.jsonl",
+      "sha256": "4c20158bd4381b28a7371fa3b5ddd5977022ed562b71fc3359073d1e0695e7cf"
+    },
+    {
+      "path": "metadata/train/data-00005-of-00044.sample.jsonl",
+      "sha256": "cc93f36dd09b5b0bd2411606884d57f014b431149048977b2e61db68945fe8e3"
+    },
+    {
+      "path": "metadata/train/data-00006-of-00044.sample.jsonl",
+      "sha256": "3dd155c54b3cff8b16858352eed7eb2a72248fa5ff0b839cd6ef779669eaefb2"
+    },
+    {
+      "path": "metadata/train/data-00007-of-00044.sample.jsonl",
+      "sha256": "07a8bef9c21abf74a4522b03a8eace07937e838b6bf8a8ee8ac8da411ab7fb55"
+    },
+    {
+      "path": "metadata/train/data-00008-of-00044.sample.jsonl",
+      "sha256": "0e6625af30cd8ce6b5e8d816e3ac312cbc8dc9a88df5af66a88134c536ba3e3a"
+    },
+    {
+      "path": "metadata/train/data-00009-of-00044.sample.jsonl",
+      "sha256": "7d4229dcf6334ded12ae160e889c1dc4418d2e23732ad4ccab512e81b017ef5d"
+    },
+    {
+      "path": "metadata/train/data-00010-of-00044.sample.jsonl",
+      "sha256": "66266f5b565e5527246aba267eb31fa53d9c48f5619b02556f7db0e5a70e1008"
+    },
+    {
+      "path": "metadata/train/data-00011-of-00044.sample.jsonl",
+      "sha256": "3fe93e1fb3be06ae71b241aee513cc60b3c7ea5b6a9334d8f2ff744b8c0695da"
+    },
+    {
+      "path": "metadata/train/data-00012-of-00044.sample.jsonl",
+      "sha256": "07000ed0889cbd15aa022e47e614e48f21cc79ea6c8a1738f6d4902ee6e82ff0"
+    },
+    {
+      "path": "metadata/train/data-00013-of-00044.sample.jsonl",
+      "sha256": "9c8207af187e6a6e369677f6461ce0ba85d778a8b47ab3041d7a30f98ad30ae0"
+    },
+    {
+      "path": "metadata/train/data-00014-of-00044.sample.jsonl",
+      "sha256": "93566edba4f8d26b0d813355db1fca2707794bcef21fb9ab2f0b563d7d59dc4b"
+    },
+    {
+      "path": "metadata/train/data-00015-of-00044.sample.jsonl",
+      "sha256": "99ea89c511d1b879eed7e73785d40facc33e7707661825b67cfd845595bf3b51"
+    },
+    {
+      "path": "metadata/train/data-00016-of-00044.sample.jsonl",
+      "sha256": "a10d12a6f760e76b90111338cd1f76c8e930820a330233a9ee3c68a38be97553"
+    },
+    {
+      "path": "metadata/train/data-00017-of-00044.sample.jsonl",
+      "sha256": "0a6754ca749df1589ce2c3fb7c7208bf94f70498c8cd5bafc41ce065cac89a5a"
+    },
+    {
+      "path": "metadata/train/data-00018-of-00044.sample.jsonl",
+      "sha256": "ea83a5dc7525c498cf590618084aa17d9029bc0911df861fee8168263769dd58"
+    },
+    {
+      "path": "metadata/train/data-00019-of-00044.sample.jsonl",
+      "sha256": "764ae05a8c7b85174a98f94ffe78ba9d7ffa4de6fffc25ddc2e378ab6865b988"
+    },
+    {
+      "path": "metadata/train/data-00020-of-00044.sample.jsonl",
+      "sha256": "dac50fe56305f2b58cf55e361c9e09ee4fe219d8806bdc06e1ccb9c425ed9d81"
+    },
+    {
+      "path": "metadata/train/data-00021-of-00044.sample.jsonl",
+      "sha256": "5523754a0b992036df065e6aa0b028d0e46cc4bfddac238c94ca08af05b35d76"
+    },
+    {
+      "path": "metadata/train/data-00022-of-00044.sample.jsonl",
+      "sha256": "b59b81e8e5e9c33386480cbc75eb4043b2ecf958c2820d49214f6345265c0472"
+    },
+    {
+      "path": "metadata/train/data-00023-of-00044.sample.jsonl",
+      "sha256": "b69018b0cb0c73320e20373f55edf024301864de11255f1d7f77f292ffe011da"
+    },
+    {
+      "path": "metadata/train/data-00024-of-00044.sample.jsonl",
+      "sha256": "f56bf885b496c343d115fca46aeb8365745aa00c779f77e6d7befffd10ce1edb"
+    },
+    {
+      "path": "metadata/train/data-00025-of-00044.sample.jsonl",
+      "sha256": "4285a4fd115ac0c2b07a13218e0f3c80e20f5441fca6d616dc42d16bec019f79"
+    },
+    {
+      "path": "metadata/train/data-00026-of-00044.sample.jsonl",
+      "sha256": "56860df5d8e3d366c0b6017502a6cbf29031464a0e4131aac34c9e6c051a1c80"
+    },
+    {
+      "path": "metadata/train/data-00027-of-00044.sample.jsonl",
+      "sha256": "60d2489771cd1adb02992d60ef23d8bba83c1851623c8b013bae83f1ef5c80e8"
+    },
+    {
+      "path": "metadata/train/data-00028-of-00044.sample.jsonl",
+      "sha256": "c24fc191153a89fd442b77f43a0c4b56c25461c9a047b53ecd83b66bdfa93aa9"
+    },
+    {
+      "path": "metadata/train/data-00029-of-00044.sample.jsonl",
+      "sha256": "0fd276409fd7756e2202e49436d43cd654c9f15504186a7395ce55fa0c0738e0"
+    },
+    {
+      "path": "metadata/train/data-00030-of-00044.sample.jsonl",
+      "sha256": "3100a4f114be8c28d52a2a261f0d1be6913d4f190cdf49088887bfd217a22cb9"
+    },
+    {
+      "path": "metadata/train/data-00031-of-00044.sample.jsonl",
+      "sha256": "7e15043847ba53b49bb8644d795dfee547e2a75300a646fa91a1e895cceb56cd"
+    },
+    {
+      "path": "metadata/train/data-00032-of-00044.sample.jsonl",
+      "sha256": "6db9d8a75395ed3752e26d473c9ce616be635bd86da0052b99325bb1124f8536"
+    },
+    {
+      "path": "metadata/train/data-00033-of-00044.sample.jsonl",
+      "sha256": "95e68036324c238091212f662e0955b890bea24f3887854561497fac65a3f137"
+    },
+    {
+      "path": "metadata/train/data-00034-of-00044.sample.jsonl",
+      "sha256": "a1226c3d76611fed9ba33d0c6f9d75d0359f928e028877eb88745050aa7e7867"
+    },
+    {
+      "path": "metadata/train/data-00035-of-00044.sample.jsonl",
+      "sha256": "7299645b2a39394bc26a90fbd06aa7e02f5ffc848f61fae77019140f025d1ec4"
+    },
+    {
+      "path": "metadata/train/data-00036-of-00044.sample.jsonl",
+      "sha256": "10ce309b8f7e07599b4b006b56f5971b34d0a815205654378e0c74f9c3581bdc"
+    },
+    {
+      "path": "metadata/train/data-00037-of-00044.sample.jsonl",
+      "sha256": "888255b47aed817cf5fa4a1bcd39b8e5e03f7d49d109adbc4614fe5e0a40030a"
+    },
+    {
+      "path": "metadata/train/data-00038-of-00044.sample.jsonl",
+      "sha256": "dfc46ea5623a4a620b3cb44e587d1a2d1bf680f0e291afd6a6ec1ffdfff81af4"
+    },
+    {
+      "path": "metadata/train/data-00039-of-00044.sample.jsonl",
+      "sha256": "6a22ceb29c2e82fdf16b63c071c5a9ce124069b7ee19de55618ddd79c4370116"
+    },
+    {
+      "path": "metadata/train/data-00040-of-00044.sample.jsonl",
+      "sha256": "cdd8994b0e7d601fc23e99b0bb8181c40351c1605b0dba4796713ad4ad5c5ba6"
+    },
+    {
+      "path": "metadata/train/data-00041-of-00044.sample.jsonl",
+      "sha256": "b2dbd6e3b78d6f32bb6e26b2f4f859faac8d409d679878fc4aba74c0cb245793"
+    },
+    {
+      "path": "metadata/train/data-00042-of-00044.sample.jsonl",
+      "sha256": "dfd4b903fcc9a82839ca759389baf88722eedd8e3f7791957efcdeaeede8d00a"
+    },
+    {
+      "path": "metadata/train/data-00043-of-00044.sample.jsonl",
+      "sha256": "eea7ad9f1b29d0ddf4bf655d5ba91f09c88355eaa5ec556822541413f6ab067a"
+    }
+  ]
+}

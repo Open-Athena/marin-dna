@@ -5,9 +5,34 @@ build-backend = "hatchling.build"
 [project]
 name = "exp593-augmented-dna"
 version = "0.1.0"
-description = "Deterministic DNA presentation augmentation and CPU preparation"
+description = "Augmented d768 Grug MoE DNA adaptation for experiment 593"
 requires-python = ">=3.12,<3.13"
-dependencies = ["numpy>=2", "tokenizers>=0.22", "huggingface-hub>=0.36", "pyarrow>=21"]
+dependencies = [
+    "exp586-plantcad2-moe @ git+https://github.com/Open-Athena/marin-dna.git@de5f428fc7b2bac8b6e40697f905c8b99ca3580d#subdirectory=experiments/exp586_plantcad2_moe",
+    "numpy>=2",
+    "tokenizers>=0.22",
+    "huggingface-hub>=0.36",
+    "pyarrow>=21",
+    "requests>=2.32",
+    "boto3>=1.43.106",
+    "pysam>=0.23",
+]
+
+[project.optional-dependencies]
+cpu = [
+    "exp586-plantcad2-moe[cpu]",
+    "torch==2.11.0",
+    "torchvision==0.26.0+cpu; platform_machine == 'x86_64'",
+    "torchvision==0.26.0; platform_machine == 'aarch64'",
+]
+gpu = [
+    "exp586-plantcad2-moe[gpu]",
+    "torch==2.11.0",
+    "torchvision==0.26.0",
+    "jax-cuda13-pjrt==0.11.1",
+    "nvidia-cutlass-dsl[cu13]==4.6.2",
+    "flash-attn-4[cu13]==4.0.0b28",
+]
 
 [dependency-groups]
 dev = ["pytest>=8", "ruff==0.16.2"]
@@ -17,9 +42,44 @@ exp593-prep = "exp593_dna.audit:main"
 
 [tool.uv]
 required-version = ">=0.13.5,<0.14"
+prerelease = "allow"
+environments = ["sys_platform == 'linux' and (platform_machine == 'x86_64' or platform_machine == 'aarch64')"]
+conflicts = [[{ extra = "cpu" }, { extra = "gpu" }]]
+
+[tool.uv.sources]
+torch = [{ index = "pytorch-cpu", extra = "cpu" }, { index = "pytorch-cu128", extra = "gpu" }]
+torchvision = [{ index = "pytorch-cpu", extra = "cpu" }, { index = "pytorch-cu128", extra = "gpu" }]
+jax-cuda13-pjrt = { url = "https://github.com/marin-community/xla/releases/download/marin-xla-pjrt-20260915-708c3a4ec79c/jax_cuda13_pjrt-0.11.1%2Bmarin.708c3a4ec79c-py3-none-manylinux_2_27_aarch64.whl", extra = "gpu", marker = "platform_machine == 'aarch64'" }
+nvidia-cutlass-dsl = { index = "nvidia" }
+nvidia-cutlass-dsl-libs-base = { index = "nvidia" }
+nvidia-cutlass-dsl-libs-cu13 = { index = "nvidia" }
+resiliparse = { index = "marin-resiliparse" }
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
+
+[[tool.uv.index]]
+name = "nvidia"
+url = "https://pypi.nvidia.com"
+explicit = true
+
+[[tool.uv.index]]
+name = "marin-resiliparse"
+url = "https://marin-community.github.io/chatnoir-resiliparse/simple"
+explicit = true
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/exp593_dna"]
+
+[tool.hatch.metadata]
+allow-direct-references = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

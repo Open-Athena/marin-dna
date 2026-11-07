@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 from collections import OrderedDict
+from collections.abc import Mapping
 from dataclasses import asdict, dataclass
 from importlib.resources import files
 from typing import Any, Literal
@@ -12,6 +13,7 @@ from typing import Any, Literal
 import numpy as np
 from tokenizers import Tokenizer
 
+from exp593_dna.annotations import GapChoice, RowAnnotations, choose_guided_gap
 from exp593_dna.templates import phrase_catalog, pick, render_metadata
 
 DATASET_REVISION = "4a444fff5520b992aa978d92a5af509a81977098"
@@ -44,6 +46,9 @@ class AugmentationConfig:
     mask_description_probability: float = 0.85
     description_probability: float = 0.80
     center_gap_probability: float = 0.20
+    minimal_fim_probability: float = 0.25
+    gap_length_probability: float = 0.80
+    guided_probability: float = 0.75
 
     def __post_init__(self) -> None:
         for values, count in [
@@ -234,11 +239,13 @@ class Augmenter:
         encoder: Encoder,
         config: AugmentationConfig | None = None,
         registry: dict[str, dict[str, Any]] | None = None,
+        annotations: Mapping[int, RowAnnotations] | None = None,
     ) -> None:
         self.encoder = encoder
         self.config = config or AugmentationConfig()
         self.registry = registry if registry is not None else load_registry()
         self.phrases = phrase_catalog()
+        self.annotations = annotations or {}
 
     def _fields(
         self, raw: RawWindow, rng: np.random.Generator, rc: bool
@@ -274,9 +281,19 @@ class Augmenter:
         return fields
 
     def build(self, raw: RawWindow, occurrence: int) -> Example:
-        """Apply RC first, then select length/crop, render and encode one window."""
+        """Build training data; a held-out row cannot pass this entry point."""
         if raw.split != "train":
             raise ValueError("Training augmentation must not consume held-out data")
+        return self._build(raw, occurrence)
+
+    def build_validation(self, raw: RawWindow, occurrence: int) -> Example:
+        """Render a held-out presentation without admitting it to training."""
+        if raw.split != "validation":
+            raise ValueError("FIM validation must use validation-split rows")
+        return self._build(raw, occurrence)
+
+    def _build(self, raw: RawWindow, occurrence: int) -> Example:
+        """Apply RC, length/crop, presentation and gap transforms to one row."""
         if raw.assembly not in self.registry:
             raise ValueError(f"Unmapped assembly code {raw.assembly}")
         c = self.config
@@ -306,17 +323,24 @@ class Augmenter:
             if is_fim
             else 0
         )
-        fields = self._fields(raw, rng, rc) if kind != "bare_causal" else {}
+        minimal_fim = is_fim and bool(
+            rng_for(c.seed, occurrence, "minimal_fim").random()
+            < c.minimal_fim_probability
+        )
+        gap_length_visible = is_fim and bool(
+            rng_for(c.seed, occurrence, "gap_length_hint").random()
+            < c.gap_length_probability
+        )
+        formatted = kind != "bare_causal" and not minimal_fim
+        fields = self._fields(raw, rng, rc) if formatted else {}
         metadata, structure = (
-            render_metadata(fields, rng) if kind != "bare_causal" else ("", "none")
+            render_metadata(fields, rng) if formatted else ("", "none")
         )
-        mask_description = (
-            kind != "bare_causal" and rng.random() < c.mask_description_probability
-        )
+        mask_description = formatted and rng.random() < c.mask_description_probability
         header = metadata
         if mask_description:
             header += pick(rng, self.phrases[case]) + "\n"
-        description = kind != "bare_causal" and rng.random() < c.description_probability
+        description = formatted and rng.random() < c.description_probability
         if description:
             header += pick(rng, self.phrases["causal_description"]) + "\n"
         layout = (
@@ -325,11 +349,28 @@ class Augmenter:
             else "causal"
         )
         instruction = (
-            pick(rng, self.phrases["fim_instruction"]) + "\n" if is_fim else ""
+            pick(rng, self.phrases["fim_instruction"]) + "\n"
+            if is_fim and formatted
+            else ""
         )
         left_label = pick(rng, self.phrases["left_label"]) if is_fim else ""
         right_label = pick(rng, self.phrases["right_label"]) if is_fim else ""
         answer_label = pick(rng, self.phrases["answer_label"]) if is_fim else ""
+        if minimal_fim:
+            layout = "compact"
+            left_label = pick(rng, ("left", "prefix", "L"))
+            right_label = pick(rng, ("right", "suffix", "R"))
+            answer_label = pick(rng, ("fill", "answer", "middle"))
+        gap_hint = ""
+        if gap_length_visible:
+            gap_hint = (
+                f"[gap:{gap_length}]\n"
+                if minimal_fim or rng.random() < 0.25
+                else pick(rng, self.phrases["gap_length"]).format(
+                    length=gap_length, unit="base" if gap_length == 1 else "bases"
+                )
+                + "\n"
+            )
         separator = pick(rng, [":\n", " = ", ": "])
         reverse_flanks = is_fim and bool(rng.random() < 0.25)
 
@@ -359,6 +400,8 @@ class Augmenter:
                 )
             if layout != "instruction_first":
                 spans.append(Span(instruction, "text"))
+            if gap_hint:
+                spans.append(Span(gap_hint, "text"))
             spans.extend(
                 [
                     Span(
@@ -403,6 +446,24 @@ class Augmenter:
             if is_fim
             else 0
         )
+        guide = GapChoice(reason="not_short_fim")
+        if kind == "short_fim":
+            annotation = self.annotations.get(raw.row)
+            if annotation is not None:
+                annotation.verify(raw.seq, raw.split)
+            guide = choose_guided_gap(
+                annotation.landmarks if annotation else (),
+                rng_for(c.seed, occurrence, "guided_gap"),
+                reverse_complemented=rc,
+                crop_start=crop_start,
+                dna_length=dna_length,
+                gap_length=gap_length,
+                guided_probability=c.guided_probability,
+            )
+            if guide.guided:
+                assert guide.start is not None
+                gap_start = guide.start
+                centered = False
         left, middle, right = (
             dna[:gap_start],
             dna[gap_start : gap_start + gap_length],
@@ -432,6 +493,15 @@ class Augmenter:
             "gap_length": gap_length,
             "gap_start": gap_start,
             "center_gap": bool(centered),
+            "minimal_fim": bool(minimal_fim),
+            "gap_length_visible": bool(gap_length_visible),
+            "annotation_eligible": guide.eligible,
+            "annotation_guided": guide.guided,
+            "landmark_class": guide.landmark_class,
+            "landmark_mode": guide.mode,
+            "landmark_offset": guide.offset,
+            "annotation_source": guide.source,
+            "annotation_fallback": guide.reason,
             "crop_start_in_oriented_window": crop_start,
             "native_repeat_bases": sum(ch.islower() for ch in native),
             "scored_tokens": int(np.count_nonzero(weights)),

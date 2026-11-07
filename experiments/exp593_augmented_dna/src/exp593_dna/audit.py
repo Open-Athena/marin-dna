@@ -15,6 +15,7 @@ from typing import Any
 import numpy as np
 import pyarrow.parquet as pq
 
+from exp593_dna.annotations import load_annotations
 from exp593_dna.pipeline import (
     DATASET_REVISION,
     KINDS,
@@ -29,12 +30,20 @@ from exp593_dna.validation import select_disjoint_validation, verify_disjoint_me
 PRIMARY_SHA256 = "62334d75edfef471c248b36c01e1542885acb5c0ecf3ac88afbd164ebe56e112"
 
 
+def file_sha256(path: Path) -> str:
+    """Hash large annotation sidecars without materializing their text."""
+    with path.open("rb") as source:
+        return hashlib.file_digest(source, "sha256").hexdigest()
+
+
 def augmentation_flags(attributes: dict[str, Any]) -> dict[str, bool]:
     """Independent overlapping switches, separate from exclusive objective lanes."""
     a = attributes
     flags = {
         "fim": a["kind"].endswith("fim"),
         "causal": not a["kind"].endswith("fim"),
+        "short_fim": a["kind"] == "short_fim",
+        "long_fim": a["kind"] == "long_fim",
         "bare_dna": a["kind"] == "bare_causal",
         "metadata": bool(a["metadata_fields"]),
         "mask_description": bool(a["mask_description"]),
@@ -46,6 +55,10 @@ def augmentation_flags(attributes: dict[str, Any]) -> dict[str, bool]:
         "shorter_than_8192": a["input_tokens"] < 8192,
         "right_flank_first": bool(a["right_flank_first"]),
         "center_gap": bool(a["center_gap"]),
+        "minimal_fim": bool(a["minimal_fim"]),
+        "gap_length_visible": bool(a["gap_length_visible"]),
+        "annotation_eligible": bool(a["annotation_eligible"]),
+        "annotation_guided": bool(a["annotation_guided"]),
     }
     flags.update(
         {
@@ -92,7 +105,11 @@ def verify_prep_identity(prep: Path) -> None:
 
 
 def run_audit(
-    prep: Path, output: Path, count: int = 100_000, sample_count: int = 32
+    prep: Path,
+    output: Path,
+    count: int = 100_000,
+    sample_count: int = 32,
+    annotation_path: Path | None = None,
 ) -> dict[str, Any]:
     """Audit frequency over deterministic occurrences and actual train windows."""
     if count < 1 or sample_count < 0:
@@ -107,7 +124,12 @@ def run_audit(
     if not raw:
         raise ValueError("No sampled training windows found")
     output.mkdir(parents=True, exist_ok=True)
-    pipeline = Augmenter(load_encoder())
+    annotations = (
+        load_annotations(annotation_path, rows={r.row for r in raw})
+        if annotation_path is not None
+        else {}
+    )
+    pipeline = Augmenter(load_encoder(), annotations=annotations)
     config = pipeline.config
     histograms: dict[str, Counter[Any]] = defaultdict(Counter)
     by_kind: dict[str, Counter[str]] = defaultdict(Counter)
@@ -130,7 +152,16 @@ def run_audit(
         active = sorted(name for name, value in flags.items() if value)
         marginals.update(active)
         joint.update(f"{left} & {right}" for left, right in combinations(active, 2))
-        for group in ["fim", "causal", "bare_dna"]:
+        for group in [
+            "fim",
+            "short_fim",
+            "long_fim",
+            "causal",
+            "bare_dna",
+            "minimal_fim",
+            "annotation_eligible",
+            "annotation_guided",
+        ]:
             if flags[group]:
                 conditional[group].update(active)
         for field in [
@@ -145,6 +176,13 @@ def run_audit(
             "right_flank_first",
             "gap_length",
             "center_gap",
+            "minimal_fim",
+            "gap_length_visible",
+            "annotation_eligible",
+            "annotation_guided",
+            "landmark_class",
+            "landmark_mode",
+            "annotation_fallback",
         ]:
             histograms[field][a[field]] += 1
         for field in a["metadata_fields"]:
@@ -204,6 +242,16 @@ def run_audit(
         "unique_raw_train_windows": len(raw),
         "species": len(histograms["species"]),
         "dataset_revision": DATASET_REVISION,
+        "annotation_sidecar": (
+            {
+                "path": str(annotation_path),
+                "sha256": file_sha256(annotation_path),
+                "sampled_rows_with_annotations": len(annotations),
+                "fraction_sampled_rows_with_annotations": len(annotations) / len(raw),
+            }
+            if annotation_path is not None
+            else None
+        ),
         "tokenizer_sha256": pipeline.encoder.digest,
         "config": asdict(config),
         "marginal_augmentations": {
@@ -339,14 +387,17 @@ def run_audit(
 
 
 def main() -> None:
-    """CLI entry point intentionally exposes no train/dispatch command."""
+    """Audit CPU data preparation independently of the training entry point."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--prep", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--examples", type=int, default=100_000)
     parser.add_argument("--samples", type=int, default=32)
+    parser.add_argument("--annotations", type=Path)
     args = parser.parse_args()
-    report = run_audit(args.prep, args.output, args.examples, args.samples)
+    report = run_audit(
+        args.prep, args.output, args.examples, args.samples, args.annotations
+    )
     print(
         json.dumps(
             {

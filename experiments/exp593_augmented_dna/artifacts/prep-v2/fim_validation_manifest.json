@@ -1,0 +1,70 @@
+{
+  "dataset_revision": "4a444fff5520b992aa978d92a5af509a81977098",
+  "source_manifest_sha256": "6fad190f8a5b4552d5bdb17eee3df3e133eb4538a92b1e9ba200dffc991f051e",
+  "annotation_sidecar_sha256": "821a6b2afff70bc157bfb538c7db18e77ba2cb9376694c5325765bd682cfa6e2",
+  "tokenizer_sha256": "a43c95c64d7293d06f0c6c4713f95e0036738248f881315910c703307bdd2a2b",
+  "pairs": 512,
+  "presentations": 1024,
+  "species": 65,
+  "histogram_pairs": {
+    "gap_3": 124,
+    "random": 423,
+    "gap_2": 138,
+    "guided": 89,
+    "gap_1": 120,
+    "gap_32": 19,
+    "gap_512": 23,
+    "gap_64": 24,
+    "gap_128": 20,
+    "gap_16": 31,
+    "gap_256": 13
+  },
+  "generation_candidate_pairs_by_gap": {
+    "3": 2,
+    "2": 2,
+    "1": 2,
+    "32": 2,
+    "512": 2,
+    "64": 2,
+    "128": 2,
+    "16": 2,
+    "256": 2
+  },
+  "generation_policy": "Fixed candidates only; decode budget is set after accelerator profiling. EM denominators report completions actually generated.",
+  "pairs_sha256": "e19d6352643032252c0855206be2e02aa878498f25490e4ef39f111f03dd7848",
+  "formatted_member_config": {
+    "seed": 593,
+    "kind_probabilities": [
+      0,
+      0,
+      0.75,
+      0.25
+    ],
+    "case_probabilities": [
+      0.5,
+      0.25,
+      0.25
+    ],
+    "length_buckets": [
+      8192
+    ],
+    "bucket_probabilities": [
+      1.0
+    ],
+    "global_batch_size": 64,
+    "minimum_fill_fraction": 0.875,
+    "species_probability": 1,
+    "taxonomy_probability": 0.35,
+    "chrom_probability": 0.25,
+    "assembly_probability": 0.15,
+    "source_strand_probability": 0.15,
+    "orientation_probability": 0.2,
+    "mask_description_probability": 1,
+    "description_probability": 0.8,
+    "center_gap_probability": 0.2,
+    "minimal_fim_probability": 0,
+    "gap_length_probability": 0.8,
+    "guided_probability": 0.75
+  },
+  "pair_policy": "Every shared DNA/gap has one minimal member and one formatted member; formatted members always include species and mask-availability text."
+}
