@@ -60,6 +60,8 @@ Use eric-czech/marin at the CoreWeave W&B endpoint with an exp593 identity.
 After startup, check progress on a 30-minute cadence.
 Iris owns preemption recovery; do not replace a dispatch solely because it was preempted.
 Reassess placement after one hour without progress and diagnose a restart after three hours.
+For a prolonged admission wait, compare the exact task with the fresh backend's pod status before classifying it as a software stall.
+When both show an unassigned SchedulingGated pod, other work is blocked on node fit, and no superior eligible placement has fresh capacity, retain the queued dispatch rather than resetting its queue age without addressing the constraint.
 Do not silently alter model/data/schedule semantics to obtain capacity.
 Completion requires the full input-token horizon, a readable verified final checkpoint, promised diagnostics, and a terminal Iris root.
 
