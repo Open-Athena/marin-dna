@@ -5,6 +5,7 @@ from types import SimpleNamespace
 import pytest
 import torch
 import torch.nn.functional as F
+
 from exp586_deployment import providers
 from exp586_deployment.benchmark import (
     fixture_batch,

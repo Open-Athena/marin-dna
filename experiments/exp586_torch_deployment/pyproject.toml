@@ -20,7 +20,7 @@ cpu = ["torch==2.14.1+cpu"]
 cuda = ["torch==2.14.1+cu132"]
 
 [dependency-groups]
-dev = ["pytest>=8", "ruff"]
+dev = ["pytest>=8", "ruff==0.16.2"]
 
 [tool.uv]
 prerelease = "allow"
@@ -44,3 +44,6 @@ packages = ["src/exp586_deployment"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["exp586_deployment"]

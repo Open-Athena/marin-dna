@@ -140,7 +140,11 @@ def run_trial(args: argparse.Namespace) -> dict[str, Any]:
     parity = acgt_parity(actual, expected, validation)
     del actual_parts, actual, ids
     if not parity["accepted"]:
-        return {"status": "parity_failed", "parity": parity}
+        return {
+            "status": "parity_failed",
+            "parity": parity,
+            "eager_parity": eager_parity,
+        }
     print("STAGE parity-passed", flush=True)
 
     # CPU tokenization and H2D complete before recording each start event.
@@ -287,7 +291,7 @@ def main() -> int:
             "dynamic": False,
             "compact_input": "ACGTN",
             "compact_output": "ACGT",
-            "prepare_vllm_moe": False,
+            "packed_vllm_routed_weights": args.moe_backend == "vllm",
         },
         "source_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
     }
