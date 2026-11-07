@@ -29,6 +29,7 @@ The single production identity is `dna-exp593-augmented-d768-pretrained-seed0-v1
 Scientific bindings exclude placement and are read back before checkpoint discovery; resumed execution restores the latest complete optimizer/data state and preserves that run identity.
 CPU rendering prefetches one batch while device collectives stay ordered on the main thread.
 Periodic checkpoints occur approximately every 30 minutes, with two temporary recovery saves retained; warmup, quarter-budget and final checkpoints are permanent.
+A four-device CPU regression also restores the complete state across replica-group counts 1→2→1, checking exact values and the changed FP32-master/replicated-BF16 layout; actual GPU reslicing remains a separate runtime check.
 The run stops after the first complete 64-example update reaching the nominal 216,158,699,520 input-token budget.
 It records the actual input count and overshoot, which is less than 524,288 tokens (2.43 parts per million), preserving the minimum example length and equal per-example objective at the last update.
 Padding never advances the schedule.

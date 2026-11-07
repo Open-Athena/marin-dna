@@ -69,3 +69,16 @@ It is eligible for the single production run.
 The two- and eight-node profiles remain candidates for bounded validation.
 The subsequent fixed-panel evaluator passed both causal panels, 1,024 FIM presentations and 36 greedy completions on the same one-node profile; see artifacts/eval-smoke-v2/result.json.
 The four-node production-loop validation uses the same scientific batch and bindings, with its own validation namespace.
+
+The completed accelerator checks establish eligibility in cw-us-east-02a specifically.
+The full candidate grid below remains within the approved H100 scope; a Reno target needs bounded validation before its first production dispatch.
+
+| H100 nodes | GPUs | cw-us-east-02a | cw-rno2a |
+| --- | --- | --- | --- |
+| 1 | 8 | Eligible | Unvalidated |
+| 2 | 16 | Unvalidated | Unvalidated |
+| 4 | 32 | Eligible | Unvalidated |
+| 8 | 64 | Unvalidated | Unvalidated |
+
+The local four-device CPU checkpoint regression covers exact full-state restoration across replica-group counts 1→2→1, including the FP32 expert-master/momentum partition and replicated BF16 weights.
+It supports the global-array checkpoint mechanism; it does not establish target eligibility or replace numerical checks on a future GPU reslice.
