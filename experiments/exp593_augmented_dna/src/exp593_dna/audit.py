@@ -8,6 +8,7 @@ import json
 import time
 from collections import Counter, defaultdict
 from dataclasses import asdict
+from itertools import combinations
 from pathlib import Path
 from typing import Any
 
@@ -26,6 +27,43 @@ from exp593_dna.templates import catalog_manifest
 from exp593_dna.validation import select_disjoint_validation, verify_disjoint_metadata
 
 PRIMARY_SHA256 = "62334d75edfef471c248b36c01e1542885acb5c0ecf3ac88afbd164ebe56e112"
+
+
+def augmentation_flags(attributes: dict[str, Any]) -> dict[str, bool]:
+    """Independent overlapping switches, separate from exclusive objective lanes."""
+    a = attributes
+    flags = {
+        "fim": a["kind"].endswith("fim"),
+        "causal": not a["kind"].endswith("fim"),
+        "bare_dna": a["kind"] == "bare_causal",
+        "metadata": bool(a["metadata_fields"]),
+        "mask_description": bool(a["mask_description"]),
+        "description": bool(a["description"]),
+        "rc": bool(a["rc"]),
+        "native_softmask": a["case"] == "native_softmask",
+        "unmasked_lower": a["case"] == "unmasked_lower",
+        "unmasked_upper": a["case"] == "unmasked_upper",
+        "shorter_than_8192": a["input_tokens"] < 8192,
+        "right_flank_first": bool(a["right_flank_first"]),
+        "center_gap": bool(a["center_gap"]),
+    }
+    flags.update(
+        {
+            name: name in a["metadata_fields"]
+            for name in [
+                "species",
+                "taxonomy",
+                "chrom",
+                "assembly",
+                "source_strand",
+                "orientation",
+            ]
+        }
+    )
+    flags["annotated"] = (
+        flags["metadata"] or flags["mask_description"] or flags["description"]
+    )
+    return flags
 
 
 def verify_prep_identity(prep: Path) -> None:
@@ -73,6 +111,9 @@ def run_audit(
     config = pipeline.config
     histograms: dict[str, Counter[Any]] = defaultdict(Counter)
     by_kind: dict[str, Counter[str]] = defaultdict(Counter)
+    marginals: Counter[str] = Counter()
+    joint: Counter[str] = Counter()
+    conditional: dict[str, Counter[str]] = defaultdict(Counter)
     input_tokens = padded_tokens = text_tokens = targets = 0
     input_by_kind: Counter[str] = Counter()
     targets_by_kind: Counter[str] = Counter()
@@ -85,6 +126,13 @@ def run_audit(
         e = pipeline.build(raw[occurrence % len(raw)], occurrence)
         a = e.attributes
         kind = a["kind"]
+        flags = augmentation_flags(a)
+        active = sorted(name for name, value in flags.items() if value)
+        marginals.update(active)
+        joint.update(f"{left} & {right}" for left, right in combinations(active, 2))
+        for group in ["fim", "causal", "bare_dna"]:
+            if flags[group]:
+                conditional[group].update(active)
         for field in [
             "kind",
             "case",
@@ -158,6 +206,24 @@ def run_audit(
         "dataset_revision": DATASET_REVISION,
         "tokenizer_sha256": pipeline.encoder.digest,
         "config": asdict(config),
+        "marginal_augmentations": {
+            name: {"examples": n, "fraction_all_examples": n / count}
+            for name, n in sorted(marginals.items())
+        },
+        "joint_augmentations": {
+            name: {"examples": n, "fraction_all_examples": n / count}
+            for name, n in sorted(joint.items())
+        },
+        "conditional_augmentations": {
+            group: {
+                name: {
+                    "examples": values[name],
+                    "fraction_within_group": values[name] / marginals[group],
+                }
+                for name in sorted(flags)
+            }
+            for group, values in conditional.items()
+        },
         "histograms": {
             k: {str(a): int(b) for a, b in v.items()} for k, v in histograms.items()
         },

@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 from tokenizers import Tokenizer, models, pre_tokenizers
 
+from exp593_dna.audit import augmentation_flags
 from exp593_dna.pipeline import (
     ALPHABET,
     KINDS,
@@ -136,3 +137,18 @@ def test_catalog_is_finite_components_not_whole_examples():
     assert catalog["component_count"] >= 500
     for phrase in catalog["components"]["native_softmask"]:
         assert "lower" in phrase.lower() and "upper" not in phrase.lower()
+
+
+def test_fim_annotations_rc_masks_and_lengths_cooccur(raw, encoder):
+    p = Augmenter(
+        encoder, replace(AugmentationConfig(), kind_probabilities=(0, 0, 1, 0))
+    )
+    joint = 0
+    for occurrence in range(100):
+        flags = augmentation_flags(p.build(raw, occurrence).attributes)
+        assert flags["fim"] and not flags["bare_dna"]
+        joint += all(
+            flags[k]
+            for k in ["fim", "metadata", "rc", "native_softmask", "shorter_than_8192"]
+        )
+    assert joint > 0

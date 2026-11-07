@@ -1,5 +1,5 @@
 {
-  "unit_tests_passed": 13,
+  "unit_tests_passed": 14,
   "additional_jax_cpu_tests_passed": 1,
   "jax_logical_cpu_devices": 4,
   "audit_examples": 100000,
@@ -8,5 +8,6 @@
   "endpoint_touches_excluded": true,
   "training_launched": false,
   "wandb_runs_created": false,
-  "repository_quality_checks": "passed"
+  "repository_quality_checks": "passed",
+  "marginal_and_joint_counts_verified": true
 }

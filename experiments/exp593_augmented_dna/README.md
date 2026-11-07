@@ -23,6 +23,8 @@ Observed FIM frequency was 50.066%, RC frequency 50.060%, and RC frequency withi
 Padding occupied 5.917% of allocated tokens, and text occupied 0.884% of actual input tokens.
 The median input length was 5,651 tokens, with a range of 2,048–8,192.
 The 576 semantic components produced 59,983 distinct rendered prompt signatures, excluding DNA content from the signature.
+The report separates marginal augmentation counts, pairwise joint counts and conditional counts within FIM, causal and bare-DNA examples.
+These augmentation counts overlap and do not sum to 100%.
 
 ## Presentation policy
 
@@ -32,6 +34,13 @@ The 576 semantic components produced 59,983 distinct rendered prompt signatures,
 | Annotated causal DNA | 10% | 9.942% | DNA following the prompt |
 | Short FIM | 37.5% | 37.556% | Missing 1, 2 or 3 bases, equally likely |
 | Longer FIM | 12.5% | 12.510% | Missing 16, 32, 64, 128, 256 or 512 bases, equally likely |
+
+This table describes exclusive objective lanes, not exclusive augmentation types.
+Both FIM lanes receive metadata, mask descriptions, case availability, RC and length augmentation jointly.
+Only the bare-DNA lane suppresses all text and metadata to preserve context-free DNA capability.
+In the audit, 45,799 of 50,066 FIM examples (91.477%) carry metadata fields.
+Within FIM, species appears in 70.030%, taxonomy in 34.806%, mask descriptions in 85.277%, and RC in 49.936%.
+These subsets overlap; for example, FIM, taxonomy, native softmask, RC and variable length can all be active in the same example.
 
 Both FIM flanks precede the answer, with at least 128 bases in each flank.
 Twenty percent of FIM gaps are explicitly centered; the rest have uniformly sampled valid positions.
