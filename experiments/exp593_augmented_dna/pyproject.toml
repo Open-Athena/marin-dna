@@ -16,6 +16,7 @@ dependencies = [
     "requests>=2.32",
     "boto3>=1.43.106",
     "pysam>=0.23",
+    "filelock>=3.20",
 ]
 
 [project.optional-dependencies]

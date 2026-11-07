@@ -653,6 +653,7 @@ source = { editable = "." }
 dependencies = [
     { name = "boto3" },
     { name = "exp586-plantcad2-moe" },
+    { name = "filelock" },
     { name = "huggingface-hub" },
     { name = "numpy" },
     { name = "pyarrow" },
@@ -689,6 +690,7 @@ requires-dist = [
     { name = "exp586-plantcad2-moe", git = "https://github.com/Open-Athena/marin-dna.git?subdirectory=experiments%2Fexp586_plantcad2_moe&rev=de5f428fc7b2bac8b6e40697f905c8b99ca3580d" },
     { name = "exp586-plantcad2-moe", extras = ["cpu"], marker = "extra == 'cpu'" },
     { name = "exp586-plantcad2-moe", extras = ["gpu"], marker = "extra == 'gpu'" },
+    { name = "filelock", specifier = ">=3.20" },
     { name = "flash-attn-4", extras = ["cu13"], marker = "extra == 'gpu'", specifier = "==4.0.0b28" },
     { name = "huggingface-hub", specifier = ">=0.36" },
     { name = "jax-cuda13-pjrt", marker = "platform_machine == 'aarch64' and extra == 'gpu'", url = "https://github.com/marin-community/xla/releases/download/marin-xla-pjrt-20260915-708c3a4ec79c/jax_cuda13_pjrt-0.11.1%2Bmarin.708c3a4ec79c-py3-none-manylinux_2_27_aarch64.whl" },

@@ -292,6 +292,14 @@ class Augmenter:
             raise ValueError("FIM validation must use validation-split rows")
         return self._build(raw, occurrence)
 
+    def batch_bucket(self, occurrence: int) -> int:
+        """Determine the common distributed input shape before loading local rows."""
+        c = self.config
+        rng = rng_for(c.seed, occurrence // c.global_batch_size, "batch_bucket")
+        return c.length_buckets[
+            int(rng.choice(len(c.length_buckets), p=c.bucket_probabilities))
+        ]
+
     def _build(self, raw: RawWindow, occurrence: int) -> Example:
         """Apply RC, length/crop, presentation and gap transforms to one row."""
         if raw.assembly not in self.registry:
@@ -303,10 +311,7 @@ class Augmenter:
         case = CASE_MODES[int(case_rng.choice(len(CASE_MODES), p=c.case_probabilities))]
         rc = rc_selected(occurrence, c.seed)
         # All examples in a global batch share one compilation shape.
-        bucket_rng = rng_for(c.seed, occurrence // c.global_batch_size, "batch_bucket")
-        bucket = c.length_buckets[
-            int(bucket_rng.choice(len(c.length_buckets), p=c.bucket_probabilities))
-        ]
+        bucket = self.batch_bucket(occurrence)
         length_rng = rng_for(c.seed, occurrence, "length")
         length = int(
             length_rng.integers(

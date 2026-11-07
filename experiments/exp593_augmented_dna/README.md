@@ -149,6 +149,13 @@ The optimized lowercase-only compact embedding shortcut must accommodate text an
 The H100 smoke must validate all four buckets, loss aggregation, diagnostics and checkpoint replay before full training.
 Controller freshness and live capacity must be rechecked at dispatch.
 
+`python -m exp593_dna.smoke --run-id dna-exp593-smoke-20261107-v1 --cluster cw-rno2a --nodes 1` is the bounded validation entry point, invoked through an explicitly placed Iris coordinator.
+It performs four updates covering every context bucket, then an exact full-state checkpoint roundtrip and one resumed update.
+Its input-token schedule is shortened for validation; the optimizer peak still comes from the full scientific horizon.
+It uses complete BF16 compute replicas and the perf5 partitioned FP32 expert masters/momentum, with the generic embedding gather supporting metadata and both DNA cases.
+Norms are exercised on every smoke update; production retains the approved 1,000-update cadence.
+This entry point cannot run the full production horizon.
+
 W&B belongs to the personal `eric-czech/marin` project on `https://forge.coreweave.com/api/wandb`.
 Artifacts belong under `s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/`.
 See `operations.md` for the approved single-model placement and recovery policy.
