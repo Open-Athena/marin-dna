@@ -189,7 +189,7 @@ def run_trial(args: argparse.Namespace) -> dict[str, Any]:
             for name, module in [
                 ("vllm", "vllm"),
                 ("flash-attn", "flash_attn"),
-                ("flash-attn-3", "flash_attn_3"),
+                ("flash-attn-3", "flash_attn_interface"),
             ]
         },
         "vllm_imported": any(

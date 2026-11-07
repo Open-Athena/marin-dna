@@ -67,17 +67,25 @@ def test_attention_adapter_preserves_gqa_and_window_contract(
     monkeypatch: pytest.MonkeyPatch, provider: str, version: int
 ) -> None:
     calls = []
+    imports = []
 
     def attention(*args: object, **kwargs: object) -> torch.Tensor:
         calls.append((args, kwargs))
         return args[0].clone()
 
-    monkeypatch.setattr(
-        providers,
-        "optional_module",
-        lambda name: SimpleNamespace(flash_attn_varlen_func=attention),
-    )
+    def optional_module(name: str) -> SimpleNamespace:
+        imports.append(name)
+        return SimpleNamespace(flash_attn_varlen_func=attention)
+
+    monkeypatch.setattr(providers, "optional_module", optional_module)
     operation = providers.load_attention(provider, version)
+    assert imports == [
+        "vllm.vllm_flash_attn"
+        if provider == "vllm"
+        else "flash_attn"
+        if version == 2
+        else "flash_attn_interface"
+    ]
     q, k, v = (
         torch.randn(6, 8, 4).transpose(0, 1),
         torch.randn(8, 1, 4),

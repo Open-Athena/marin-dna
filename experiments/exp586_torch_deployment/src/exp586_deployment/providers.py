@@ -45,9 +45,7 @@ def load_attention(provider: str, version: int) -> Callable[..., torch.Tensor]:
     elif version == 2:
         function = optional_module("flash_attn").flash_attn_varlen_func
     else:
-        function = optional_module(
-            "flash_attn_3.flash_attn_interface"
-        ).flash_attn_varlen_func
+        function = optional_module("flash_attn_interface").flash_attn_varlen_func
 
     @torch.library.custom_op(
         f"exp586_deployment::attention_{provider}_fa{version}", mutates_args=()
