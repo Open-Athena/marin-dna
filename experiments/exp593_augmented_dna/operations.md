@@ -64,6 +64,8 @@ Completion requires the full input-token horizon, a readable verified final chec
 The November 7 single-node smoke validated all context buckets and global batch 64 on eight H100s, including full-state checkpoint restoration and one resumed update.
 See the companion's `artifacts/smoke-v1/result.json` for numerical limits and source bindings.
 The one-node profile is eligible for production once runtime evaluation and production-loop validation pass.
-The two-, four- and eight-node profiles remain candidates for bounded validation; they have not yet been exercised by this experiment.
+The four-node profile passed sixteen production-loop updates, both full validation events and native checkpoint discovery at global batch 64; see artifacts/loop-smoke-n4-v1/result.json.
+It is eligible for the single production run.
+The two- and eight-node profiles remain candidates for bounded validation.
 The subsequent fixed-panel evaluator passed both causal panels, 1,024 FIM presentations and 36 greedy completions on the same one-node profile; see artifacts/eval-smoke-v2/result.json.
 The four-node production-loop validation uses the same scientific batch and bindings, with its own validation namespace.
