@@ -49,6 +49,10 @@ Forward current storage credentials explicitly to remote workers.
 
 Use fresh Iris v3 backend availability before submissions and node-count changes.
 Stale observations are inconclusive and cannot justify a placement.
+When reporting capacity, also show the raw `ListPeers` free/total counts displayed by the Iris UI, with their measurement age, even when the strict helper rejects a stale measurement.
+Report peer `last_contact_ms` separately from backend `availability.observation_epoch_ms`: a reachable peer can have recent contact while forwarding an older capacity observation.
+The documented query is `iris --cluster marin rpc controller list-peers`; the strict utilization helper remains the placement preflight.
+The MarinFold skill references the same query; its current helper expects availability v2, while this experiment's updated helper supports the live v3 priority-rank semantics.
 Keep one pending training dispatch at most.
 Treat a one-node result as evidence only for its tested shape, batches, and memory.
 Use W&B for numerical progress and exact Iris root/task IDs for liveness and concrete failures.
