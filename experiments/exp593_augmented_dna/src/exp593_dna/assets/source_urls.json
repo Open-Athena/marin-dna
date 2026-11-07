@@ -1,0 +1,15 @@
+{
+  "genomes.tsv": "https://huggingface.co/datasets/twrightsman/phytozome_genomes/resolve/main/genomes.tsv",
+  "plantcad2.xml": "https://www.ebi.ac.uk/europepmc/webservices/rest/PMC13576720/fullTextXML",
+  "dataset_api.json": "https://huggingface.co/api/datasets/plantcad/Angiosperm_65_genomes_8192bp/revision/4a444fff5520b992aa978d92a5af509a81977098",
+  "ncbi_maize.json": "https://api.ncbi.nlm.nih.gov/datasets/v2/taxonomy/taxon/Zea%20mays/dataset_report",
+  "phytozome_api.json": "https://huggingface.co/api/datasets/twrightsman/phytozome_genomes",
+  "supplements.zip": "https://www.ebi.ac.uk/europepmc/webservices/rest/PMC13576720/supplementaryFiles",
+  "mmc3.xlsx": "Extracted from supplements.zip: Table S2 in mmc3.xlsx",
+  "seed_trees.zip": "https://github.com/FePhyFoFum/big_seed_plant_trees/releases/download/v0.1/v0.1.zip",
+  "ncbi_openapi.yaml": "https://www.ncbi.nlm.nih.gov/datasets/docs/v2/openapi3/openapi3.docs.yaml",
+  "ncbi_species.json": "https://api.ncbi.nlm.nih.gov/datasets/v2/taxonomy/taxon/{paper_species_names}/dataset_report?page_size=1000",
+  "ncbi_ancestors.json": "https://api.ncbi.nlm.nih.gov/datasets/v2/taxonomy/taxon/{all_parent_taxids}/dataset_report?page_size=1000",
+  "ncbi_names.json": "https://api.ncbi.nlm.nih.gov/datasets/v2/taxonomy/taxon/{all_65_taxids}/name_report?page_size=1000",
+  "softmask_source": "https://github.com/plantcad/plantcad/blob/main/src/HF_pre_train.py#L425-L437"
+}

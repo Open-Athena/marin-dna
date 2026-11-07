@@ -1,0 +1,457 @@
+{
+  "scope": "CPU augmentation only; 100% train-split sources. Raw record-batch samples are reused to exercise deterministic occurrence choices, not a full-corpus training-order replay.",
+  "examples": 100000,
+  "unique_raw_train_windows": 2640,
+  "species": 65,
+  "dataset_revision": "4a444fff5520b992aa978d92a5af509a81977098",
+  "tokenizer_sha256": "a43c95c64d7293d06f0c6c4713f95e0036738248f881315910c703307bdd2a2b",
+  "config": {
+    "seed": 472,
+    "kind_probabilities": [
+      0.4,
+      0.1,
+      0.375,
+      0.125
+    ],
+    "case_probabilities": [
+      0.5,
+      0.25,
+      0.25
+    ],
+    "length_buckets": [
+      2048,
+      4096,
+      6144,
+      8192
+    ],
+    "bucket_probabilities": [
+      0.15,
+      0.25,
+      0.25,
+      0.35
+    ],
+    "global_batch_size": 64,
+    "minimum_fill_fraction": 0.875,
+    "species_probability": 0.7,
+    "taxonomy_probability": 0.35,
+    "chrom_probability": 0.25,
+    "assembly_probability": 0.15,
+    "source_strand_probability": 0.15,
+    "orientation_probability": 0.2,
+    "mask_description_probability": 0.85,
+    "description_probability": 0.8,
+    "center_gap_probability": 0.2
+  },
+  "histograms": {
+    "kind": {
+      "bare_causal": 39992,
+      "short_fim": 37556,
+      "annotated_causal": 9942,
+      "long_fim": 12510
+    },
+    "case": {
+      "native_softmask": 49953,
+      "unmasked_lower": 24908,
+      "unmasked_upper": 25139
+    },
+    "rc": {
+      "False": 49940,
+      "True": 50060
+    },
+    "bucket": {
+      "2048": 15232,
+      "6144": 26368,
+      "4096": 25152,
+      "8192": 33248
+    },
+    "mask_description": {
+      "False": 48764,
+      "True": 51236
+    },
+    "description": {
+      "False": 52012,
+      "True": 47988
+    },
+    "metadata_structure": {
+      "none": 39992,
+      "brackets": 7608,
+      "comments": 7460,
+      "xml": 7543,
+      "prose": 7471,
+      "json": 7495,
+      "inline": 7694,
+      "lines": 7372,
+      "fasta": 7365
+    },
+    "layout": {
+      "causal": 49934,
+      "instruction_first": 16671,
+      "compact": 16679,
+      "instruction_after_flanks": 16716
+    },
+    "right_flank_first": {
+      "False": 87553,
+      "True": 12447
+    },
+    "gap_length": {
+      "0": 49934,
+      "2": 12661,
+      "1": 12497,
+      "3": 12398,
+      "16": 2063,
+      "64": 2124,
+      "128": 2057,
+      "256": 2112,
+      "32": 2049,
+      "512": 2105
+    },
+    "center_gap": {
+      "False": 89964,
+      "True": 10036
+    },
+    "species": {
+      "Hannuus": 1820,
+      "Ahypogaea": 1360,
+      "Lalbus": 1629,
+      "Mdomestica": 1816,
+      "Rcommunis": 1023,
+      "Soleracea": 1666,
+      "Bvulgaris": 2081,
+      "Vunguiculata": 1361,
+      "Dalata": 1741,
+      "Lervoides": 1745,
+      "Lsativa": 1364,
+      "Vdarrowii": 1668,
+      "Ecoracana": 1631,
+      "Cillinoinensis": 1670,
+      "Mesculenta": 1403,
+      "Cavellana": 1516,
+      "Acomosus": 1779,
+      "Pvaginatum": 1631,
+      "Ptrifoliata": 1743,
+      "Carietinum": 1480,
+      "Bdistachyon": 1250,
+      "Hvulgare": 1401,
+      "Qrubra": 1517,
+      "Esalsugineum": 1474,
+      "Cquinoa": 1551,
+      "Vvinifera": 1818,
+      "Dcarota": 1285,
+      "Ptrichocarpa": 2425,
+      "Sbicolor": 1629,
+      "Ahypochondriacus": 1778,
+      "Sparvula": 1557,
+      "Egrandis": 1402,
+      "Ljaponicus": 1480,
+      "Vfaba": 1859,
+      "Ppersica": 1593,
+      "Osativa": 1439,
+      "Carabica": 1209,
+      "Mtruncatula": 1440,
+      "Csativus": 1290,
+      "Fvesca": 1481,
+      "Ccitriodora": 1516,
+      "Lusitatissimum": 1174,
+      "Gmax": 1745,
+      "Tintermedium": 1854,
+      "Macuminata": 1551,
+      "Taestivum": 1214,
+      "Athaliana": 1400,
+      "Crubella": 1364,
+      "Othomaeum": 1362,
+      "Ckanehirae": 2041,
+      "Pvirgatum": 2043,
+      "Spurpurea": 1366,
+      "Pamilis": 1554,
+      "Acoerulea": 1288,
+      "Ncolorata": 1326,
+      "Cclementina": 1555,
+      "Aofficinalis": 2160,
+      "Bplatyphylla": 1629,
+      "Oeuropaea": 1285,
+      "Zmays": 1623,
+      "Sviridis": 1323,
+      "Bstricta": 1553,
+      "Spolyrhiza": 986,
+      "Msinensis": 948,
+      "Zmarina": 1135
+    },
+    "metadata_field": {
+      "species": 42015,
+      "taxonomy": 20869,
+      "orientation": 11924,
+      "source_strand": 8991,
+      "assembly": 9001,
+      "chrom": 15029
+    }
+  },
+  "kind_rates": {
+    "bare_causal": {
+      "configured": 0.4,
+      "observed": 0.39992,
+      "input_token_fraction": 0.4000254731590028,
+      "scored_target_fraction": 0.7953778012726448,
+      "normalized_objective_mass_fraction": 0.39992
+    },
+    "annotated_causal": {
+      "configured": 0.1,
+      "observed": 0.09942,
+      "input_token_fraction": 0.09985175495565038,
+      "scored_target_fraction": 0.19647612310901405,
+      "normalized_objective_mass_fraction": 0.09942
+    },
+    "short_fim": {
+      "configured": 0.375,
+      "observed": 0.37556,
+      "input_token_fraction": 0.3761071418101107,
+      "scored_target_fraction": 0.00027886399715533667,
+      "normalized_objective_mass_fraction": 0.37556
+    },
+    "long_fim": {
+      "configured": 0.125,
+      "observed": 0.1251,
+      "input_token_fraction": 0.12401563007523621,
+      "scored_target_fraction": 0.00786721162118579,
+      "normalized_objective_mass_fraction": 0.1251
+    }
+  },
+  "conditional_by_kind": {
+    "bare_causal": {
+      "examples": 39992,
+      "rc": 0.5001750350070014,
+      "native_softmask": 0.4988997799559912,
+      "unmasked_lower": 0.2509251850370074,
+      "unmasked_upper": 0.2501750350070014
+    },
+    "short_fim": {
+      "examples": 37556,
+      "rc": 0.49896155075087867,
+      "native_softmask": 0.49896155075087867,
+      "unmasked_upper": 0.2537543934391309,
+      "unmasked_lower": 0.2472840558099904
+    },
+    "annotated_causal": {
+      "examples": 9942,
+      "rc": 0.5085495876081272,
+      "native_softmask": 0.5026151679742507,
+      "unmasked_lower": 0.2509555421444377,
+      "unmasked_upper": 0.2464292898813116
+    },
+    "long_fim": {
+      "examples": 12510,
+      "rc": 0.5005595523581136,
+      "unmasked_lower": 0.24708233413269384,
+      "native_softmask": 0.5007993605115907,
+      "unmasked_upper": 0.25211830535571544
+    }
+  },
+  "active_rates": {
+    "rc": 0.5006,
+    "mask_description": 0.51236,
+    "description": 0.47988,
+    "right_flank_first": 0.12447,
+    "center_gap": 0.10036
+  },
+  "metadata_rates": {
+    "species": 0.42015,
+    "taxonomy": 0.20869,
+    "orientation": 0.11924,
+    "source_strand": 0.08991,
+    "assembly": 0.09001,
+    "chrom": 0.15029
+  },
+  "actual_input_tokens": 534947393,
+  "allocated_tokens": 568590336,
+  "pad_fraction": 0.05916903765314785,
+  "text_token_fraction": 0.008842770451635793,
+  "length_quantiles": {
+    "0": 2048.0,
+    "0.1": 2048.0,
+    "0.25": 3782.0,
+    "0.5": 5651.0,
+    "0.75": 7421.0,
+    "0.9": 7889.0,
+    "1": 8192.0
+  },
+  "distinct_rendered_prompt_signatures": 59983,
+  "semantic_component_count": 576,
+  "elapsed_seconds": 67.61819434911013,
+  "source_files": [
+    {
+      "path": "metadata/train/data-00000-of-00044.sample.jsonl",
+      "sha256": "d59ee4507157debc94542f492c14efe296484cfc9b27741671de92ed04716a9d"
+    },
+    {
+      "path": "metadata/train/data-00001-of-00044.sample.jsonl",
+      "sha256": "3cc605a9312c1e711922a49834dec76dab77bc7189c1c6e3ca725b60507bd721"
+    },
+    {
+      "path": "metadata/train/data-00002-of-00044.sample.jsonl",
+      "sha256": "cbf1cf725cbcc66272d3c46eb027225c982e99f029dba2f9bd87e5ab5b904f6b"
+    },
+    {
+      "path": "metadata/train/data-00003-of-00044.sample.jsonl",
+      "sha256": "9624e042164eea353d8ffcdd8fb9e3f34edae9b951001098cf7159fa92e95f10"
+    },
+    {
+      "path": "metadata/train/data-00004-of-00044.sample.jsonl",
+      "sha256": "4c20158bd4381b28a7371fa3b5ddd5977022ed562b71fc3359073d1e0695e7cf"
+    },
+    {
+      "path": "metadata/train/data-00005-of-00044.sample.jsonl",
+      "sha256": "cc93f36dd09b5b0bd2411606884d57f014b431149048977b2e61db68945fe8e3"
+    },
+    {
+      "path": "metadata/train/data-00006-of-00044.sample.jsonl",
+      "sha256": "3dd155c54b3cff8b16858352eed7eb2a72248fa5ff0b839cd6ef779669eaefb2"
+    },
+    {
+      "path": "metadata/train/data-00007-of-00044.sample.jsonl",
+      "sha256": "07a8bef9c21abf74a4522b03a8eace07937e838b6bf8a8ee8ac8da411ab7fb55"
+    },
+    {
+      "path": "metadata/train/data-00008-of-00044.sample.jsonl",
+      "sha256": "0e6625af30cd8ce6b5e8d816e3ac312cbc8dc9a88df5af66a88134c536ba3e3a"
+    },
+    {
+      "path": "metadata/train/data-00009-of-00044.sample.jsonl",
+      "sha256": "7d4229dcf6334ded12ae160e889c1dc4418d2e23732ad4ccab512e81b017ef5d"
+    },
+    {
+      "path": "metadata/train/data-00010-of-00044.sample.jsonl",
+      "sha256": "66266f5b565e5527246aba267eb31fa53d9c48f5619b02556f7db0e5a70e1008"
+    },
+    {
+      "path": "metadata/train/data-00011-of-00044.sample.jsonl",
+      "sha256": "3fe93e1fb3be06ae71b241aee513cc60b3c7ea5b6a9334d8f2ff744b8c0695da"
+    },
+    {
+      "path": "metadata/train/data-00012-of-00044.sample.jsonl",
+      "sha256": "07000ed0889cbd15aa022e47e614e48f21cc79ea6c8a1738f6d4902ee6e82ff0"
+    },
+    {
+      "path": "metadata/train/data-00013-of-00044.sample.jsonl",
+      "sha256": "9c8207af187e6a6e369677f6461ce0ba85d778a8b47ab3041d7a30f98ad30ae0"
+    },
+    {
+      "path": "metadata/train/data-00014-of-00044.sample.jsonl",
+      "sha256": "93566edba4f8d26b0d813355db1fca2707794bcef21fb9ab2f0b563d7d59dc4b"
+    },
+    {
+      "path": "metadata/train/data-00015-of-00044.sample.jsonl",
+      "sha256": "99ea89c511d1b879eed7e73785d40facc33e7707661825b67cfd845595bf3b51"
+    },
+    {
+      "path": "metadata/train/data-00016-of-00044.sample.jsonl",
+      "sha256": "a10d12a6f760e76b90111338cd1f76c8e930820a330233a9ee3c68a38be97553"
+    },
+    {
+      "path": "metadata/train/data-00017-of-00044.sample.jsonl",
+      "sha256": "0a6754ca749df1589ce2c3fb7c7208bf94f70498c8cd5bafc41ce065cac89a5a"
+    },
+    {
+      "path": "metadata/train/data-00018-of-00044.sample.jsonl",
+      "sha256": "ea83a5dc7525c498cf590618084aa17d9029bc0911df861fee8168263769dd58"
+    },
+    {
+      "path": "metadata/train/data-00019-of-00044.sample.jsonl",
+      "sha256": "764ae05a8c7b85174a98f94ffe78ba9d7ffa4de6fffc25ddc2e378ab6865b988"
+    },
+    {
+      "path": "metadata/train/data-00020-of-00044.sample.jsonl",
+      "sha256": "dac50fe56305f2b58cf55e361c9e09ee4fe219d8806bdc06e1ccb9c425ed9d81"
+    },
+    {
+      "path": "metadata/train/data-00021-of-00044.sample.jsonl",
+      "sha256": "5523754a0b992036df065e6aa0b028d0e46cc4bfddac238c94ca08af05b35d76"
+    },
+    {
+      "path": "metadata/train/data-00022-of-00044.sample.jsonl",
+      "sha256": "b59b81e8e5e9c33386480cbc75eb4043b2ecf958c2820d49214f6345265c0472"
+    },
+    {
+      "path": "metadata/train/data-00023-of-00044.sample.jsonl",
+      "sha256": "b69018b0cb0c73320e20373f55edf024301864de11255f1d7f77f292ffe011da"
+    },
+    {
+      "path": "metadata/train/data-00024-of-00044.sample.jsonl",
+      "sha256": "f56bf885b496c343d115fca46aeb8365745aa00c779f77e6d7befffd10ce1edb"
+    },
+    {
+      "path": "metadata/train/data-00025-of-00044.sample.jsonl",
+      "sha256": "4285a4fd115ac0c2b07a13218e0f3c80e20f5441fca6d616dc42d16bec019f79"
+    },
+    {
+      "path": "metadata/train/data-00026-of-00044.sample.jsonl",
+      "sha256": "56860df5d8e3d366c0b6017502a6cbf29031464a0e4131aac34c9e6c051a1c80"
+    },
+    {
+      "path": "metadata/train/data-00027-of-00044.sample.jsonl",
+      "sha256": "60d2489771cd1adb02992d60ef23d8bba83c1851623c8b013bae83f1ef5c80e8"
+    },
+    {
+      "path": "metadata/train/data-00028-of-00044.sample.jsonl",
+      "sha256": "c24fc191153a89fd442b77f43a0c4b56c25461c9a047b53ecd83b66bdfa93aa9"
+    },
+    {
+      "path": "metadata/train/data-00029-of-00044.sample.jsonl",
+      "sha256": "0fd276409fd7756e2202e49436d43cd654c9f15504186a7395ce55fa0c0738e0"
+    },
+    {
+      "path": "metadata/train/data-00030-of-00044.sample.jsonl",
+      "sha256": "3100a4f114be8c28d52a2a261f0d1be6913d4f190cdf49088887bfd217a22cb9"
+    },
+    {
+      "path": "metadata/train/data-00031-of-00044.sample.jsonl",
+      "sha256": "7e15043847ba53b49bb8644d795dfee547e2a75300a646fa91a1e895cceb56cd"
+    },
+    {
+      "path": "metadata/train/data-00032-of-00044.sample.jsonl",
+      "sha256": "6db9d8a75395ed3752e26d473c9ce616be635bd86da0052b99325bb1124f8536"
+    },
+    {
+      "path": "metadata/train/data-00033-of-00044.sample.jsonl",
+      "sha256": "95e68036324c238091212f662e0955b890bea24f3887854561497fac65a3f137"
+    },
+    {
+      "path": "metadata/train/data-00034-of-00044.sample.jsonl",
+      "sha256": "a1226c3d76611fed9ba33d0c6f9d75d0359f928e028877eb88745050aa7e7867"
+    },
+    {
+      "path": "metadata/train/data-00035-of-00044.sample.jsonl",
+      "sha256": "7299645b2a39394bc26a90fbd06aa7e02f5ffc848f61fae77019140f025d1ec4"
+    },
+    {
+      "path": "metadata/train/data-00036-of-00044.sample.jsonl",
+      "sha256": "10ce309b8f7e07599b4b006b56f5971b34d0a815205654378e0c74f9c3581bdc"
+    },
+    {
+      "path": "metadata/train/data-00037-of-00044.sample.jsonl",
+      "sha256": "888255b47aed817cf5fa4a1bcd39b8e5e03f7d49d109adbc4614fe5e0a40030a"
+    },
+    {
+      "path": "metadata/train/data-00038-of-00044.sample.jsonl",
+      "sha256": "dfc46ea5623a4a620b3cb44e587d1a2d1bf680f0e291afd6a6ec1ffdfff81af4"
+    },
+    {
+      "path": "metadata/train/data-00039-of-00044.sample.jsonl",
+      "sha256": "6a22ceb29c2e82fdf16b63c071c5a9ce124069b7ee19de55618ddd79c4370116"
+    },
+    {
+      "path": "metadata/train/data-00040-of-00044.sample.jsonl",
+      "sha256": "cdd8994b0e7d601fc23e99b0bb8181c40351c1605b0dba4796713ad4ad5c5ba6"
+    },
+    {
+      "path": "metadata/train/data-00041-of-00044.sample.jsonl",
+      "sha256": "b2dbd6e3b78d6f32bb6e26b2f4f859faac8d409d679878fc4aba74c0cb245793"
+    },
+    {
+      "path": "metadata/train/data-00042-of-00044.sample.jsonl",
+      "sha256": "dfd4b903fcc9a82839ca759389baf88722eedd8e3f7791957efcdeaeede8d00a"
+    },
+    {
+      "path": "metadata/train/data-00043-of-00044.sample.jsonl",
+      "sha256": "eea7ad9f1b29d0ddf4bf655d5ba91f09c88355eaa5ec556822541413f6ab067a"
+    }
+  ]
+}
