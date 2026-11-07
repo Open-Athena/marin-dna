@@ -1,0 +1,75 @@
+{
+  "passed": [
+    {
+      "id": "torch-fa2",
+      "shape": [
+        64,
+        8192,
+        4
+      ],
+      "dtype": "torch.bfloat16",
+      "example_sha256": "119f114415e3d6c390079e3a471fa3f80a8f183f793bc02affcd839aad2f3911",
+      "elapsed_ms": 501.3648376464844,
+      "tokens_per_second": 1045721.5198040651,
+      "input_source": "seed0 random ACGT",
+      "model": "MarinDNAMoE"
+    },
+    {
+      "id": "torch-fa3",
+      "shape": [
+        64,
+        8192,
+        4
+      ],
+      "dtype": "torch.bfloat16",
+      "example_sha256": "db8567a4bfe0fc227844160c644c333378e38b073dc191f24ef169a4124651c9",
+      "elapsed_ms": 457.7611083984375,
+      "tokens_per_second": 1145331.0261204129,
+      "input_source": "seed0 random ACGT",
+      "model": "MarinDNAMoE"
+    },
+    {
+      "id": "vllm-fa2",
+      "shape": [
+        64,
+        8192,
+        4
+      ],
+      "dtype": "torch.bfloat16",
+      "example_sha256": "9ccb230d534f7b4d1fb7f4cc87cb7b118152fb3c82ce6579844f201364c2ea11",
+      "elapsed_ms": 448.87994384765625,
+      "tokens_per_second": 1167991.5914842838,
+      "input_source": "seed0 random ACGT",
+      "model": "MarinDNAMoE"
+    },
+    {
+      "id": "vllm-fa3",
+      "shape": [
+        64,
+        8192,
+        4
+      ],
+      "dtype": "torch.bfloat16",
+      "example_sha256": "c7d6d4accfee23035401d000f39bb650ee7fb3e4e47cfba846996e7b85af5179",
+      "elapsed_ms": 409.85125732421875,
+      "tokens_per_second": 1279215.3022120765,
+      "input_source": "seed0 random ACGT",
+      "model": "MarinDNAMoE"
+    },
+    {
+      "id": "fast-fa3",
+      "shape": [
+        64,
+        8192,
+        4
+      ],
+      "dtype": "torch.bfloat16",
+      "example_sha256": "e6b368d3df43d740d634571870bab7b7c25a7ff0fdd5c8a33672d9d38fdb7d42",
+      "elapsed_ms": 337.9930419921875,
+      "tokens_per_second": 1551179.86130649,
+      "input_source": "seed0 random ACGT",
+      "model": "FastMarinDNAMoE"
+    }
+  ],
+  "completed_unix": 1794079572.2423968
+}

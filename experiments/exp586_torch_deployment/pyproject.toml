@@ -1,0 +1,49 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "exp586-torch-deployment"
+version = "0.1.0"
+description = "Independent Torch deployment experiments for the exp586 DNA MoE"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "torch==2.14.1",
+    "numpy==2.3.5",
+    "safetensors==0.6.2",
+    "tokenizers==0.23.0rc0",
+    "huggingface-hub==1.33.0",
+]
+
+[project.optional-dependencies]
+cpu = ["torch==2.14.1+cpu"]
+cuda = ["torch==2.14.1+cu132"]
+
+[dependency-groups]
+dev = ["pytest>=8", "ruff==0.16.2"]
+
+[tool.uv]
+prerelease = "allow"
+conflicts = [[{ extra = "cpu" }, { extra = "cuda" }]]
+
+[tool.uv.sources]
+torch = [{ index = "pytorch-cpu", extra = "cpu" }, { index = "pytorch-cu132", extra = "cuda" }]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[[tool.uv.index]]
+name = "pytorch-cu132"
+url = "https://download.pytorch.org/whl/cu132"
+explicit = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/exp586_deployment"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["exp586_deployment"]

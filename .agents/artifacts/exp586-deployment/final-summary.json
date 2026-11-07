@@ -1,0 +1,26 @@
+{
+  "source_equivalence": {
+    "measured_source_revision": "d2f6cfec421c62c4110a4d7843a7f5c16b39204a",
+    "example_source_revision": "a27a0dcc76607c316089a0d9228be11f7317cb59",
+    "only_code_difference": "pre-load rejection of unsupported float16/Torch combination",
+    "all_other_model_ast_identical": true,
+    "measured_dtype": "bfloat16"
+  },
+  "native_owner": "s3://marin-us-east-02a/MarinDNA/exp586_plantcad2_moe/inference-deployment/2026-11-07-r3",
+  "public_trial_count": 35,
+  "figure_processes": 15,
+  "random_processes": 15,
+  "preflights": 5,
+  "all_correctness_gates_passed": true,
+  "all_fullgraph_compilations_passed": true,
+  "worst_parity": {
+    "probability_mean_abs_error": 0.002520236885175109,
+    "probability_p99_abs_error": 0.02611093968153,
+    "next_base_nll_abs_delta": 4.1484832763671875e-05,
+    "next_base_accuracy_abs_delta": 0.0002212794530581652
+  },
+  "max_abs_random_delta_percent": 0.3286285577847936,
+  "random_rankings_match_real": true,
+  "literal_examples_passed": 5,
+  "max_abs_literal_example_delta_percent": 1.9712684630634025
+}
