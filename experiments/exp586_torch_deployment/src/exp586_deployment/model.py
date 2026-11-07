@@ -76,6 +76,27 @@ def load_weights(directory: Path, device: torch.device) -> dict[str, torch.Tenso
     return weights
 
 
+def resolve_checkpoint(repository: str | Path, revision: str | None) -> Path:
+    """Resolve an existing export or download the selected HF snapshot."""
+    directory = Path(repository)
+    if directory.is_dir():
+        return directory
+    from huggingface_hub import snapshot_download
+
+    return Path(
+        snapshot_download(
+            str(repository),
+            revision=revision,
+            allow_patterns=[
+                "config.json",
+                "tokenizer.json",
+                "model.safetensors.index.json",
+                "*.safetensors",
+            ],
+        )
+    )
+
+
 def rms_norm(x: torch.Tensor, weight: torch.Tensor | None, eps: float) -> torch.Tensor:
     """Match the training model's FP32 variance and BF16 output."""
     dtype = x.dtype
@@ -92,6 +113,26 @@ def short_conv(x: torch.Tensor, weight: torch.Tensor) -> torch.Tensor:
     for lag in range(1, min(weight.shape[0], x.shape[1])):
         result = result + F.pad(x[:, :-lag] * weight[lag], (0, 0, lag, 0))
     return result
+
+
+def depthwise_short_conv(x: torch.Tensor, weight: torch.Tensor) -> torch.Tensor:
+    """Use the standard conv1d implementation of the same causal filter."""
+    return F.conv1d(
+        F.pad(x.transpose(1, 2), (weight.shape[0] - 1, 0)),
+        weight.transpose(0, 1).flip(-1).unsqueeze(1),
+        groups=x.shape[-1],
+    ).transpose(1, 2)
+
+
+def validate_vocab(vocab: str | None) -> None:
+    """A retained alphabet has distinct trained DNA symbols; None keeps all rows."""
+    if vocab is not None and (
+        not isinstance(vocab, str)
+        or not vocab
+        or set(vocab) - set("ACGTN")
+        or len(set(vocab)) != len(vocab)
+    ):
+        raise ValueError("vocab must contain distinct uppercase A/C/G/T/N, or be None")
 
 
 def grouped_experts(
@@ -131,10 +172,9 @@ def grouped_experts(
 
 
 class MarinDNAMoE(torch.nn.Module):
-    """BF16 ACGTN-to-ACGT model with two explicit inference backend choices.
+    """DNA MoE with explicit precision, vocabulary and implementation choices.
 
-    ``use_vllm`` selects both vLLM attention and its built-in fused experts.
-    Otherwise standalone attention and public Torch grouped GEMMs are required.
+    Attention and routed-expert providers are independently selected.
     Selecting an unavailable provider always raises; there is no fallback.
     Encoding and compilation belong to the caller, outside this actual module.
     """
@@ -144,20 +184,37 @@ class MarinDNAMoE(torch.nn.Module):
         directory: str | Path,
         device: str | torch.device = "cuda",
         *,
-        use_vllm: bool = False,
+        dtype: torch.dtype = torch.bfloat16,
+        input_vocab: str | None = "ACGTN",
+        output_vocab: str | None = "ACGT",
+        attention_provider: str = "flash_attn",
         flash_attention_version: int = 2,
+        moe_backend: str = "torch",
+        sconv_backend: str = "direct",
+        cache_rope: bool = True,
     ) -> None:
         super().__init__()
-        if not isinstance(use_vllm, bool):
-            raise TypeError("use_vllm must be a bool")
+        if dtype not in {torch.bfloat16, torch.float16}:
+            raise ValueError("dtype must be torch.bfloat16 or torch.float16")
+        validate_vocab(input_vocab)
+        validate_vocab(output_vocab)
+        if sconv_backend not in {"direct", "conv1d"}:
+            raise ValueError("sconv_backend must be direct or conv1d")
+        if not isinstance(cache_rope, bool):
+            raise TypeError("cache_rope must be a bool")
         runtime = RuntimeConfig(
-            "vllm" if use_vllm else "standalone",
-            flash_attention_version,
-            "vllm" if use_vllm else "torch",
+            attention_provider, flash_attention_version, moe_backend
         )
         directory, device = Path(directory), torch.device(device)
         self.config = TorchConfig.load(directory)
         self.runtime = runtime
+        self.dtype = dtype
+        self.input_vocab, self.output_vocab = input_vocab, output_vocab
+        self.cache_rope = cache_rope
+        self.short_conv = (
+            short_conv if sconv_backend == "direct" else depthwise_short_conv
+        )
+        self.sconv_backend = sconv_backend
         self.attend = load_attention(
             runtime.attention_provider, runtime.flash_attention_version
         )
@@ -170,10 +227,11 @@ class MarinDNAMoE(torch.nn.Module):
         weights = load_weights(directory, device)
         self._weight_names: dict[str, str] = {}
         for i, (name, value) in enumerate(weights.items()):
-            if name == "model.embed_tokens.weight":
-                value = value[[contract.input_ids[base] for base in "ACGTN"]]
-            if name == "lm_head.weight":
-                value = value[[contract.output_ids[base] for base in "ACGT"]]
+            if name == "model.embed_tokens.weight" and input_vocab is not None:
+                value = value[[contract.input_ids[base] for base in input_vocab]]
+            if name == "lm_head.weight" and output_vocab is not None:
+                value = value[[contract.input_ids[base] for base in output_vocab]]
+            value = value.to(dtype=dtype)
             buffer = f"checkpoint_weight_{i}"
             self.register_buffer(buffer, value.clone(), persistent=False)
             self._weight_names[name] = buffer
@@ -188,7 +246,8 @@ class MarinDNAMoE(torch.nn.Module):
                     dim=1,
                 ).contiguous()
                 self.register_buffer(f"vllm_w1_{layer}", packed, persistent=False)
-        self.prepare_rope(8192, device)
+        if cache_rope:
+            self.prepare_rope(8192, device)
         self.eval()
 
     @classmethod
@@ -198,31 +257,27 @@ class MarinDNAMoE(torch.nn.Module):
         *,
         revision: str | None = None,
         device: str | torch.device = "cuda",
-        use_vllm: bool = False,
+        dtype: torch.dtype = torch.bfloat16,
+        input_vocab: str | None = "ACGTN",
+        output_vocab: str | None = "ACGT",
+        attention_provider: str = "flash_attn",
         flash_attention_version: int = 2,
+        moe_backend: str = "torch",
+        sconv_backend: str = "direct",
+        cache_rope: bool = True,
     ) -> "MarinDNAMoE":
         """Load a local export or fetch a pinned Hugging Face snapshot."""
-        directory = Path(repository)
-        if not directory.is_dir():
-            from huggingface_hub import snapshot_download
-
-            directory = Path(
-                snapshot_download(
-                    str(repository),
-                    revision=revision,
-                    allow_patterns=[
-                        "config.json",
-                        "tokenizer.json",
-                        "model.safetensors.index.json",
-                        "*.safetensors",
-                    ],
-                )
-            )
         return cls(
-            directory,
+            resolve_checkpoint(repository, revision),
             device,
-            use_vllm=use_vllm,
+            dtype=dtype,
+            input_vocab=input_vocab,
+            output_vocab=output_vocab,
+            attention_provider=attention_provider,
             flash_attention_version=flash_attention_version,
+            moe_backend=moe_backend,
+            sconv_backend=sconv_backend,
+            cache_rope=cache_rope,
         )
 
     def prepare_rope(self, sequence_length: int, device: torch.device) -> None:
@@ -264,7 +319,7 @@ class MarinDNAMoE(torch.nn.Module):
         q = F.linear(x, self._weight(f"{prefix}.q_proj.weight"))
         k = F.linear(x, self._weight(f"{prefix}.k_proj.weight"))
         v = F.linear(x, self._weight(f"{prefix}.v_proj.weight"))
-        k = short_conv(k, self._weight(f"{prefix}.sconv_k.weight"))
+        k = self.short_conv(k, self._weight(f"{prefix}.sconv_k.weight"))
         batch, sequence, _ = q.shape
         q = q.view(batch, sequence, cfg.num_heads, cfg.head_dim).transpose(1, 2)
         k = k.view(batch, sequence, cfg.num_kv_heads, cfg.head_dim).transpose(1, 2)
@@ -315,10 +370,20 @@ class MarinDNAMoE(torch.nn.Module):
         flipped = (
             rotated.reshape(*rotated.shape[:-1], half, 2).flip(-1).reshape_as(rotated)
         )
-        rotated = (
-            self.rope_cos[: x.shape[-2]][None, None] * rotated
-            + self.rope_sin[: x.shape[-2]][None, None] * flipped
-        ).to(x.dtype)
+        if self.cache_rope:
+            cos, sin = self.rope_cos[: x.shape[-2]], self.rope_sin[: x.shape[-2]]
+        else:
+            positions = torch.arange(x.shape[-2], device=x.device, dtype=torch.float32)
+            inv_freq = 1.0 / (
+                self.config.rope_theta
+                ** (torch.arange(half, device=x.device, dtype=torch.float32) / half)
+            )
+            angles = positions[:, None] * inv_freq[None, :]
+            cos = torch.cos(angles).repeat_interleave(2, dim=-1)
+            sin = torch.stack((-torch.sin(angles), torch.sin(angles)), dim=-1).reshape(
+                x.shape[-2], rotary_dim
+            )
+        rotated = (cos[None, None] * rotated + sin[None, None] * flipped).to(x.dtype)
         return torch.cat((rotated, x[..., rotary_dim:]), dim=-1)
 
     def _moe(self, layer: int, x: torch.Tensor) -> torch.Tensor:
@@ -398,7 +463,7 @@ class MarinDNAMoE(torch.nn.Module):
                 ),
             )
             attention = self._attention(layer, attn_input, is_global=is_global)
-            hidden = hidden + short_conv(
+            hidden = hidden + self.short_conv(
                 attention,
                 self._weight(f"{prefix}.sconv_attn.weight"),
             )
@@ -411,7 +476,7 @@ class MarinDNAMoE(torch.nn.Module):
                 ),
             )
             mlp = self._moe(layer, mlp_input) + self._shared_experts(layer, mlp_input)
-            hidden = hidden + short_conv(
+            hidden = hidden + self.short_conv(
                 mlp,
                 self._weight(f"{prefix}.sconv_mlp.weight"),
             )

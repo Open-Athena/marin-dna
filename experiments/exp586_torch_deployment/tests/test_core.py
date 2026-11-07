@@ -80,7 +80,7 @@ def test_invalid_configuration_is_rejected(kwargs: dict[str, object]) -> None:
 
 
 @pytest.mark.parametrize(
-    "provider,version", [("standalone", 2), ("standalone", 3), ("vllm", 2), ("vllm", 3)]
+    "provider,version", [("flash_attn", 2), ("flash_attn", 3), ("vllm", 2), ("vllm", 3)]
 )
 def test_attention_adapter_preserves_gqa_and_window_contract(
     monkeypatch: pytest.MonkeyPatch, provider: str, version: int
@@ -196,16 +196,21 @@ def test_hf_fetch_preserves_revision_and_explicit_model_settings(
         "plantcad/example",
         revision="immutable-revision",
         device="cpu",
-        use_vllm=True,
+        attention_provider="vllm",
+        moe_backend="vllm",
         flash_attention_version=3,
     )
     assert isinstance(model, MarinDNAMoE)
     assert fetched[0][0] == "plantcad/example"
     assert fetched[0][1]["revision"] == "immutable-revision"
     assert "*.safetensors" in fetched[0][1]["allow_patterns"]
-    assert constructed == [
-        ((tmp_path, "cpu"), {"use_vllm": True, "flash_attention_version": 3})
-    ]
+    assert constructed[0][0] == (tmp_path, "cpu")
+    assert constructed[0][1]["attention_provider"] == "vllm"
+    assert constructed[0][1]["moe_backend"] == "vllm"
+    assert constructed[0][1]["flash_attention_version"] == 3
+    assert constructed[0][1]["dtype"] == torch.bfloat16
+    assert constructed[0][1]["input_vocab"] == "ACGTN"
+    assert constructed[0][1]["output_vocab"] == "ACGT"
     MarinDNAMoE.from_pretrained(tmp_path, device="cpu")
     assert len(fetched) == 1
 
@@ -222,7 +227,7 @@ def test_missing_vllm_fails_before_checkpoint_load(
 
     monkeypatch.setattr(model, "load_attention", missing)
     with pytest.raises(RuntimeError, match="requires importable vllm"):
-        MarinDNAMoE(tmp_path, "cpu", use_vllm=True)
+        MarinDNAMoE(tmp_path, "cpu", attention_provider="vllm", moe_backend="vllm")
 
 
 @pytest.mark.parametrize("experts", [1, 2, 4])

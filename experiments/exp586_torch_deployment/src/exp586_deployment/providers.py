@@ -13,13 +13,13 @@ import torch
 class RuntimeConfig:
     """Provider availability never silently changes a selected implementation."""
 
-    attention_provider: Literal["standalone", "vllm"] = "standalone"
+    attention_provider: Literal["flash_attn", "vllm"] = "flash_attn"
     flash_attention_version: Literal[2, 3] = 2
     moe_backend: Literal["torch", "vllm"] = "torch"
 
     def __post_init__(self) -> None:
-        if self.attention_provider not in {"standalone", "vllm"}:
-            raise ValueError("attention_provider must be standalone or vllm")
+        if self.attention_provider not in {"flash_attn", "vllm"}:
+            raise ValueError("attention_provider must be flash_attn or vllm")
         if self.flash_attention_version not in {2, 3}:
             raise ValueError("flash_attention_version must be 2 or 3")
         if self.moe_backend not in {"torch", "vllm"}:

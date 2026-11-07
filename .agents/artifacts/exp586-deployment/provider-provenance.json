@@ -1,0 +1,70 @@
+{
+  "no-vllm": {
+    "vllm_present": false,
+    "modules": {
+      "flash_attn": {
+        "file": "/app/deploy002/no-vllm/lib/python3.12/site-packages/flash_attn/__init__.py",
+        "sha256": "b26af89142495543726c13defd4913c43476accd46eb13f99375c96c9eb5e28c",
+        "function": "flash_attn.flash_attn_interface.flash_attn_varlen_func"
+      },
+      "flash_attn_interface": {
+        "file": "/app/deploy002/no-vllm/lib/python3.12/site-packages/flash_attn_interface.py",
+        "sha256": "887eb85ea5380707a78cd15dc04169e654f4dee58f9bddab49a2ce71f1680e35",
+        "function": "flash_attn_interface.flash_attn_varlen_func"
+      },
+      "flash_attn_config": {
+        "file": "/app/deploy002/no-vllm/lib/python3.12/site-packages/flash_attn_config.py",
+        "sha256": "7c7d85490cfec76cc750926ad7da01d76255d97ca8feef85535e0e045fe71f4b",
+        "build_flags": {
+          "build_flags": {
+            "FLASHATTENTION_DISABLE_BACKWARD": true,
+            "FLASHATTENTION_DISABLE_SPLIT": false,
+            "FLASHATTENTION_DISABLE_PAGEDKV": true,
+            "FLASHATTENTION_DISABLE_APPENDKV": true,
+            "FLASHATTENTION_DISABLE_LOCAL": false,
+            "FLASHATTENTION_DISABLE_SOFTCAP": true,
+            "FLASHATTENTION_DISABLE_PACKGQA": false,
+            "FLASHATTENTION_DISABLE_FP16": true,
+            "FLASHATTENTION_DISABLE_FP8": true,
+            "FLASHATTENTION_DISABLE_VARLEN": false,
+            "FLASHATTENTION_DISABLE_CLUSTER": false,
+            "FLASHATTENTION_DISABLE_HDIM64": true,
+            "FLASHATTENTION_DISABLE_HDIM96": true,
+            "FLASHATTENTION_DISABLE_HDIM128": false,
+            "FLASHATTENTION_DISABLE_HDIM192": true,
+            "FLASHATTENTION_DISABLE_HDIM256": true,
+            "FLASHATTENTION_DISABLE_SM8x": true,
+            "FLASHATTENTION_ENABLE_VCOLMAJOR": false,
+            "FLASH_ATTENTION_DISABLE_HDIMDIFF64": true,
+            "FLASH_ATTENTION_DISABLE_HDIMDIFF192": true
+          }
+        }
+      },
+      "flash_attn_3._C": {
+        "file": "/app/deploy002/no-vllm/lib/python3.12/site-packages/flash_attn_3/_C.abi3.so",
+        "sha256": "2597200145cd0624973193b72331a3d246b6252db7a187b16ea02d84930a7dfe"
+      }
+    },
+    "versions": {
+      "flash-attn": "2.8.4",
+      "flash-attn-3": "3.0.1"
+    }
+  },
+  "vllm": {
+    "vllm_present": true,
+    "modules": {
+      "vllm.vllm_flash_attn": {
+        "file": "/app/deploy002/vllm/lib/python3.12/site-packages/vllm/vllm_flash_attn/__init__.py",
+        "sha256": "68d256feb9db6c1c397dc1458f6b42e2bbdc66429ae14d6a2d41c27ef0dbd878",
+        "function": "vllm.vllm_flash_attn.flash_attn_interface.flash_attn_varlen_func"
+      },
+      "vllm.model_executor.layers.fused_moe.fused_moe": {
+        "file": "/app/deploy002/vllm/lib/python3.12/site-packages/vllm/model_executor/layers/fused_moe/fused_moe.py",
+        "sha256": "7072eb06237be9d33dcb0ef7101410f886a6363c98cbee70a014c68b70f639cb"
+      }
+    },
+    "versions": {
+      "vllm": "0.0.0.dev20261013+marin.ac3b5ea5e851.cu132"
+    }
+  }
+}

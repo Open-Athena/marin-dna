@@ -11,7 +11,7 @@ from pathlib import Path
 import torch
 import torch.nn.functional as F
 
-from exp586_deployment.model import MarinDNAMoE
+from exp586_deployment.model import MarinDNAMoE, resolve_checkpoint
 
 
 def combined_shared_experts(
@@ -44,16 +44,26 @@ class FastMarinDNAMoE(MarinDNAMoE):
         directory: str | Path,
         device: str | torch.device = "cuda",
         *,
-        use_vllm: bool = True,
+        dtype: torch.dtype = torch.bfloat16,
+        input_vocab: str | None = "ACGTN",
+        output_vocab: str | None = "ACGT",
+        attention_provider: str = "vllm",
         flash_attention_version: int = 3,
+        moe_backend: str = "vllm",
     ) -> None:
         from exp586_deployment.router_topk import router_top_k
 
         super().__init__(
             directory,
             device,
-            use_vllm=use_vllm,
+            dtype=dtype,
+            input_vocab=input_vocab,
+            output_vocab=output_vocab,
+            attention_provider=attention_provider,
             flash_attention_version=flash_attention_version,
+            moe_backend=moe_backend,
+            sconv_backend="direct",
+            cache_rope=True,
         )
         self.router_top_k = router_top_k
         for layer in range(self.config.num_layers):
@@ -89,16 +99,23 @@ class FastMarinDNAMoE(MarinDNAMoE):
         *,
         revision: str | None = None,
         device: str | torch.device = "cuda",
-        use_vllm: bool = True,
+        dtype: torch.dtype = torch.bfloat16,
+        input_vocab: str | None = "ACGTN",
+        output_vocab: str | None = "ACGT",
+        attention_provider: str = "vllm",
         flash_attention_version: int = 3,
+        moe_backend: str = "vllm",
     ) -> "FastMarinDNAMoE":
         """Use the same checkpoint loading contract with the fast defaults."""
-        return super().from_pretrained(
-            repository,
-            revision=revision,
+        return cls(
+            resolve_checkpoint(repository, revision),
             device=device,
-            use_vllm=use_vllm,
+            dtype=dtype,
+            input_vocab=input_vocab,
+            output_vocab=output_vocab,
+            attention_provider=attention_provider,
             flash_attention_version=flash_attention_version,
+            moe_backend=moe_backend,
         )
 
     def _select_experts(self, biased: torch.Tensor) -> torch.Tensor:

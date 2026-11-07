@@ -5,15 +5,21 @@ The original project and benchmark entry points are unchanged.
 The chronological working log and numerical results remain ignored under `../exp586_plantcad2_moe/scratch/deployment-experiments/`.
 
 The inference core depends on Torch, NumPy, Safetensors, Tokenizers and Hugging Face Hub; it imports no Marin, JAX or W&B packages.
-The actual model class is `MarinDNAMoE`, with two inference backend options: `use_vllm=False|True` and `flash_attention_version=2|3`.
-`use_vllm=True` selects vLLM attention and built-in BF16 fused experts together, without a serving engine or model-side kernel tuning.
-`use_vllm=False` selects standalone attention and native Torch grouped experts, and can run in an environment with vLLM entirely absent.
+The actual model class is `MarinDNAMoE`, with explicit precision, vocabulary and implementation choices.
+`attention_provider="flash_attn"|"vllm"` and `flash_attention_version=2|3` select the attention library and version.
+`moe_backend="torch"|"vllm"` independently selects native Torch grouped experts or built-in vLLM fused experts.
+The FlashAttention/Torch configuration can run with vLLM entirely absent.
 Provider import failures are reported without substituting a different kernel.
 Standalone FA2 and FA3 are separate optional builds.
 The benchmark's vLLM dependency is the pinned Marin build `0.0.0.dev20261013+marin.ac3b5ea5e851.cu132`, rather than an unmodified PyPI wheel.
 
 The model uses BF16 checkpoint weights, ordinary Torch top-k, direct Torch short convolution, separate shared experts, native GQA and ordinary rotary caches.
-It keeps five ACGTN embedding rows and four A/C/G/T output rows.
+`dtype=torch.bfloat16`, `input_vocab="ACGTN"`, and `output_vocab="ACGT"` explicitly select the benchmark precision and retained weight rows.
+Compact input IDs follow the supplied alphabet order; output columns follow the output alphabet order.
+Pass `None` for either vocabulary to retain that entire checkpoint table; an unpruned input table requires the checkpoint's original tokenizer IDs.
+Changing the output vocabulary changes the softmax normalization domain.
+`sconv_backend="direct"|"conv1d"` selects the short convolution implementation; `cache_rope=True|False` controls rotary precomputation.
+The tested configuration uses direct convolution and cached rotary tables.
 Native experts use the documented `torch.nn.functional.grouped_mm` API.
 It does not import our bespoke router or convolution kernels.
 Graph freezing, combined shared projections, quantization, manual kernel tiles and serving hooks are excluded from the ordinary model's defaults.
@@ -31,7 +37,10 @@ The companion examples deliberately spell out each configuration without a CLI o
 | `vllm-fa3` | [vLLM FA3 and built-in fused experts](examples/canonical_usage_vllm_fa3.py) |
 | `fast-fa3` | [FA3, vLLM fused experts, custom Triton router kernel, and compiler tuning](examples/canonical_usage_fast.py) |
 
-These examples run one window for readability; benchmark throughput uses the batch size stated with each result.
+These examples run batch 64 of seeded random 8,192-base DNA sequences, eight untimed warmups and one directly timed forward.
+Each includes a commented alternative that loads the real benchmark inputs.
+Their shared preamble is identical; run ordinary examples with `env -u TORCHINDUCTOR_FREEZING python <example.py>` and Fast with `TORCHINDUCTOR_FREEZING=1 python examples/canonical_usage_fast.py`.
+Freezing must be selected before importing Torch.
 Encoding and compilation stay explicit outside the model.
 The public `dna_nucleotide_tokenizer()` helper emits one A/C/G/T/N nucleotide per token; its internal Hugging Face Unigram implementation is unchanged.
 `fullgraph=True` is our required assertion against graph breaks; it is not Torch's default.
@@ -41,7 +50,8 @@ A compiler failure stops the campaign for review; it never disables the assertio
 Standard external FA/vLLM operators can remain opaque graph nodes.
 
 `FastMarinDNAMoE` is a separate H100 ceiling experiment with our specialized Triton top-k router and combined shared-expert projections, adapted from the frozen historical source.
-It defaults to vLLM fused experts and FA3, and accepts the same two backend options for controlled comparisons.
+It defaults to vLLM fused experts and FA3, and exposes precision, retained vocabulary, attention provider/version and MoE backend.
+Its router kernel, combined shared projections, direct short convolution and cached rotary tables are fixed implementation choices.
 It does not alter process-global compiler settings during construction.
 Freezing, compiler modes and batch tuning are explicit benchmark choices outside the class.
 Fast must pass exactly the same numerical gate as the ordinary model; a failed approximate result cannot count toward the accepted ceiling.
@@ -64,3 +74,4 @@ uv run --locked --extra cpu pytest
 
 For CUDA, select `--extra cuda` and install the explicitly selected optional provider using its pinned build recipe.
 The benchmark receipt records provider source revisions, dependency versions, build options, resolved functions, GPU identity and all event samples.
+See [the environment and reproduction instructions](SETUP.md) for the exact provider builds and full measurement command.

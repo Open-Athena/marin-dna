@@ -10,6 +10,7 @@ import json
 import math
 import os
 import platform
+import random
 import subprocess
 import sys
 import time
@@ -113,19 +114,30 @@ def run_trial(args: argparse.Namespace) -> dict[str, Any]:
     if "H100" not in torch.cuda.get_device_name(0):
         raise RuntimeError("This experiment requires H100")
     device = torch.device("cuda:0")
-    sequences = load_fixture(args.fixture)
+    fixture_sequences = load_fixture(args.fixture)
+    if args.input_source == "random":
+        rng = random.Random(args.random_seed)
+        sequences = ["".join(rng.choices("ACGT", k=8192)) for _ in fixture_sequences]
+    else:
+        sequences = fixture_sequences
     validation = load_fixture(args.validation_fixture)
     tokenizer = dna_nucleotide_tokenizer()
     print("STAGE loading-model", flush=True)
     if args.require_no_vllm and importlib.util.find_spec("vllm") is not None:
         raise RuntimeError("The standalone comparison requires vLLM genuinely absent")
     model_class = FastMarinDNAMoE if args.model_class == "fast" else MarinDNAMoE
-    model = model_class(
-        args.model_dir,
-        device,
-        use_vllm=args.use_vllm,
-        flash_attention_version=args.fa_version,
-    )
+    model_kwargs = {
+        "device": device,
+        "dtype": torch.bfloat16,
+        "input_vocab": "ACGTN",
+        "output_vocab": "ACGT",
+        "attention_provider": "vllm" if args.use_vllm else "flash_attn",
+        "flash_attention_version": args.fa_version,
+        "moe_backend": "vllm" if args.use_vllm else "torch",
+    }
+    if args.model_class != "fast":
+        model_kwargs.update(sconv_backend="direct", cache_rope=True)
+    model = model_class.from_pretrained(args.model_dir, **model_kwargs)
     model.prepare_rope(8192, device)
     forward = model
 
@@ -249,6 +261,9 @@ def run_trial(args: argparse.Namespace) -> dict[str, Any]:
         ),
         "tokenizer_sha256": sha256_file(args.model_dir / "tokenizer.json"),
         "fixture_sha256": sha256_file(args.fixture),
+        "timed_sequences_sha256": hashlib.sha256(
+            json.dumps(sequences, separators=(",", ":")).encode()
+        ).hexdigest(),
         "validation_fixture_sha256": sha256_file(args.validation_fixture),
         "reference_sha256": sha256_file(args.reference),
     }
@@ -259,6 +274,8 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--model-dir", type=Path, required=True)
     parser.add_argument("--fixture", type=Path, required=True)
+    parser.add_argument("--input-source", choices=["real", "random"], default="real")
+    parser.add_argument("--random-seed", type=int, default=0)
     parser.add_argument("--validation-fixture", type=Path, required=True)
     parser.add_argument("--reference", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
@@ -302,7 +319,7 @@ def main() -> int:
         parser.error("vLLM cannot be both selected and required absent")
     began = time.time()
     payload: dict[str, Any] = {
-        "schema": 4,
+        "schema": 5,
         "source_revision": args.source_revision,
         "source_tree_sha256": hashlib.sha256(
             json.dumps(
@@ -320,6 +337,9 @@ def main() -> int:
         "metric_scope": "CUDA-event device forward only; no H2D/D2H/tokenization",
         "config": {
             "batch_size": args.batch_size,
+            "input_source": args.input_source,
+            "random_seed": args.random_seed if args.input_source == "random" else None,
+            "dtype": "bfloat16",
             "iterations": args.iterations,
             "warmup": args.warmup,
             "input_batches": args.input_batches,
@@ -328,9 +348,9 @@ def main() -> int:
             "specialized_topk": args.model_class == "fast",
             "sconv_backend": "direct",
             "combined_shared_expert_projections": args.model_class == "fast",
-            "precomputed_rope": True,
+            "cache_rope": True,
             "use_vllm": args.use_vllm,
-            "attention_provider": "vllm" if args.use_vllm else "standalone",
+            "attention_provider": "vllm" if args.use_vllm else "flash_attn",
             "flash_attention_version": args.fa_version,
             "moe_backend": "vllm" if args.use_vllm else "torch",
             "compile_mode": args.compile_mode,
