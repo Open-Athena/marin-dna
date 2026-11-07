@@ -88,3 +88,8 @@ The full candidate grid below remains within the approved H100 scope; a Reno tar
 
 The local four-device CPU checkpoint regression covers exact full-state restoration across replica-group counts 1→2→1, including the FP32 expert-master/momentum partition and replicated BF16 weights.
 It supports the global-array checkpoint mechanism; it does not establish target eligibility or replace numerical checks on a future GPU reslice.
+
+The first Reno eight-node validation completed its initial causal/FIM/functional panels and update one, then stalled in XLA ConfigAssigner's distributed autotuning key-value exchange.
+All eight nodes had idle GPUs and approximately idle Python CPUs; sampled native stacks identified the compiler wait after cache compaction had finished.
+The training dispatcher now applies `--xla_gpu_shard_autotuning=false` only to GPU workers, preserving the other optimized runtime flags.
+The bounded retry must pass all buckets, final validation and checkpoint discovery before this placement becomes eligible.
