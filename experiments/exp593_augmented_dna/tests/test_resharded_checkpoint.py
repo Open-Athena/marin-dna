@@ -22,7 +22,7 @@ def test_native_checkpoint_restores_across_replica_mesh_sizes(tmp_path):
         from jax.sharding import PartitionSpec as P
 
         from exp593_dna.schedule import TokenClock
-        from exp593_dna.state import restore_training_checkpoint, save_training_checkpoint
+        from exp593_dna.state import checkpoint_template, restore_training_checkpoint, save_training_checkpoint
 
         devices = np.asarray(jax.devices())
         assert len(devices) == 4
@@ -80,8 +80,12 @@ def test_native_checkpoint_restores_across_replica_mesh_sizes(tmp_path):
             save_training_checkpoint(original, clock, str(root / 'one'), bindings)
         with jax.set_mesh(two):
             different_template = make_state(two, 1000)
+            # The standby frees its disposable state but retains global restore
+            # shapes/shardings and the already-compiled update executable.
+            freed_template = checkpoint_template(different_template, release=True)
+            assert all(x.is_deleted() for x in jax.tree.leaves(different_template) if isinstance(x, jax.Array))
             restored, restored_clock = restore_training_checkpoint(
-                different_template, str(root / 'one'), two, bindings,
+                freed_template, str(root / 'one'), two, bindings,
             )
             assert_same(original, restored)
             assert restored_clock == clock

@@ -51,9 +51,11 @@ from levanter.grug.grug_moe import (
     MOE_SKIPPED_PADDING_ASSIGNMENTS_METRIC,
     MOE_VALID_ASSIGNMENTS_METRIC,
 )
+from levanter.tracker.tracker import NoopConfig
 from levanter.tracker.wandb import WandbConfig
 from levanter.trainer import TrainerConfig
 from marin.training.training import resolve_training_env
+from rigging.filesystem.storage_path import StoragePath
 from rigging.timing import Duration
 
 from exp593_dna.annotations import load_annotations
@@ -86,7 +88,17 @@ from exp593_dna.schedule import (
     TokenClock,
     validation_events,
 )
-from exp593_dna.state import restore_training_checkpoint, save_training_checkpoint
+from exp593_dna.standby import (
+    checked_checkpoint,
+    publish_once,
+    validate_promotion,
+    validate_standby_id,
+)
+from exp593_dna.state import (
+    checkpoint_template,
+    restore_training_checkpoint,
+    save_training_checkpoint,
+)
 from exp593_dna.train_step import make_train_step
 
 PRODUCTION_RUN_ID = "dna-exp593-augmented-d768-pretrained-seed0-v1"
@@ -122,6 +134,9 @@ class TrainingConfig:
     nodes: int = 1
     run_id: str = PRODUCTION_RUN_ID
     validation_updates: int | None = None
+    standby_id: str | None = None
+    standby_checkpoint: str | None = None
+    standby_from_job: str | None = None
 
     def __post_init__(self) -> None:
         if self.cluster not in ("cw-rno2a", "cw-us-east-02a") or self.nodes not in (
@@ -142,11 +157,31 @@ class TrainingConfig:
             raise ValueError(
                 "Bounded validation requires a separate smoke identity and 1..64 updates"
             )
+        if self.standby_id is not None:
+            validate_standby_id(self.standby_id)
+            if (
+                self.validation_updates is not None
+                or not self.standby_checkpoint
+                or not self.standby_from_job
+                or not self.standby_from_job.startswith("/eczech/")
+                or self.standby_from_job.count("/") != 2
+            ):
+                raise ValueError(
+                    "Standby requires a production checkpoint and exact old root"
+                )
+        elif self.standby_checkpoint is not None or self.standby_from_job is not None:
+            raise ValueError("Standby source requires a unique standby identity")
 
     @property
     def checkpoint_root(self) -> str:
         lane = "training" if self.validation_updates is None else "validation"
         return f"{OWNER}/{lane}/{self.run_id}/checkpoints"
+
+    @property
+    def control_root(self) -> str:
+        if self.standby_id is None:
+            raise ValueError("This allocation has no standby control namespace")
+        return f"{OWNER}/placements/{self.standby_id}"
 
     def complete(self, clock: TokenClock) -> bool:
         if self.validation_updates is not None:
@@ -281,8 +316,27 @@ def _run_training(config: TrainingConfig) -> None:
         WANDB_BASE_URL=WANDB_BASE_URL, WANDB_ENTITY="eric-czech", WANDB_PROJECT="marin"
     )
     mp = jmp.get_policy("params=bfloat16,compute=bfloat16,output=bfloat16")
-    trainer = TrainerConfig(
+    wandb_config = WandbConfig(
+        entity="eric-czech",
+        project="marin",
+        name=config.run_id,
         id=config.run_id,
+        group="dna-exp593"
+        if config.validation_updates is None
+        else "dna-exp593-validation",
+        background=False,
+        save_code=False,
+        tags=[
+            "dna-exp593",
+            "H100",
+            config.cluster,
+            "production" if config.validation_updates is None else "validation",
+        ],
+        replicate_path=config.checkpoint_root,
+        resume="must" if config.standby_id is not None else "allow",
+    )
+    trainer = TrainerConfig(
+        id=config.standby_id or config.run_id,
         seed=0,
         train_batch_size=64,
         num_train_steps=MAX_UPDATES,
@@ -290,24 +344,7 @@ def _run_training(config: TrainingConfig) -> None:
         mp=mp,
         use_explicit_mesh_axes=True,
         watch=WatchConfig(interval=0, watch_targets=[]),
-        tracker=WandbConfig(
-            entity="eric-czech",
-            project="marin",
-            name=config.run_id,
-            id=config.run_id,
-            group="dna-exp593"
-            if config.validation_updates is None
-            else "dna-exp593-validation",
-            background=False,
-            save_code=False,
-            tags=[
-                "dna-exp593",
-                "H100",
-                config.cluster,
-                "production" if config.validation_updates is None else "validation",
-            ],
-            replicate_path=config.checkpoint_root,
-        ),
+        tracker=NoopConfig() if config.standby_id is not None else wandb_config,
     )
     trainer.initialize()
     if jax.device_count() != config.nodes * 8 or not all(
@@ -315,14 +352,24 @@ def _run_training(config: TrainingConfig) -> None:
     ):
         raise ValueError("Training did not receive the requested H100 gang")
     tracker.log_configuration(config)
-    log_step = wandb_history_offset()
+    log_step = 0 if config.standby_id is not None else wandb_history_offset()
     tracker.log_summary({"training/phase": "loading_inputs"})
     inputs = PreparedInputs.open(Path("/tmp/exp593-inputs"))
     encoder = load_encoder()
     bindings = scientific_bindings(config, inputs, encoder)
-    checkpoint = primary_json(
-        lambda: bind_and_discover(config.checkpoint_root, bindings)
-    )
+    if config.standby_id is not None:
+        primary_json(
+            lambda: asdict(
+                checked_checkpoint(
+                    config.checkpoint_root, config.standby_checkpoint, bindings
+                )
+            )
+        )
+        checkpoint = config.standby_checkpoint
+    else:
+        checkpoint = primary_json(
+            lambda: bind_and_discover(config.checkpoint_root, bindings)
+        )
     tracker.log_hyperparameters({"bindings": bindings})
     # Every worker warms the same verified row groups. Eight workers together
     # require about 173 GB of decoded DNA, within the 600 GB node request.
@@ -345,10 +392,12 @@ def _run_training(config: TrainingConfig) -> None:
     development_root = (
         config.checkpoint_root.removesuffix("/checkpoints") + "/development"
     )
-    development_protocol = primary_json(
-        lambda: publish_development_protocol(development_root)
-    )
-    tracker.log_summary({"eval/development_protocol": development_protocol["uri"]})
+    development_protocol = None
+    if config.standby_id is None:
+        development_protocol = primary_json(
+            lambda: publish_development_protocol(development_root)
+        )
+        tracker.log_summary({"eval/development_protocol": development_protocol["uri"]})
     model = replace(
         local_model(d768_config("pretrained")),
         compact_input_lookup_ids=(),
@@ -396,6 +445,144 @@ def _run_training(config: TrainingConfig) -> None:
         )
         train_step = make_train_step(optimizer, mp, norm_policy=norm_policy)
         compiled_buckets: set[int] = set()
+
+        if config.standby_id is not None:
+            source_clock = clock
+            samples = []
+            tested: set[tuple[int, bool]] = set()
+            for probe in range(64):
+                local = prepare_local_batch(dataset, augmenter, mesh, clock.examples)
+                batch = assemble_distributed_batch(local, mesh)
+                collect_norms = (batch.bucket, True) not in tested
+                state = replace(
+                    state,
+                    opt_state=set_token_learning_rates(
+                        state.opt_state, opt_config, schedule, clock
+                    ),
+                )
+                started = time.monotonic()
+                state, metrics, norms = train_step(
+                    state, batch.model_batch, collect_norms
+                )
+                jax.block_until_ready((state, metrics, norms))
+                values = metric_values(
+                    metrics, norms, batch, collect_norms=collect_norms
+                )
+                clock = clock.advance(**batch.counts)
+                tested.add((batch.bucket, collect_norms))
+                compiled_buckets.add(batch.bucket)
+                samples.append(
+                    {
+                        "probe": probe + 1,
+                        "bucket": batch.bucket,
+                        "collect_norms": collect_norms,
+                        "seconds": time.monotonic() - started,
+                        "metrics": values,
+                    }
+                )
+                LOGGER.info(
+                    "Standby probe=%d bucket=%d norms=%s loss=%f",
+                    probe + 1,
+                    batch.bucket,
+                    collect_norms,
+                    values["train/loss"],
+                )
+                if probe >= 15 and len(tested) == 8:
+                    break
+            if len(tested) != 8 or not bool(state_all_finite(state)):
+                raise ValueError(
+                    "Standby failed to exercise all buckets and norm branches"
+                )
+            validation = evaluator.evaluate(state)
+            functional, _ = development.evaluate_development(state)
+            if not all(
+                np.isfinite(v) for v in (*validation.values(), *functional.values())
+            ):
+                raise ValueError("Nonfinite standby validation")
+            ready = {
+                "protocol": "exp593-standby-ready-v1",
+                "standby_id": config.standby_id,
+                "cluster": config.cluster,
+                "nodes": config.nodes,
+                "source_checkpoint": checkpoint,
+                "source_clock": asdict(source_clock),
+                "bindings_sha256": hashlib.sha256(
+                    canonical_json(bindings).encode()
+                ).hexdigest(),
+                "probes": samples,
+                "validation": validation,
+                "functional": functional,
+                "production_writes": False,
+            }
+            ready_sha = primary_json(
+                lambda: publish_once(config.control_root + "/ready.json", ready)
+            )
+            LOGGER.info(
+                "Standby READY identity=%s receipt=%s", config.standby_id, ready_sha
+            )
+            # Retain the allocation, decoded corpus and compiled executables.
+            # Only an explicit operator command after old-writer termination promotes it.
+            deadline = time.monotonic() + 3600
+            promotion = None
+            while promotion is None:
+                if time.monotonic() >= deadline:
+                    raise TimeoutError(
+                        "Standby was not promoted within one hour of readiness"
+                    )
+                promotion = primary_json(
+                    lambda: (
+                        json.loads(
+                            (
+                                StoragePath(config.control_root) / "promote.json"
+                            ).read_text()
+                        )
+                        if (StoragePath(config.control_root) / "promote.json").exists()
+                        else None
+                    )
+                )
+                if promotion is None:
+                    time.sleep(10)
+            # Broadcast metadata checks before any distributed restore.
+            approved = primary_json(
+                lambda: validate_promotion(
+                    promotion,
+                    standby_id=config.standby_id,
+                    ready_sha256=ready_sha,
+                    old_root=config.standby_from_job,
+                    checkpoint_root=config.checkpoint_root,
+                    bindings=bindings,
+                    source_clock=source_clock,
+                )[0]
+            )
+            # Release disposable canary buffers before restoring the real cursor.
+            template = checkpoint_template(state, release=True)
+            del state, metrics, norms
+            state, clock = restore_training_checkpoint(
+                template, approved, mesh, bindings
+            )
+            checkpoint = approved
+            jax.block_until_ready(state)
+            assert_partitioned_optimizer_state(state, mesh)
+            if not bool(state_all_finite(state)) or not bool(
+                model_matches_fp32_master(state.params, state.master_params)
+            ):
+                raise ValueError("Promoted state failed full-state validation")
+            tracker.set_global_tracker(wandb_config.init(config.run_id))
+            log_step = wandb_history_offset()
+            tracker.log_configuration(config)
+            tracker.log_hyperparameters({"bindings": bindings})
+            development_protocol = primary_json(
+                lambda: publish_development_protocol(development_root)
+            )
+            tracker.log_summary(
+                {
+                    "training/resume_checkpoint": checkpoint,
+                    "training/resume_update": clock.updates,
+                    "training/standby_id": config.standby_id,
+                    "training/standby_ready_sha256": ready_sha,
+                    "eval/development_protocol": development_protocol["uri"],
+                }
+            )
 
         def log(values: dict[str, Any]) -> None:
             nonlocal log_step
@@ -594,6 +781,46 @@ def _run_training(config: TrainingConfig) -> None:
                 if due:
                     checkpoint = save(bool(permanent) or finished)
                     last_save = time.monotonic()
+                if (
+                    config.standby_id is not None
+                    and clock.updates % 100 == 0
+                    and not finished
+                ):
+                    stop = primary_json(
+                        lambda: (
+                            json.loads(
+                                (
+                                    StoragePath(config.control_root) / "stop.json"
+                                ).read_text()
+                            )
+                            if (StoragePath(config.control_root) / "stop.json").exists()
+                            else None
+                        )
+                    )
+                    if stop is not None:
+                        if stop != {
+                            "protocol": "exp593-checkpoint-and-exit-v1",
+                            "standby_id": config.standby_id,
+                        }:
+                            raise ValueError("Invalid handoff request")
+                        if future is not None:
+                            future.result()
+                        if not due:
+                            checkpoint = save(True)
+                        ack = {"checkpoint": checkpoint, "clock": asdict(clock)}
+                        primary_json(
+                            lambda receipt=ack: publish_once(
+                                config.control_root + "/stopped.json", receipt
+                            )
+                        )
+                        tracker.log_summary(
+                            {
+                                "training/phase": "handoff_saved",
+                                **{"training/handoff_" + k: v for k, v in ack.items()},
+                            }
+                        )
+                        tracker.current_tracker().finish()
+                        return
             # A recovered final checkpoint can already satisfy the horizon.
             if checkpoint is None:
                 checkpoint = save(True)
@@ -689,6 +916,9 @@ def main() -> None:
     parser.add_argument("--nodes", type=int, choices=[1, 2, 4, 8], default=1)
     parser.add_argument("--run-id", default=PRODUCTION_RUN_ID)
     parser.add_argument("--validation-updates", type=int)
+    parser.add_argument("--standby-id")
+    parser.add_argument("--standby-checkpoint")
+    parser.add_argument("--standby-from-job")
     dispatch(TrainingConfig(**vars(parser.parse_args())))
 
 

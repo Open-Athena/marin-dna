@@ -30,6 +30,11 @@ Use the explicit Iris user and target configuration in [operations.md](operation
 The single production identity is `dna-exp593-augmented-d768-pretrained-seed0-v1` in `eric-czech/marin` at the CoreWeave endpoint.
 Scientific bindings exclude placement and are read back before checkpoint discovery; resumed execution restores the latest complete optimizer/data state and preserves that run identity.
 CPU rendering prefetches one batch while device collectives stay ordered on the main thread.
+For resizing, add `--standby-id`, `--standby-checkpoint` and `--standby-from-job` to acquire a separate allocation while production continues.
+The standby uses a no-op tracker, restores the existing production checkpoint, validates all buckets and diagnostics, and holds its prepared allocation behind an explicit promotion gate.
+It writes only under its unique `placements/<standby-id>/` prefix until an operator supplies the readiness digest, exact checkpoint/clock and proof that both old Iris writer jobs are terminal.
+Promotion discards all probe updates, restores the selected production cursor and resumes the same W&B identity without requesting a new gang.
+Promoted allocations also accept an explicit checkpoint-and-exit request for subsequent handoffs; see [operations.md](operations.md).
 Periodic checkpoints occur approximately every 30 minutes, with two temporary recovery saves retained; warmup, quarter-budget and final checkpoints are permanent.
 A four-device CPU regression also restores the complete state across replica-group counts 1→2→1, checking exact values and the changed FP32-master/replicated-BF16 layout; actual GPU reslicing remains a separate runtime check.
 The run stops after the first complete 64-example update reaching the nominal 216,158,699,520 input-token budget.

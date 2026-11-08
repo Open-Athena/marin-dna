@@ -8,7 +8,10 @@ The local detailed research plan remains untracked in scratch/exp593-augmented-d
 
 The user authorized data preparation, single-node H100 validation, and full training on November 7, 2026.
 Train one model to the approved token horizon; there is no multi-configuration sweep.
-Use at most one active training/validation gang and at most 64 H100s.
+The November 8 authorization permits overlapping preparation allocations for resizing while the current training gang continues.
+Keep exactly one production writer and at most one pending or warming replacement gang.
+Each gang uses at most eight nodes / 64 H100s; temporary overlap may therefore use up to 128 H100s, released promptly after a verified cutover or failed preparation.
+This supersedes the original single-gang / 64-H100 aggregate limit.
 Initial smoke tests use one eight-H100 node.
 Use batch priority, Iris user eczech, and an explicit target in cw-rno2a or cw-us-east-02a.
 Other accelerator families are outside this experiment.
@@ -53,7 +56,7 @@ When reporting capacity, also show the raw `ListPeers` free/total counts display
 Report peer `last_contact_ms` separately from backend `availability.observation_epoch_ms`: a reachable peer can have recent contact while forwarding an older capacity observation.
 The documented query is `iris --cluster marin rpc controller list-peers`; the strict utilization helper remains the placement preflight.
 The MarinFold skill references the same query; its current helper expects availability v2, while this experiment's updated helper supports the live v3 priority-rank semantics.
-Keep one pending training dispatch at most.
+Keep one pending replacement dispatch at most, in addition to the productive allocation.
 Treat a one-node result as evidence only for its tested shape, batches, and memory.
 Use W&B for numerical progress and exact Iris root/task IDs for liveness and concrete failures.
 Use eric-czech/marin at the CoreWeave W&B endpoint with an exp593 identity.
@@ -95,7 +98,22 @@ The first workaround applied `--xla_gpu_shard_autotuning=false` only to GPU work
 That retry passed the initial panels but stalled inside its first training update, with sampled GPU streams waiting in ConditionalThunk execution.
 Two NCCL RAS reads found all 64 ranks present and identical, nonadvancing collective counters; they did not identify the underlying cause.
 The eight-node placement remains unvalidated.
-Restore the original optimized runtime settings and validate four Reno nodes before production; do not keep retrying the optional eight-node target while a smaller demonstrated shape can advance the primary experiment.
+The original optimized runtime settings were restored and four Reno nodes validated before production.
+The November 8 authorization permits a bounded eight-node standby validation alongside productive training; investigate a concrete failure before retrying that target.
+
+## Non-blocking preparation and handoff
+
+Use `exp593_dna.train` standby arguments to acquire the replacement gang without starting the production W&B tracker or writing production checkpoints.
+The standby restores an existing strictly bound full-state checkpoint, exercises every bucket with and without norm collection, and runs all fixed validation panels.
+It retains its allocation, decoded corpus and compiled executables while waiting for an explicit promotion command under its unique `placements/` namespace.
+The agent owns every placement and promotion decision; the resident gate never chooses a fleet action.
+Readiness alone must never stop the current writer or promote the replacement.
+Before promotion, verify the old root and its exact training child are terminal, verify the selected committed checkpoint and clock, and publish an immutable command binding those facts to the readiness receipt.
+Restore the final selected state before initializing the existing personal W&B identity with `resume=must` and a server-derived history offset.
+Discard all disposable standby updates and restart from the committed production data/token cursor.
+Use the new allocation's checkpoint-and-exit control for subsequent resizing.
+The original running allocation predates that control; coordinate its first cutover with a newly completed periodic checkpoint and report any replayed work.
+Do not promote unless the larger target passes its checks and its measured benefit justifies handoff overhead.
 
 The four-node Reno check subsequently passed all sixteen updates and all four sequence buckets with zero routing drops.
 Both fixed causal panels, all 1,024 FIM presentations / 36 greedy completions, and both functional-development panels completed.

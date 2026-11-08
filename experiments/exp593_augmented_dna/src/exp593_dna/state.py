@@ -57,6 +57,25 @@ def save_training_checkpoint(
     )
 
 
+def checkpoint_template(
+    exemplar: GrugTrainState, *, release: bool = False
+) -> GrugTrainState:
+    """Retain restore shardings, optionally releasing disposable probe buffers."""
+    template = jax.tree.map(
+        lambda value: (
+            jax.ShapeDtypeStruct(value.shape, value.dtype, sharding=value.sharding)
+            if isinstance(value, jax.Array)
+            else value
+        ),
+        exemplar,
+    )
+    if release:
+        for value in jax.tree.leaves(exemplar):
+            if isinstance(value, jax.Array):
+                value.delete()
+    return template
+
+
 def restore_training_checkpoint(
     exemplar: GrugTrainState,
     path: str,
@@ -66,14 +85,7 @@ def restore_training_checkpoint(
     """Restore into current global-array shardings without deleting the exemplar."""
     metadata = json.loads((StoragePath(path) / "metadata.json").read_bytes())
     clock = validate_checkpoint_metadata(metadata, bindings)
-    template = jax.tree.map(
-        lambda value: (
-            jax.ShapeDtypeStruct(value.shape, value.dtype, sharding=value.sharding)
-            if isinstance(value, jax.Array)
-            else value
-        ),
-        exemplar,
-    )
+    template = checkpoint_template(exemplar)
     restored = load_checkpoint(template, path, mesh=mesh, allow_partial=False)
     if (
         int(restored.step) != clock.updates
