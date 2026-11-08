@@ -1,0 +1,153 @@
+{
+  "first_1000_resumed_updates": {
+    "all_input_clocks_match_original_32_gpu_history": true,
+    "all_losses_finite": true,
+    "between_first_and_last_update": {
+      "input_tokens": 346659486.0,
+      "input_tokens_per_second": 1705357.7379245788,
+      "scope": "Steady training between 999 update boundaries; excludes queue/startup, resume validation, teardown and checkpoint overhead.",
+      "seconds": 203.276695728302
+    },
+    "buckets": [
+      2048,
+      4096,
+      6144,
+      8192
+    ],
+    "first_update": 6317,
+    "first_update_timestamp": "2026-11-08T12:45:53.995039+00:00",
+    "history_offset": 9657,
+    "history_sha256": "575439b44a227b90098630625b6c3f8d458912000dd74be8256479c010458003",
+    "input_tokens_advanced": 347147351.0,
+    "last_input_tokens": 2508567207.0,
+    "last_update": 7316,
+    "last_update_timestamp": "2026-11-08T12:49:17.271734+00:00",
+    "no_training_bucket_recompile": true,
+    "norm_count": 20,
+    "norm_event_update": 7000,
+    "norms": {
+      "norms/grad/layer_0/attention_q": 0.030465440824627876,
+      "norms/grad/layer_0/expert_down": 0.016001621261239052,
+      "norms/grad/layer_0/router": 0.0012415419332683086,
+      "norms/grad/layer_4/attention_q": 0.03577966243028641,
+      "norms/grad/layer_4/expert_down": 0.043278638273477554,
+      "norms/grad/layer_4/router": 0.004910690244287252,
+      "norms/grad/layer_7/attention_q": 0.041971851140260696,
+      "norms/grad/layer_7/expert_down": 0.030935510993003845,
+      "norms/grad/layer_7/router": 0.013561918400228024,
+      "norms/grad/overall": 10.263861656188965,
+      "norms/param/layer_0/attention_q": 13.671005249023438,
+      "norms/param/layer_0/expert_down": 133.93231201171875,
+      "norms/param/layer_0/router": 236.1514892578125,
+      "norms/param/layer_4/attention_q": 13.670767784118652,
+      "norms/param/layer_4/expert_down": 133.95530700683594,
+      "norms/param/layer_4/router": 121.52365112304688,
+      "norms/param/layer_7/attention_q": 13.669854164123535,
+      "norms/param/layer_7/expert_down": 133.93988037109375,
+      "norms/param/layer_7/router": 61.58433532714844,
+      "norms/param/overall": 2376.935546875
+    },
+    "norms_all_finite": true,
+    "routing_drops": 0,
+    "rows": 1000,
+    "source_input_tokens": 2161419856,
+    "verified_at": "2026-11-08T12:50:10.769073+00:00"
+  },
+  "full_state_checkpoint": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/training/dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1/checkpoints/step-6316",
+  "global_batch": 64,
+  "metadata_sha256": "af85d4086d5c0b72367f13834fb44775efbb3029e9282db9ca8068bc886c26d8",
+  "original_root": "/eczech/exp593-dna216b-production-20261108-rno-n4-v1-a1",
+  "preserved": {
+    "input_token_horizon": 216158699520,
+    "learning_rate_multiplier": 0.5,
+    "new_run_optimizer_history": true,
+    "new_run_token_and_example_cursor": true,
+    "source_optimizer_never_imported": true,
+    "wandb_identity": true,
+    "warmup_input_tokens": 2161115136
+  },
+  "promoted_root": "/eczech/exp593-dna216b-standby-20261108-rno-n8-v1-a1",
+  "promotion": {
+    "checkpoint": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/training/dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1/checkpoints/step-6316",
+    "child_state": "JOB_STATE_KILLED",
+    "clock": {
+      "dna_tokens": 2144736538,
+      "examples": 404224,
+      "fim_examples": 202354,
+      "input_tokens": 2161419856,
+      "loss_targets": 1086249255,
+      "rc_examples": 202203,
+      "text_tokens": 16683318,
+      "updates": 6316
+    },
+    "metadata_sha256": "af85d4086d5c0b72367f13834fb44775efbb3029e9282db9ca8068bc886c26d8",
+    "old_child": "/eczech/exp593-dna216b-production-20261108-rno-n4-v1-a1/train-dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1",
+    "old_last_logged_input_tokens": 3312009395,
+    "old_root": "/eczech/exp593-dna216b-production-20261108-rno-n4-v1-a1",
+    "physical_fence": {
+      "backend_measured_at": "2026-11-08T12:42:33.724000+00:00",
+      "child_state": "JOB_STATE_KILLED",
+      "fresh_after_stop": true,
+      "measurement_recent": true,
+      "observed_at": "2026-11-08T12:43:56.886093+00:00",
+      "old_pods": [],
+      "old_root": "/eczech/exp593-dna216b-production-20261108-rno-n4-v1-a1",
+      "old_writer_physically_terminal": true,
+      "root_state": "JOB_STATE_KILLED"
+    },
+    "protocol": "exp593-standby-promotion-v1",
+    "ready_sha256": "55c42f2541ebf3a87fee8dfcc4714dfa59724ce80541e8fd9074f4937da87e77",
+    "replayed_logged_input_tokens": 1150589539,
+    "requested_at": "2026-11-08T12:45:09.600941+00:00",
+    "root_state": "JOB_STATE_KILLED",
+    "standby_id": "exp593-dna216b-standby-20261108-rno-n8-v1-a1"
+  },
+  "promotion_sha256": "6b91deff83e45604d39e91118039a155e7c601aeda23de77c2cc9f84d78dd156",
+  "readiness": {
+    "all_buckets_and_norm_branches": true,
+    "all_metrics_finite": true,
+    "probes": 16,
+    "production_writes": false,
+    "routing_drops": 0,
+    "sha256": "55c42f2541ebf3a87fee8dfcc4714dfa59724ce80541e8fd9074f4937da87e77",
+    "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/placements/exp593-dna216b-standby-20261108-rno-n8-v1-a1/ready.json",
+    "validation_loss_after_disposable_probes": 1.1262823300457607
+  },
+  "restored_clock": {
+    "dna_tokens": 2144736538,
+    "examples": 404224,
+    "fim_examples": 202354,
+    "input_tokens": 2161419856,
+    "loss_targets": 1086249255,
+    "rc_examples": 202203,
+    "text_tokens": 16683318,
+    "updates": 6316
+  },
+  "resume_validation": {
+    "absolute_difference": 1.0781689878669454e-05,
+    "functional_result": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/training/dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1/development/afd57d8f028d70a0d4656c1740daf29e3948cb172726085aa9299eef8534d877/result.json",
+    "original_32_gpu_primary_loss": 1.124137179400977,
+    "resumed_64_gpu_primary_loss": 1.1241479610908556
+  },
+  "run_id": "dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1",
+  "runtime_source_commit": "a67e477bb8d358e701f8f070e4ca0df6b2dab480",
+  "scientific_bindings_sha256": "512ea5478153806ffd0070b4e91691bb39ab97e23945057ec30c8cde0b782cb2",
+  "target": {
+    "cluster": "cw-rno2a",
+    "gpus": 64,
+    "nodes": 8,
+    "priority": "batch",
+    "user": "eczech"
+  },
+  "teardown_caveat": {
+    "cancel_cli_at": "2026-11-08T12:31:53+00:00",
+    "last_observed_old_optimizer_log_at": "2026-11-08T12:36:13+00:00",
+    "last_observed_old_optimizer_log_input_tokens": 3327644079,
+    "last_observed_old_optimizer_log_update": 9700,
+    "minimum_replayed_input_tokens_from_optimizer_log": 1166224223,
+    "note": "Iris terminal acknowledgement preceded actual worker termination. Promotion waited for a fresh backend observation with no old pods. W&B retained fewer final updates than the worker log; the promotion records replayed W&B input tokens separately. The new held allocation supports checkpoint-and-exit for future handoffs.",
+    "worker_logs_sigkill_grace_expired_at": "2026-11-08T12:36:17+00:00"
+  },
+  "verified_at": "2026-11-08T12:50:10.769073+00:00",
+  "wandb_url": "https://forge.coreweave.com/api/wandb/eric-czech/marin/runs/dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1"
+}

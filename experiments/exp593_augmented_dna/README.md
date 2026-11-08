@@ -21,12 +21,13 @@ An evaluation-only retry can restore that validation run's own full-state checkp
 # Bounded validation uses a separate run and checkpoint namespace.
 python -m exp593_dna.train --cluster cw-us-east-02a --nodes 1 \
   --run-id dna-exp593-loop-smoke-v1 --validation-updates 16
-# Submit production only after this exact profile passes validation.
-python -m exp593_dna.train --cluster cw-us-east-02a --nodes 1
+# Resume the existing text-initialized identity on its qualified full-state target.
+python -m exp593_dna.train --cluster cw-rno2a --nodes 8
 # Independent DNA-initialized bounded validation, followed by its own production run.
-python -m exp593_dna.train --cluster cw-rno2a --nodes 1 --initialization dna216b \
+python -m exp593_dna.train --cluster cw-us-east-02a --nodes 1 --initialization dna216b \
   --run-id dna-exp593-dna216b-loop-smoke-v1 --validation-updates 16
-python -m exp593_dna.train --cluster cw-rno2a --nodes 4 --initialization dna216b
+# Resume this existing identity from its native checkpoint on the qualified full-state target.
+python -m exp593_dna.train --cluster cw-rno2a --nodes 8 --initialization dna216b
 ```
 
 These entry points dispatch eight processes and eight H100s per node through Iris at batch priority.
@@ -41,6 +42,8 @@ The DNA-initialized condition passed sixteen bounded updates and all fixed/funct
 These checks preserve the fresh optimizer and zero-based source import.
 The DNA-initialized production run's first 1,000 updates have finite losses, zero routing drops and twenty finite norm scalars; see artifacts/dna216b-production-startup-v1/result.json.
 Its first 339,790,830 input tokens exactly match the original text-initialized run's deterministic 1,000-update input prefix.
+The DNA-initialized run now uses eight Reno nodes / 64 H100s, following full-state resident validation and a physically fenced handoff; see artifacts/dna216b-production-reslice-rno-n8-v1/result.json.
+Its first 1,000 resumed updates preserve the same input cursor and have finite losses, zero routing drops and twenty finite norm scalars.
 Scientific bindings exclude placement and are read back before checkpoint discovery; resumed execution restores the latest complete optimizer/data state and preserves that run identity.
 CPU rendering prefetches one batch while device collectives stay ordered on the main thread.
 For resizing, add `--standby-id`, `--standby-checkpoint` and `--standby-from-job` to acquire a separate allocation while production continues.
@@ -79,7 +82,7 @@ The conservation contexts are padded to a fixed 1024-token inference bucket; jun
 Per-site predictions, metrics, input manifest and scorer implementation hashes are published as immutable content-addressed native objects before their W&B metrics are reported.
 The primary `eval/loss` protocol and scientific training bindings remain unchanged.
 The readout passes a compiled FP32 reference comparison and a separate BF16 tolerance check on a small synthetic model, including a partial final batch.
-Full-model initial scoring of both panels passed during the Reno eight-node validation; production scoring has not begun yet.
+Both functional panels are active in production, and the original run's first-quarter checkpoint and frozen prediction artifacts are independently verified in artifacts/production-quarter-1-v1/result.json.
 The large junction payload is native-only; the repository retains its manifest and four paired examples.
 
 ```bash

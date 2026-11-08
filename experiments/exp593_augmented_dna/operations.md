@@ -107,6 +107,9 @@ Their initial primary loss matches the evaluated source model within 2e-5, and t
 These two profiles are eligible for the DNA-initialized production model; other new-source targets require their own bounded validation.
 The sixteen-update checks do not reach production's first norm event at update 1,000; verify all twenty norm scalars there.
 See artifacts/dna216b-loop-smoke-v1/result.json.
+The DNA216B eight-node Reno resident standby subsequently restored its own permanent warmup checkpoint and passed sixteen probes, all buckets and norm branches, and every fixed/functional panel.
+Its full-state resume is eligible; the first 1,000 promoted updates have finite losses, zero routing drops, twenty finite norms and input clocks matching the prior four-node history.
+See artifacts/dna216b-production-reslice-rno-n8-v1/result.json.
 
 The local four-device CPU checkpoint regression covers exact full-state restoration across replica-group counts 1→2→1, including the FP32 expert-master/momentum partition and replicated BF16 weights.
 It supports the global-array checkpoint mechanism; it does not establish target eligibility or replace numerical checks on a future GPU reslice.
