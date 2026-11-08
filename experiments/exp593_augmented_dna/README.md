@@ -6,12 +6,10 @@ The user has authorized preparation, single-node H100 validation, and full train
 Data preparation and the single-node H100 smoke are complete.
 The full fixed-panel accelerator evaluator passed on eight H100s in about 65 seconds, including all 36 greedy completions.
 The four-node production loop passed sixteen bounded updates and native checkpoint discovery.
-The queued East production dispatch was stopped before any optimizer update to validate an eight-node Reno placement as capacity became available.
-The first 64-H100 Reno check passed the initial causal, FIM and functional panels and one training update, then stalled in distributed compiler autotuning.
-A retry with autotuning sharding disabled passed the initial panels but stalled in its first training update.
 The four-node Reno validation passed all sixteen updates, all four buckets and the causal/FIM/functional panels, with zero routing drops and verified native checkpoint discovery.
-This 32-H100 placement is eligible for production with the original optimized runtime settings.
-Production remains the single `dna-exp593-augmented-d768-pretrained-seed0-v1` identity in personal `eric-czech/marin`.
+Production is progressing on 32 Reno H100s with the original optimized runtime as `dna-exp593-augmented-d768-pretrained-seed0-v1` in personal `eric-czech/marin`.
+Its first 1,000 updates processed 339,790,830 input tokens with finite losses, zero routing drops and twenty finite parameter/gradient norm metrics; see artifacts/production-startup-v1/result.json.
+The exact native scientific bindings and resume update zero confirm fresh initialization from the original text checkpoint.
 The accelerator evaluator reads the immutable preparation bundle, rechecks historical membership and native-case FIM reconstruction, and scores raw token NLL with binary masks.
 Its fixed generation panel contains two minimal/formatted pairs for each of the nine gap lengths (36 presentations); each completion is greedy, uses the full original vocabulary, and stops at the caller-specified length.
 The `exp593_dna.smoke --evaluate-panels` option exercises all causal and FIM panels after the bounded training/checkpoint smoke.
