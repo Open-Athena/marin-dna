@@ -98,6 +98,9 @@ Per-site predictions, metrics, input manifest and scorer implementation hashes a
 The primary `eval/loss` protocol and scientific training bindings remain unchanged.
 The readout passes a compiled FP32 reference comparison and a separate BF16 tolerance check on a small synthetic model, including a partial final batch.
 Both functional panels are active in production, and the original run's first-quarter checkpoint and frozen prediction artifacts are independently verified in artifacts/production-quarter-1-v1/result.json.
+The [text-initialized half-budget checkpoint](artifacts/production-quarter-2-v1/result.json) and [DNA-initialized first-quarter checkpoint](artifacts/dna216b-quarter-1-v1/result.json) have verified permanent metadata, complete fixed panels and independently checked 640-record functional artifacts.
+The two first-quarter checkpoints have identical input, DNA, text, target, example, FIM and RC clocks at update 156,559 / 54,039,954,011 additional input tokens.
+These fixed development panels provide diagnostics; benchmark evaluation remains separate.
 The large junction payload is native-only; the repository retains its manifest and four paired examples.
 
 ```bash
