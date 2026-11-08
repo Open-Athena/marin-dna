@@ -90,6 +90,7 @@ from exp593_dna.schedule import (
 )
 from exp593_dna.standby import (
     checked_checkpoint,
+    committed_promotion,
     publish_once,
     validate_promotion,
     validate_standby_id,
@@ -351,13 +352,27 @@ def _run_training(config: TrainingConfig) -> None:
         "H100" in d.device_kind for d in jax.devices()
     ):
         raise ValueError("Training did not receive the requested H100 gang")
+    warming = config.standby_id is not None
+    if warming and primary_json(
+        lambda: committed_promotion(
+            config.control_root,
+            standby_id=config.standby_id,
+            old_root=config.standby_from_job,
+            run_id=config.run_id,
+        )
+    ):
+        # Iris can restart the same serialized standby entry point after it has
+        # become production. Preserve control ownership but use normal recovery,
+        # never the possibly pruned original disposable source or readiness path.
+        warming = False
+        tracker.set_global_tracker(wandb_config.init(config.run_id))
     tracker.log_configuration(config)
-    log_step = 0 if config.standby_id is not None else wandb_history_offset()
+    log_step = 0 if warming else wandb_history_offset()
     tracker.log_summary({"training/phase": "loading_inputs"})
     inputs = PreparedInputs.open(Path("/tmp/exp593-inputs"))
     encoder = load_encoder()
     bindings = scientific_bindings(config, inputs, encoder)
-    if config.standby_id is not None:
+    if warming:
         primary_json(
             lambda: asdict(
                 checked_checkpoint(
@@ -393,7 +408,7 @@ def _run_training(config: TrainingConfig) -> None:
         config.checkpoint_root.removesuffix("/checkpoints") + "/development"
     )
     development_protocol = None
-    if config.standby_id is None:
+    if not warming:
         development_protocol = primary_json(
             lambda: publish_development_protocol(development_root)
         )
@@ -446,7 +461,7 @@ def _run_training(config: TrainingConfig) -> None:
         train_step = make_train_step(optimizer, mp, norm_policy=norm_policy)
         compiled_buckets: set[int] = set()
 
-        if config.standby_id is not None:
+        if warming:
             source_clock = clock
             samples = []
             tested: set[tuple[int, bool]] = set()

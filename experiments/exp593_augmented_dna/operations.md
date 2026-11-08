@@ -125,3 +125,7 @@ All four buckets and both norm branches completed, all metrics were finite, rout
 See artifacts/standby-rno-n8-v1/result.json and its immutable native readiness receipt.
 This establishes eligibility for the tested full-state resume path; the underlying cause of the earlier fresh-state eight-node failures is not established.
 The first handoff waits for a newly completed periodic checkpoint from the original writer while both allocations remain held.
+
+The resident first standby uses immutable source bcb00881 and predates automatic recognition of a prior promotion on re-entry.
+If that allocation later fails on its serialized standby source or duplicate readiness after an Iris retry, diagnose the concrete error and recover through the ordinary production entry point with the same W&B/checkpoint identity.
+Later source recognizes the immutable promotion and chooses normal latest-checkpoint recovery; it does not require the old source or handoff checkpoint to survive retention.

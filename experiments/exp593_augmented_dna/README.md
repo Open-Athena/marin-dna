@@ -35,6 +35,7 @@ The standby uses a no-op tracker, restores the existing production checkpoint, v
 It writes only under its unique `placements/<standby-id>/` prefix until an operator supplies the readiness digest, exact checkpoint/clock and proof that both old Iris writer jobs are terminal.
 Promotion discards all probe updates, restores the selected production cursor and resumes the same W&B identity without requesting a new gang.
 Promoted allocations also accept an explicit checkpoint-and-exit request for subsequent handoffs; see [operations.md](operations.md).
+On re-entry after promotion, immutable control evidence selects ordinary strict recovery from the newest production checkpoint, even after the original standby source and handoff checkpoint have been pruned.
 Periodic checkpoints occur approximately every 30 minutes, with two temporary recovery saves retained; warmup, quarter-budget and final checkpoints are permanent.
 A four-device CPU regression also restores the complete state across replica-group counts 1→2→1, checking exact values and the changed FP32-master/replicated-BF16 layout; actual GPU reslicing remains a separate runtime check.
 The run stops after the first complete 64-example update reaching the nominal 216,158,699,520 input-token budget.

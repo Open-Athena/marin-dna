@@ -7,7 +7,12 @@ import pytest
 
 from exp593_dna.recovery import canonical_json
 from exp593_dna.schedule import TokenClock
-from exp593_dna.standby import checked_checkpoint, publish_once, validate_promotion
+from exp593_dna.standby import (
+    checked_checkpoint,
+    committed_promotion,
+    publish_once,
+    validate_promotion,
+)
 from exp593_dna.train import TrainingConfig, scientific_bindings
 
 
@@ -120,3 +125,28 @@ def test_standby_evidence_is_append_only(tmp_path):
     )
     with pytest.raises(ValueError, match="overwrite"):
         publish_once(path, {"ready": False})
+
+
+def test_promoted_retry_uses_immutable_evidence_without_original_checkpoint(tmp_path):
+    args = {
+        "standby_id": "reno-n8-v1",
+        "old_root": "/eczech/old-root",
+        "run_id": "dna-exp593-production",
+    }
+    assert not committed_promotion(str(tmp_path), **args)
+    ready_sha = publish_once(str(tmp_path / "ready.json"), {"probes": "completed"})
+    command = {
+        "protocol": "exp593-standby-promotion-v1",
+        "standby_id": "reno-n8-v1",
+        "ready_sha256": ready_sha,
+        "old_root": "/eczech/old-root",
+        "old_child": "/eczech/old-root/train-dna-exp593-production",
+        "root_state": "JOB_STATE_KILLED",
+        "child_state": "JOB_STATE_KILLED",
+        "checkpoint": "already-pruned-after-promotion",
+    }
+    (tmp_path / "promote.json").write_text(json.dumps(command))
+    assert committed_promotion(str(tmp_path), **args)
+    (tmp_path / "ready.json").write_text('{"probes":"different"}')
+    with pytest.raises(ValueError, match="readiness"):
+        committed_promotion(str(tmp_path), **args)

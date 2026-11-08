@@ -51,16 +51,14 @@ def publish_once(path: str, payload: dict[str, Any]) -> str:
     return hashlib.sha256(raw.encode()).hexdigest()
 
 
-def validate_promotion(
+def validate_promotion_identity(
     command: dict[str, Any],
     *,
     standby_id: str,
     ready_sha256: str,
     old_root: str,
-    checkpoint_root: str,
     bindings: dict[str, Any],
-    source_clock: TokenClock,
-) -> tuple[str, TokenClock]:
+) -> None:
     """Require explicit operator evidence that both old writer jobs are terminal.
 
     The operator queries Iris immediately before publishing this command.
@@ -80,6 +78,26 @@ def validate_promotion(
         command.get(key) not in TERMINAL_STATES for key in ("root_state", "child_state")
     ):
         raise ValueError("Old production writer is not terminal")
+
+
+def validate_promotion(
+    command: dict[str, Any],
+    *,
+    standby_id: str,
+    ready_sha256: str,
+    old_root: str,
+    checkpoint_root: str,
+    bindings: dict[str, Any],
+    source_clock: TokenClock,
+) -> tuple[str, TokenClock]:
+    """Require the committed handoff checkpoint before the first promotion."""
+    validate_promotion_identity(
+        command,
+        standby_id=standby_id,
+        ready_sha256=ready_sha256,
+        old_root=old_root,
+        bindings=bindings,
+    )
     checkpoint = command["checkpoint"]
     digest = command["metadata_sha256"]
     if not isinstance(digest, str) or re.fullmatch(r"[0-9a-f]{64}", digest) is None:
@@ -93,3 +111,26 @@ def validate_promotion(
     if command.get("clock") != asdict(clock):
         raise ValueError("Promotion clock differs from committed metadata")
     return checkpoint, clock
+
+
+def committed_promotion(
+    control_root: str, *, standby_id: str, old_root: str, run_id: str
+) -> bool:
+    """Recognize re-entry into an already promoted allocation after an Iris retry.
+
+    The original handoff checkpoint can have been pruned by now.
+    Its immutable promotion/readiness evidence still fences the old writer;
+    normal strict production discovery chooses the newest recovery checkpoint.
+    """
+    path = StoragePath(control_root) / "promote.json"
+    if not path.exists():
+        return False
+    ready = (StoragePath(control_root) / "ready.json").read_bytes()
+    validate_promotion_identity(
+        json.loads(path.read_text()),
+        standby_id=standby_id,
+        ready_sha256=hashlib.sha256(ready).hexdigest(),
+        old_root=old_root,
+        bindings={"run_id": run_id},
+    )
+    return True
