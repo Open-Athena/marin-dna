@@ -58,6 +58,9 @@ Forward current storage credentials explicitly to remote workers.
 
 Use fresh Iris v3 backend availability before submissions and node-count changes.
 Stale observations are inconclusive and cannot justify a placement.
+Refetch the documented peer query immediately before every submission.
+Prefer measurements at most 90 seconds old; for an additional batch request that does not stop a productive gang, allow up to five minutes only when peer contact is at most 30 seconds old and reported free GPUs are at least four times the requested gang.
+This bounded admission exception accommodates the backend's observed multi-minute reporting cadence; it never permits reclaiming another job, stopping production or bypassing scheduler admission.
 When reporting capacity, also show the raw `ListPeers` free/total counts displayed by the Iris UI, with their measurement age, even when the strict helper rejects a stale measurement.
 Report peer `last_contact_ms` separately from backend `availability.observation_epoch_ms`: a reachable peer can have recent contact while forwarding an older capacity observation.
 The documented query is `iris --cluster marin rpc controller list-peers`; the strict utilization helper remains the placement preflight.
