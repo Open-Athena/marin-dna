@@ -44,6 +44,8 @@ The DNA-initialized production run's first 1,000 updates have finite losses, zer
 Its first 339,790,830 input tokens exactly match the original text-initialized run's deterministic 1,000-update input prefix.
 The DNA-initialized run now uses eight Reno nodes / 64 H100s, following full-state resident validation and a physically fenced handoff; see artifacts/dna216b-production-reslice-rno-n8-v1/result.json.
 Its first 1,000 resumed updates preserve the same input cursor and have finite losses, zero routing drops and twenty finite norm scalars.
+A separate 64→8 H100 recovery check restored the DNA-initialized production checkpoint and optimizer on one East node, then passed sixteen disposable updates and all fixed/functional panels; see [the recovery evidence](artifacts/dna216b-recovery-east-n1-v1/result.json).
+The validation used a no-op tracker and was physically released without promotion or production writes.
 Scientific bindings exclude placement and are read back before checkpoint discovery; resumed execution restores the latest complete optimizer/data state and preserves that run identity.
 CPU rendering prefetches one batch while device collectives stay ordered on the main thread.
 For resizing, add `--standby-id`, `--standby-checkpoint` and `--standby-from-job` to acquire a separate allocation while production continues.
@@ -256,4 +258,4 @@ See `artifacts/smoke-v1/result.json` for the checkpoint binding and [personal W&
 
 W&B belongs to the personal `eric-czech/marin` project on `https://forge.coreweave.com/api/wandb`.
 Artifacts belong under `s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/`.
-See `operations.md` for the approved single-model placement and recovery policy.
+See `operations.md` for the approved two-model placement and recovery policy.

@@ -1,0 +1,226 @@
+{
+  "checks": {
+    "all_buckets_and_both_norm_branches": true,
+    "all_fixed_causal_fim_and_functional_panels_finite": true,
+    "all_state_and_metrics_finite": true,
+    "bf16_model_fp32_master_layout_checked": true,
+    "full_state_restore_including_optimizer_and_input_cursor": true,
+    "norm_scalars_per_norm_probe": 20,
+    "pods_absent_in_post_cancel_backend_observation": true,
+    "probe_updates": 16,
+    "production_roots_unchanged": true,
+    "root_and_child_terminal": true,
+    "routing_drops": 0
+  },
+  "functional": {
+    "eval/development_conservation_bare_auroc": 0.54766845703125,
+    "eval/development_conservation_bare_average_precision": 0.5223646824214154,
+    "eval/development_conservation_bare_examples": 512,
+    "eval/development_conservation_bare_negatives": 256,
+    "eval/development_conservation_bare_positives": 256,
+    "eval/development_conservation_fim_auroc": 0.5529022216796875,
+    "eval/development_conservation_fim_average_precision": 0.5484012091040904,
+    "eval/development_conservation_fim_examples": 512,
+    "eval/development_conservation_fim_negatives": 256,
+    "eval/development_conservation_fim_positives": 256,
+    "eval/development_junction_random_control_base_accuracy": 0.375,
+    "eval/development_junction_random_control_dna_exact_match": 0.15625,
+    "eval/development_junction_random_control_exact_match": 0.15625,
+    "eval/development_junction_random_control_examples": 64,
+    "eval/development_junction_random_control_loss": 1.2807985423132777,
+    "eval/development_junction_random_control_targets": 128,
+    "eval/development_junction_splice_acceptor_base_accuracy": 0.953125,
+    "eval/development_junction_splice_acceptor_dna_exact_match": 0.90625,
+    "eval/development_junction_splice_acceptor_exact_match": 0.90625,
+    "eval/development_junction_splice_acceptor_examples": 32,
+    "eval/development_junction_splice_acceptor_loss": 0.27169205248355865,
+    "eval/development_junction_splice_acceptor_targets": 64,
+    "eval/development_junction_splice_donor_base_accuracy": 0.90625,
+    "eval/development_junction_splice_donor_dna_exact_match": 0.84375,
+    "eval/development_junction_splice_donor_exact_match": 0.84375,
+    "eval/development_junction_splice_donor_examples": 32,
+    "eval/development_junction_splice_donor_loss": 0.298362297937274,
+    "eval/development_junction_splice_donor_targets": 64
+  },
+  "limitations": [
+    "Numerical recovery qualification for this DNA216B full-state source on one East H100 node; other untested placements remain unqualified.",
+    "Disposable probe timings include compilation and are not production throughput estimates.",
+    "No assertion of bitwise equivalence across GPU gang sizes.",
+    "The source was a temporary retained checkpoint; the native readiness receipt is the immutable qualification record."
+  ],
+  "native_readiness": {
+    "read_back_verified": true,
+    "sha256": "31bbadd19ded899942492efe68942b63db90ab7a4eedbb41fe16e98e7a852f47",
+    "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/placements/exp593-dna216b-recovery-20261108-east-n1-v1-a1/ready.json"
+  },
+  "probes": [
+    {
+      "bucket": 4096,
+      "collect_norms": true,
+      "loss": 1.2013726234436035,
+      "probe": 1,
+      "seconds": 26.03795698285103
+    },
+    {
+      "bucket": 4096,
+      "collect_norms": false,
+      "loss": 1.242793083190918,
+      "probe": 2,
+      "seconds": 3.560206836089492
+    },
+    {
+      "bucket": 4096,
+      "collect_norms": false,
+      "loss": 1.2473667860031128,
+      "probe": 3,
+      "seconds": 0.3412258089520037
+    },
+    {
+      "bucket": 8192,
+      "collect_norms": true,
+      "loss": 1.2508635520935059,
+      "probe": 4,
+      "seconds": 9.358237187378109
+    },
+    {
+      "bucket": 6144,
+      "collect_norms": true,
+      "loss": 1.1682050228118896,
+      "probe": 5,
+      "seconds": 9.857665984891355
+    },
+    {
+      "bucket": 8192,
+      "collect_norms": false,
+      "loss": 1.182535171508789,
+      "probe": 6,
+      "seconds": 0.6625669216737151
+    },
+    {
+      "bucket": 8192,
+      "collect_norms": false,
+      "loss": 1.2309117317199707,
+      "probe": 7,
+      "seconds": 0.5784026184119284
+    },
+    {
+      "bucket": 6144,
+      "collect_norms": false,
+      "loss": 1.19740629196167,
+      "probe": 8,
+      "seconds": 0.43373557226732373
+    },
+    {
+      "bucket": 8192,
+      "collect_norms": false,
+      "loss": 1.1817572116851807,
+      "probe": 9,
+      "seconds": 0.6174791678786278
+    },
+    {
+      "bucket": 2048,
+      "collect_norms": true,
+      "loss": 1.1762945652008057,
+      "probe": 10,
+      "seconds": 15.353478982113302
+    },
+    {
+      "bucket": 8192,
+      "collect_norms": false,
+      "loss": 1.2306861877441406,
+      "probe": 11,
+      "seconds": 1.2356980522163212
+    },
+    {
+      "bucket": 8192,
+      "collect_norms": false,
+      "loss": 1.2900631427764893,
+      "probe": 12,
+      "seconds": 0.7915252298116684
+    },
+    {
+      "bucket": 8192,
+      "collect_norms": false,
+      "loss": 1.2220218181610107,
+      "probe": 13,
+      "seconds": 1.084728176239878
+    },
+    {
+      "bucket": 4096,
+      "collect_norms": false,
+      "loss": 1.2278032302856445,
+      "probe": 14,
+      "seconds": 0.8502269559539855
+    },
+    {
+      "bucket": 6144,
+      "collect_norms": false,
+      "loss": 1.1919045448303223,
+      "probe": 15,
+      "seconds": 0.9006071798503399
+    },
+    {
+      "bucket": 2048,
+      "collect_norms": false,
+      "loss": 1.254660964012146,
+      "probe": 16,
+      "seconds": 0.670177630148828
+    }
+  ],
+  "purpose": "Bounded 64-to-8 H100 full-state recovery qualification; all probes discarded; no production promotion",
+  "reader": {
+    "cluster": "cw-us-east-02a",
+    "global_batch": 64,
+    "gpus": 8,
+    "iris_root": "/eczech/exp593-dna216b-recovery-20261108-east-n1-v1-a1",
+    "nodes": 1,
+    "production_writes": false,
+    "promotion_performed": false,
+    "tracker": "Noop",
+    "wandb_run_created": false
+  },
+  "runtime_source_commit": "de5f428fc7b2bac8b6e40697f905c8b99ca3580d",
+  "source": {
+    "checkpoint": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/training/dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1/checkpoints/step-84576",
+    "clock": {
+      "dna_tokens": 28959119778,
+      "examples": 5412864,
+      "fim_examples": 2706462,
+      "input_tokens": 29181782970,
+      "loss_targets": 14676240043,
+      "rc_examples": 2707790,
+      "text_tokens": 222663192,
+      "updates": 84576
+    },
+    "metadata_and_bindings_read_back_verified": true,
+    "metadata_sha256": "29e72d6c52c05a75ac27493757d90601aa755300142e14edd63b4bd509897660",
+    "producer_cluster": "cw-rno2a",
+    "producer_gpus": 64,
+    "producer_nodes": 8,
+    "scientific_bindings_sha256": "512ea5478153806ffd0070b4e91691bb39ab97e23945057ec30c8cde0b782cb2"
+  },
+  "source_commit": "d23cbafa844f96e12891ce5ad730c6c39466266e",
+  "timing": {
+    "backend_cleanup_measured_at": "2026-11-08T17:53:09.005000+00:00",
+    "cancel_acknowledged_at": "2026-11-08T17:52:46.439972+00:00",
+    "gpu_task_started_at": "2026-11-08T17:40:50.166000+00:00",
+    "intent_at": "2026-11-08T16:59:46.241440+00:00",
+    "native_readiness_verified_at": "2026-11-08T17:48:41.683713+00:00",
+    "physical_cleanup_verified_at": "2026-11-08T17:53:13.019737+00:00",
+    "submission_confirmed_at": "2026-11-08T17:00:47.265200+00:00"
+  },
+  "validation": {
+    "eval/disjoint_examples": 512,
+    "eval/examples": 512,
+    "eval/fim_base_accuracy": 0.44495064540622625,
+    "eval/fim_exact_match": 0.16666666666666666,
+    "eval/fim_examples": 1024,
+    "eval/fim_generated_examples": 36,
+    "eval/fim_loss": 1.2316457033157349,
+    "eval/loss": 1.1848317165247688,
+    "eval/loss_disjoint": 1.1701889038085938,
+    "eval/loss_nonsoftmasked": 1.2272439695478847,
+    "eval/loss_softmasked": 0.7784106216705247,
+    "eval/loss_weighted_10to1": 1.2226085227145522
+  }
+}

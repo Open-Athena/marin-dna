@@ -110,6 +110,11 @@ See artifacts/dna216b-loop-smoke-v1/result.json.
 The DNA216B eight-node Reno resident standby subsequently restored its own permanent warmup checkpoint and passed sixteen probes, all buckets and norm branches, and every fixed/functional panel.
 Its full-state resume is eligible; the first 1,000 promoted updates have finite losses, zero routing drops, twenty finite norms and input clocks matching the prior four-node history.
 See artifacts/dna216b-production-reslice-rno-n8-v1/result.json.
+The DNA216B one-node East profile also restored a full-state checkpoint produced by its eight-node Reno production gang.
+It passed sixteen disposable updates, every bucket with and without norms, twenty finite norm scalars, zero routing drops and all fixed/functional panels.
+This qualifies the tested 64→8 H100 recovery path, including optimizer and input cursor; it does not establish eligibility for other untested placements.
+The no-op-tracker validation wrote no production state, was never promoted, and its allocation was physically released after readiness verification.
+See artifacts/dna216b-recovery-east-n1-v1/result.json.
 
 The local four-device CPU checkpoint regression covers exact full-state restoration across replica-group counts 1→2→1, including the FP32 expert-master/momentum partition and replicated BF16 weights.
 It supports the global-array checkpoint mechanism; it does not establish target eligibility or replace numerical checks on a future GPU reslice.
