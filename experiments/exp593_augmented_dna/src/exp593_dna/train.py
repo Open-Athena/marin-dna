@@ -1,4 +1,4 @@
-"""One fresh text-initialized augmented d768 run with durable token-clock recovery."""
+"""Augmented d768 runs with fresh initialization and durable token-clock recovery."""
 
 from __future__ import annotations
 
@@ -18,7 +18,12 @@ import equinox as eqx
 import jax
 import jmp
 import numpy as np
-from exp586_moe.config import SOURCE_CHECKPOINT, SOURCE_METADATA_DIGEST, d768_config
+from exp586_moe.config import (
+    CONTINUATION_SOURCE_CHECKPOINT,
+    SOURCE_CHECKPOINT,
+    SOURCE_METADATA_DIGEST,
+    d768_config,
+)
 from exp586_moe.data_parallel import local_model, replicated_mesh
 from exp586_moe.perf5_metrics import copy_metrics
 from exp586_moe.perf5_optimizer import (
@@ -103,6 +108,11 @@ from exp593_dna.state import (
 from exp593_dna.train_step import make_train_step
 
 PRODUCTION_RUN_ID = "dna-exp593-augmented-d768-pretrained-seed0-v1"
+DNA216B_RUN_ID = "dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1"
+# restore_weights checks canonical metadata, rather than the raw-file digest.
+DNA216B_METADATA_DIGEST = (
+    "275e68e8a521333a4dd5c7bf2aa8f9c79c11517677a8af47ce7abc1aa5004a89"
+)
 WANDB_BASE_URL = "https://forge.coreweave.com/api/wandb"
 OWNER = "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna"
 LOGGER = logging.getLogger(__name__)
@@ -138,8 +148,11 @@ class TrainingConfig:
     standby_id: str | None = None
     standby_checkpoint: str | None = None
     standby_from_job: str | None = None
+    initialization: str = "text"
 
     def __post_init__(self) -> None:
+        if self.initialization not in ("text", "dna216b"):
+            raise ValueError("Unapproved model initialization")
         if self.cluster not in ("cw-rno2a", "cw-us-east-02a") or self.nodes not in (
             1,
             2,
@@ -148,8 +161,11 @@ class TrainingConfig:
         ):
             raise ValueError("Unapproved H100 placement")
         if self.validation_updates is None:
-            if self.run_id != PRODUCTION_RUN_ID:
-                raise ValueError("Only one final model identity is authorized")
+            expected = (
+                PRODUCTION_RUN_ID if self.initialization == "text" else DNA216B_RUN_ID
+            )
+            if self.run_id != expected:
+                raise ValueError("Final model identity must match its initialization")
         elif not (
             1 <= self.validation_updates <= 64
             and self.run_id.startswith("dna-exp593-")
@@ -172,6 +188,26 @@ class TrainingConfig:
                 )
         elif self.standby_checkpoint is not None or self.standby_from_job is not None:
             raise ValueError("Standby source requires a unique standby identity")
+
+    @property
+    def source_checkpoint(self) -> str:
+        return (
+            SOURCE_CHECKPOINT
+            if self.initialization == "text"
+            else CONTINUATION_SOURCE_CHECKPOINT
+        )
+
+    @property
+    def source_metadata_digest(self) -> str:
+        return (
+            SOURCE_METADATA_DIGEST
+            if self.initialization == "text"
+            else DNA216B_METADATA_DIGEST
+        )
+
+    @property
+    def lr_multiplier(self) -> float:
+        return 1.0 if self.initialization == "text" else 0.5
 
     @property
     def checkpoint_root(self) -> str:
@@ -213,8 +249,8 @@ def scientific_bindings(
                 "protocol": "exp593-augmented-d768-v1",
                 "run_id": config.run_id,
                 "validation_updates": config.validation_updates,
-                "source_checkpoint": SOURCE_CHECKPOINT,
-                "source_metadata": SOURCE_METADATA_DIGEST,
+                "source_checkpoint": config.source_checkpoint,
+                "source_metadata": config.source_metadata_digest,
                 "optimized_source_commit": "de5f428fc7b2bac8b6e40697f905c8b99ca3580d",
                 "model": asdict(d768_config("pretrained")),
                 "inputs_manifest": INPUTS_MANIFEST_SHA256,
@@ -223,7 +259,8 @@ def scientific_bindings(
                 "schedule": asdict(InputTokenSchedule()),
                 "optimizer": asdict(
                     optimizer_config(
-                        reference_tokens_per_update=REFERENCE_TOKENS_PER_UPDATE
+                        reference_tokens_per_update=REFERENCE_TOKENS_PER_UPDATE,
+                        multiplier=config.lr_multiplier,
                     )
                 ),
                 "reference_tokens_per_update": REFERENCE_TOKENS_PER_UPDATE,
@@ -419,7 +456,8 @@ def _run_training(config: TrainingConfig) -> None:
         compact_input_lookup_one_hot=False,
     )
     opt_config = optimizer_config(
-        reference_tokens_per_update=REFERENCE_TOKENS_PER_UPDATE
+        reference_tokens_per_update=REFERENCE_TOKENS_PER_UPDATE,
+        multiplier=config.lr_multiplier,
     )
     optimizer = match_gradient_placement(
         opt_config.build(MAX_UPDATES, ns4d_impl=sharded_expert_ns(mesh))
@@ -428,9 +466,18 @@ def _run_training(config: TrainingConfig) -> None:
     norm_policy = NormPolicy()
 
     with jax.set_mesh(mesh):
-        tracker.log_summary({"training/phase": "loading_text_checkpoint"})
+        tracker.log_summary(
+            {
+                "training/phase": f"loading_{config.initialization}_checkpoint",
+                "training/source_checkpoint": config.source_checkpoint,
+                "training/source_metadata_digest": config.source_metadata_digest,
+                "training/source_state_import": "weights_only",
+                "training/initialization": config.initialization,
+                "training/lr_multiplier": config.lr_multiplier,
+            }
+        )
         weights = restore_weights(
-            SOURCE_CHECKPOINT, SOURCE_METADATA_DIGEST, model, mesh
+            config.source_checkpoint, config.source_metadata_digest, model, mesh
         )
         state = eqx.filter_jit(
             lambda w: fresh_state(w, optimizer, mp, offload=False, retain_master=True)
@@ -929,12 +976,20 @@ def main() -> None:
         "--cluster", required=True, choices=["cw-rno2a", "cw-us-east-02a"]
     )
     parser.add_argument("--nodes", type=int, choices=[1, 2, 4, 8], default=1)
-    parser.add_argument("--run-id", default=PRODUCTION_RUN_ID)
+    parser.add_argument("--run-id")
+    parser.add_argument("--initialization", choices=["text", "dna216b"], default="text")
     parser.add_argument("--validation-updates", type=int)
     parser.add_argument("--standby-id")
     parser.add_argument("--standby-checkpoint")
     parser.add_argument("--standby-from-job")
-    dispatch(TrainingConfig(**vars(parser.parse_args())))
+    arguments = vars(parser.parse_args())
+    if arguments["run_id"] is None:
+        arguments["run_id"] = (
+            PRODUCTION_RUN_ID
+            if arguments["initialization"] == "text"
+            else DNA216B_RUN_ID
+        )
+    dispatch(TrainingConfig(**arguments))
 
 
 if __name__ == "__main__":

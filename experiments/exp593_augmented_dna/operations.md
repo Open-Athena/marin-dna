@@ -1,17 +1,17 @@
 # exp593 training operations
 
-This document governs the single augmented d768 training run and its bounded validation jobs.
+This document governs the two augmented d768 training runs and their bounded validation jobs.
 Read it before each placement or recovery decision.
 The local detailed research plan remains untracked in scratch/exp593-augmented-d768-plan.md.
 
 ## Ownership and authorization
 
 The user authorized data preparation, single-node H100 validation, and full training on November 7, 2026.
-Train one model to the approved token horizon; there is no multi-configuration sweep.
-The November 8 authorization permits overlapping preparation allocations for resizing while the current training gang continues.
-Keep exactly one production writer and at most one pending or warming replacement gang.
-Each gang uses at most eight nodes / 64 H100s; temporary overlap may therefore use up to 128 H100s, released promptly after a verified cutover or failed preparation.
-This supersedes the original single-gang / 64-H100 aggregate limit.
+Train each approved model to the token horizon; there is no open-ended configuration sweep.
+The November 8 authorization permits overlapping preparation allocations for resizing while the current training gang continues; release overlap promptly after verified cutover or failed preparation.
+The later November 8 authorization adds a second independent production run and raises the reasonable aggregate ceiling to 512 H100s across productive, validation and replacement allocations.
+This supersedes the earlier single-gang / 64-H100 and temporary 128-H100 limits, while retaining exactly one writer per model identity and at most one pending or warming replacement per model.
+Each validated gang still uses at most eight nodes / 64 H100s at fixed global batch 64; the larger aggregate ceiling does not justify unnecessary allocations or scientific batch changes.
 Initial smoke tests use one eight-H100 node.
 Use batch priority, Iris user eczech, and an explicit target in cw-rno2a or cw-us-east-02a.
 Other accelerator families are outside this experiment.
@@ -25,6 +25,12 @@ Do not create a PlantCAD2 PR at this stage.
 ## Scientific bindings
 
 The source model is the exact text-pretrained checkpoint defined by exp586 SOURCE_CHECKPOINT at runtime source commit de5f428fc7b2bac8b6e40697f905c8b99ca3580d.
+That initialization remains bound to `dna-exp593-augmented-d768-pretrained-seed0-v1`.
+The second identity, `dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1`, imports only learned weights from the permanent exp586 language-initialized 216B `step-412290` checkpoint.
+It starts a fresh optimizer and a new zero-based step/input/example clock, halves both peak learning rates, and retains the 1% warmup and additional 216,158,699,520-input budget.
+The exact sources and canonical metadata digests are selected by `TrainingConfig` in `src/exp593_dna/train.py`.
+Source router bias is part of the learned weights; importing it must not restore source optimizer history or erase its effective bias.
+The native weight loader uses the canonical metadata digest, which differs from the raw-file digest for the 216B source.
 Caller controls FIM completion lengths, including for prompts without a length hint.
 Do not add supervised end-of-fill tokens.
 Training DNA is restricted to the original pinned Angiosperm65 train rows.
@@ -74,7 +80,7 @@ The November 7 single-node smoke validated all context buckets and global batch 
 See the companion's `artifacts/smoke-v1/result.json` for numerical limits and source bindings.
 The one-node profile is eligible for production once runtime evaluation and production-loop validation pass.
 The four-node profile passed sixteen production-loop updates, both full validation events and native checkpoint discovery at global batch 64; see artifacts/loop-smoke-n4-v1/result.json.
-It is eligible for the single production run.
+It is eligible for production with its tested initialization and runtime.
 The two-node profiles remain candidates for bounded validation; the later Reno eight-node resume result is recorded below.
 The subsequent fixed-panel evaluator passed both causal panels, 1,024 FIM presentations and 36 greedy completions on the same one-node profile; see artifacts/eval-smoke-v2/result.json.
 The four-node production-loop validation uses the same scientific batch and bindings, with its own validation namespace.

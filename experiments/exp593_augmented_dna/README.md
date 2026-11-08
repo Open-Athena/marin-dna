@@ -1,13 +1,13 @@
 # Augmented d768 Grug MoE DNA adaptation
 
-Train one model for [experiment #593](https://github.com/Open-Athena/marin-dna/issues/593), starting from the same text-pretrained checkpoint as #586.
+Train augmented d768 models for [experiment #593](https://github.com/Open-Athena/marin-dna/issues/593), starting from either the same text-pretrained checkpoint as #586 or its final 216B DNA checkpoint.
 All implementation and artifacts belong to the permanent, unmerged [companion PR #594](https://github.com/Open-Athena/marin-dna/pull/594).
 The user has authorized preparation, single-node H100 validation, and full training when ready.
 Data preparation and the single-node H100 smoke are complete.
 The full fixed-panel accelerator evaluator passed on eight H100s in about 65 seconds, including all 36 greedy completions.
 The four-node production loop passed sixteen bounded updates and native checkpoint discovery.
 The four-node Reno validation passed all sixteen updates, all four buckets and the causal/FIM/functional panels, with zero routing drops and verified native checkpoint discovery.
-Production is progressing on 32 Reno H100s with the original optimized runtime as `dna-exp593-augmented-d768-pretrained-seed0-v1` in personal `eric-czech/marin`.
+The original production identity is `dna-exp593-augmented-d768-pretrained-seed0-v1` in personal `eric-czech/marin`; its 32→64 H100 handoff evidence is in artifacts/production-reslice-rno-n8-v1/.
 Its first 1,000 updates processed 339,790,830 input tokens with finite losses, zero routing drops and twenty finite parameter/gradient norm metrics; see artifacts/production-startup-v1/result.json.
 The exact native scientific bindings and resume update zero confirm fresh initialization from the original text checkpoint.
 The accelerator evaluator reads the immutable preparation bundle, rechecks historical membership and native-case FIM reconstruction, and scores raw token NLL with binary masks.
@@ -23,11 +23,20 @@ python -m exp593_dna.train --cluster cw-us-east-02a --nodes 1 \
   --run-id dna-exp593-loop-smoke-v1 --validation-updates 16
 # Submit production only after this exact profile passes validation.
 python -m exp593_dna.train --cluster cw-us-east-02a --nodes 1
+# Independent DNA-initialized bounded validation, followed by its own production run.
+python -m exp593_dna.train --cluster cw-rno2a --nodes 1 --initialization dna216b \
+  --run-id dna-exp593-dna216b-loop-smoke-v1 --validation-updates 16
+python -m exp593_dna.train --cluster cw-rno2a --nodes 4 --initialization dna216b
 ```
 
 These entry points dispatch eight processes and eight H100s per node through Iris at batch priority.
 Use the explicit Iris user and target configuration in [operations.md](operations.md), and forward current CoreWeave and personal W&B credentials without recording their values.
-The single production identity is `dna-exp593-augmented-d768-pretrained-seed0-v1` in `eric-czech/marin` at the CoreWeave endpoint.
+The two production identities are `dna-exp593-augmented-d768-pretrained-seed0-v1` and `dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1` in `eric-czech/marin` at the CoreWeave endpoint.
+The latter imports only effective learned weights from exp586's permanent `step-412290`, then starts with a fresh optimizer and step/input/example counters at zero.
+Effective router bias is retained as part of the learned model; source optimizer moments, data cursors and learning-rate counters are never imported.
+Both runs use the same augmentation policy, global batch, fixed panels, 216,158,699,520-input budget and 2,161,115,136-input warmup.
+The DNA-initialized run halves both peak rates to Muon 0.0016599690210542552 and Adam 0.0003830697740894435.
+The original text-initialized scientific bindings remain unchanged.
 Scientific bindings exclude placement and are read back before checkpoint discovery; resumed execution restores the latest complete optimizer/data state and preserves that run identity.
 CPU rendering prefetches one batch while device collectives stay ordered on the main thread.
 For resizing, add `--standby-id`, `--standby-checkpoint` and `--standby-from-job` to acquire a separate allocation while production continues.
@@ -215,12 +224,13 @@ No per-expert histograms are collected.
 
 The package depends on the optimized exp586 project at immutable commit `de5f428fc7b2bac8b6e40697f905c8b99ca3580d`.
 The coherent Marin runtime is `0.2.224.dev40027069267`, with JAX `0.11.1` and the original optimized model/optimizer source.
-The eight-node Reno checks did not establish a usable training placement; the autotuning-sharding workaround did not resolve the overall runtime problem and was removed.
+The initial fresh-state eight-node Reno checks stalled; the autotuning-sharding workaround did not resolve the overall runtime problem and was removed.
+The later resident standby validated full-state resume on eight Reno nodes; see artifacts/standby-rno-n8-v1/result.json.
 The four-node Reno validation passed with the original optimized runtime settings and scientific bindings; see artifacts/loop-smoke-rno-n4-v1/result.json.
 The old Iris client missed the controller's build-date floor by one day.
 This release satisfies that floor while retaining the Haliax API used by the optimized model; later releases remove that API.
-The source model is `s3://marin-us-east-02a/marin/grug/rav-ladder-d768-v2/2026.08.18/checkpoints/step-11420`.
-It is a fresh DNA adaptation from text-pretrained weights.
+The original source model is `s3://marin-us-east-02a/marin/grug/rav-ladder-d768-v2/2026.08.18/checkpoints/step-11420`.
+The original condition is a fresh DNA adaptation from text-pretrained weights; the second condition restarts adaptation from the final 216B DNA weights with a fresh optimizer.
 The optimized lowercase-only compact embedding shortcut must accommodate text and uppercase IDs before production use.
 The H100 smoke must validate all four buckets, loss aggregation, diagnostics and checkpoint replay before full training.
 Controller freshness and live capacity must be rechecked at dispatch.

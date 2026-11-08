@@ -7,6 +7,8 @@ import pytest
 from exp593_dna.recovery import bind_and_discover, commit_and_prune, prepare_checkpoint
 from exp593_dna.schedule import TRAINING_TOKENS, TokenClock
 from exp593_dna.train import (
+    DNA216B_METADATA_DIGEST,
+    DNA216B_RUN_ID,
     PRODUCTION_RUN_ID,
     TrainingConfig,
     permanent_events,
@@ -86,7 +88,7 @@ def test_scientific_bindings_exclude_placement_and_reject_another_final_model():
         second, inputs, encoder
     )
     assert first.checkpoint_root == second.checkpoint_root
-    with pytest.raises(ValueError, match="one final model"):
+    with pytest.raises(ValueError, match="identity must match"):
         TrainingConfig("cw-us-east-02a", run_id="another-production-model")
     with pytest.raises(ValueError, match="smoke identity"):
         TrainingConfig("cw-us-east-02a", validation_updates=16)
@@ -101,6 +103,49 @@ def test_scientific_bindings_exclude_placement_and_reject_another_final_model():
     assert first.complete(
         TokenClock(input_tokens=TRAINING_TOKENS + 1, dna_tokens=TRAINING_TOKENS + 1)
     )
+
+
+def test_dna_initialization_has_separate_identity_source_and_half_peak_rates():
+    names = (
+        "validation/primary_validation_512.jsonl",
+        "audit/validation_disjoint_512.json",
+        "audit/fim_validation_pairs.jsonl",
+    )
+    inputs = SimpleNamespace(
+        manifest={"files": {name: {"sha256": "a" * 64} for name in names}}
+    )
+    encoder = SimpleNamespace(digest="b" * 64)
+    text = TrainingConfig("cw-rno2a", nodes=4)
+    dna = replace(text, initialization="dna216b", run_id=DNA216B_RUN_ID)
+    original = scientific_bindings(text, inputs, encoder)
+    adapted = scientific_bindings(dna, inputs, encoder)
+    assert dna.checkpoint_root != text.checkpoint_root
+    assert dna.source_checkpoint.endswith(
+        "/exp586-plantcad2-d768-pretrained-lrm1-seed0-v1/2026.10.08/checkpoints/step-412290"
+    )
+    assert adapted["source_metadata"] == DNA216B_METADATA_DIGEST
+    assert adapted["source_checkpoint"] == dna.source_checkpoint
+    assert adapted["run_id"] == DNA216B_RUN_ID
+    expected_optimizer = {
+        **original["optimizer"],
+        "learning_rate": original["optimizer"]["learning_rate"] / 2,
+        "adam_lr": original["optimizer"]["adam_lr"] / 2,
+    }
+    assert adapted == {
+        **original,
+        "run_id": DNA216B_RUN_ID,
+        "source_checkpoint": dna.source_checkpoint,
+        "source_metadata": DNA216B_METADATA_DIGEST,
+        "optimizer": expected_optimizer,
+    }
+    assert adapted == scientific_bindings(replace(dna, nodes=8), inputs, encoder)
+    for changes in (
+        {"initialization": "dna216b"},
+        {"run_id": DNA216B_RUN_ID},
+        {"initialization": "unknown"},
+    ):
+        with pytest.raises(ValueError):
+            replace(text, **changes)
 
 
 def test_milestones_use_actual_input_counts():
