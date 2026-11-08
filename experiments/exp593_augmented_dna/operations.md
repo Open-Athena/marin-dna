@@ -98,6 +98,13 @@ The full candidate grid below remains within the approved H100 scope; other targ
 | 4 | 32 | Eligible | Eligible |
 | 8 | 64 | Unvalidated | Eligible for full-state resume |
 
+The additional DNA216B weight-only initialization passed sixteen updates on one East node and four Reno nodes at the original global batch and token schedule.
+Both profiles exercised every sequence bucket, completed all fixed and functional panels, had finite metrics and zero routing drops, and committed strictly verified native checkpoints with identical clocks.
+Their initial primary loss matches the evaluated source model within 2e-5, and their new optimizer/model counters start at zero.
+These two profiles are eligible for the DNA-initialized production model; other new-source targets require their own bounded validation.
+The sixteen-update checks do not reach production's first norm event at update 1,000; verify all twenty norm scalars there.
+See artifacts/dna216b-loop-smoke-v1/result.json.
+
 The local four-device CPU checkpoint regression covers exact full-state restoration across replica-group counts 1→2→1, including the FP32 expert-master/momentum partition and replicated BF16 weights.
 It supports the global-array checkpoint mechanism; it does not establish target eligibility or replace numerical checks on a future GPU reslice.
 
