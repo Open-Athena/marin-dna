@@ -71,8 +71,11 @@ Treat a one-node result as evidence only for its tested shape, batches, and memo
 Use W&B for numerical progress and exact Iris root/task IDs for liveness and concrete failures.
 Use eric-czech/marin at the CoreWeave W&B endpoint with an exp593 identity.
 After startup, check progress on a 30-minute cadence.
-For new placements exposed to repeated preemption, use two-minute periodic checkpoints and retain thirty temporary saves through the training entry point's checkpoint-policy flags.
-This preserves approximately an hour of source-checkpoint lifetime while allowing completed optimizer updates to become durable between short interruptions.
+Choose the periodic interval from measured native-write cost and observed interruption windows.
+The first two writes after the qualified eight-to-64-H100 handoff each took 81 seconds, so the initial two-minute policy spends approximately 40% of a repeated training/save cycle checkpointing.
+For the next ordinary placement, use ten-minute periodic checkpoints and retain six temporary saves, giving each newly written temporary checkpoint at least an hour of lifetime with approximately 12% estimated checkpoint cost at that measured write time.
+The two-minute / thirty-save setting remains an emergency option if repeated short interruptions prevent longer intervals from making progress durable.
+Prepare an allocation with a changed policy without stopping the current writer, then use the ordinary verified handoff.
 The default remains thirty minutes and two temporary saves for existing serialized jobs; changing policy requires a new allocation with full-state recovery.
 Checkpoint timing and retention are operational settings excluded from scientific bindings.
 Iris owns preemption recovery; do not replace a dispatch solely because it was preempted.
@@ -172,6 +175,8 @@ See artifacts/production-reslice-rno-n8-v1/result.json for the measured update g
 The historical metric rows show that Iris controller/task KILLED state preceded the last old optimizer update.
 For a future forced cancellation, require a fresh backend pod observation after the stop request showing the old allocation absent or physically terminal before publishing promotion.
 A successful graceful checkpoint-and-exit is preferable for future handoffs.
+The [qualified eight-to-64-H100 graceful handoff](artifacts/dna216b-production-reslice-rno-n8-cp120-v1/result.json) verified the exact saved cursor, successful process exits for both old tasks, and the first 1,000 resumed optimizer updates without replay.
+For a natural successful exit, require the immutable stopped receipt, its matching native checkpoint clock, and successful root/child task exits before promotion.
 Do not infer that resources or writers have stopped merely from cancellation acknowledgement.
 Once a post-cancellation backend observation proves every old pod absent, that termination fact remains valid while fresh controller checks confirm both unique old jobs are terminal.
 Recheck those terminal states immediately before promotion; a capacity observation's age does not resurrect a physically terminated writer.
