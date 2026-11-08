@@ -12,6 +12,7 @@ The November 8 authorization permits overlapping preparation allocations for res
 The later November 8 authorization adds a second independent production run and raises the reasonable aggregate ceiling to 512 H100s across productive, validation and replacement allocations.
 This supersedes the earlier single-gang / 64-H100 and temporary 128-H100 limits, while retaining exactly one writer per model identity and at most one pending or warming replacement per model.
 Each validated gang still uses at most eight nodes / 64 H100s at fixed global batch 64; the larger aggregate ceiling does not justify unnecessary allocations or scientific batch changes.
+The operator prefers 64-H100 production gangs when available; prepare that target from the outset rather than defaulting to 32 GPUs.
 Initial smoke tests use one eight-H100 node.
 Use batch priority, Iris user eczech, and an explicit target in cw-rno2a or cw-us-east-02a.
 Other accelerator families are outside this experiment.
@@ -131,7 +132,9 @@ Restore the final selected state before initializing the existing personal W&B i
 Discard all disposable standby updates and restart from the committed production data/token cursor.
 Use the new allocation's checkpoint-and-exit control for subsequent resizing.
 The original running allocation predates that control; coordinate its first cutover with a newly completed periodic checkpoint and report any replayed work.
-Do not promote unless the larger target passes its checks and its measured benefit justifies handoff overhead.
+The November 8 operator instruction prioritizes moving the DNA216B run to 64 H100s as soon as its held target passes the restore and numerical checks.
+Do not delay that handoff for another throughput comparison; preserve the current writer until readiness and require physical writer termination before promotion.
+Use the latest committed checkpoint and report any replay caused by the initial allocation lacking checkpoint-and-exit control.
 
 The four-node Reno check subsequently passed all sixteen updates and all four sequence buckets with zero routing drops.
 Both fixed causal panels, all 1,024 FIM presentations / 36 greedy completions, and both functional-development panels completed.
