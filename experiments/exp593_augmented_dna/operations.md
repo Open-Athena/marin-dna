@@ -76,14 +76,14 @@ The two- and eight-node profiles remain candidates for bounded validation.
 The subsequent fixed-panel evaluator passed both causal panels, 1,024 FIM presentations and 36 greedy completions on the same one-node profile; see artifacts/eval-smoke-v2/result.json.
 The four-node production-loop validation uses the same scientific batch and bindings, with its own validation namespace.
 
-The completed accelerator checks establish eligibility in cw-us-east-02a specifically.
-The full candidate grid below remains within the approved H100 scope; a Reno target needs bounded validation before its first production dispatch.
+The completed accelerator checks establish eligibility for one/four East nodes and four Reno nodes.
+The full candidate grid below remains within the approved H100 scope; other targets need bounded validation before their first production dispatch.
 
 | H100 nodes | GPUs | cw-us-east-02a | cw-rno2a |
 | --- | --- | --- | --- |
 | 1 | 8 | Eligible | Unvalidated |
 | 2 | 16 | Unvalidated | Unvalidated |
-| 4 | 32 | Eligible | Unvalidated |
+| 4 | 32 | Eligible | Eligible |
 | 8 | 64 | Unvalidated | Unvalidated |
 
 The local four-device CPU checkpoint regression covers exact full-state restoration across replica-group counts 1→2→1, including the FP32 expert-master/momentum partition and replicated BF16 weights.
@@ -96,3 +96,8 @@ That retry passed the initial panels but stalled inside its first training updat
 Two NCCL RAS reads found all 64 ranks present and identical, nonadvancing collective counters; they did not identify the underlying cause.
 The eight-node placement remains unvalidated.
 Restore the original optimized runtime settings and validate four Reno nodes before production; do not keep retrying the optional eight-node target while a smaller demonstrated shape can advance the primary experiment.
+
+The four-node Reno check subsequently passed all sixteen updates and all four sequence buckets with zero routing drops.
+Both fixed causal panels, all 1,024 FIM presentations / 36 greedy completions, and both functional-development panels completed.
+The native full-state checkpoint and recovery pointer were read back, hashed and discovered with strict scientific bindings; its exact clock matches the earlier four-node East validation.
+See artifacts/loop-smoke-rno-n4-v1/result.json.
