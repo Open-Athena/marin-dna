@@ -87,7 +87,7 @@ The full candidate grid below remains within the approved H100 scope; other targ
 | 1 | 8 | Eligible | Unvalidated |
 | 2 | 16 | Unvalidated | Unvalidated |
 | 4 | 32 | Eligible | Eligible |
-| 8 | 64 | Unvalidated | Unvalidated |
+| 8 | 64 | Unvalidated | Eligible for full-state resume |
 
 The local four-device CPU checkpoint regression covers exact full-state restoration across replica-group counts 1→2→1, including the FP32 expert-master/momentum partition and replicated BF16 weights.
 It supports the global-array checkpoint mechanism; it does not establish target eligibility or replace numerical checks on a future GPU reslice.
@@ -119,3 +119,9 @@ The four-node Reno check subsequently passed all sixteen updates and all four se
 Both fixed causal panels, all 1,024 FIM presentations / 36 greedy completions, and both functional-development panels completed.
 The native full-state checkpoint and recovery pointer were read back, hashed and discovered with strict scientific bindings; its exact clock matches the earlier four-node East validation.
 See artifacts/loop-smoke-rno-n4-v1/result.json.
+
+The November 8 eight-node standby restored the actual four-node production checkpoint and passed sixteen disposable updates with the original optimized runtime.
+All four buckets and both norm branches completed, all metrics were finite, routing drops were zero, and the complete fixed and functional validation panels passed.
+See artifacts/standby-rno-n8-v1/result.json and its immutable native readiness receipt.
+This establishes eligibility for the tested full-state resume path; the underlying cause of the earlier fresh-state eight-node failures is not established.
+The first handoff waits for a newly completed periodic checkpoint from the original writer while both allocations remain held.
