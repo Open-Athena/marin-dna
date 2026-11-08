@@ -8,6 +8,7 @@ The full fixed-panel accelerator evaluator passed on eight H100s in about 65 sec
 The four-node production loop passed sixteen bounded updates and native checkpoint discovery.
 The four-node Reno validation passed all sixteen updates, all four buckets and the causal/FIM/functional panels, with zero routing drops and verified native checkpoint discovery.
 The original production identity is `dna-exp593-augmented-d768-pretrained-seed0-v1` in personal `eric-czech/marin`; its 32→64 H100 handoff evidence is in artifacts/production-reslice-rno-n8-v1/.
+Its later recovery on the ordinary 64-H100 entry point, including twenty fresh norm metrics after a scheduler interruption, is recorded in [the recovery evidence](artifacts/production-recovery-rno-n8-v1/result.json).
 Its first 1,000 updates processed 339,790,830 input tokens with finite losses, zero routing drops and twenty finite parameter/gradient norm metrics; see artifacts/production-startup-v1/result.json.
 The exact native scientific bindings and resume update zero confirm fresh initialization from the original text checkpoint.
 The accelerator evaluator reads the immutable preparation bundle, rechecks historical membership and native-case FIM reconstruction, and scores raw token NLL with binary masks.
@@ -22,12 +23,14 @@ An evaluation-only retry can restore that validation run's own full-state checkp
 python -m exp593_dna.train --cluster cw-us-east-02a --nodes 1 \
   --run-id dna-exp593-loop-smoke-v1 --validation-updates 16
 # Resume the existing text-initialized identity on its qualified full-state target.
-python -m exp593_dna.train --cluster cw-rno2a --nodes 8
+python -m exp593_dna.train --cluster cw-rno2a --nodes 8 \
+  --checkpoint-interval-seconds 120 --keep-temporary-checkpoints 30
 # Independent DNA-initialized bounded validation, followed by its own production run.
 python -m exp593_dna.train --cluster cw-us-east-02a --nodes 1 --initialization dna216b \
   --run-id dna-exp593-dna216b-loop-smoke-v1 --validation-updates 16
 # Resume this existing identity from its native checkpoint on the qualified full-state target.
-python -m exp593_dna.train --cluster cw-rno2a --nodes 8 --initialization dna216b
+python -m exp593_dna.train --cluster cw-rno2a --nodes 8 --initialization dna216b \
+  --checkpoint-interval-seconds 120 --keep-temporary-checkpoints 30
 ```
 
 These entry points dispatch eight processes and eight H100s per node through Iris at batch priority.
@@ -42,10 +45,12 @@ The DNA-initialized condition passed sixteen bounded updates and all fixed/funct
 These checks preserve the fresh optimizer and zero-based source import.
 The DNA-initialized production run's first 1,000 updates have finite losses, zero routing drops and twenty finite norm scalars; see artifacts/dna216b-production-startup-v1/result.json.
 Its first 339,790,830 input tokens exactly match the original text-initialized run's deterministic 1,000-update input prefix.
-The DNA-initialized run now uses eight Reno nodes / 64 H100s, following full-state resident validation and a physically fenced handoff; see artifacts/dna216b-production-reslice-rno-n8-v1/result.json.
+The DNA-initialized run reached eight Reno nodes / 64 H100s after full-state resident validation and a physically fenced handoff; see artifacts/dna216b-production-reslice-rno-n8-v1/result.json.
 Its first 1,000 resumed updates preserve the same input cursor and have finite losses, zero routing drops and twenty finite norm scalars.
 A separate 64→8 H100 recovery check restored the DNA-initialized production checkpoint and optimizer on one East node, then passed sixteen disposable updates and all fixed/functional panels; see [the recovery evidence](artifacts/dna216b-recovery-east-n1-v1/result.json).
 The validation used a no-op tracker and was physically released without promotion or production writes.
+Following repeated Reno interruptions, a separate prepared eight-H100 East allocation was promoted after the old writer's physical termination was verified; [the production handoff](artifacts/dna216b-production-reslice-east-n1-v1/result.json) preserves the same W&B identity and full state.
+This temporary fallback keeps training advancing while larger allocations are prepared.
 Scientific bindings exclude placement and are read back before checkpoint discovery; resumed execution restores the latest complete optimizer/data state and preserves that run identity.
 CPU rendering prefetches one batch while device collectives stay ordered on the main thread.
 For resizing, add `--standby-id`, `--standby-checkpoint` and `--standby-from-job` to acquire a separate allocation while production continues.
@@ -54,7 +59,10 @@ It writes only under its unique `placements/<standby-id>/` prefix until an opera
 Promotion discards all probe updates, restores the selected production cursor and resumes the same W&B identity without requesting a new gang.
 Promoted allocations also accept an explicit checkpoint-and-exit request for subsequent handoffs; see [operations.md](operations.md).
 On re-entry after promotion, immutable control evidence selects ordinary strict recovery from the newest production checkpoint, even after the original standby source and handoff checkpoint have been pruned.
-Periodic checkpoints occur approximately every 30 minutes, with two temporary recovery saves retained; warmup, quarter-budget and final checkpoints are permanent.
+Periodic checkpoints default to 30 minutes with two temporary recovery saves retained; warmup, quarter-budget and final checkpoints are permanent.
+The interval and temporary retention are operational settings exposed by `--checkpoint-interval-seconds` and `--keep-temporary-checkpoints`.
+For repeatedly preempted Reno placements, the examples above request two-minute saves and retain thirty temporary checkpoints, preserving approximately an hour of source-checkpoint lifetime for preparation jobs.
+These settings are excluded from scientific bindings and take effect when launching a new allocation; existing serialized jobs retain their configured policy.
 A four-device CPU regression also restores the complete state across replica-group counts 1→2→1, checking exact values and the changed FP32-master/replicated-BF16 layout; actual GPU reslicing remains a separate runtime check.
 The run stops after the first complete 64-example update reaching the nominal 216,158,699,520 input-token budget.
 It records the actual input count and overshoot, which is less than 524,288 tokens (2.43 parts per million), preserving the minimum example length and equal per-example objective at the last update.

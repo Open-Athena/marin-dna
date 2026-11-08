@@ -55,9 +55,16 @@ def prepare_checkpoint(root: str, clock: TokenClock) -> str:
 
 
 def commit_and_prune(
-    root: str, checkpoint: str, clock: TokenClock, bindings: dict[str, Any]
+    root: str,
+    checkpoint: str,
+    clock: TokenClock,
+    bindings: dict[str, Any],
+    *,
+    keep_temporary: int = 2,
 ) -> str:
-    """Read back the commit, publish its pointer, retain two temporary saves."""
+    """Read back the commit and pointer before pruning older temporary saves."""
+    if not isinstance(keep_temporary, int) or keep_temporary < 1:
+        raise ValueError("Temporary checkpoint retention must be a positive integer")
     expected = f"{root}/step-{clock.updates}"
     if checkpoint != expected and not checkpoint.startswith(expected + "-retry-"):
         raise ValueError("Checkpoint is outside the active trial")
@@ -79,7 +86,7 @@ def commit_and_prune(
         if c.metadata.get("is_temporary")
         and c.metadata.get("exp593_bindings") == bindings
     ]
-    for candidate in temporary[:-2]:
+    for candidate in temporary[:-keep_temporary]:
         if (
             not candidate.path.startswith(root + "/step-")
             or candidate.step >= clock.updates

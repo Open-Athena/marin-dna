@@ -69,7 +69,7 @@ def test_recovery_is_append_only_and_prunes_only_old_temporary_checkpoints(tmp_p
     assert (tmp_path / "step-5").is_dir()
 
 
-def test_scientific_bindings_exclude_placement_and_reject_another_final_model():
+def test_scientific_bindings_exclude_placement_and_checkpoint_policy():
     names = (
         "validation/primary_validation_512.jsonl",
         "audit/validation_disjoint_512.json",
@@ -82,7 +82,12 @@ def test_scientific_bindings_exclude_placement_and_reject_another_final_model():
     )
     encoder = SimpleNamespace(digest="a" * 64)
     first = TrainingConfig("cw-us-east-02a", nodes=1)
-    second = TrainingConfig("cw-rno2a", nodes=8)
+    second = TrainingConfig(
+        "cw-rno2a",
+        nodes=8,
+        checkpoint_interval_seconds=120,
+        keep_temporary_checkpoints=30,
+    )
     assert first.run_id == second.run_id == PRODUCTION_RUN_ID
     assert scientific_bindings(first, inputs, encoder) == scientific_bindings(
         second, inputs, encoder
@@ -103,6 +108,37 @@ def test_scientific_bindings_exclude_placement_and_reject_another_final_model():
     assert first.complete(
         TokenClock(input_tokens=TRAINING_TOKENS + 1, dna_tokens=TRAINING_TOKENS + 1)
     )
+
+
+def test_short_checkpoint_cadence_retains_preparation_sources_and_permanent_saves(
+    tmp_path,
+):
+    root = str(tmp_path)
+    bindings = {"source": "same-scientific-model", "tokens": TRAINING_TOKENS}
+    bind_and_discover(root, bindings)
+    permanent, clock = metadata(tmp_path, 1, bindings, temporary=False)
+    commit_and_prune(root, permanent, clock, bindings, keep_temporary=4)
+    for step in range(2, 8):
+        path, clock = metadata(tmp_path, step, bindings)
+        commit_and_prune(root, path, clock, bindings, keep_temporary=4)
+    assert (tmp_path / "step-1/metadata.json").is_file()
+    assert not (tmp_path / "step-2").exists()
+    assert not (tmp_path / "step-3").exists()
+    assert all(
+        (tmp_path / f"step-{step}/metadata.json").is_file() for step in range(4, 8)
+    )
+    assert bind_and_discover(root, bindings) == str(tmp_path / "step-7")
+    previous_pointer = (tmp_path / "latest.json").read_bytes()
+    with pytest.raises(ValueError, match="retention"):
+        commit_and_prune(root, path, clock, bindings, keep_temporary=0)
+    assert (tmp_path / "latest.json").read_bytes() == previous_pointer
+    for changes in (
+        {"checkpoint_interval_seconds": 0},
+        {"checkpoint_interval_seconds": -1},
+        {"keep_temporary_checkpoints": 0},
+    ):
+        with pytest.raises(ValueError, match="positive integers"):
+            TrainingConfig("cw-rno2a", **changes)
 
 
 def test_dna_initialization_has_separate_identity_source_and_half_peak_rates():

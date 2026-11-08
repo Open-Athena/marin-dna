@@ -71,6 +71,10 @@ Treat a one-node result as evidence only for its tested shape, batches, and memo
 Use W&B for numerical progress and exact Iris root/task IDs for liveness and concrete failures.
 Use eric-czech/marin at the CoreWeave W&B endpoint with an exp593 identity.
 After startup, check progress on a 30-minute cadence.
+For new placements exposed to repeated preemption, use two-minute periodic checkpoints and retain thirty temporary saves through the training entry point's checkpoint-policy flags.
+This preserves approximately an hour of source-checkpoint lifetime while allowing completed optimizer updates to become durable between short interruptions.
+The default remains thirty minutes and two temporary saves for existing serialized jobs; changing policy requires a new allocation with full-state recovery.
+Checkpoint timing and retention are operational settings excluded from scientific bindings.
 Iris owns preemption recovery; do not replace a dispatch solely because it was preempted.
 Reassess placement after one hour without progress and diagnose a restart after three hours.
 For a prolonged admission wait, compare the exact task with the fresh backend's pod status before classifying it as a software stall.
@@ -158,6 +162,10 @@ The first handoff waits for a newly completed periodic checkpoint from the origi
 The resident first standby uses immutable source bcb00881 and predates automatic recognition of a prior promotion on re-entry.
 If that allocation later fails on its serialized standby source or duplicate readiness after an Iris retry, diagnose the concrete error and recover through the ordinary production entry point with the same W&B/checkpoint identity.
 Later source recognizes the immutable promotion and chooses normal latest-checkpoint recovery; it does not require the old source or handoff checkpoint to survive retention.
+That old-launcher failure subsequently occurred after scheduler preemption.
+The text-initialized model now uses the ordinary production entry point, with the same identity and full native state; see artifacts/production-recovery-rno-n8-v1/result.json.
+Repeated Reno preemption also led to promotion of the qualified eight-H100 East fallback for the DNA-initialized model; see artifacts/dna216b-production-reslice-east-n1-v1/result.json.
+Its serialized checkpoint policy remains thirty minutes until a later allocation explicitly adopts shorter saves.
 
 The first production handoff completed from step-35749 onto the already-held eight-node allocation, preserving the single W&B identity and exact native data/optimizer clock.
 See artifacts/production-reslice-rno-n8-v1/result.json for the measured update gap, replayed logged tokens, actual resumed metrics and bounded throughput comparison.
@@ -165,3 +173,5 @@ The historical metric rows show that Iris controller/task KILLED state preceded 
 For a future forced cancellation, require a fresh backend pod observation after the stop request showing the old allocation absent or physically terminal before publishing promotion.
 A successful graceful checkpoint-and-exit is preferable for future handoffs.
 Do not infer that resources or writers have stopped merely from cancellation acknowledgement.
+Once a post-cancellation backend observation proves every old pod absent, that termination fact remains valid while fresh controller checks confirm both unique old jobs are terminal.
+Recheck those terminal states immediately before promotion; a capacity observation's age does not resurrect a physically terminated writer.

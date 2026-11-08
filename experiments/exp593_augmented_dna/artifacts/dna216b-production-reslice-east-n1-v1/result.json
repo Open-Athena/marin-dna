@@ -1,0 +1,87 @@
+{
+  "checkpoint_policy": "This held allocation retains its serialized thirty-minute interval and two temporary saves.",
+  "invariants": {
+    "disposable_probe_updates_discarded": true,
+    "fixed_validation_protocol_unchanged": true,
+    "initialization_and_half_lr_unchanged": true,
+    "own_optimizer_and_data_state_restored": true,
+    "same_wandb_identity": true,
+    "training_input_horizon": 216158699520
+  },
+  "next_placement": "Prepare larger qualified capacity without interrupting this productive writer.",
+  "observed_production": {
+    "input_tokens": 46156684257,
+    "latest_routing_drops": {
+      "moe/dropped_assignments": 0,
+      "moe/receiver_dropped_assignments": 0,
+      "moe/sender_dropped_assignments": 0
+    },
+    "observed_at": "2026-11-08T21:08:27.109269+00:00",
+    "phase": "training",
+    "resume_eval_input_tokens": 46085103785,
+    "resume_primary_loss": 1.1925260600237786,
+    "resume_update": 133524,
+    "state": "running",
+    "updates": 133738
+  },
+  "promotion": {
+    "old_child": "/eczech/exp593-dna216b-standby-20261108-rno-n8-v1-a1/train-dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1",
+    "old_root": "/eczech/exp593-dna216b-standby-20261108-rno-n8-v1-a1",
+    "physical_fence": {
+      "backend_measured_at": "2026-11-08T20:59:05.452000+00:00",
+      "child_state": "JOB_STATE_KILLED",
+      "fresh_after_stop": true,
+      "measurement_recent": false,
+      "observed_at": "2026-11-08T21:02:51.664263+00:00",
+      "old_pods": [],
+      "old_root": "/eczech/exp593-dna216b-standby-20261108-rno-n8-v1-a1",
+      "old_writer_physically_terminal": true,
+      "root_state": "JOB_STATE_KILLED"
+    },
+    "replayed_logged_input_tokens": 65897441,
+    "requested_at": "2026-11-08T21:04:57.406891+00:00",
+    "sha256": "209f42ec87659c9b9667295ac4cf7869518d8ff4dea57c245e9084ec26736cfc",
+    "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/placements/exp593-dna216b-fallback-20261108-east-n1-v1-a1/promote.json"
+  },
+  "purpose": "Keep the DNA-initialized model advancing on a qualified held East allocation after repeated Reno preemption prevented numeric progress for over one hour.",
+  "resident_readiness": {
+    "all_buckets_and_norm_branches": true,
+    "all_state_and_metrics_finite": true,
+    "causal_fim_and_functional_panels_completed": true,
+    "norm_scalars_per_norm_probe": 20,
+    "probe_updates": 16,
+    "production_writes_before_promotion": false,
+    "routing_drops": 0,
+    "sha256": "1eb1a159b26e66c76a894596798d33f718a06bc7a9f6e35eb1047ba5685bf14c",
+    "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/placements/exp593-dna216b-fallback-20261108-east-n1-v1-a1/ready.json"
+  },
+  "root": "/eczech/exp593-dna216b-fallback-20261108-east-n1-v1-a1",
+  "run_id": "dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1",
+  "runtime_source_commit": "de5f428fc7b2bac8b6e40697f905c8b99ca3580d",
+  "source_checkpoint": {
+    "clock": {
+      "dna_tokens": 45733547241,
+      "examples": 8545536,
+      "fim_examples": 4271684,
+      "input_tokens": 46085103785,
+      "loss_targets": 23181022209,
+      "rc_examples": 4275044,
+      "text_tokens": 351556544,
+      "updates": 133524
+    },
+    "metadata_sha256": "dc6dff0aae35192ead8db6681ce8fb5d72cfa224fbae714b1b3754e275c854a5",
+    "path": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/training/dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1/checkpoints/step-133524",
+    "scientific_bindings_sha256": "512ea5478153806ffd0070b4e91691bb39ab97e23945057ec30c8cde0b782cb2"
+  },
+  "source_commit": "3f0536ae97266df0b6fae2c11566931ebb470003",
+  "target": {
+    "cluster": "cw-us-east-02a",
+    "global_batch": 64,
+    "gpu": "H100",
+    "gpus": 8,
+    "nodes": 1,
+    "priority": "batch",
+    "user": "eczech"
+  },
+  "wandb_url": "https://forge.coreweave.com/api/wandb/eric-czech/marin/runs/dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1"
+}

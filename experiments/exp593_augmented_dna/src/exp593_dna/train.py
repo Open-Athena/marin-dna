@@ -149,8 +149,20 @@ class TrainingConfig:
     standby_checkpoint: str | None = None
     standby_from_job: str | None = None
     initialization: str = "text"
+    checkpoint_interval_seconds: int = 1800
+    keep_temporary_checkpoints: int = 2
 
     def __post_init__(self) -> None:
+        if any(
+            not isinstance(value, int) or value < 1
+            for value in (
+                self.checkpoint_interval_seconds,
+                self.keep_temporary_checkpoints,
+            )
+        ):
+            raise ValueError(
+                "Checkpoint interval and retention must be positive integers"
+            )
         if self.initialization not in ("text", "dna216b"):
             raise ValueError("Unapproved model initialization")
         if self.cluster not in ("cw-rno2a", "cw-us-east-02a") or self.nodes not in (
@@ -705,7 +717,11 @@ def _run_training(config: TrainingConfig) -> None:
             )
             digest = primary_json(
                 lambda: commit_and_prune(
-                    config.checkpoint_root, destination, clock, bindings
+                    config.checkpoint_root,
+                    destination,
+                    clock,
+                    bindings,
+                    keep_temporary=config.keep_temporary_checkpoints,
                 )
             )
             tracker.log_summary(
@@ -837,7 +853,10 @@ def _run_training(config: TrainingConfig) -> None:
                     )
                 due = primary_json(
                     lambda saved_at=last_save, milestone=bool(permanent), done=finished: (
-                        time.monotonic() - saved_at >= 1800 or milestone or done
+                        time.monotonic() - saved_at
+                        >= config.checkpoint_interval_seconds
+                        or milestone
+                        or done
                     )
                 )
                 if due:
@@ -978,6 +997,8 @@ def main() -> None:
     parser.add_argument("--nodes", type=int, choices=[1, 2, 4, 8], default=1)
     parser.add_argument("--run-id")
     parser.add_argument("--initialization", choices=["text", "dna216b"], default="text")
+    parser.add_argument("--checkpoint-interval-seconds", type=int, default=1800)
+    parser.add_argument("--keep-temporary-checkpoints", type=int, default=2)
     parser.add_argument("--validation-updates", type=int)
     parser.add_argument("--standby-id")
     parser.add_argument("--standby-checkpoint")
