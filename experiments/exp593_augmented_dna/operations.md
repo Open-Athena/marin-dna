@@ -75,11 +75,11 @@ See the companion's `artifacts/smoke-v1/result.json` for numerical limits and so
 The one-node profile is eligible for production once runtime evaluation and production-loop validation pass.
 The four-node profile passed sixteen production-loop updates, both full validation events and native checkpoint discovery at global batch 64; see artifacts/loop-smoke-n4-v1/result.json.
 It is eligible for the single production run.
-The two- and eight-node profiles remain candidates for bounded validation.
+The two-node profiles remain candidates for bounded validation; the later Reno eight-node resume result is recorded below.
 The subsequent fixed-panel evaluator passed both causal panels, 1,024 FIM presentations and 36 greedy completions on the same one-node profile; see artifacts/eval-smoke-v2/result.json.
 The four-node production-loop validation uses the same scientific batch and bindings, with its own validation namespace.
 
-The completed accelerator checks establish eligibility for one/four East nodes and four Reno nodes.
+The completed accelerator checks establish eligibility for one/four East nodes and four/eight Reno nodes, with the eight-node evidence restricted to full-state resume.
 The full candidate grid below remains within the approved H100 scope; other targets need bounded validation before their first production dispatch.
 
 | H100 nodes | GPUs | cw-us-east-02a | cw-rno2a |
@@ -97,7 +97,7 @@ All eight nodes had idle GPUs and approximately idle Python CPUs; sampled native
 The first workaround applied `--xla_gpu_shard_autotuning=false` only to GPU workers, preserving the other optimized runtime flags.
 That retry passed the initial panels but stalled inside its first training update, with sampled GPU streams waiting in ConditionalThunk execution.
 Two NCCL RAS reads found all 64 ranks present and identical, nonadvancing collective counters; they did not identify the underlying cause.
-The eight-node placement remains unvalidated.
+At that point, the eight-node placement remained unvalidated.
 The original optimized runtime settings were restored and four Reno nodes validated before production.
 The November 8 authorization permits a bounded eight-node standby validation alongside productive training; investigate a concrete failure before retrying that target.
 
@@ -129,3 +129,10 @@ The first handoff waits for a newly completed periodic checkpoint from the origi
 The resident first standby uses immutable source bcb00881 and predates automatic recognition of a prior promotion on re-entry.
 If that allocation later fails on its serialized standby source or duplicate readiness after an Iris retry, diagnose the concrete error and recover through the ordinary production entry point with the same W&B/checkpoint identity.
 Later source recognizes the immutable promotion and chooses normal latest-checkpoint recovery; it does not require the old source or handoff checkpoint to survive retention.
+
+The first production handoff completed from step-35749 onto the already-held eight-node allocation, preserving the single W&B identity and exact native data/optimizer clock.
+See artifacts/production-reslice-rno-n8-v1/result.json for the measured update gap, replayed logged tokens, actual resumed metrics and bounded throughput comparison.
+The historical metric rows show that Iris controller/task KILLED state preceded the last old optimizer update.
+For a future forced cancellation, require a fresh backend pod observation after the stop request showing the old allocation absent or physically terminal before publishing promotion.
+A successful graceful checkpoint-and-exit is preferable for future handoffs.
+Do not infer that resources or writers have stopped merely from cancellation acknowledgement.
