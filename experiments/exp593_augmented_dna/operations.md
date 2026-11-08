@@ -75,6 +75,8 @@ Reassess placement after one hour without progress and diagnose a restart after 
 For a prolonged admission wait, compare the exact task with the fresh backend's pod status before classifying it as a software stall.
 When both show an unassigned SchedulingGated pod, other work is blocked on node fit, and no superior eligible placement has fresh capacity, retain the queued dispatch rather than resetting its queue age without addressing the constraint.
 Do not silently alter model/data/schedule semantics to obtain capacity.
+The ledger's unfiltered placement-rate projection mixes bounded validation completion with production progress, so it cannot rank production targets directly.
+Compare production dispatches at their scientific token horizons and use measured production throughput, including queueing, startup, validation and checkpoint overhead; a sixteen-update smoke reaching normalized progress one does not establish production speed.
 Completion requires the full input-token horizon, a readable verified final checkpoint, promised diagnostics, and a terminal Iris root.
 
 ## Placement evidence

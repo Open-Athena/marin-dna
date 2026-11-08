@@ -38,7 +38,9 @@ Both runs use the same augmentation policy, global batch, fixed panels, 216,158,
 The DNA-initialized run halves both peak rates to Muon 0.0016599690210542552 and Adam 0.0003830697740894435.
 The original text-initialized scientific bindings remain unchanged.
 The DNA-initialized condition passed sixteen bounded updates and all fixed/functional panels on one East node and four Reno nodes, with zero routing drops and verified native checkpoints; see artifacts/dna216b-loop-smoke-v1/result.json.
-These checks preserve the fresh optimizer and zero-based source import; production's first twenty norm scalars remain scheduled at update 1,000.
+These checks preserve the fresh optimizer and zero-based source import.
+The DNA-initialized production run's first 1,000 updates have finite losses, zero routing drops and twenty finite norm scalars; see artifacts/dna216b-production-startup-v1/result.json.
+Its first 339,790,830 input tokens exactly match the original text-initialized run's deterministic 1,000-update input prefix.
 Scientific bindings exclude placement and are read back before checkpoint discovery; resumed execution restores the latest complete optimizer/data state and preserves that run identity.
 CPU rendering prefetches one batch while device collectives stay ordered on the main thread.
 For resizing, add `--standby-id`, `--standby-checkpoint` and `--standby-from-job` to acquire a separate allocation while production continues.
