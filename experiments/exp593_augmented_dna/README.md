@@ -102,6 +102,7 @@ The [text-initialized half-budget checkpoint](artifacts/production-quarter-2-v1/
 The two first-quarter checkpoints have identical input, DNA, text, target, example, FIM and RC clocks at update 156,559 / 54,039,954,011 additional input tokens.
 The [DNA-initialized half-budget checkpoint](artifacts/dna216b-quarter-2-v1/result.json) also has verified permanent metadata, fixed panels and all 640 functional prediction records.
 Its complete clock matches the text half-budget checkpoint at update 313,074 / 108,079,388,453 additional inputs, including DNA, text, targets, examples, FIM and RC counts.
+The [text-initialized three-quarter checkpoint](artifacts/production-quarter-3-v1/result.json) is verified at 162,119,176,962 additional inputs, including its exact historical fixed-panel row and all 640 functional prediction records.
 These fixed development panels provide diagnostics; benchmark evaluation remains separate.
 The large junction payload is native-only; the repository retains its manifest and four paired examples.
 
