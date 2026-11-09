@@ -100,6 +100,8 @@ The readout passes a compiled FP32 reference comparison and a separate BF16 tole
 Both functional panels are active in production, and the original run's first-quarter checkpoint and frozen prediction artifacts are independently verified in artifacts/production-quarter-1-v1/result.json.
 The [text-initialized half-budget checkpoint](artifacts/production-quarter-2-v1/result.json) and [DNA-initialized first-quarter checkpoint](artifacts/dna216b-quarter-1-v1/result.json) have verified permanent metadata, complete fixed panels and independently checked 640-record functional artifacts.
 The two first-quarter checkpoints have identical input, DNA, text, target, example, FIM and RC clocks at update 156,559 / 54,039,954,011 additional input tokens.
+The [DNA-initialized half-budget checkpoint](artifacts/dna216b-quarter-2-v1/result.json) also has verified permanent metadata, fixed panels and all 640 functional prediction records.
+Its complete clock matches the text half-budget checkpoint at update 313,074 / 108,079,388,453 additional inputs, including DNA, text, targets, examples, FIM and RC counts.
 These fixed development panels provide diagnostics; benchmark evaluation remains separate.
 The large junction payload is native-only; the repository retains its manifest and four paired examples.
 
