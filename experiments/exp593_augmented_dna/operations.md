@@ -112,6 +112,13 @@ The full candidate grid below remains within the approved H100 scope; other targ
 | 4 | 32 | Eligible | Eligible |
 | 8 | 64 | Unvalidated | Eligible for full-state resume |
 
+The November 9 East eight-node preparation did not finish its first disposable probe before the original Reno writer recovered.
+Native stacks from all eight workers on each of two sampled nodes waited in XLA ConfigAssigner's distributed key-value exchange; sampled GPUs were idle, while one sampled rank-zero process still consumed CPU.
+This identifies the observed wait, not its cause or a proven deadlock.
+The unused no-op-tracker allocation was cancelled without promotion and physically released after terminal root/child and post-cancellation backend checks.
+East eight-node full-state recovery remains unvalidated; do not infer eligibility, change production compiler flags or retry blindly from this result.
+See artifacts/dna216b-recovery-20261109-v1/result.json for the preserved recovery state and preparation evidence.
+
 The additional DNA216B weight-only initialization passed sixteen updates on one East node and four Reno nodes at the original global batch and token schedule.
 Both profiles exercised every sequence bucket, completed all fixed and functional panels, had finite metrics and zero routing drops, and committed strictly verified native checkpoints with identical clocks.
 Their initial primary loss matches the evaluated source model within 2e-5, and their new optimizer/model counters start at zero.

@@ -54,6 +54,7 @@ This temporary fallback keeps training advancing while larger allocations are pr
 The subsequent [graceful eight-to-64-H100 handoff](artifacts/dna216b-production-reslice-rno-n8-cp120-v1/result.json) preserved the exact step-137600 state without replay, passed the first 1,000 resumed updates and twenty fresh norms, and independently verified all 640 resume diagnostic records.
 The later [checkpoint-policy handoff](artifacts/dna216b-checkpoint-policy-rno-n8-v1/result.json) retained 64 H100s and the exact step-142700 state without replay, verified another 1,000 updates / twenty fresh norms / 640 diagnostic records, and committed its first periodic save after 601 seconds of training with a 76-second native write.
 Scientific bindings exclude placement and are read back before checkpoint discovery; resumed execution restores the latest complete optimizer/data state and preserves that run identity.
+The [November 9 DNA216B preemption recovery](artifacts/dna216b-recovery-20261109-v1/result.json) preserved its original Reno dispatch and run identity; the unused East eight-node preparation was released without qualifying or being promoted.
 CPU rendering prefetches one batch while device collectives stay ordered on the main thread.
 For resizing, add `--standby-id`, `--standby-checkpoint` and `--standby-from-job` to acquire a separate allocation while production continues.
 The standby uses a no-op tracker, restores the existing production checkpoint, validates all buckets and diagnostics, and holds its prepared allocation behind an explicit promotion gate.
