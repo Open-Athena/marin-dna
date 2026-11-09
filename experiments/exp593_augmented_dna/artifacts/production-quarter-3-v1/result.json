@@ -101,6 +101,26 @@
     "moe/sender_dropped_assignments": 0
   },
   "run_id": "dna-exp593-augmented-d768-pretrained-seed0-v1",
+  "storage_array_readback": {
+    "all_arrays_finite": true,
+    "decoded_arrays": 128,
+    "decoded_bytes": 16716379160,
+    "evidence": {
+      "bytes": 46606,
+      "complete_readback_verified": true,
+      "etag": "\"23a07a8f27d2065fa7715459563b7f0f\"",
+      "sha256": "2113f854a1147a5fefa57fc1d50bc95d33538f90e82b7d5ed50047c5d39457c3",
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/verification/native-readability/2113f854a1147a5fefa57fc1d50bc95d33538f90e82b7d5ed50047c5d39457c3.json"
+    },
+    "expected_arrays": 128,
+    "jax_restore_performed": false,
+    "manifest_sha256": "e79ad55ce6da6d072a493260d0a86888521f76dde1475e35013936ea5f1f0aa2",
+    "scope": "Every array listed in the saved checkpoint manifest was decoded in bounded blocks.",
+    "serialized_update_and_optimizer_counters": 469566,
+    "verified_at": "2026-11-09T13:20:41.056096+00:00",
+    "verifier_source_bundle": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/verification/preparation/97464321c142a7097d5f1c96cc37d3ac618691939e4ac752b0dae15607855a5c.json",
+    "verifier_source_sha256": "d87a3ded2b3a1336cc2e346c8108e2806bc2a4091034d1cb1cddbf8bf3dfc35a"
+  },
   "validation": {
     "eval/disjoint_examples": 512,
     "eval/examples": 512,
