@@ -69,6 +69,9 @@ The MarinFold skill references the same query; its current helper expects availa
 Keep one pending replacement dispatch at most, in addition to the productive allocation.
 Treat a one-node result as evidence only for its tested shape, batches, and memory.
 Use W&B for numerical progress and exact Iris root/task IDs for liveness and concrete failures.
+An Iris response reporting `PENDING` / peer-synced and no backend worker can lag actual execution; check the corresponding W&B identity and committed execution receipts before concluding that a new job has never started.
+The evaluation task's `exp593-eval-text-q1-gate-a2` executed and failed in environment setup at 00:45 UTC on November 9 while Iris still returned pending at 00:48; its independently read receipt is `evaluations/plantcad2-v1/validation/text-q1/a2/validation-receipt.json` under the native owner, SHA-256 `4f2c0dbbc6ddcc90b965e19d23f471ea227c842fc1ea8aea34a7703e7ba37eb5`.
+This observation does not establish a cluster-wide admission failure or permit a duplicate dispatch; evaluation recovery remains owned by that task.
 Use eric-czech/marin at the CoreWeave W&B endpoint with an exp593 identity.
 After startup, check progress on a 30-minute cadence.
 Choose the periodic interval from measured native-write cost and observed interruption windows.

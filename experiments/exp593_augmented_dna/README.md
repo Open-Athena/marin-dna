@@ -259,6 +259,7 @@ The original condition is a fresh DNA adaptation from text-pretrained weights; t
 The optimized lowercase-only compact embedding shortcut must accommodate text and uppercase IDs before production use.
 The H100 smoke must validate all four buckets, loss aggregation, diagnostics and checkpoint replay before full training.
 Controller freshness and live capacity must be rechecked at dispatch.
+Use W&B and committed execution receipts to establish progress; an Iris pending response can lag actual execution, as documented in [the monitoring policy](operations.md#placement-and-monitoring).
 
 `python -m exp593_dna.smoke --run-id dna-exp593-smoke-20261107-v1 --cluster cw-rno2a --nodes 1` is the bounded validation entry point, invoked through an explicitly placed Iris coordinator.
 It performs four updates covering every context bucket, then an exact full-state checkpoint roundtrip and one resumed update.
