@@ -69,6 +69,9 @@ The MarinFold skill references the same query; its current helper expects availa
 Keep one pending replacement dispatch at most, in addition to the productive allocation.
 Treat a one-node result as evidence only for its tested shape, batches, and memory.
 Use W&B for numerical progress and exact Iris root/task IDs for liveness and concrete failures.
+If checkpointing or evaluation exceeds three minutes without new optimizer updates, inspect the current GPU task attempts and logs before reporting the allocation as active.
+A stale W&B `running` state and Iris root `RUNNING` can coexist with every GPU attempt queued after eviction; these states alone do not prove that a save is still executing.
+An interrupted milestone without committed metadata is unavailable for benchmark handoff, and its pre-save diagnostic result must not be paired with a later replayed checkpoint at the same clock.
 An Iris response reporting `PENDING` / peer-synced and no backend worker can lag actual execution; check the corresponding W&B identity and committed execution receipts before concluding that a new job has never started.
 The evaluation task's `exp593-eval-text-q1-gate-a2` executed and failed in environment setup at 00:45 UTC on November 9 while Iris still returned pending at 00:48; its independently read receipt is `evaluations/plantcad2-v1/validation/text-q1/a2/validation-receipt.json` under the native owner, SHA-256 `4f2c0dbbc6ddcc90b965e19d23f471ea227c842fc1ea8aea34a7703e7ba37eb5`.
 This observation does not establish a cluster-wide admission failure or permit a duplicate dispatch; evaluation recovery remains owned by that task.
@@ -199,3 +202,9 @@ Inspect an idle coordinator promptly after GPU completion to avoid unnecessary c
 Do not infer that resources or writers have stopped merely from cancellation acknowledgement.
 Once a post-cancellation backend observation proves every old pod absent, that termination fact remains valid while fresh controller checks confirm both unique old jobs are terminal.
 Recheck those terminal states immediately before promotion; a capacity observation's age does not resurrect a physically terminated writer.
+
+## Change record
+
+November 9, 22:55 UTC: a priority eviction interrupted the DNA216B three-quarter save while W&B still reported checkpointing/running.
+Added a three-minute task-attempt check for prolonged save/evaluation phases and explicit exclusion of interrupted milestone diagnostics from later checkpoint pairing.
+See artifacts/production-recovery-east-n4-v1/result.json for the observed failure and native commit check.
