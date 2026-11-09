@@ -57,6 +57,8 @@ Scientific bindings exclude placement and are read back before checkpoint discov
 The [November 9 DNA216B preemption recovery](artifacts/dna216b-recovery-20261109-v1/result.json) preserved its original Reno dispatch and run identity; the unused East eight-node preparation was released without qualifying or being promoted.
 A later [64→32 H100 East recovery qualification](artifacts/dna216b-recovery-east-n4-v1/result.json) passed seventeen disposable updates, all buckets and norm branches, and every fixed/functional panel.
 That unused preparation was physically released after the original Reno writer recovered again; it created no W&B run and wrote no production state.
+The [second November 9 DNA216B recovery](artifacts/dna216b-recovery-20261109b-v1/result.json) preserves the same dispatch and W&B identity after another priority eviction, including its restored cursor, first new save and independently verified resume diagnostics.
+Its captured logged progress exceeds the prior peak, while the first new save is durable replay progress below that peak.
 CPU rendering prefetches one batch while device collectives stay ordered on the main thread.
 For resizing, add `--standby-id`, `--standby-checkpoint` and `--standby-from-job` to acquire a separate allocation while production continues.
 The standby uses a no-op tracker, restores the existing production checkpoint, validates all buckets and diagnostics, and holds its prepared allocation behind an explicit promotion gate.
