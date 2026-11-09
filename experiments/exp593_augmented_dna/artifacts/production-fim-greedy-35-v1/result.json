@@ -60,7 +60,7 @@
     "Case-sensitive and case-folded DNA exact-match counts changed equally.",
     "The panel is small and its presentation pairs are correlated; this observation does not establish an overfitting mechanism or broader benchmark performance."
   ],
-  "panel_definition": "Greedy generation at caller-specified gap length, with full-vocabulary output. Two DNA cases per gap length are each shown in minimal and formatted presentations: 36 total presentations over nine gap lengths.",
+  "panel_definition": "Case-sensitive greedy exact match at caller-specified gap length, with full-vocabulary output. Two fixed sequence/gap examples per gap length are each shown with minimal and formatted prompts: 36 total correlated presentations over nine gap lengths. Capitalization is held fixed within each matched prompt pair.",
   "run_id": "dna-exp593-augmented-d768-pretrained-seed0-v1",
   "runtime_source_commit": "3f0536ae97266df0b6fae2c11566931ebb470003",
   "source": "Cached W&B aggregate metrics from the frozen FIM validation panel; no new inference was run for this comparison.",
