@@ -133,6 +133,10 @@ It passed sixteen disposable updates, every bucket with and without norms, twent
 This qualifies the tested 64→8 H100 recovery path, including optimizer and input cursor; it does not establish eligibility for other untested placements.
 The no-op-tracker validation wrote no production state, was never promoted, and its allocation was physically released after readiness verification.
 See artifacts/dna216b-recovery-east-n1-v1/result.json.
+The DNA216B four-node East profile subsequently restored its permanent half-budget state from eight Reno nodes and passed seventeen disposable updates, every bucket and norm branch, twenty finite norm scalars, zero routing drops and all fixed/functional panels.
+This qualifies the tested 64→32 H100 full-state recovery path; it does not qualify eight East nodes.
+The resident preparation was released without promotion after the original Reno gang recovered, with terminal root/child and a post-cancellation backend observation showing every old pod absent.
+See artifacts/dna216b-recovery-east-n4-v1/result.json.
 
 The local four-device CPU checkpoint regression covers exact full-state restoration across replica-group counts 1→2→1, including the FP32 expert-master/momentum partition and replicated BF16 weights.
 It supports the global-array checkpoint mechanism; it does not establish target eligibility or replace numerical checks on a future GPU reslice.
