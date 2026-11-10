@@ -48,7 +48,7 @@ Targets marked eligible below permit bounded validation only until the source-sp
 | --- | --- | ---: | ---: | --- | --- |
 | cw-rno2a | H100 | 1 | 8 | eligible | Production for the qualified 181b and 545b recipes; bounded validation for other sources |
 | cw-rno2a | H100 | 2 | 16 | unvalidated | — |
-| cw-rno2a | H100 | 4 | 32 | eligible | Bounded validation only |
+| cw-rno2a | H100 | 4 | 32 | eligible | Production for the qualified 545b recipe; bounded validation for other sources |
 | cw-rno2a | H100 | 8 | 64 | eligible | Bounded validation only |
 | cw-us-east-02a | H100 | 1 | 8 | eligible | Production for the qualified 181b and 364b recipes; bounded validation for other sources |
 | cw-us-east-02a | H100 | 2 | 16 | unvalidated | — |
@@ -77,3 +77,8 @@ The 181b source passed the complete one-node native loop and the real-task pilot
 Eight-node East is eligible for bounded testing because the same H100 per-device model/optimizer layout fits and executes on Reno, while East's single-node inputs and runtime are verified.
 An explicit empty --xla_gpu_per_fusion_autotune_cache_dir flag can isolate the bounded East test from Iris's shared FineStore autotune mirror; this changes cache I/O only and keeps GPU autotuning, the full executable cache, kernels, optimizer, and objective intact.
 The same cache-isolation check is permitted on Reno after a later bounded attempt exited with a native process fault during source restoration; that fault does not establish the cause of the earlier post-update wait.
+Both cache-isolated eight-node checks subsequently stopped numerical progress in native XLA ConfigAssigner/BlockingKeyValueGet waits, sampled on one node per placement with idle sampled-node GPUs.
+Both exact root and child writers were cancelled and verified terminal; cache-mirror isolation alone did not resolve distributed compilation.
+Further eight-node checks require a concrete new diagnostic basis rather than repeating either launch; the historical operations document also records an unsuccessful shard-autotuning override.
+The 545b four-node Reno check passed all 42 finite task pilot scores, 64 updates, every context bucket, first-update head/master reconciliation, and an exact full-state checkpoint roundtrip.
+That profile is eligible for production while other source-specific four-node checks proceed.
