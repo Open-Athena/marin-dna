@@ -99,6 +99,7 @@ def assemble(local: LocalBatch, mesh: Any) -> TrainingBatch:
     gathered = np.asarray(multihost_utils.process_allgather(local.details, tiled=True))
     rows = gathered.reshape(-1, 64, local.details.shape[1]).sum(axis=0, dtype=np.int64)
     mixture = dict(batch.mixture)
+    mixture[f"bucket/{local.bucket}"] = 64
     mixture.update(
         {
             f"landmark/{name}": int(np.count_nonzero(rows[:, 43] == i + 1))

@@ -18,6 +18,8 @@ from levanter.checkpoint import (
 from rigging.filesystem.storage_path import StoragePath
 
 from exp593_dna.anneal import OWNER, SOURCE_BINDING_SHA256, AnnealTrial
+from exp593_dna.anneal_tokenizer import verify_source_tokenizer
+from exp593_dna.pipeline import Encoder
 from exp593_dna.recovery import canonical_json
 from exp593_dna.schedule import TokenClock
 from exp593_dna.state import checkpoint_template
@@ -59,9 +61,10 @@ def validate_metadata(
 
 
 def restore_source(
-    exemplar: Any, trial: AnnealTrial, mesh: Any, tokenizer_sha256: str
+    exemplar: Any, trial: AnnealTrial, mesh: Any, encoder: Encoder
 ) -> tuple[Any, AnnealClock, dict[str, Any]]:
     """Restore every native leaf; preserve Adam/Muon/global history verbatim."""
+    tokenizer = verify_source_tokenizer(encoder)
     state, source_clock = restore_dna_checkpoint(
         exemplar,
         trial.source_checkpoint,
@@ -69,7 +72,7 @@ def restore_source(
         metadata_sha256=trial.source_metadata_sha256,
         data_seed=0,
         scientific_config_sha256=SOURCE_BINDING_SHA256,
-        tokenizer_sha256=tokenizer_sha256,
+        tokenizer_sha256=tokenizer["source_tokenizer_sha256"],
     )
     evidence = validate_restored_training_state(state, source_clock)
     if (
@@ -78,7 +81,11 @@ def restore_source(
         or source_clock.examples != trial.source_examples
     ):
         raise ValueError("The selected old 1T checkpoint clock differs")
-    return state, AnnealClock(), {**evidence, "source_clock": asdict(source_clock)}
+    return (
+        state,
+        AnnealClock(),
+        {**evidence, "source_clock": asdict(source_clock), "tokenizer": tokenizer},
+    )
 
 
 def discover(root: str, trial: AnnealTrial, bindings: dict[str, Any]) -> str | None:

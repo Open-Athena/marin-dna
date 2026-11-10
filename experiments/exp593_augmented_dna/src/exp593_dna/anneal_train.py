@@ -56,6 +56,7 @@ from exp593_dna.anneal import (
 from exp593_dna.anneal_data import GuidedAugmenter, GuidedSource
 from exp593_dna.anneal_evaluate import CompactEvaluator
 from exp593_dna.anneal_state import AnnealClock
+from exp593_dna.anneal_tokenizer import verify_source_tokenizer
 from exp593_dna.annotations import load_annotations
 from exp593_dna.corpus import open_corpus
 from exp593_dna.diagnostics import NormPolicy
@@ -99,7 +100,7 @@ class TrainingConfig:
                     "Production must use its new stable annealing identity"
                 )
         elif not (
-            16 <= self.validation_updates <= 64
+            self.validation_updates == 64
             and self.run_id
             and self.run_id.startswith("dna-exp593-")
             and "smoke" in self.run_id
@@ -134,6 +135,7 @@ def bindings(
             "anneal_data.py",
             "anneal_batches.py",
             "anneal_state.py",
+            "anneal_tokenizer.py",
             "anneal_evaluate.py",
             "anneal_train.py",
             "train_step.py",
@@ -272,7 +274,7 @@ def _run(config: TrainingConfig) -> None:
                 }
             )
             state, clock, evidence = anneal_state.restore_source(
-                state, trial, mesh, encoder.digest
+                state, trial, mesh, encoder
             )
             tracker.log_summary(
                 {
@@ -512,7 +514,12 @@ def _run(config: TrainingConfig) -> None:
                     checkpoint = save(permanent)
                     last_save = time.monotonic()
         if config.validation_updates is not None:
-            if compiled != {2048, 4096, 6144, 8192}:
+            qualified = {
+                int(k.removeprefix("bucket/"))
+                for k, v in clock.mixture.items()
+                if k.startswith("bucket/") and v > 0
+            }
+            if qualified != {2048, 4096, 6144, 8192}:
                 raise ValueError(
                     "Disposable validation did not exercise every input bucket"
                 )
@@ -527,7 +534,7 @@ def _run(config: TrainingConfig) -> None:
             log(
                 {
                     "validation/roundtrip_max_abs_error": error,
-                    "validation/exercised_buckets": len(compiled),
+                    "validation/exercised_buckets": len(qualified),
                 }
             )
         elif clock.stage.input_tokens != trial.horizon:
@@ -563,6 +570,7 @@ def run(config: TrainingConfig) -> None:
 
 
 def dispatch(config: TrainingConfig) -> None:
+    verify_source_tokenizer(load_encoder())
     if config.validation_updates is None:
         raise RuntimeError(
             "Production gate: freeze and validate the downsampled task panels first"
