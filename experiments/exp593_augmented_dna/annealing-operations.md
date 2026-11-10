@@ -67,6 +67,7 @@ After ambiguous submission, reconcile only its exact immutable Iris name before 
 Physically fence the old writer before its replacement restores and writes the same identity.
 Completion requires the exact fixed-stage token horizon, reachable permanent checkpoint, native clocks/state integrity, and terminal GPU writers.
 The read-only operator audit in scratch/exp593-anneal/audit_production_checkpoint.py checks remote metadata, native manifest, source bindings, W&B results and exact Iris writers; it cannot certify tensor contents. After each successful final run, use exp593_dna.anneal_final_audit on an additional batch/eczech eight-H100 node with the selected checkpoint and metadata digest to restore and check every native model/optimizer array before recording completion. This audit performs no training updates and uses a separate Iris identity.
+The first disposable native audit, on the 181b step-356535 intermediate checkpoint, succeeded on eight Reno H100s: all 128 arrays restored and were finite, compute weights matched FP32 master casts, the optimizer count matched the global step, and the clock matched metadata. Its immutable full-readback report and exact terminal root/child are recorded in the separate audit trial in the annealing ledger. This confirms the native audit procedure on a live production checkpoint; each final checkpoint still requires its own audit.
 
 ## Change record
 
