@@ -9,6 +9,8 @@ The full authorized research plan remains untracked at scratch/exp593-annealing-
 The immutable trial catalog and LR/FIM schedules live in src/exp593_dna/anneal.py.
 The entry point is exp593_dna.anneal_train, with data, native state, batching, audit, and compact validation modules prefixed anneal_.
 These runs expand issue #593 and the existing permanent MarinDNA PR #594; keep the branch unmerged and do not create another issue or PR.
+The user requires explicit approval before posting or editing any GitHub comment.
+Keep operational notes local and report progress in chat; do not restore comments the user deletes.
 The user's November 10 authorization permits implementation, bounded validation, and all three full training runs with new personal W&B identities.
 Schedules are fixed; evaluation results must never trigger early stopping, LR changes, horizon changes, or enrichment of the training sampler.
 Do not initialize from weights alone, reset optimizer/global counters, or infer repeat labels from uniformly lowercase inputs.
