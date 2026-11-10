@@ -56,6 +56,7 @@ from exp593_dna.anneal import (
 from exp593_dna.anneal_data import GuidedAugmenter, GuidedSource
 from exp593_dna.anneal_evaluate import CompactEvaluator
 from exp593_dna.anneal_state import AnnealClock
+from exp593_dna.anneal_tasks import TaskEvaluator, fetch_panels, panel_binding
 from exp593_dna.anneal_tokenizer import verify_source_tokenizer
 from exp593_dna.annotations import load_annotations
 from exp593_dna.corpus import open_corpus
@@ -137,6 +138,7 @@ def bindings(
             "anneal_state.py",
             "anneal_tokenizer.py",
             "anneal_evaluate.py",
+            "anneal_tasks.py",
             "anneal_train.py",
             "train_step.py",
             "templates.py",
@@ -172,6 +174,7 @@ def bindings(
                     "annotations/train.parquet"
                 ]["sha256"],
                 "stop_policy": "exact_nonpadding_input_cap_with_whole_valid_examples",
+                "task_panels": panel_binding(),
             }
         )
     )
@@ -235,6 +238,12 @@ def _run(config: TrainingConfig) -> None:
     mesh = replicated_mesh()
     evaluator = CompactEvaluator(
         panels, encoder, mesh, mp, progress=evaluation_progress
+    )
+    tasks = TaskEvaluator(
+        evaluator,
+        fetch_panels(Path("/tmp/exp593-anneal-task-panels")),
+        mp,
+        pilot=config.validation_updates is not None,
     )
     model = replace(
         local_model(d768_config("pretrained")),
@@ -314,11 +323,14 @@ def _run(config: TrainingConfig) -> None:
                 step=log_step,
             )
 
-        def evaluate(event: str) -> None:
+        def evaluate(event: str, *, include_tasks: bool = False) -> None:
             tracker.log_summary(
                 {"training/phase": "evaluating", "training/eval_event": event}
             )
             values = evaluator.evaluate(state)
+            if include_tasks:
+                tracker.log_summary({"training/phase": "evaluating_tasks"})
+                values.update(tasks.evaluate(state))
             log(values)
             tracker.log_summary(
                 {"training/last_eval_input_tokens": clock.stage.input_tokens, **values}
@@ -353,7 +365,10 @@ def _run(config: TrainingConfig) -> None:
             tracker.log_summary(values)
             return path
 
-        evaluate("source" if checkpoint is None else "resume")
+        evaluate(
+            "source" if checkpoint is None else "resume",
+            include_tasks=checkpoint is None,
+        )
         if checkpoint is None and config.validation_updates is None:
             checkpoint = save(True)
         last_save = time.monotonic()
@@ -499,10 +514,13 @@ def _run(config: TrainingConfig) -> None:
                     previous.stage.input_tokens, clock.stage.input_tokens, tasks=True
                 )
                 permanent = bool(task_events) or done
-                if events or done:
+                if events or task_events or done:
                     if future is not None:
                         future.result()
-                    evaluate(",".join(events) or "validation_end")
+                    evaluate(
+                        ",".join(events) or "validation_end",
+                        include_tasks=bool(task_events) or done,
+                    )
                 due = primary_json(
                     lambda saved_at=last_save, milestone=permanent: (
                         time.monotonic() - saved_at

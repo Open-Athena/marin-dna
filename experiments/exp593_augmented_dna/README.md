@@ -316,3 +316,28 @@ See `artifacts/smoke-v1/result.json` for the checkpoint binding and [personal W&
 W&B belongs to the personal `eric-czech/marin` project on `https://forge.coreweave.com/api/wandb`.
 Artifacts belong under `s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/`.
 See `operations.md` for the approved two-model placement and recovery policy.
+
+## Full-state annealing continuations
+
+The additional three runs continue the old 1T exp586 checkpoints using the immutable recipes in `src/exp593_dna/anneal.py` and entry point `python -m exp593_dna.anneal_train`.
+These restore the entire native optimizer and model state, retain its lifetime counters, and track additional inputs with a separate stage clock.
+All DNA inputs are lowercase, with no biological metadata; every FIM example is drawn from annotated original training windows.
+The source corpus, annotation provenance, reverse-complement augmentation, variable-length examples, and per-example objective normalization remain explicit in the scientific checkpoint bindings.
+See [annealing-operations.md](annealing-operations.md) for placement and recovery policy.
+
+The compact primary panel preserves the historical 512 examples and `eval/loss`, with repeat/nonrepeat/10:1 partitions only for that primary loss.
+FIM monitoring includes aggregate base accuracy, short-gap exact match, and suffix benefit.
+Real-task monitoring freezes 2,048 examples per task, uniformly sampled across every source shard with natural class prevalence, for twenty benchmark tasks and maize allele frequency.
+These are test-derived diagnostic panels, not independent development sets, and cannot change the fixed training schedules or training sampler.
+All task input bytes and memberships are bound by `assets/anneal_task_panel.json`; they are never opened by the training sampler.
+
+Both raw causal and minimal FIM views are scored on lowercase inputs.
+Standard conservation/core/motif tasks fold uppercase and lowercase output mass before conditioning on ACGT, align RC positions and complementary base axes, and combine strands by normalized geometric mean.
+Multi-base task answers use the established teacher-forcing convention; their motif accuracy is distinct from the separately generated short-gap FIM accuracy.
+Minimal FIM reserves only its own structural-label overhead and trims remote flank ends, so its contexts differ slightly from the matched minimal/metadata contexts in the full eval suite.
+SV uses the historical forward-only junction likelihood ratio and leave-one-base-out FIM; its lowercase raw view differs from the latest uppercase SV comparison plot.
+AF uses its own source center at index 4096, becoming index 1024 in the centered 2048-base window and index 1023 on RC.
+Its raw view retains the historical full-vocabulary suffix ALT-minus-REF likelihood ratio, while its FIM view uses case-folded site-only ALT/REF log odds.
+One scalar per task/view is logged: conservation AUROC, core/SV average precision, motif accuracy, and AF Spearman correlation.
+Production task panels run initially, at curriculum end, every approximately 20.97B additional inputs, and finally; compact validation runs approximately every 5.24B inputs.
+Disposable validation uses a separately named 32-example-per-task pilot, with metrics under `validation/tasks`, never the production task curves.
