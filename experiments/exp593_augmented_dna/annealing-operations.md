@@ -60,6 +60,7 @@ Targets marked eligible below permit bounded validation only until the source-sp
 Use W&B numerical progress first, exact Iris root/child liveness second, and freshly refetched ListPeers availability before admission or resizing.
 Apply the existing v3 capacity helper and historical bounded observation-age rules; higher-priority holds are not free capacity.
 Use one pending admission per exact target, except for an already approved resident replacement queued while productive training continues.
+The qualified 545b four-node resize may also overlap the pending 181b four-node validation when fresh capacity covers the additional 32 H100s within the aggregate limit; that production admission uses a proven target rather than another unqualified profile.
 Run a complete agent decision pass every 30 minutes after startup; use one-hour reslice and three-hour restart thresholds unless a concrete failure warrants earlier diagnosis.
 Helpers may observe, validate, and execute an exact agent-selected action; no unattended helper may decide placement, recovery, or training termination.
 After ambiguous submission, reconcile only its exact immutable Iris name before replacement.
