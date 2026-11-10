@@ -80,5 +80,7 @@ The same cache-isolation check is permitted on Reno after a later bounded attemp
 Both cache-isolated eight-node checks subsequently stopped numerical progress in native XLA ConfigAssigner/BlockingKeyValueGet waits, sampled on one node per placement with idle sampled-node GPUs.
 Both exact root and child writers were cancelled and verified terminal; cache-mirror isolation alone did not resolve distributed compilation.
 Further eight-node checks require a concrete new diagnostic basis rather than repeating either launch; the historical operations document also records an unsuccessful shard-autotuning override.
+Two bounded global-primary native faults coincided with the first in-process watchdog dump during input or restore work; production does not enable that timer.
+New bounded checks use anneal_validation.py to isolate the timer while leaving the native scientifically bound trainer unchanged; diagnose waits with external Iris task profiles.
 The 545b four-node Reno check passed all 42 finite task pilot scores, 64 updates, every context bucket, first-update head/master reconciliation, and an exact full-state checkpoint roundtrip.
 That profile is eligible for production while other source-specific four-node checks proceed.

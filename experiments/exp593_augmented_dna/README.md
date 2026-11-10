@@ -341,6 +341,9 @@ Its raw view retains the historical full-vocabulary suffix ALT-minus-REF likelih
 One scalar per task/view is logged: conservation AUROC, core/SV average precision, motif accuracy, and AF Spearman correlation.
 Production task panels run initially, at curriculum end, every approximately 20.97B additional inputs, and finally; compact validation runs approximately every 5.24B inputs.
 Disposable validation uses a separately named 32-example-per-task pilot, with metrics under `validation/tasks`, never the production task curves.
+Use `python -m exp593_dna.anneal_validation --trial <recipe> --cluster <cluster> --nodes <nodes> --run-id <new-smoke-id>` for new bounded 64-update checks.
+This diagnostic wrapper suppresses only the optional in-process traceback timer after two native faults coincided with its first dump; use external Iris task profiles instead.
+It rejects production configurations and reuses the native dispatcher, all validation checks, optimizer updates, and checkpoint roundtrip without changing scientifically bound training files.
 
 The 545.455B legacy native checkpoint has 18,468,864 saved BF16 output-projection values that differ from the BF16 cast of its FP32 master, with maximum absolute difference 0.00146484375.
 A complete CPU audit found that all other 35 parameter/master pairs match exactly and all model/master values are finite.
