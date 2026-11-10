@@ -6,6 +6,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 from dataclasses import asdict, dataclass, replace
 from importlib.resources import files
 from pathlib import Path
@@ -59,9 +60,24 @@ class AuditConfig:
     allow_temporary: bool = False
 
     @property
+    def checkpoint_parts(self) -> tuple[int, str | None]:
+        prefix = (
+            f"{OWNER}/annealing/training/{TRIALS[self.trial].run_id}/checkpoints/step-"
+        )
+        if not self.checkpoint.startswith(prefix):
+            raise ValueError("Native audit checkpoint escaped the production namespace")
+        match = re.fullmatch(
+            r"(\d+)(?:-retry-([0-9a-f]{32}))?", self.checkpoint[len(prefix) :]
+        )
+        if match is None:
+            raise ValueError("Native audit checkpoint has an invalid step/retry suffix")
+        return int(match.group(1)), match.group(2)
+
+    @property
     def identity(self) -> str:
-        step = self.checkpoint.rsplit("-", 1)[-1]
-        return f"dna-exp593-anneal-nativeaudit-{self.trial}-step-{step}-v1"
+        step, retry = self.checkpoint_parts
+        suffix = f"-retry-{retry[:8]}" if retry else ""
+        return f"dna-exp593-anneal-nativeaudit-{self.trial}-step-{step}{suffix}-v1"
 
     def __post_init__(self) -> None:
         if self.trial not in TRIALS or self.cluster not in (
@@ -69,11 +85,7 @@ class AuditConfig:
             "cw-us-east-02a",
         ):
             raise ValueError("Unapproved annealing recipe or cluster")
-        prefix = (
-            f"{OWNER}/annealing/training/{TRIALS[self.trial].run_id}/checkpoints/step-"
-        )
-        if not self.checkpoint.startswith(prefix):
-            raise ValueError("Native audit checkpoint escaped the production namespace")
+        _ = self.checkpoint_parts
         if len(self.metadata_sha256) != 64 or any(
             c not in "0123456789abcdef" for c in self.metadata_sha256
         ):
