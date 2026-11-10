@@ -66,6 +66,7 @@ Helpers may observe, validate, and execute an exact agent-selected action; no un
 After ambiguous submission, reconcile only its exact immutable Iris name before replacement.
 Physically fence the old writer before its replacement restores and writes the same identity.
 Completion requires the exact fixed-stage token horizon, reachable permanent checkpoint, native clocks/state integrity, and terminal GPU writers.
+The read-only operator audit in scratch/exp593-anneal/audit_production_checkpoint.py checks remote metadata, native manifest, source bindings, W&B results and exact Iris writers; it cannot certify tensor contents. After each successful final run, use exp593_dna.anneal_final_audit on an additional batch/eczech eight-H100 node with the selected checkpoint and metadata digest to restore and check every native model/optimizer array before recording completion. This audit performs no training updates and uses a separate Iris identity.
 
 ## Change record
 
