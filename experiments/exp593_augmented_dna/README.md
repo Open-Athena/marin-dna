@@ -6,7 +6,7 @@ The user has authorized preparation, single-node H100 validation, and full train
 Data preparation and the single-node H100 smoke are complete.
 The [text-initialized final model](artifacts/production-final-v1/result.json) completed 216,158,719,114 actual input tokens at update 626,011.
 Its final fixed panels, 640 functional records, all 128 stored arrays and all 626 expected sparse norm checkpoints are verified; W&B finished and every GPU task plus both Iris jobs succeeded.
-The separately approved DNA216B-initialized model continues on 32 East H100s after a [full-state recovery from repeated Reno priority evictions](artifacts/dna216b-production-recovery-east-n4-v2/result.json).
+The separately approved DNA216B-initialized model continues on 64 Reno H100s after a [zero-replay full-state handoff](artifacts/dna216b-production-reslice-rno-n8-v3/result.json) from its temporary East recovery allocation.
 The full fixed-panel accelerator evaluator passed on eight H100s in about 65 seconds, including all 36 greedy completions.
 The four-node production loop passed sixteen bounded updates and native checkpoint discovery.
 The four-node Reno validation passed all sixteen updates, all four buckets and the causal/FIM/functional panels, with zero routing drops and verified native checkpoint discovery.
@@ -73,6 +73,9 @@ The later [November 10 East recovery](artifacts/dna216b-production-recovery-east
 The old root and child were terminal and a post-cancellation backend observation showed no old pods before the qualified 32-H100 allocation was promoted under the same W&B identity.
 The first 1,000 resumed updates, twenty fresh norms, all 124 fixed metrics and 640 functional records passed verification.
 Its first new native save at 185,913,633,685 inputs verifies durable replay progress below the preemption high-water mark of 186,122,874,586; 861,833,464 previously logged inputs require replay from the restored cursor.
+The next [32-to-64-H100 handoff](artifacts/dna216b-production-reslice-rno-n8-v3/result.json) kept East productive while Reno acquired and qualified eight nodes, then restored the exact step-548800 state at 189,465,674,168 inputs after all four old GPU tasks and both old jobs succeeded.
+It retained the same personal W&B identity with zero replay and a measured 274.012-second optimizer-update gap.
+The first 1,000 resumed updates, twenty fresh norms, 124 fixed metrics, 640 functional records and a new native checkpoint at 190,358,758,813 inputs passed verification.
 CPU rendering prefetches one batch while device collectives stay ordered on the main thread.
 For resizing, add `--standby-id`, `--standby-checkpoint` and `--standby-from-job` to acquire a separate allocation while production continues.
 The standby uses a no-op tracker, restores the existing production checkpoint, validates all buckets and diagnostics, and holds its prepared allocation behind an explicit promotion gate.
