@@ -52,7 +52,7 @@ Targets marked eligible below permit bounded validation only until the source-sp
 | cw-rno2a | H100 | 8 | 64 | eligible | Bounded validation only |
 | cw-us-east-02a | H100 | 1 | 8 | eligible | Production for the qualified 181b and 364b recipes; bounded validation for other sources |
 | cw-us-east-02a | H100 | 2 | 16 | unvalidated | — |
-| cw-us-east-02a | H100 | 4 | 32 | eligible | Bounded validation only |
+| cw-us-east-02a | H100 | 4 | 32 | eligible | Production for the qualified 364b recipe; bounded validation for other sources |
 | cw-us-east-02a | H100 | 8 | 64 | eligible | Bounded validation only; static H100 fit established, distributed runtime remains unqualified |
 
 ## Operating policy
@@ -81,7 +81,13 @@ The same cache-isolation check is permitted on Reno after a later bounded attemp
 Both cache-isolated eight-node checks subsequently stopped numerical progress in native XLA ConfigAssigner/BlockingKeyValueGet waits, sampled on one node per placement with idle sampled-node GPUs.
 Both exact root and child writers were cancelled and verified terminal; cache-mirror isolation alone did not resolve distributed compilation.
 Further eight-node checks require a concrete new diagnostic basis rather than repeating either launch; the historical operations document also records an unsuccessful shard-autotuning override.
-Two bounded global-primary native faults coincided with the first in-process watchdog dump during input or restore work; production does not enable that timer.
+An additional bounded runtime diagnostic may set --xla_gpu_autotune_level=0 to bypass online autotuning and its distributed configuration exchange, based on the sampled waits and the OpenXLA implementation.
+Any resulting qualification applies only to that runtime variant; retain the default production flags until full numerical/state checks and measured throughput support a placement change.
+Three bounded global-primary native faults coincided with the first in-process watchdog dump during input or restore work; production does not enable that timer.
 New bounded checks use anneal_validation.py to isolate the timer while leaving the native scientifically bound trainer unchanged; diagnose waits with external Iris task profiles.
 The 545b four-node Reno check passed all 42 finite task pilot scores, 64 updates, every context bucket, first-update head/master reconciliation, and an exact full-state checkpoint roundtrip.
 That profile is eligible for production while other source-specific four-node checks proceed.
+The timer-isolated 364b four-node East check passed all 42 finite task pilot scores, 64 updates, every context bucket, first-update reconciliation, and an exact full-state checkpoint roundtrip.
+That default optimized profile is eligible for 364b production.
+Iris terminal states precede physical container teardown; positively identify the old containers before cancellation and require their absence in a fresh post-cancellation backend inventory before replacement admission.
+Nested W&B summary fields can retain values from the original source import after a resume; use the scalar resume step, appended numerical history, committed native clocks and enforced import guards for recovery verification.
