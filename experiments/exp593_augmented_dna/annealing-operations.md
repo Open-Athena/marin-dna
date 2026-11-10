@@ -44,11 +44,11 @@ Targets marked eligible below permit bounded validation only until the source-sp
 
 | Cluster | GPU | Nodes | GPUs | State | Scope |
 | --- | --- | ---: | ---: | --- | --- |
-| cw-rno2a | H100 | 1 | 8 | eligible | Production for the qualified 181b recipe; bounded validation for other sources |
+| cw-rno2a | H100 | 1 | 8 | eligible | Production for the qualified 181b and 545b recipes; bounded validation for other sources |
 | cw-rno2a | H100 | 2 | 16 | unvalidated | — |
 | cw-rno2a | H100 | 4 | 32 | eligible | Bounded validation only |
 | cw-rno2a | H100 | 8 | 64 | eligible | Bounded validation only |
-| cw-us-east-02a | H100 | 1 | 8 | eligible | Production for the qualified 364b recipe; bounded validation for other sources |
+| cw-us-east-02a | H100 | 1 | 8 | eligible | Production for the qualified 181b and 364b recipes; bounded validation for other sources |
 | cw-us-east-02a | H100 | 2 | 16 | unvalidated | — |
 | cw-us-east-02a | H100 | 4 | 32 | eligible | Bounded validation only |
 | cw-us-east-02a | H100 | 8 | 64 | eligible | Bounded validation only; static H100 fit established, distributed runtime remains unqualified |
@@ -69,7 +69,9 @@ Completion requires the exact fixed-stage token horizon, reachable permanent che
 The 364b recipe passed its complete source-specific task/train/eval/save/restore loop on one East node, including all four buckets, 42 finite real-task pilot scores, and an exact native checkpoint roundtrip.
 Its proven placement can advance production while larger gangs are validated in parallel; preserve the same production W&B/checkpoint identity when scaling up.
 The first new eight-node Reno check completed the task pilot and one optimizer update but did not advance further; retain bounded-only qualification until that wait is diagnosed and the complete loop passes.
-The 545b legacy output-head/master discrepancy is preserved under the user's explicit approval, with strict source/stage and discrepancy guards in anneal_state.py; it requires a corrected bounded loop before production.
+The 545b legacy output-head/master discrepancy is preserved under the user's explicit approval, with strict source/stage and discrepancy guards in anneal_state.py.
+Its corrected one-node Reno check passed all 42 task pilot scores, 64 updates, all four context buckets, and a zero-error full-state checkpoint roundtrip; the first normal update reconciled the BF16 head and FP32 master.
 The 181b source passed the complete one-node native loop and the real-task pilot on the larger gang; those combined checks qualify its single-node production fallback, not the stalled larger placement.
 Eight-node East is eligible for bounded testing because the same H100 per-device model/optimizer layout fits and executes on Reno, while East's single-node inputs and runtime are verified.
 An explicit empty --xla_gpu_per_fusion_autotune_cache_dir flag can isolate the bounded East test from Iris's shared FineStore autotune mirror; this changes cache I/O only and keeps GPU autotuning, the full executable cache, kernels, optimizer, and objective intact.
+The same cache-isolation check is permitted on Reno after a later bounded attempt exited with a native process fault during source restoration; that fault does not establish the cause of the earlier post-update wait.
