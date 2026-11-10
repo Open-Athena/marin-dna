@@ -11,6 +11,7 @@ import gzip
 import hashlib
 import json
 import time
+from collections import Counter
 from collections.abc import Sequence
 from functools import partial
 from importlib.resources import files
@@ -23,6 +24,7 @@ import jax.numpy as jnp
 import numpy as np
 from experiments.grug.moe_hero_ep.model import apply_qb_betas
 from filelock import FileLock
+from jax.sharding import PartitionSpec as P
 from rigging.filesystem.storage_path import StoragePath
 
 from exp593_dna.development_readout import binary_ranking_metrics
@@ -188,6 +190,13 @@ def af_alleles(row: dict[str, Any]) -> tuple[str, str, int]:
     return sequence, sequence[:1024] + alt + sequence[1025:], 1024
 
 
+def paired_suffix_llr(ref_nll: np.ndarray, alt_nll: np.ndarray) -> np.ndarray:
+    """Subtract paired token losses before summing; preserve small allele effects."""
+    if ref_nll.ndim != 2 or ref_nll.shape != alt_nll.shape:
+        raise ValueError("AF suffixes must be aligned by example and target")
+    return np.sum(ref_nll.astype(np.float64) - alt_nll.astype(np.float64), axis=1)
+
+
 def make_base_step(mp: Any, encoder: Encoder) -> Any:
     """Project eight case variants only, sum case mass, then normalize four bases."""
     ids = tuple(int(encoder.dna_lookup[ord(c)]) for c in "ACGTacgt")
@@ -197,7 +206,10 @@ def make_base_step(mp: Any, encoder: Encoder) -> Any:
         model = mp.cast_to_compute(apply_qb_betas(params, pending))
         hidden, _ = model(batch.tokens, mask=batch.attn_mask)
         selected = jnp.take_along_axis(hidden, positions[:, :, None], axis=1)
-        head = model.output_proj[:, jnp.asarray(ids)]
+        # The native restored head has an explicit vocabulary/model axis,
+        # even though that axis currently has size one. Replicate the eight
+        # selected columns explicitly instead of asking JAX to infer a gather.
+        head = model.output_proj.at[:, jnp.asarray(ids)].get(out_sharding=P(None, None))
         logits = jnp.einsum(
             "bth,hv->btv", selected, head, preferred_element_type=jnp.float32
         )
@@ -215,6 +227,25 @@ class TaskEvaluator:
     ) -> None:
         self.base, self.panels, self.pilot = base, panels, pilot
         self.step = make_base_step(mp, base.encoder)
+
+    def reference_statistics(self) -> dict[str, Any]:
+        """Put invariant prevalence/majority references in config, not metric curves."""
+        result = {}
+        for key, panel in self.panels.items():
+            spec, rows = panel["spec"], panel["rows"]
+            record: dict[str, Any] = {"examples": len(rows)}
+            if spec["kind"] == "motif":
+                counts = Counter(
+                    "".join(dna_text(r["sequence"])[p] for p in spec["positions"])
+                    for r in rows
+                )
+                motif, count = counts.most_common(1)[0]
+                record.update(majority_motif=motif, majority_accuracy=count / len(rows))
+            elif spec["kind"] != "af":
+                record["positives"] = sum(int(r["label"]) for r in rows)
+                record["positive_prevalence"] = record["positives"] / len(rows)
+            result[key] = record
+        return result
 
     def base_logs(
         self, state: Any, queries: Sequence[tuple[Example, np.ndarray]]
@@ -348,9 +379,9 @@ class TaskEvaluator:
                                 binary_batch(examples, self.base.mesh),
                             )
                         )
-                        values.extend(nll[: len(examples), index - 1 : -1].sum(axis=1))
+                        values.extend(nll[: len(examples), index - 1 : -1])
                     losses.append(np.asarray(values))
-                score = losses[0] - losses[1]
+                score = paired_suffix_llr(losses[0], losses[1])
             scores.append(np.asarray(score))
         score = np.mean(scores, axis=0)
         correlation = float(spearmanr(score, [float(r["AF"]) for r in rows]).statistic)

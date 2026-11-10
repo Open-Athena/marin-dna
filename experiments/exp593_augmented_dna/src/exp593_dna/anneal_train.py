@@ -145,6 +145,14 @@ def bindings(
             "annotations.py",
             "corpus.py",
             "schedule.py",
+            "pipeline.py",
+            "batches.py",
+            "evaluate.py",
+            "development_evaluate.py",
+            "development_readout.py",
+            "fim_validation.py",
+            "validation.py",
+            "diagnostics.py",
         )
     }
     opt = optimizer_config(
@@ -245,6 +253,7 @@ def _run(config: TrainingConfig) -> None:
         mp,
         pilot=config.validation_updates is not None,
     )
+    tracker.log_hyperparameters({"task_panel_reference": tasks.reference_statistics()})
     model = replace(
         local_model(d768_config("pretrained")),
         compact_input_lookup_ids=(),

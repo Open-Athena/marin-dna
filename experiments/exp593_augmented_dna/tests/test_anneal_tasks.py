@@ -5,6 +5,7 @@ from tokenizers import Tokenizer, models, pre_tokenizers
 from exp593_dna.anneal_tasks import (
     af_alleles,
     combine_strands,
+    paired_suffix_llr,
     sv_queries,
     sv_scores,
     task_example,
@@ -95,7 +96,8 @@ def test_native_eight_column_head_equals_full_vocabulary_case_mass(
 
     import equinox as eqx
     import jax
-    import jax.numpy as jnp
+    from jax.sharding import AxisType, Mesh, NamedSharding
+    from jax.sharding import PartitionSpec as P
 
     from exp593_dna import anneal_tasks
 
@@ -104,7 +106,9 @@ def test_native_eight_column_head_equals_full_vocabulary_case_mass(
         embedding: jax.Array
 
         def __call__(self, tokens, *, mask):
-            return self.embedding[tokens], None
+            return self.embedding.at[tokens].get(
+                out_sharding=P("data", None, None)
+            ), None
 
     class Batch(NamedTuple):
         tokens: jax.Array
@@ -116,16 +120,40 @@ def test_native_eight_column_head_equals_full_vocabulary_case_mass(
             return model
 
     rng = np.random.default_rng(53)
+    mesh = Mesh(
+        np.asarray(jax.devices("cpu")).reshape(-1, 1),
+        ("data", "model"),
+        axis_types=(AxisType.Explicit, AxisType.Explicit),
+    )
     model = Model(
-        jnp.asarray(rng.normal(size=(7, 64)), dtype=jnp.float32),
-        jnp.asarray(rng.normal(size=(64, 7)), dtype=jnp.float32),
+        jax.device_put(
+            rng.normal(size=(16, 64)).astype(np.float32),
+            NamedSharding(mesh, P("data", "model")),
+        ),
+        jax.device_put(
+            rng.normal(size=(64, 16)).astype(np.float32),
+            NamedSharding(mesh, P(None, None)),
+        ),
     )
-    batch = Batch(jnp.asarray([[1, 5, 7], [3, 9, 11]], dtype=jnp.int32), None)
-    positions = jnp.asarray([[0, 1], [1, 2]], dtype=jnp.int32)
+    repeats = len(jax.devices("cpu"))
+    batch = Batch(
+        jax.device_put(
+            np.tile([[1, 5, 7], [3, 9, 11]], (repeats, 1)).astype(np.int32),
+            NamedSharding(mesh, P("data", None)),
+        ),
+        None,
+    )
+    positions = jax.device_put(
+        np.tile([[0, 1], [1, 2]], (repeats, 1)).astype(np.int32),
+        NamedSharding(mesh, P("data", None)),
+    )
     monkeypatch.setattr(anneal_tasks, "apply_qb_betas", lambda params, pending: params)
-    actual = np.exp(
-        anneal_tasks.make_base_step(Policy(), encoder)(model, None, batch, positions)
-    )
+    with jax.set_mesh(mesh):
+        actual = np.exp(
+            anneal_tasks.make_base_step(Policy(), encoder)(
+                model, None, batch, positions
+            )
+        )
     hidden = np.asarray(model.embedding)[np.asarray(batch.tokens)]
     selected = np.take_along_axis(hidden, np.asarray(positions)[:, :, None], axis=1)
     full = np.asarray(jax.nn.softmax(selected @ np.asarray(model.output_proj), axis=-1))
@@ -133,3 +161,11 @@ def test_native_eight_column_head_equals_full_vocabulary_case_mass(
     expected = full[:, :, ids[:4]] + full[:, :, ids[4:]]
     expected /= expected.sum(axis=-1, keepdims=True)
     np.testing.assert_allclose(actual, expected, rtol=2e-6, atol=1e-7)
+
+
+def test_paired_af_suffix_reduction_keeps_small_allele_effect_order():
+    ref = np.full((4, 1024), 10, dtype=np.float32)
+    alt = ref.copy()
+    alt[:, 0] -= np.asarray([2e-5, 4e-5, 6e-5, 8e-5], dtype=np.float32)
+    assert np.all(np.diff(paired_suffix_llr(ref, alt)) > 0)
+    assert (ref.sum(axis=1) - alt.sum(axis=1)).tolist() == [0, 0, 0, 0]
