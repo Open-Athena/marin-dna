@@ -67,6 +67,12 @@ Report peer `last_contact_ms` separately from backend `availability.observation_
 The documented query is `iris --cluster marin rpc controller list-peers`; the strict utilization helper remains the placement preflight.
 The MarinFold skill references the same query; its current helper expects availability v2, while this experiment's updated helper supports the live v3 priority-rank semantics.
 Keep one pending replacement dispatch at most, in addition to the productive allocation.
+The operator's November 8 instruction to submit a larger allocation while the current run continues also authorizes one queued, qualified 64-H100 Reno resident preparation before sufficient GPUs are free.
+This exception retains a fresh capacity query and records the request as queued capacity, never as allocated or productive GPUs.
+Count the entire request toward the 512-H100 ceiling and keep at most one pending preparation per exact target as well as per model.
+Use batch priority and user `eczech`; admission remains the scheduler's decision and no held capacity is available to reclaim.
+The existing writer continues until the resident preparation passes all checks and an explicit, physically fenced handoff is performed.
+Cancel an unused preparation when its production model completes; readiness never authorizes promotion by itself.
 Treat a one-node result as evidence only for its tested shape, batches, and memory.
 Use W&B for numerical progress and exact Iris root/task IDs for liveness and concrete failures.
 If checkpointing or evaluation exceeds three minutes without new optimizer updates, inspect the current GPU task attempts and logs before reporting the allocation as active.
@@ -208,3 +214,6 @@ Recheck those terminal states immediately before promotion; a capacity observati
 November 9, 22:55 UTC: a priority eviction interrupted the DNA216B three-quarter save while W&B still reported checkpointing/running.
 Added a three-minute task-attempt check for prolonged save/evaluation phases and explicit exclusion of interrupted milestone diagnostics from later checkpoint pairing.
 See artifacts/production-recovery-east-n4-v1/result.json for the observed failure and native commit check.
+
+November 10, 00:00 UTC: repeated priority evictions left Reno without free H100s while both East writers were productive.
+Clarified the existing operator authorization for one queued nonblocking 64-H100 preparation, preserving the GPU ceiling, batch priority, single-writer gate and fresh capacity observations.
