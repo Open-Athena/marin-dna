@@ -74,6 +74,7 @@ def open_corpus(
     *,
     preload: bool = False,
     progress: Callable[[int, int], None] | None = None,
+    with_original: bool = False,
 ) -> Any:
     """Retain exp586 block-shuffle semantics and optional decoded Parquet caching."""
     if split not in SPLIT_ROWS:
@@ -105,6 +106,11 @@ def open_corpus(
     paths = [inputs.path(name) for name in names]
     metadata = pa.concat_tables([pq.read_table(path) for path in paths])
     dataset = AnnotatedWindows(raw, metadata, split, expected_rows=SPLIT_ROWS[split])
-    return (
+    shuffled = (
         training_dataset(dataset, seed) if split == "train" else dataset
     ).as_sync_dataset()
+    if with_original:
+        if split != "train":
+            raise ValueError("The paired sampling source is training-only")
+        return shuffled, dataset.as_sync_dataset()
+    return shuffled

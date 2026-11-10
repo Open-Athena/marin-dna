@@ -2,6 +2,13 @@
 
 Train augmented d768 models for [experiment #593](https://github.com/Open-Athena/marin-dna/issues/593), starting from either the same text-pretrained checkpoint as #586 or its final 216B DNA checkpoint.
 All implementation and artifacts belong to the permanent, unmerged [companion PR #594](https://github.com/Open-Athena/marin-dna/pull/594).
+
+Experiment #593 also includes three full-state annealing branches from the old 1T run's 181.818B, 363.637B, and 545.455B checkpoints.
+Their additional input horizons are fixed at 216B, 168B, and 120B, with annotation-only FIM ramping from 0% to 30%, uniformly lowercase DNA, no biological metadata, and preserved native optimizer history.
+Use `python -m exp593_dna.anneal_train --trial <181b|364b|545b> --cluster <peer> --nodes <count>` through the normal Iris coordinator; bounded validation additionally requires a distinct smoke ID and `--validation-updates 64`.
+Production remains explicitly gated while downsampled benchmark monitoring is prepared and validated.
+See [annealing-operations.md](annealing-operations.md) for the new identities, ledger, qualification requirements, and placement policy.
+
 The user has authorized preparation, single-node H100 validation, and full training when ready.
 Data preparation and the single-node H100 smoke are complete.
 The [text-initialized final model](artifacts/production-final-v1/result.json) completed 216,158,719,114 actual input tokens at update 626,011.
