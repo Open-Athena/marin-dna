@@ -1,0 +1,499 @@
+{
+  "all_fixed_counts_and_partition_formulas_verified": true,
+  "checkpoint": {
+    "available": true,
+    "canonical_metadata_digest_for_restore_weights": "f6ae7c885aaa034b2c2f7cc423da72b8c6157152ac6b54841ef654709a35fec2",
+    "checkpoint": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/training/dna-exp593-augmented-d768-pretrained-seed0-v1/checkpoints/step-626011",
+    "clock": {
+      "dna_tokens": 214510513106,
+      "examples": 40064704,
+      "fim_examples": 20028652,
+      "input_tokens": 216158719114,
+      "loss_targets": 108722713297,
+      "rc_examples": 20033707,
+      "text_tokens": 1648206008,
+      "updates": 626011
+    },
+    "metadata_sha256": "9a10fe1715400ef9495cf003fe0fa20d6ab740b9ed655d0d0a9bc60595b6ca6e",
+    "native_discovery_verified": true,
+    "scientific_bindings_verified": true,
+    "temporary": false,
+    "verified": true
+  },
+  "completed_training_run": true,
+  "condition": "text",
+  "event": "final",
+  "functional_development": {
+    "all_640_prediction_records_match_frozen_membership_and_targets": true,
+    "all_functional_metrics_independently_recomputed": true,
+    "all_six_frozen_payloads_read_back_and_hashed": true,
+    "clock": {
+      "dna_tokens": 214510513106,
+      "examples": 40064704,
+      "fim_examples": 20028652,
+      "input_tokens": 216158719114,
+      "loss_targets": 108722713297,
+      "rc_examples": 20033707,
+      "text_tokens": 1648206008,
+      "updates": 626011
+    },
+    "data_manifest_sha256": "73904d171e8d90b1345b0688d20338f31dc9146de9e5c7ff1be3ab66d98a2c0a",
+    "event": "final,final",
+    "metrics": {
+      "eval/development_conservation_bare_auroc": 0.5567779541015625,
+      "eval/development_conservation_bare_average_precision": 0.5389244153674984,
+      "eval/development_conservation_bare_examples": 512,
+      "eval/development_conservation_bare_negatives": 256,
+      "eval/development_conservation_bare_positives": 256,
+      "eval/development_conservation_fim_auroc": 0.5592498779296875,
+      "eval/development_conservation_fim_average_precision": 0.5339284237718565,
+      "eval/development_conservation_fim_examples": 512,
+      "eval/development_conservation_fim_negatives": 256,
+      "eval/development_conservation_fim_positives": 256,
+      "eval/development_junction_random_control_base_accuracy": 0.4140625,
+      "eval/development_junction_random_control_dna_exact_match": 0.171875,
+      "eval/development_junction_random_control_exact_match": 0.171875,
+      "eval/development_junction_random_control_examples": 64,
+      "eval/development_junction_random_control_loss": 1.2283918652683496,
+      "eval/development_junction_random_control_targets": 128,
+      "eval/development_junction_splice_acceptor_base_accuracy": 0.9375,
+      "eval/development_junction_splice_acceptor_dna_exact_match": 0.90625,
+      "eval/development_junction_splice_acceptor_exact_match": 0.90625,
+      "eval/development_junction_splice_acceptor_examples": 32,
+      "eval/development_junction_splice_acceptor_loss": 0.2510762922465801,
+      "eval/development_junction_splice_acceptor_targets": 64,
+      "eval/development_junction_splice_donor_base_accuracy": 0.90625,
+      "eval/development_junction_splice_donor_dna_exact_match": 0.8125,
+      "eval/development_junction_splice_donor_exact_match": 0.8125,
+      "eval/development_junction_splice_donor_examples": 32,
+      "eval/development_junction_splice_donor_loss": 0.30677124857902527,
+      "eval/development_junction_splice_donor_targets": 64
+    },
+    "prediction_counts": {
+      "conservation": 512,
+      "random_control": 64,
+      "splice_acceptor": 32,
+      "splice_donor": 32
+    },
+    "predictions": {
+      "bytes": 172768,
+      "complete_readback_verified": true,
+      "etag": "\"391256cfdd47a4eba9a50f082045213b\"",
+      "sha256": "09bd49538ba241e916de65d8a420851f3318142317be17260094cb01f47747e1",
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/training/dna-exp593-augmented-d768-pretrained-seed0-v1/development/09bd49538ba241e916de65d8a420851f3318142317be17260094cb01f47747e1/predictions.jsonl"
+    },
+    "result_sha256": "0a341f0676a2e0e67837b544286758988d1905a4b5c91a1529e27358900ae296",
+    "result_uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/training/dna-exp593-augmented-d768-pretrained-seed0-v1/development/0a341f0676a2e0e67837b544286758988d1905a4b5c91a1529e27358900ae296/result.json",
+    "scoring_protocol": {
+      "bytes": 1114,
+      "complete_readback_verified": true,
+      "etag": "\"8e0f4573e828f7137a8a74436261d468\"",
+      "sha256": "7b9845c6f614c115fc4c354900d6f812cbe46886c2d81f18826b3eda9efeb996",
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/training/dna-exp593-augmented-d768-pretrained-seed0-v1/development/7b9845c6f614c115fc4c354900d6f812cbe46886c2d81f18826b3eda9efeb996/protocol.json"
+    },
+    "training_bindings_sha256": "8c3395b7e2966681c470673b869498bf76d948dc99f30fa3d9c58034ab310a36",
+    "verified_at": "2026-11-10T01:17:33.471438+00:00"
+  },
+  "functional_result_selection": "explicit immutable URI",
+  "immutable_verification_evidence": {
+    "bytes": 801984,
+    "complete_readback_verified": true,
+    "etag": "\"d8ec22434c93249ba9d12534e2e609ed\"",
+    "sha256": "bdea4124f40d1289264bb1d912541403eaa34e79718dbcd486370da69bf9b22c",
+    "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/verification/text-final-20261110/bdea4124f40d1289264bb1d912541403eaa34e79718dbcd486370da69bf9b22c.json"
+  },
+  "input_token_overshoot": 19594,
+  "iris_completion": {
+    "all_four_gpu_tasks_succeeded_exit0": true,
+    "child": "/eczech/exp593-text-ready-20261109-east-n4-cp600-a2/train-dna-exp593-augmented-d768-pretrained-seed0-v1",
+    "cpu_only_coordinator": true,
+    "exact_root_and_child_terminal": true,
+    "gpu_tasks": [
+      {
+        "attempts": [
+          {
+            "attempt_id": 0,
+            "attempt_uid": "c845051e6b50ad6b",
+            "error": "",
+            "exit_code": 0,
+            "finished_at": {
+              "epoch_ms": "1794273275261"
+            },
+            "is_worker_failure": false,
+            "node_name": "g8247ba",
+            "pod_name": "iris-eczech-exp593-text-ready-20261-0cf29f77-0-c845051e6b50ad6b",
+            "pod_uid": "a1e69a12-025d-4314-812d-2cf4badb3d47",
+            "started_at": {
+              "epoch_ms": "1794263159196"
+            },
+            "state": "TASK_STATE_SUCCEEDED",
+            "terminal_reason": "",
+            "worker_id": ""
+          }
+        ],
+        "backend_id": "",
+        "cluster": "cw-us-east-02a",
+        "current_attempt_id": 0,
+        "error": "",
+        "exit_code": 0,
+        "finished_at": {
+          "epoch_ms": "1794273275261"
+        },
+        "started_at": {
+          "epoch_ms": "1794263159196"
+        },
+        "state": "TASK_STATE_SUCCEEDED",
+        "submitted_at": {
+          "epoch_ms": "1794263152507"
+        },
+        "task_id": "/eczech/exp593-text-ready-20261109-east-n4-cp600-a2/train-dna-exp593-augmented-d768-pretrained-seed0-v1/0",
+        "worker_address": "",
+        "worker_id": ""
+      },
+      {
+        "attempts": [
+          {
+            "attempt_id": 0,
+            "attempt_uid": "031058105ed4ae56",
+            "error": "",
+            "exit_code": 0,
+            "finished_at": {
+              "epoch_ms": "1794273275261"
+            },
+            "is_worker_failure": false,
+            "node_name": "g83a1bc",
+            "pod_name": "iris-eczech-exp593-text-ready-20261-a8e0080b-0-031058105ed4ae56",
+            "pod_uid": "11d60198-fb8d-43d7-a3c1-06832ae35001",
+            "started_at": {
+              "epoch_ms": "1794263159196"
+            },
+            "state": "TASK_STATE_SUCCEEDED",
+            "terminal_reason": "",
+            "worker_id": ""
+          }
+        ],
+        "backend_id": "",
+        "cluster": "cw-us-east-02a",
+        "current_attempt_id": 0,
+        "error": "",
+        "exit_code": 0,
+        "finished_at": {
+          "epoch_ms": "1794273275261"
+        },
+        "started_at": {
+          "epoch_ms": "1794263159196"
+        },
+        "state": "TASK_STATE_SUCCEEDED",
+        "submitted_at": {
+          "epoch_ms": "1794263152507"
+        },
+        "task_id": "/eczech/exp593-text-ready-20261109-east-n4-cp600-a2/train-dna-exp593-augmented-d768-pretrained-seed0-v1/1",
+        "worker_address": "",
+        "worker_id": ""
+      },
+      {
+        "attempts": [
+          {
+            "attempt_id": 0,
+            "attempt_uid": "0dd562f10ea3b589",
+            "error": "",
+            "exit_code": 0,
+            "finished_at": {
+              "epoch_ms": "1794273275261"
+            },
+            "is_worker_failure": false,
+            "node_name": "g83bf4c",
+            "pod_name": "iris-eczech-exp593-text-ready-20261-811211c5-0-0dd562f10ea3b589",
+            "pod_uid": "1c5525c4-a71a-432a-9b69-e22852303be1",
+            "started_at": {
+              "epoch_ms": "1794263159196"
+            },
+            "state": "TASK_STATE_SUCCEEDED",
+            "terminal_reason": "",
+            "worker_id": ""
+          }
+        ],
+        "backend_id": "",
+        "cluster": "cw-us-east-02a",
+        "current_attempt_id": 0,
+        "error": "",
+        "exit_code": 0,
+        "finished_at": {
+          "epoch_ms": "1794273275261"
+        },
+        "started_at": {
+          "epoch_ms": "1794263159196"
+        },
+        "state": "TASK_STATE_SUCCEEDED",
+        "submitted_at": {
+          "epoch_ms": "1794263152507"
+        },
+        "task_id": "/eczech/exp593-text-ready-20261109-east-n4-cp600-a2/train-dna-exp593-augmented-d768-pretrained-seed0-v1/2",
+        "worker_address": "",
+        "worker_id": ""
+      },
+      {
+        "attempts": [
+          {
+            "attempt_id": 0,
+            "attempt_uid": "6cb42a3cbb803992",
+            "error": "",
+            "exit_code": 0,
+            "finished_at": {
+              "epoch_ms": "1794273275261"
+            },
+            "is_worker_failure": false,
+            "node_name": "g83d0f6",
+            "pod_name": "iris-eczech-exp593-text-ready-20261-6dc65899-0-6cb42a3cbb803992",
+            "pod_uid": "34691b49-ebef-4df8-ba67-6d6e8604c6e0",
+            "started_at": {
+              "epoch_ms": "1794263159196"
+            },
+            "state": "TASK_STATE_SUCCEEDED",
+            "terminal_reason": "",
+            "worker_id": ""
+          }
+        ],
+        "backend_id": "",
+        "cluster": "cw-us-east-02a",
+        "current_attempt_id": 0,
+        "error": "",
+        "exit_code": 0,
+        "finished_at": {
+          "epoch_ms": "1794273275261"
+        },
+        "started_at": {
+          "epoch_ms": "1794263159196"
+        },
+        "state": "TASK_STATE_SUCCEEDED",
+        "submitted_at": {
+          "epoch_ms": "1794263152507"
+        },
+        "task_id": "/eczech/exp593-text-ready-20261109-east-n4-cp600-a2/train-dna-exp593-augmented-d768-pretrained-seed0-v1/3",
+        "worker_address": "",
+        "worker_id": ""
+      }
+    ],
+    "jobs": {
+      "/eczech/exp593-text-ready-20261109-east-n4-cp600-a2": {
+        "completed_count": 1,
+        "job_id": "/eczech/exp593-text-ready-20261109-east-n4-cp600-a2",
+        "resources": {
+          "cpu_millicores": 1000,
+          "device": {},
+          "disk_bytes": "8589934592",
+          "memory_bytes": "3221225472"
+        },
+        "state": "JOB_STATE_SUCCEEDED",
+        "task_count": 1,
+        "task_state_counts": {
+          "succeeded": 1
+        }
+      },
+      "/eczech/exp593-text-ready-20261109-east-n4-cp600-a2/train-dna-exp593-augmented-d768-pretrained-seed0-v1": {
+        "completed_count": 4,
+        "job_id": "/eczech/exp593-text-ready-20261109-east-n4-cp600-a2/train-dna-exp593-augmented-d768-pretrained-seed0-v1",
+        "resources": {
+          "cpu_millicores": 32000,
+          "device": {
+            "gpu": {
+              "count": 8,
+              "variant": "H100"
+            }
+          },
+          "disk_bytes": "966367641600",
+          "memory_bytes": "644245094400"
+        },
+        "state": "JOB_STATE_SUCCEEDED",
+        "task_count": 4,
+        "task_state_counts": {
+          "succeeded": 4
+        }
+      }
+    },
+    "observed_at": "2026-11-10T01:17:24.290323+00:00",
+    "root": "/eczech/exp593-text-ready-20261109-east-n4-cp600-a2"
+  },
+  "limitations": [
+    "Storage verification decoded every saved array; no additional independent JAXrestore or inferenceparity claim.",
+    "Sparse normcoverage verifies everyexpected1000-update point, not unrecorded gradients or all replayduplicates.",
+    "These development diagnostics do not establish downstream benchmark gains; separate evaluation owns those results.",
+    "The separately approved DNA216B-initialized run remains incomplete, so the full experiment goal is active."
+  ],
+  "matches_text_quarter_1_full_clock": null,
+  "nominal_input_tokens": 216158699520,
+  "norm_count": 20,
+  "norm_coverage": {
+    "condition": "text",
+    "covered_update_points": 626,
+    "expected_update_points": 626,
+    "invalid_returned_complete_rows": [],
+    "missing_updates": [],
+    "observed_at": "2026-11-10T01:17:09.994354+00:00",
+    "partial_returned_rows": 0,
+    "returned_rows": 643,
+    "rows": {
+      "bytes": 663311,
+      "path": "/home/exedev/repos/marin-dna-br/codex-issue-593-augmentation/scratch/exp593/norm-coverage-text-final-20261110T0116.rows.json",
+      "sha256": "58de7364b4a4919c4ad2149bdd5a11ea9e5de19a16263149b7da179c9a9762d4"
+    },
+    "run_id": "dna-exp593-augmented-d768-pretrained-seed0-v1",
+    "scope": "At least one returned complete finite nonnegative snapshot of all twenty norms for every expected 1000-update point through the captured summary update. This does not exhaustively audit duplicate or replayed log rows, nor unsampled gradients.",
+    "summary_update_at_query_start": 626011,
+    "verified": true,
+    "verifier_sha256": "62b851d4d1f8935cc7b3b1e1355c44c09bae619613323231e698b14b40dc2780"
+  },
+  "norms_all_finite": true,
+  "routing_drops": {
+    "moe/dropped_assignments": 0,
+    "moe/receiver_dropped_assignments": 0,
+    "moe/sender_dropped_assignments": 0
+  },
+  "run_id": "dna-exp593-augmented-d768-pretrained-seed0-v1",
+  "runtime_source_commit": "d5c2077718a82548e18d10e04618c15520b54cdc",
+  "storage_array_readback": {
+    "all_read_arrays_finite": true,
+    "decoded_bytes": 16716379160,
+    "jax_restore_performed": false,
+    "manifest_sha256": "f27968148ca1b6336449eadf85af931e893203c6489ca6138c14b565b705d49a",
+    "metadata_sha256": "9a10fe1715400ef9495cf003fe0fa20d6ab740b9ed655d0d0a9bc60595b6ca6e",
+    "observed_at": "2026-11-10T01:20:08.897099+00:00",
+    "read_arrays": 128,
+    "scope": "every_manifest_array",
+    "total_manifest_arrays": 128
+  },
+  "validation": {
+    "eval/disjoint_examples": 512,
+    "eval/examples": 512,
+    "eval/fim_base_accuracy": 0.4201547076689446,
+    "eval/fim_dna_exact_match": 0.1111111111111111,
+    "eval/fim_exact_match": 0.1111111111111111,
+    "eval/fim_examples": 1024,
+    "eval/fim_formatted_base_accuracy": 0.420130979498861,
+    "eval/fim_formatted_dna_exact_match": 0.1111111111111111,
+    "eval/fim_formatted_exact_match": 0.1111111111111111,
+    "eval/fim_formatted_examples": 512,
+    "eval/fim_formatted_generated_examples": 18,
+    "eval/fim_formatted_loss": 1.16792094707489,
+    "eval/fim_formatted_targets": 21072,
+    "eval/fim_gap_128_base_accuracy": 0.430859375,
+    "eval/fim_gap_128_dna_exact_match": 0,
+    "eval/fim_gap_128_exact_match": 0,
+    "eval/fim_gap_128_examples": 40,
+    "eval/fim_gap_128_generated_examples": 4,
+    "eval/fim_gap_128_loss": 1.2248294353485107,
+    "eval/fim_gap_128_targets": 5120,
+    "eval/fim_gap_16_base_accuracy": 0.4264112903225806,
+    "eval/fim_gap_16_dna_exact_match": 0,
+    "eval/fim_gap_16_exact_match": 0,
+    "eval/fim_gap_16_examples": 62,
+    "eval/fim_gap_16_generated_examples": 4,
+    "eval/fim_gap_16_loss": 1.2428231239318848,
+    "eval/fim_gap_16_targets": 992,
+    "eval/fim_gap_1_base_accuracy": 0.5125,
+    "eval/fim_gap_1_dna_exact_match": 0.5,
+    "eval/fim_gap_1_exact_match": 0.5,
+    "eval/fim_gap_1_examples": 240,
+    "eval/fim_gap_1_generated_examples": 4,
+    "eval/fim_gap_1_loss": 1.1514217853546145,
+    "eval/fim_gap_1_targets": 240,
+    "eval/fim_gap_256_base_accuracy": 0.3740985576923077,
+    "eval/fim_gap_256_dna_exact_match": 0,
+    "eval/fim_gap_256_exact_match": 0,
+    "eval/fim_gap_256_examples": 26,
+    "eval/fim_gap_256_generated_examples": 4,
+    "eval/fim_gap_256_loss": 1.3258178234100342,
+    "eval/fim_gap_256_targets": 6656,
+    "eval/fim_gap_2_base_accuracy": 0.48188405797101447,
+    "eval/fim_gap_2_dna_exact_match": 0.5,
+    "eval/fim_gap_2_exact_match": 0.5,
+    "eval/fim_gap_2_examples": 276,
+    "eval/fim_gap_2_generated_examples": 4,
+    "eval/fim_gap_2_loss": 1.1384962797164917,
+    "eval/fim_gap_2_targets": 552,
+    "eval/fim_gap_32_base_accuracy": 0.3963815789473684,
+    "eval/fim_gap_32_dna_exact_match": 0,
+    "eval/fim_gap_32_exact_match": 0,
+    "eval/fim_gap_32_examples": 38,
+    "eval/fim_gap_32_generated_examples": 4,
+    "eval/fim_gap_32_loss": 1.2804880142211914,
+    "eval/fim_gap_32_targets": 1216,
+    "eval/fim_gap_3_base_accuracy": 0.4905913978494624,
+    "eval/fim_gap_3_dna_exact_match": 0,
+    "eval/fim_gap_3_exact_match": 0,
+    "eval/fim_gap_3_examples": 248,
+    "eval/fim_gap_3_generated_examples": 4,
+    "eval/fim_gap_3_loss": 1.1352618932724,
+    "eval/fim_gap_3_targets": 744,
+    "eval/fim_gap_512_base_accuracy": 0.4276069972826087,
+    "eval/fim_gap_512_dna_exact_match": 0,
+    "eval/fim_gap_512_exact_match": 0,
+    "eval/fim_gap_512_examples": 46,
+    "eval/fim_gap_512_generated_examples": 4,
+    "eval/fim_gap_512_loss": 1.2410331964492798,
+    "eval/fim_gap_512_targets": 23552,
+    "eval/fim_gap_64_base_accuracy": 0.4169921875,
+    "eval/fim_gap_64_dna_exact_match": 0,
+    "eval/fim_gap_64_exact_match": 0,
+    "eval/fim_gap_64_examples": 48,
+    "eval/fim_gap_64_generated_examples": 4,
+    "eval/fim_gap_64_loss": 1.252249836921692,
+    "eval/fim_gap_64_targets": 3072,
+    "eval/fim_generated_examples": 36,
+    "eval/fim_guided_base_accuracy": 0.543010752688172,
+    "eval/fim_guided_dna_exact_match": 0,
+    "eval/fim_guided_exact_match": 0,
+    "eval/fim_guided_examples": 178,
+    "eval/fim_guided_generated_examples": 2,
+    "eval/fim_guided_loss": 0.9487508535385132,
+    "eval/fim_guided_targets": 372,
+    "eval/fim_long_base_accuracy": 0.41747931442080377,
+    "eval/fim_long_dna_exact_match": 0,
+    "eval/fim_long_exact_match": 0,
+    "eval/fim_long_examples": 260,
+    "eval/fim_long_generated_examples": 24,
+    "eval/fim_long_loss": 1.2552828788757324,
+    "eval/fim_long_targets": 40608,
+    "eval/fim_loss": 1.1703951358795166,
+    "eval/fim_minimal_base_accuracy": 0.4201784358390281,
+    "eval/fim_minimal_dna_exact_match": 0.1111111111111111,
+    "eval/fim_minimal_exact_match": 0.1111111111111111,
+    "eval/fim_minimal_examples": 512,
+    "eval/fim_minimal_generated_examples": 18,
+    "eval/fim_minimal_loss": 1.1728694438934326,
+    "eval/fim_minimal_targets": 21072,
+    "eval/fim_random_base_accuracy": 0.41906061476587186,
+    "eval/fim_random_dna_exact_match": 0.1176470588235294,
+    "eval/fim_random_exact_match": 0.1176470588235294,
+    "eval/fim_random_examples": 846,
+    "eval/fim_random_generated_examples": 34,
+    "eval/fim_random_loss": 1.2170295715332031,
+    "eval/fim_random_targets": 41772,
+    "eval/fim_short_base_accuracy": 0.4908854166666667,
+    "eval/fim_short_dna_exact_match": 0.3333333333333333,
+    "eval/fim_short_exact_match": 0.3333333333333333,
+    "eval/fim_short_examples": 764,
+    "eval/fim_short_generated_examples": 12,
+    "eval/fim_short_loss": 1.1415066719055176,
+    "eval/fim_short_targets": 1536,
+    "eval/fim_targets": 42144,
+    "eval/generation_seconds": 17.381258476991206,
+    "eval/loss": 1.2490870773546616,
+    "eval/loss_disjoint": 1.2454878091812134,
+    "eval/loss_nonsoftmasked": 1.2697848020592546,
+    "eval/loss_softmasked": 1.0507483583328814,
+    "eval/loss_weighted_10to1": 1.2675226444137553,
+    "eval/nonsoftmasked_targets": 3797502,
+    "eval/seconds": 19.345645295921713,
+    "eval/softmasked_targets": 396290,
+    "eval/unknown_N_targets": 5286
+  },
+  "validation_source": "W&B summary at exact completed evaluation clock",
+  "verified_at": "2026-11-10T01:17:34.403868+00:00",
+  "wandb": {
+    "phase": "complete",
+    "run_progress": 1.0,
+    "state": "finished",
+    "url": "https://forge.coreweave.com/api/wandb/eric-czech/marin/runs/dna-exp593-augmented-d768-pretrained-seed0-v1"
+  }
+}

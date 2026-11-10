@@ -4,6 +4,9 @@ Train augmented d768 models for [experiment #593](https://github.com/Open-Athena
 All implementation and artifacts belong to the permanent, unmerged [companion PR #594](https://github.com/Open-Athena/marin-dna/pull/594).
 The user has authorized preparation, single-node H100 validation, and full training when ready.
 Data preparation and the single-node H100 smoke are complete.
+The [text-initialized final model](artifacts/production-final-v1/result.json) completed 216,158,719,114 actual input tokens at update 626,011.
+Its final fixed panels, 640 functional records, all 128 stored arrays and all 626 expected sparse norm checkpoints are verified; W&B finished and every GPU task plus both Iris jobs succeeded.
+The separately approved DNA216B-initialized model continues on 64 Reno H100s after a [zero-replay, full-state handoff](artifacts/dna216b-production-reslice-rno-n8-v2/result.json).
 The full fixed-panel accelerator evaluator passed on eight H100s in about 65 seconds, including all 36 greedy completions.
 The four-node production loop passed sixteen bounded updates and native checkpoint discovery.
 The four-node Reno validation passed all sixteen updates, all four buckets and the causal/FIM/functional panels, with zero routing drops and verified native checkpoint discovery.
@@ -63,6 +66,9 @@ The [text run's four-node East recovery](artifacts/production-recovery-east-n4-v
 That record also excludes a later priority-interrupted DNA216B three-quarter save from benchmark handoff; its missing metadata prevents treating it as a completed milestone.
 The [DNA run's four-node East handoff](artifacts/dna216b-production-reslice-east-n4-v1/result.json) subsequently restored its latest complete optimizer/data state and resumed updates under the same W&B identity after further Reno priority evictions.
 Its independently checked resume panels cover all 124 fixed metrics and 640 functional records; the interrupted three-quarter checkpoint remains unavailable.
+The November 10 [32-to-64-H100 Reno handoff](artifacts/dna216b-production-reslice-rno-n8-v2/result.json) queued and qualified the new gang while East continued training, then restored the exact step-486400 optimizer/data state after all old GPU tasks and both old jobs succeeded.
+It preserves the same personal W&B identity with zero replay; the first 1,000 resumed updates, twenty fresh norms, all fixed/functional resume panels and a new native recovery checkpoint are verified.
+The measured optimizer-update gap was 242.628 seconds, including save, exit verification, promotion, restore and resume evaluation.
 CPU rendering prefetches one batch while device collectives stay ordered on the main thread.
 For resizing, add `--standby-id`, `--standby-checkpoint` and `--standby-from-job` to acquire a separate allocation while production continues.
 The standby uses a no-op tracker, restores the existing production checkpoint, validates all buckets and diagnostics, and holds its prepared allocation behind an explicit promotion gate.
