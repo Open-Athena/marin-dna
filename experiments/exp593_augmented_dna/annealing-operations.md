@@ -49,7 +49,7 @@ Targets marked eligible below permit bounded validation only until the source-sp
 | cw-rno2a | H100 | 1 | 8 | eligible | Production for the qualified 181b and 545b recipes; bounded validation for other sources |
 | cw-rno2a | H100 | 2 | 16 | unvalidated | — |
 | cw-rno2a | H100 | 4 | 32 | eligible | Production for the qualified 181b and 545b recipes; bounded validation for other sources |
-| cw-rno2a | H100 | 8 | 64 | eligible | Bounded validation only |
+| cw-rno2a | H100 | 8 | 64 | unqualified | New bounded diagnostic basis required; no production placement |
 | cw-us-east-02a | H100 | 1 | 8 | eligible | Production for the qualified 181b and 364b recipes; bounded validation for other sources |
 | cw-us-east-02a | H100 | 2 | 16 | unvalidated | — |
 | cw-us-east-02a | H100 | 4 | 32 | eligible | Production for the qualified 364b recipe; bounded validation for other sources |
@@ -83,6 +83,7 @@ Both exact root and child writers were cancelled and verified terminal; cache-mi
 Further eight-node checks require a concrete new diagnostic basis rather than repeating either launch; the historical operations document also records an unsuccessful shard-autotuning override.
 An additional bounded runtime diagnostic may set --xla_gpu_autotune_level=0 to bypass online autotuning and its distributed configuration exchange, based on the sampled waits and the OpenXLA implementation.
 Any resulting qualification applies only to that runtime variant; retain the default production flags until full numerical/state checks and measured throughput support a placement change.
+The 64-H100 Reno autotuning-off diagnostic completed its 64 updates and real-task pilot, but failed the native full-state checkpoint roundtrip and ran slower than the qualified 32-H100 default profile. Its exact Iris root/child and disposable W&B run failed; the ledger dispatch was closed and the validation trial abandoned. The committed checkpoint has 128 manifest arrays and the expected stage/global clock, but the current evidence does not distinguish a clock mismatch from a state-array difference in the roundtrip guard. Do not promote this runtime variant or retry it without a concrete new diagnostic basis.
 Three bounded global-primary native faults coincided with the first in-process watchdog dump during input or restore work; production does not enable that timer.
 New bounded checks use anneal_validation.py to isolate the timer while leaving the native scientifically bound trainer unchanged; diagnose waits with external Iris task profiles.
 The 545b four-node Reno check passed all 42 finite task pilot scores, 64 updates, every context bucket, first-update head/master reconciliation, and an exact full-state checkpoint roundtrip.
