@@ -48,7 +48,7 @@ Targets marked eligible below permit bounded validation only until the source-sp
 | --- | --- | ---: | ---: | --- | --- |
 | cw-rno2a | H100 | 1 | 8 | eligible | Production for the qualified 181b and 545b recipes; bounded validation for other sources |
 | cw-rno2a | H100 | 2 | 16 | unvalidated | — |
-| cw-rno2a | H100 | 4 | 32 | eligible | Production for the qualified 545b recipe; bounded validation for other sources |
+| cw-rno2a | H100 | 4 | 32 | eligible | Production for the qualified 181b and 545b recipes; bounded validation for other sources |
 | cw-rno2a | H100 | 8 | 64 | eligible | Bounded validation only |
 | cw-us-east-02a | H100 | 1 | 8 | eligible | Production for the qualified 181b and 364b recipes; bounded validation for other sources |
 | cw-us-east-02a | H100 | 2 | 16 | unvalidated | — |
@@ -89,5 +89,6 @@ The 545b four-node Reno check passed all 42 finite task pilot scores, 64 updates
 That profile is eligible for production while other source-specific four-node checks proceed.
 The timer-isolated 364b four-node East check passed all 42 finite task pilot scores, 64 updates, every context bucket, first-update reconciliation, and an exact full-state checkpoint roundtrip.
 That default optimized profile is eligible for 364b production.
+The timer-isolated 181b four-node Reno check passed the same complete validation contract and qualifies that default optimized profile for 181b production.
 Iris terminal states precede physical container teardown; positively identify the old containers before cancellation and require their absence in a fresh post-cancellation backend inventory before replacement admission.
 Nested W&B summary fields can retain values from the original source import after a resume; use the scalar resume step, appended numerical history, committed native clocks and enforced import guards for recovery verification.
