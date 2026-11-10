@@ -48,7 +48,7 @@ Targets marked eligible below permit bounded validation only until the source-sp
 | cw-rno2a | H100 | 2 | 16 | unvalidated | — |
 | cw-rno2a | H100 | 4 | 32 | eligible | Bounded validation only |
 | cw-rno2a | H100 | 8 | 64 | eligible | Bounded validation only |
-| cw-us-east-02a | H100 | 1 | 8 | eligible | Bounded validation only |
+| cw-us-east-02a | H100 | 1 | 8 | eligible | Production for the qualified 364b recipe; bounded validation for other sources |
 | cw-us-east-02a | H100 | 2 | 16 | unvalidated | — |
 | cw-us-east-02a | H100 | 4 | 32 | eligible | Bounded validation only |
 | cw-us-east-02a | H100 | 8 | 64 | unvalidated | Prior distributed compilation wait unresolved |
@@ -66,4 +66,7 @@ Completion requires the exact fixed-stage token horizon, reachable permanent che
 
 ## Change record
 
-None.
+The 364b recipe passed its complete source-specific task/train/eval/save/restore loop on one East node, including all four buckets, 42 finite real-task pilot scores, and an exact native checkpoint roundtrip.
+Its proven placement can advance production while larger gangs are validated in parallel; preserve the same production W&B/checkpoint identity when scaling up.
+The first new eight-node Reno check completed the task pilot and one optimizer update but did not advance further; retain bounded-only qualification until that wait is diagnosed and the complete loop passes.
+The 545b legacy output-head/master discrepancy is preserved under the user's explicit approval, with strict source/stage and discrepancy guards in anneal_state.py; it requires a corrected bounded loop before production.

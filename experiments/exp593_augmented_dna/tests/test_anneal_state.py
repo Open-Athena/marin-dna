@@ -3,7 +3,13 @@ from dataclasses import replace
 import pytest
 
 from exp593_dna.anneal import TRIALS
-from exp593_dna.anneal_state import AnnealClock, restore, save, validate_metadata
+from exp593_dna.anneal_state import (
+    AnnealClock,
+    approved_source_discrepancy,
+    restore,
+    save,
+    validate_metadata,
+)
 from exp593_dna.schedule import TokenClock
 
 
@@ -103,3 +109,29 @@ def test_new_checkpoint_rejects_unguided_fim_and_reset_counters():
     metadata["step"] = 1
     with pytest.raises(ValueError, match="clocks differ"):
         validate_metadata(metadata, trial, bindings)
+
+
+def test_legacy_exception_is_bound_to_exact_source_and_stage_zero():
+    values = {"other_pairs_match": True, "count": 18_468_864, "maximum": 0.00146484375}
+    approved_source_discrepancy(TRIALS["545b"], AnnealClock(), **values)
+    for trial in (
+        TRIALS["181b"],
+        TRIALS["364b"],
+        replace(TRIALS["545b"], source_update=1040374),
+    ):
+        with pytest.raises(ValueError, match="Unexpected"):
+            approved_source_discrepancy(trial, AnnealClock(), **values)
+    for changed in (
+        {"other_pairs_match": False},
+        {"count": 18_468_863},
+        {"maximum": 0.0015},
+    ):
+        with pytest.raises(ValueError, match="Unexpected"):
+            approved_source_discrepancy(
+                TRIALS["545b"], AnnealClock(), **(values | changed)
+            )
+    stage = TokenClock(
+        input_tokens=131072, dna_tokens=131072, loss_targets=64, examples=64, updates=1
+    )
+    with pytest.raises(ValueError, match="Unexpected"):
+        approved_source_discrepancy(TRIALS["545b"], AnnealClock(stage), **values)

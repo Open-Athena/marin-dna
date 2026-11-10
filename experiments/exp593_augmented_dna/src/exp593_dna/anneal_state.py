@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 from typing import Any
 from uuid import uuid4
 
@@ -37,6 +37,67 @@ class AnnealClock:
                 raise ValueError("Invalid augmentation counter")
             total[key] = total.get(key, 0) + value
         return AnnealClock(self.stage.advance(**counts), total)
+
+
+def approved_source_discrepancy(
+    trial: AnnealTrial,
+    clock: AnnealClock,
+    *,
+    other_pairs_match: bool,
+    count: int,
+    maximum: float,
+) -> None:
+    """Accept only the exact, user-approved legacy head discrepancy at stage zero."""
+    from exp593_dna.anneal import TRIALS
+
+    if (
+        trial != TRIALS["545b"]
+        or clock.stage.updates != 0
+        or not other_pairs_match
+        or count != 18_468_864
+        or maximum != 0.00146484375
+    ):
+        raise ValueError("Unexpected native model/master discrepancy")
+
+
+def imported_state_integrity(
+    state: Any, trial: AnnealTrial, clock: AnnealClock
+) -> dict[str, Any]:
+    """Inspect without changing a single imported model, master, or optimizer leaf."""
+    import jax
+    import jax.numpy as jnp
+    from exp586_moe.perf5_optimizer import model_matches_fp32_master
+    from exp586_moe.state import state_all_finite
+
+    if not bool(state_all_finite(state)):
+        raise ValueError("Imported native training state contains nonfinite values")
+    if bool(model_matches_fp32_master(state.params, state.master_params)):
+        return {"all_finite": True, "compute_matches_master_cast": True}
+    if trial.key != "545b" or clock.stage.updates:
+        raise ValueError("Unexpected native model/master discrepancy")
+    head = state.params.output_proj
+    rounded = jax.sharding.reshard(
+        state.master_params.output_proj.astype(head.dtype), head.sharding
+    )
+    # This replacement is solely a comparison tree. The actual state is returned
+    # unchanged to the initial evaluator and first optimizer update.
+    comparison = replace(state.params, output_proj=rounded)
+    other_pairs_match = bool(model_matches_fp32_master(comparison, state.master_params))
+    count = int(jnp.count_nonzero(head != rounded))
+    maximum = float(
+        jnp.max(jnp.abs(head.astype(jnp.float32) - rounded.astype(jnp.float32)))
+    )
+    approved_source_discrepancy(
+        trial, clock, other_pairs_match=other_pairs_match, count=count, maximum=maximum
+    )
+    return {
+        "all_finite": True,
+        "compute_matches_master_cast": False,
+        "native_state_preserved_verbatim": True,
+        "legacy_output_head_mismatches": count,
+        "legacy_output_head_max_abs_cast_difference": maximum,
+        "approval": "user_preserve_exact_saved_state_2026-11-10",
+    }
 
 
 def validate_metadata(

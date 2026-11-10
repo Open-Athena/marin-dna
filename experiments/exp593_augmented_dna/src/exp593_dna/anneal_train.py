@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import faulthandler
 import hashlib
 import json
 import logging
@@ -223,6 +224,10 @@ def _run(config: TrainingConfig) -> None:
         "H100" in d.device_kind for d in jax.devices()
     ):
         raise ValueError("Annealing did not receive its requested H100 gang")
+    if config.validation_updates is not None and jax.process_index() == 0:
+        # Bounded placement checks expose Python wait locations when numerical
+        # progress stops. Only the global primary dumps; production stays quiet.
+        faulthandler.dump_traceback_later(120, repeat=True)
     tracker.log_configuration(config)
     log_step = wandb_history_offset()
     tracker.log_summary({"training/phase": "loading_inputs"})
@@ -302,12 +307,13 @@ def _run(config: TrainingConfig) -> None:
             )
         jax.block_until_ready(state)
         assert_partitioned_optimizer_state(state, mesh)
-        if not bool(
-            model_matches_fp32_master(state.params, state.master_params)
-        ) or not bool(state_all_finite(state)):
-            raise ValueError(
-                "Imported state is nonfinite or has inconsistent BF16/FP32 parameters"
-            )
+        tracker.log_summary(
+            {
+                "training/import_integrity": anneal_state.imported_state_integrity(
+                    state, trial, clock
+                )
+            }
+        )
         tracker.log_summary(
             {
                 "training/optimizer_partitions": partitions,
@@ -410,9 +416,23 @@ def _run(config: TrainingConfig) -> None:
 
         with ThreadPoolExecutor(max_workers=1) as pool:
             future = None if complete() else pool.submit(prepare, clock)
+
+            def phase(name: str) -> None:
+                if (
+                    config.validation_updates is not None
+                    and clock.stage.updates < 3
+                    and jax.process_index() == 0
+                ):
+                    LOGGER.info(
+                        "Validation loop stage=%d phase=%s", clock.stage.updates, name
+                    )
+
             while not complete():
                 started = time.monotonic()
-                batch = anneal_batches.assemble(future.result(), mesh)
+                phase("awaiting_prefetch")
+                local = future.result()
+                phase("assembling_batch")
+                batch = anneal_batches.assemble(local, mesh)
                 loaded = time.monotonic()
                 next_clock = clock.advance(batch.counts, batch.mixture)
                 done = (
@@ -432,8 +452,19 @@ def _run(config: TrainingConfig) -> None:
                     next_clock.stage.updates
                 )
                 first_compile = batch.bucket not in compiled
+                phase("running_update")
                 state, metrics, norms = train_step(state, batch.model_batch, norms_due)
                 jax.block_until_ready((state, metrics, norms))
+                if clock.stage.updates == 0:
+                    if not bool(
+                        model_matches_fp32_master(state.params, state.master_params)
+                    ) or not bool(state_all_finite(state)):
+                        raise ValueError(
+                            "First normal update failed native model/master reconciliation"
+                        )
+                    tracker.log_summary(
+                        {"training/first_update_master_reconciliation": True}
+                    )
                 compiled.add(batch.bucket)
                 previous = clock
                 clock = next_clock
@@ -501,6 +532,7 @@ def _run(config: TrainingConfig) -> None:
                     values[f"compile/bucket_{batch.bucket}_seconds"] = (
                         time.monotonic() - loaded
                     )
+                phase("logging_update")
                 log(values)
                 tracker.log_summary(
                     {
@@ -530,6 +562,7 @@ def _run(config: TrainingConfig) -> None:
                         ",".join(events) or "validation_end",
                         include_tasks=bool(task_events) or done,
                     )
+                phase("checkpoint_timer_broadcast")
                 due = primary_json(
                     lambda saved_at=last_save, milestone=permanent: (
                         time.monotonic() - saved_at
@@ -537,6 +570,7 @@ def _run(config: TrainingConfig) -> None:
                         or milestone
                     )
                 )
+                phase("checkpoint_timer_complete")
                 if due:
                     checkpoint = save(permanent)
                     last_save = time.monotonic()
@@ -576,6 +610,8 @@ def _run(config: TrainingConfig) -> None:
         )
         log({"run_progress": 1.0})
     tracker.current_tracker().finish()
+    if config.validation_updates is not None and jax.process_index() == 0:
+        faulthandler.cancel_dump_traceback_later()
 
 
 def run(config: TrainingConfig) -> None:
@@ -598,10 +634,8 @@ def run(config: TrainingConfig) -> None:
 
 def dispatch(config: TrainingConfig) -> None:
     verify_source_tokenizer(load_encoder())
-    if config.validation_updates is None:
-        raise RuntimeError(
-            "Production gate: freeze and validate the downsampled task panels first"
-        )
+    if not panel_binding()["complete_readback_verified"]:
+        raise ValueError("Task panel publication was not fully verified")
     _apply_hero_ep_runtime_defaults(
         inline_watch_enabled=False,
         moe_implementation="scatter",

@@ -341,3 +341,9 @@ Its raw view retains the historical full-vocabulary suffix ALT-minus-REF likelih
 One scalar per task/view is logged: conservation AUROC, core/SV average precision, motif accuracy, and AF Spearman correlation.
 Production task panels run initially, at curriculum end, every approximately 20.97B additional inputs, and finally; compact validation runs approximately every 5.24B inputs.
 Disposable validation uses a separately named 32-example-per-task pilot, with metrics under `validation/tasks`, never the production task curves.
+
+The 545.455B legacy native checkpoint has 18,468,864 saved BF16 output-projection values that differ from the BF16 cast of its FP32 master, with maximum absolute difference 0.00146484375.
+A complete CPU audit found that all other 35 parameter/master pairs match exactly and all model/master values are finite.
+The user approved preserving both arrays verbatim for the initial evaluation and first normal optimizer update, retaining every optimizer leaf.
+The exception is restricted to this exact source at stage zero, its audited mismatch count/magnitude, and agreement of every other pair; nonfinite state is always rejected.
+The first normal update must produce a finite model matching its masters, and the source discrepancy is recorded in W&B import provenance.
