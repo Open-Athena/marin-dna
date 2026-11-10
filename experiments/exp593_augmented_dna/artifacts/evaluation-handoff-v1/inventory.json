@@ -1,0 +1,186 @@
+{
+  "observed_at": "2026-11-10T13:02:47.901966+00:00",
+  "eligible_checkpoint_count": 8,
+  "all_eight_counter_pairs_match": true,
+  "fresh_native_metadata_and_training_bindings_verified": true,
+  "checkpoints": [
+    {
+      "condition": "text",
+      "milestone": "quarter_1",
+      "checkpoint": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/training/dna-exp593-augmented-d768-pretrained-seed0-v1/checkpoints/step-156559",
+      "metadata_sha256": "40fd5b04572ab299ec5c150923fab8c9db22784664b5cac59011fa9be5dcd891",
+      "canonical_metadata_digest_for_restore_weights": "197a1ff5d3a1a2798435bd00419eb42c47d2d3fb51be105d135528965ce0fb73",
+      "clock": {
+        "dna_tokens": 53627634730,
+        "examples": 10019776,
+        "fim_examples": 5009568,
+        "input_tokens": 54039954011,
+        "loss_targets": 27177981712,
+        "rc_examples": 5012286,
+        "text_tokens": 412319281,
+        "updates": 156559
+      },
+      "scientific_bindings_verified": true,
+      "permanent": true,
+      "source_artifact": "experiments/exp593_augmented_dna/artifacts/production-quarter-1-v1/result.json",
+      "source_artifact_sha256": "eaa334f62bf1d83f557957c483a1181e1e311cf5d8bc9995573b8893a3a4a388",
+      "functional_result_uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/training/dna-exp593-augmented-d768-pretrained-seed0-v1/development/982a4ac33b6ca8dffcf03a225b544cac2d076bd605830d13eac82afa1b2deb31/result.json"
+    },
+    {
+      "condition": "text",
+      "milestone": "quarter_2",
+      "checkpoint": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/training/dna-exp593-augmented-d768-pretrained-seed0-v1/checkpoints/step-313074",
+      "metadata_sha256": "221876446be4148cf2553b62af11778c8355923efc3a80ddbebd477dd86d48ad",
+      "canonical_metadata_digest_for_restore_weights": "49bc331fd99b9cacf5b10f5a355d43c260dff3db531979545b2a60cdef809f67",
+      "clock": {
+        "dna_tokens": 107254968280,
+        "examples": 20036736,
+        "fim_examples": 10017462,
+        "input_tokens": 108079388453,
+        "loss_targets": 54358996037,
+        "rc_examples": 10021092,
+        "text_tokens": 824420173,
+        "updates": 313074
+      },
+      "scientific_bindings_verified": true,
+      "permanent": true,
+      "source_artifact": "experiments/exp593_augmented_dna/artifacts/production-quarter-2-v1/result.json",
+      "source_artifact_sha256": "04d195a8ab90a66bb9768763be62c5388583023df9bae0255ebc63fb19f56bdc",
+      "functional_result_uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/training/dna-exp593-augmented-d768-pretrained-seed0-v1/development/67fa357211c00d48ded98fc71069cf1661c4e3da50817cbffe311c5764caeec9/result.json"
+    },
+    {
+      "condition": "text",
+      "milestone": "quarter_3",
+      "checkpoint": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/training/dna-exp593-augmented-d768-pretrained-seed0-v1/checkpoints/step-469566",
+      "metadata_sha256": "a2ee3bcfa78a181cb17bc21c90077a27bb3c2e8b850a3c8040a99d686fe35efe",
+      "canonical_metadata_digest_for_restore_weights": "e572173beaa9e7a93228be2182d3516b24bbff34e6977e7252c9a31ac1f8e9f0",
+      "clock": {
+        "dna_tokens": 160882780956,
+        "examples": 30052224,
+        "fim_examples": 15023432,
+        "input_tokens": 162119176962,
+        "loss_targets": 81544636660,
+        "rc_examples": 15028937,
+        "text_tokens": 1236396006,
+        "updates": 469566
+      },
+      "scientific_bindings_verified": true,
+      "permanent": true,
+      "source_artifact": "experiments/exp593_augmented_dna/artifacts/production-quarter-3-v1/result.json",
+      "source_artifact_sha256": "f3ee3e9f76d23c2536dc115cde453531b4b82841ff800aa0abfced47ace41060",
+      "functional_result_uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/training/dna-exp593-augmented-d768-pretrained-seed0-v1/development/b30bc8ed00005b827c40bca743a44ab33ecd73811a625d52e89981a117313aae/result.json"
+    },
+    {
+      "condition": "text",
+      "milestone": "final",
+      "checkpoint": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/training/dna-exp593-augmented-d768-pretrained-seed0-v1/checkpoints/step-626011",
+      "metadata_sha256": "9a10fe1715400ef9495cf003fe0fa20d6ab740b9ed655d0d0a9bc60595b6ca6e",
+      "canonical_metadata_digest_for_restore_weights": "f6ae7c885aaa034b2c2f7cc423da72b8c6157152ac6b54841ef654709a35fec2",
+      "clock": {
+        "dna_tokens": 214510513106,
+        "examples": 40064704,
+        "fim_examples": 20028652,
+        "input_tokens": 216158719114,
+        "loss_targets": 108722713297,
+        "rc_examples": 20033707,
+        "text_tokens": 1648206008,
+        "updates": 626011
+      },
+      "scientific_bindings_verified": true,
+      "permanent": true,
+      "source_artifact": "experiments/exp593_augmented_dna/artifacts/production-final-v1/result.json",
+      "source_artifact_sha256": "f0d14b36e1d3db9b091f3a45135a51effc924a8d5758943c5e534bcbe9782a67",
+      "functional_result_uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/training/dna-exp593-augmented-d768-pretrained-seed0-v1/development/0a341f0676a2e0e67837b544286758988d1905a4b5c91a1529e27358900ae296/result.json"
+    },
+    {
+      "condition": "dna216b",
+      "milestone": "quarter_1",
+      "checkpoint": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/training/dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1/checkpoints/step-156559",
+      "metadata_sha256": "ed5205b65d0d9c2021ed8f40c3b9f5ad4656687a45caeea97db34cdf5db67688",
+      "canonical_metadata_digest_for_restore_weights": "f6e74ad9b6f2566eebeecd3dc2bea645ecf75607d12abab7abe25034567ecf63",
+      "clock": {
+        "dna_tokens": 53627634730,
+        "examples": 10019776,
+        "fim_examples": 5009568,
+        "input_tokens": 54039954011,
+        "loss_targets": 27177981712,
+        "rc_examples": 5012286,
+        "text_tokens": 412319281,
+        "updates": 156559
+      },
+      "scientific_bindings_verified": true,
+      "permanent": true,
+      "source_artifact": "experiments/exp593_augmented_dna/artifacts/dna216b-quarter-1-v1/result.json",
+      "source_artifact_sha256": "79a1ac7a637c689d84c39339f39c41bfed2fb1a5feaf0f1414d17d4b2e5708fa",
+      "functional_result_uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/training/dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1/development/59dd142b3d2ccd81d407ee0aed4551c983627b4df9674ce426f2d7426c0c327c/result.json"
+    },
+    {
+      "condition": "dna216b",
+      "milestone": "quarter_2",
+      "checkpoint": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/training/dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1/checkpoints/step-313074",
+      "metadata_sha256": "1dbe5c6d6b5bfb93c864235391513f963970e2f736c9282fefc5891fc6c364a0",
+      "canonical_metadata_digest_for_restore_weights": "20e3b2ec466998b0a72b09069d729da45ec4a8d81ac6df3531fae044c36c0e6f",
+      "clock": {
+        "dna_tokens": 107254968280,
+        "examples": 20036736,
+        "fim_examples": 10017462,
+        "input_tokens": 108079388453,
+        "loss_targets": 54358996037,
+        "rc_examples": 10021092,
+        "text_tokens": 824420173,
+        "updates": 313074
+      },
+      "scientific_bindings_verified": true,
+      "permanent": true,
+      "source_artifact": "experiments/exp593_augmented_dna/artifacts/dna216b-quarter-2-v1/result.json",
+      "source_artifact_sha256": "72fea15f2a7bcd05460cc5a451977dd4ebc645b11697adaa32018db24bc1a331",
+      "functional_result_uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/training/dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1/development/c11d382bac550b60f261b8206b1cb94e02f8b3f7a8da69eadc32abf98ae74443/result.json"
+    },
+    {
+      "condition": "dna216b",
+      "milestone": "quarter_3",
+      "checkpoint": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/training/dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1/checkpoints/step-469566-retry-93646d85fc44411d9a21bac9dce18a29",
+      "metadata_sha256": "5b9e92fd73c6b71ea98ac3cfd36805f93738e9c789163846bafb5a8f12c98bed",
+      "canonical_metadata_digest_for_restore_weights": "b120f572e7490694a74622d7ec9e1e5ac9392d50a9cc2fa6fbb05ee66a1d6d58",
+      "clock": {
+        "dna_tokens": 160882780956,
+        "examples": 30052224,
+        "fim_examples": 15023432,
+        "input_tokens": 162119176962,
+        "loss_targets": 81544636660,
+        "rc_examples": 15028937,
+        "text_tokens": 1236396006,
+        "updates": 469566
+      },
+      "scientific_bindings_verified": true,
+      "permanent": true,
+      "source_artifact": "experiments/exp593_augmented_dna/artifacts/dna216b-quarter-3-v1/result.json",
+      "source_artifact_sha256": "38daad034c841044f06e9096e2e3c783e72a54e688ad9d4c2c40f3a6f35caac8",
+      "functional_result_uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/training/dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1/development/6c509a4f8b9cac48d657f79e44ffa41fcc4cc2cfc3c802e21871d14613feab9f/result.json"
+    },
+    {
+      "condition": "dna216b",
+      "milestone": "final",
+      "checkpoint": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/training/dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1/checkpoints/step-626011",
+      "metadata_sha256": "ee340e80cec5113c94c902e8ad14cb3bb49a1b979f6b35871842b4354225107f",
+      "canonical_metadata_digest_for_restore_weights": "7227aad6201e0fd9eda22107353277bcc6107cfa5e258c171af859d8a114aa61",
+      "clock": {
+        "dna_tokens": 214510513106,
+        "examples": 40064704,
+        "fim_examples": 20028652,
+        "input_tokens": 216158719114,
+        "loss_targets": 108722713297,
+        "rc_examples": 20033707,
+        "text_tokens": 1648206008,
+        "updates": 626011
+      },
+      "scientific_bindings_verified": true,
+      "permanent": true,
+      "source_artifact": "experiments/exp593_augmented_dna/artifacts/dna216b-final-v1/result.json",
+      "source_artifact_sha256": "b47749cc45865dc2c790efabab5f48239a4cc6547797c93b1811c5ea96d53f8b",
+      "functional_result_uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/training/dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1/development/0ddb8b0ff1504c63eaa9fc906f6a1c9a22a617b503e0ca232044b45bec020d15/result.json"
+    }
+  ],
+  "scope": "Fresh permanent metadata/full-clock/binding checks plus prior independent diagnostic evidence. Final checkpoints additionally have all128arrays decoded and checked; this inventory does not re-read quarter-checkpoint arrays or run benchmark inference. Initial imported parent baselines are not extra exp593 milestone checkpoints.",
+  "separate_evaluation_owner": "PlantCAD2 PR23; no evaluation jobs or exports launched by this handoff."
+}

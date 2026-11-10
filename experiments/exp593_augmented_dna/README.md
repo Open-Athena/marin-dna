@@ -6,7 +6,12 @@ The user has authorized preparation, single-node H100 validation, and full train
 Data preparation and the single-node H100 smoke are complete.
 The [text-initialized final model](artifacts/production-final-v1/result.json) completed 216,158,719,114 actual input tokens at update 626,011.
 Its final fixed panels, 640 functional records, all 128 stored arrays and all 626 expected sparse norm checkpoints are verified; W&B finished and every GPU task plus both Iris jobs succeeded.
-The separately approved DNA216B-initialized model continues on 64 Reno H100s after a [zero-replay full-state handoff](artifacts/dna216b-production-reslice-rno-n8-v3/result.json) from its temporary East recovery allocation.
+The [DNA216B-initialized final model](artifacts/dna216b-final-v1/result.json) also completed 216,158,719,114 additional actual inputs at update 626,011 after its [zero-replay full-state handoff](artifacts/dna216b-production-reslice-rno-n8-v3/result.json) to 64 Reno H100s.
+Its final validation, all 128 stored arrays, 626 sparse norm points, eight successful GPU process exits and terminal Iris jobs passed the same acceptance gates.
+The [paired results](artifacts/paired-final-v1/report.md) include both zero-update baselines and all eight quarter/final checkpoints, which match all eight input/example counters between conditions.
+For DNA initialization, FIM NLL fell from 17.804113 to 1.086264 while primary causal NLL rose from 0.947501 to 1.112691; bare conservation AUROC fell from 0.645721 to 0.586044.
+These frozen development diagnostics show a readout trade-off and do not establish downstream benchmark gains or isolate augmentation from initialization, prior DNA exposure and learning-rate differences.
+Both training conditions are complete, their GPUs are released, and the final checkpoint is available to the separate evaluation task in [PlantCAD2 PR23](https://github.com/plantcad/plantcad2/pull/23).
 The full fixed-panel accelerator evaluator passed on eight H100s in about 65 seconds, including all 36 greedy completions.
 The four-node production loop passed sixteen bounded updates and native checkpoint discovery.
 The four-node Reno validation passed all sixteen updates, all four buckets and the causal/FIM/functional panels, with zero routing drops and verified native checkpoint discovery.
@@ -53,7 +58,7 @@ Its first 1,000 resumed updates preserve the same input cursor and have finite l
 A separate 64→8 H100 recovery check restored the DNA-initialized production checkpoint and optimizer on one East node, then passed sixteen disposable updates and all fixed/functional panels; see [the recovery evidence](artifacts/dna216b-recovery-east-n1-v1/result.json).
 The validation used a no-op tracker and was physically released without promotion or production writes.
 Following repeated Reno interruptions, a separate prepared eight-H100 East allocation was promoted after the old writer's physical termination was verified; [the production handoff](artifacts/dna216b-production-reslice-east-n1-v1/result.json) preserves the same W&B identity and full state.
-This temporary fallback keeps training advancing while larger allocations are prepared.
+This temporary fallback kept training advancing while larger allocations were prepared.
 The subsequent [graceful eight-to-64-H100 handoff](artifacts/dna216b-production-reslice-rno-n8-cp120-v1/result.json) preserved the exact step-137600 state without replay, passed the first 1,000 resumed updates and twenty fresh norms, and independently verified all 640 resume diagnostic records.
 The later [checkpoint-policy handoff](artifacts/dna216b-checkpoint-policy-rno-n8-v1/result.json) retained 64 H100s and the exact step-142700 state without replay, verified another 1,000 updates / twenty fresh norms / 640 diagnostic records, and committed its first periodic save after 601 seconds of training with a 76-second native write.
 Scientific bindings exclude placement and are read back before checkpoint discovery; resumed execution restores the latest complete optimizer/data state and preserves that run identity.
@@ -119,7 +124,7 @@ The conservation contexts are padded to a fixed 1024-token inference bucket; jun
 Per-site predictions, metrics, input manifest and scorer implementation hashes are published as immutable content-addressed native objects before their W&B metrics are reported.
 The primary `eval/loss` protocol and scientific training bindings remain unchanged.
 The readout passes a compiled FP32 reference comparison and a separate BF16 tolerance check on a small synthetic model, including a partial final batch.
-Both functional panels are active in production, and the original run's first-quarter checkpoint and frozen prediction artifacts are independently verified in artifacts/production-quarter-1-v1/result.json.
+Both functional panels were evaluated throughout production, and the original run's first-quarter checkpoint and frozen prediction artifacts are independently verified in artifacts/production-quarter-1-v1/result.json.
 The [text-initialized half-budget checkpoint](artifacts/production-quarter-2-v1/result.json) and [DNA-initialized first-quarter checkpoint](artifacts/dna216b-quarter-1-v1/result.json) have verified permanent metadata, complete fixed panels and independently checked 640-record functional artifacts.
 The two first-quarter checkpoints have identical input, DNA, text, target, example, FIM and RC clocks at update 156,559 / 54,039,954,011 additional input tokens.
 The [DNA-initialized half-budget checkpoint](artifacts/dna216b-quarter-2-v1/result.json) also has verified permanent metadata, fixed panels and all 640 functional prediction records.

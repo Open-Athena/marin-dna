@@ -1,0 +1,7 @@
+{
+  "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/verification/paired-final-20261110/dbf271fbfaef61fa89dfc302eacb526989fa7d368bbbba9ae61bc4d1f3ed7c35.json",
+  "sha256": "dbf271fbfaef61fa89dfc302eacb526989fa7d368bbbba9ae61bc4d1f3ed7c35",
+  "bytes": 288667,
+  "etag": "\"9066b6af7d699aba49cff0ae7a94c2af\"",
+  "complete_readback_verified": true
+}

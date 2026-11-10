@@ -1,0 +1,1176 @@
+{
+  "all_fixed_counts_and_partition_formulas_verified": true,
+  "checkpoint": {
+    "available": true,
+    "canonical_metadata_digest_for_restore_weights": "7227aad6201e0fd9eda22107353277bcc6107cfa5e258c171af859d8a114aa61",
+    "checkpoint": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/training/dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1/checkpoints/step-626011",
+    "clock": {
+      "dna_tokens": 214510513106,
+      "examples": 40064704,
+      "fim_examples": 20028652,
+      "input_tokens": 216158719114,
+      "loss_targets": 108722713297,
+      "rc_examples": 20033707,
+      "text_tokens": 1648206008,
+      "updates": 626011
+    },
+    "metadata_sha256": "ee340e80cec5113c94c902e8ad14cb3bb49a1b979f6b35871842b4354225107f",
+    "native_discovery_verified": true,
+    "scientific_bindings_verified": true,
+    "temporary": false,
+    "verified": true
+  },
+  "completed_training_run": true,
+  "condition": "dna216b",
+  "event": "final",
+  "final_diagnostic_provenance": {
+    "intervening_recovery": false,
+    "resume_update": 548800,
+    "same_eight_actual_attempts_as_pre_final_observation": true
+  },
+  "functional_development": {
+    "all_640_prediction_records_match_frozen_membership_and_targets": true,
+    "all_functional_metrics_independently_recomputed": true,
+    "all_six_frozen_payloads_read_back_and_hashed": true,
+    "clock": {
+      "dna_tokens": 214510513106,
+      "examples": 40064704,
+      "fim_examples": 20028652,
+      "input_tokens": 216158719114,
+      "loss_targets": 108722713297,
+      "rc_examples": 20033707,
+      "text_tokens": 1648206008,
+      "updates": 626011
+    },
+    "data_manifest_sha256": "73904d171e8d90b1345b0688d20338f31dc9146de9e5c7ff1be3ab66d98a2c0a",
+    "event": "final,final",
+    "metrics": {
+      "eval/development_conservation_bare_auroc": 0.5860443115234375,
+      "eval/development_conservation_bare_average_precision": 0.5726126798136258,
+      "eval/development_conservation_bare_examples": 512,
+      "eval/development_conservation_bare_negatives": 256,
+      "eval/development_conservation_bare_positives": 256,
+      "eval/development_conservation_fim_auroc": 0.564697265625,
+      "eval/development_conservation_fim_average_precision": 0.5413691353857008,
+      "eval/development_conservation_fim_examples": 512,
+      "eval/development_conservation_fim_negatives": 256,
+      "eval/development_conservation_fim_positives": 256,
+      "eval/development_junction_random_control_base_accuracy": 0.3828125,
+      "eval/development_junction_random_control_dna_exact_match": 0.125,
+      "eval/development_junction_random_control_exact_match": 0.125,
+      "eval/development_junction_random_control_examples": 64,
+      "eval/development_junction_random_control_loss": 1.198503096587956,
+      "eval/development_junction_random_control_targets": 128,
+      "eval/development_junction_splice_acceptor_base_accuracy": 0.921875,
+      "eval/development_junction_splice_acceptor_dna_exact_match": 0.90625,
+      "eval/development_junction_splice_acceptor_exact_match": 0.90625,
+      "eval/development_junction_splice_acceptor_examples": 32,
+      "eval/development_junction_splice_acceptor_loss": 0.18323396891355515,
+      "eval/development_junction_splice_acceptor_targets": 64,
+      "eval/development_junction_splice_donor_base_accuracy": 0.890625,
+      "eval/development_junction_splice_donor_dna_exact_match": 0.84375,
+      "eval/development_junction_splice_donor_exact_match": 0.84375,
+      "eval/development_junction_splice_donor_examples": 32,
+      "eval/development_junction_splice_donor_loss": 0.21737476624548435,
+      "eval/development_junction_splice_donor_targets": 64
+    },
+    "prediction_counts": {
+      "conservation": 512,
+      "random_control": 64,
+      "splice_acceptor": 32,
+      "splice_donor": 32
+    },
+    "predictions": {
+      "bytes": 173241,
+      "complete_readback_verified": true,
+      "etag": "\"dd2e92fd595b68d41e28902ecbd972ee\"",
+      "sha256": "b23d48ed7eaccf7be7370dce51781782259fb9fe731c8c07fec48ffa3d141c8a",
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/training/dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1/development/b23d48ed7eaccf7be7370dce51781782259fb9fe731c8c07fec48ffa3d141c8a/predictions.jsonl"
+    },
+    "result_sha256": "0ddb8b0ff1504c63eaa9fc906f6a1c9a22a617b503e0ca232044b45bec020d15",
+    "result_uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/training/dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1/development/0ddb8b0ff1504c63eaa9fc906f6a1c9a22a617b503e0ca232044b45bec020d15/result.json",
+    "scoring_protocol": {
+      "bytes": 1114,
+      "complete_readback_verified": true,
+      "etag": "\"8e0f4573e828f7137a8a74436261d468\"",
+      "sha256": "7b9845c6f614c115fc4c354900d6f812cbe46886c2d81f18826b3eda9efeb996",
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/training/dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1/development/7b9845c6f614c115fc4c354900d6f812cbe46886c2d81f18826b3eda9efeb996/protocol.json"
+    },
+    "training_bindings_sha256": "512ea5478153806ffd0070b4e91691bb39ab97e23945057ec30c8cde0b782cb2",
+    "verified_at": "2026-11-10T12:57:40.320837+00:00"
+  },
+  "functional_result_selection": "explicit immutable URI",
+  "immutable_verification_evidence": {
+    "bytes": 864782,
+    "complete_readback_verified": true,
+    "etag": "\"7d3f52a77cd42c67f998caf0b2b92c2a\"",
+    "sha256": "325151b22496ea3ce90e2cd42b432b7f5bc6837a9b167cb8c5a7a4e42ab9c9ab",
+    "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/verification/dna216b-final-20261110/325151b22496ea3ce90e2cd42b432b7f5bc6837a9b167cb8c5a7a4e42ab9c9ab.json"
+  },
+  "input_token_overshoot": 19594,
+  "iris_completion": {
+    "all_gpu_tasks_succeeded_exit0": true,
+    "cpu_only_coordinator_cleanup_candidate": false,
+    "dispatch_id": "exp593-dna216b-ready-rno-n8-cp600-v3-a1",
+    "exact_root_and_child_terminal": true,
+    "gpu_tasks": [
+      {
+        "attempts": [
+          {
+            "attempt_id": 0,
+            "attempt_uid": "9b8556d330d26eed",
+            "error": "WorkloadEvictedDueToPreempted: Preempted to accommodate a workload (UID: 839307ab-62a3-4ded-b6f6-4989d3057872, JobUID: 740d97cb-65c6-46e0-b1bc-9330f61d1681) due to prioritization in the ClusterQueue; preemptor path: /iris-cq; preemptee path: /iris-cq",
+            "exit_code": 143,
+            "finished_at": {
+              "epoch_ms": "1794291874083"
+            },
+            "is_worker_failure": true,
+            "node_name": "gb95e20",
+            "output_archive": {
+              "error": "pod_terminated_before_capture",
+              "state": "TASK_OUTPUT_ARCHIVE_STATE_UNAVAILABLE"
+            },
+            "pod_name": "iris-eczech-exp593-dna-ready-202611-f0b804bd-0-9b8556d330d26eed",
+            "pod_uid": "75cbf040-fb5e-4c6e-b667-7d4039466882",
+            "started_at": {
+              "epoch_ms": "1794291793197"
+            },
+            "state": "TASK_STATE_PREEMPTED",
+            "terminal_reason": "WorkloadEvictedDueToPreempted: Preempted to accommodate a workload (UID: 839307ab-62a3-4ded-b6f6-4989d3057872, JobUID: 740d97cb-65c6-46e0-b1bc-9330f61d1681) due to prioritization in the ClusterQueue; preemptor path: /iris-cq; preemptee path: /iris-cq",
+            "worker_id": ""
+          },
+          {
+            "attempt_id": 1,
+            "attempt_uid": "8962ce8fc8866318",
+            "error": "WorkloadEvictedDueToPreempted: Preempted to accommodate a workload (UID: 19e5544c-f116-46d8-9987-e67ebbab0d92, JobUID: UNKNOWN) due to prioritization in the ClusterQueue; preemptor path: /iris-cq; preemptee path: /iris-cq",
+            "exit_code": 143,
+            "finished_at": {
+              "epoch_ms": "1794292891141"
+            },
+            "is_worker_failure": true,
+            "node_name": "g5303b8",
+            "output_archive": {
+              "error": "pod_terminated_before_capture",
+              "state": "TASK_OUTPUT_ARCHIVE_STATE_UNAVAILABLE"
+            },
+            "pod_name": "iris-eczech-exp593-dna-ready-202611-f0b804bd-1-8962ce8fc8866318",
+            "pod_uid": "9b00bde6-de38-4d2f-b6a3-498a05e609a1",
+            "started_at": {
+              "epoch_ms": "1794292847020"
+            },
+            "state": "TASK_STATE_PREEMPTED",
+            "terminal_reason": "WorkloadEvictedDueToPreempted: Preempted to accommodate a workload (UID: 19e5544c-f116-46d8-9987-e67ebbab0d92, JobUID: UNKNOWN) due to prioritization in the ClusterQueue; preemptor path: /iris-cq; preemptee path: /iris-cq",
+            "worker_id": ""
+          },
+          {
+            "attempt_id": 2,
+            "attempt_uid": "6b3fdb98e44ab0ea",
+            "error": "WorkloadEvictedDueToPreempted: Preempted to accommodate a workload (UID: 9f01ac0a-f062-490b-9128-41c9c9b5a2a8, JobUID: UNKNOWN) due to prioritization in the ClusterQueue; preemptor path: /iris-cq; preemptee path: /iris-cq",
+            "exit_code": 143,
+            "finished_at": {
+              "epoch_ms": "1794293503235"
+            },
+            "is_worker_failure": true,
+            "node_name": "g5303b8",
+            "output_archive": {
+              "error": "pod_terminated_before_capture",
+              "state": "TASK_OUTPUT_ARCHIVE_STATE_UNAVAILABLE"
+            },
+            "pod_name": "iris-eczech-exp593-dna-ready-202611-f0b804bd-2-6b3fdb98e44ab0ea",
+            "pod_uid": "841bdfcd-078c-45b2-8dae-6700b28cb87b",
+            "started_at": {
+              "epoch_ms": "1794293475125"
+            },
+            "state": "TASK_STATE_PREEMPTED",
+            "terminal_reason": "WorkloadEvictedDueToPreempted: Preempted to accommodate a workload (UID: 9f01ac0a-f062-490b-9128-41c9c9b5a2a8, JobUID: UNKNOWN) due to prioritization in the ClusterQueue; preemptor path: /iris-cq; preemptee path: /iris-cq",
+            "worker_id": ""
+          },
+          {
+            "attempt_id": 3,
+            "attempt_uid": "001eb7b0a57d79a0",
+            "error": "",
+            "exit_code": 0,
+            "finished_at": {
+              "epoch_ms": "1794315403756"
+            },
+            "is_worker_failure": false,
+            "node_name": "gb95e20",
+            "pod_name": "iris-eczech-exp593-dna-ready-202611-f0b804bd-3-001eb7b0a57d79a0",
+            "pod_uid": "9a74f332-8a75-4b28-9493-35190c48c776",
+            "started_at": {
+              "epoch_ms": "1794293539387"
+            },
+            "state": "TASK_STATE_SUCCEEDED",
+            "terminal_reason": "",
+            "worker_id": ""
+          }
+        ],
+        "backend_id": "",
+        "cluster": "cw-rno2a",
+        "current_attempt_id": 3,
+        "error": "WorkloadEvictedDueToPreempted: Preempted to accommodate a workload (UID: 9f01ac0a-f062-490b-9128-41c9c9b5a2a8, JobUID: UNKNOWN) due to prioritization in the ClusterQueue; preemptor path: /iris-cq; preemptee path: /iris-cq",
+        "exit_code": 0,
+        "finished_at": {
+          "epoch_ms": "1794315403756"
+        },
+        "started_at": {
+          "epoch_ms": "1794293539387"
+        },
+        "state": "TASK_STATE_SUCCEEDED",
+        "submitted_at": {
+          "epoch_ms": "1794291001405"
+        },
+        "task_id": "/eczech/exp593-dna-ready-20261110-rno-n8-cp600-a2/train-dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1/0",
+        "worker_address": "",
+        "worker_id": ""
+      },
+      {
+        "attempts": [
+          {
+            "attempt_id": 0,
+            "attempt_uid": "8f0f9fc2f37693fb",
+            "error": "Coscheduled sibling /eczech/exp593-dna-ready-20261110-rno-n8-cp600-a2/train-dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1/0 bounced for atomic re-scheduling",
+            "exit_code": 0,
+            "finished_at": {
+              "epoch_ms": "1794291874083"
+            },
+            "is_worker_failure": false,
+            "node_name": "g5303b8",
+            "pod_name": "iris-eczech-exp593-dna-ready-202611-794172bd-0-8f0f9fc2f37693fb",
+            "pod_uid": "a507a4d4-dbde-4ae0-b23d-4842dbb419c9",
+            "started_at": {
+              "epoch_ms": "1794291793197"
+            },
+            "state": "TASK_STATE_COSCHED_FAILED",
+            "terminal_reason": "",
+            "worker_id": ""
+          },
+          {
+            "attempt_id": 1,
+            "attempt_uid": "8289fc3467574667",
+            "error": "Coscheduled sibling /eczech/exp593-dna-ready-20261110-rno-n8-cp600-a2/train-dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1/0 bounced for atomic re-scheduling",
+            "exit_code": 0,
+            "finished_at": {
+              "epoch_ms": "1794292891141"
+            },
+            "is_worker_failure": false,
+            "node_name": "g530748",
+            "pod_name": "iris-eczech-exp593-dna-ready-202611-794172bd-1-8289fc3467574667",
+            "pod_uid": "7d032d26-fe8a-4ecc-9307-482ce53e4e2b",
+            "started_at": {
+              "epoch_ms": "1794292847020"
+            },
+            "state": "TASK_STATE_COSCHED_FAILED",
+            "terminal_reason": "",
+            "worker_id": ""
+          },
+          {
+            "attempt_id": 2,
+            "attempt_uid": "a28eae6fc9e39813",
+            "error": "Coscheduled sibling /eczech/exp593-dna-ready-20261110-rno-n8-cp600-a2/train-dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1/0 bounced for atomic re-scheduling",
+            "exit_code": 0,
+            "finished_at": {
+              "epoch_ms": "1794293503235"
+            },
+            "is_worker_failure": false,
+            "node_name": "g530748",
+            "pod_name": "iris-eczech-exp593-dna-ready-202611-794172bd-2-a28eae6fc9e39813",
+            "pod_uid": "c27cbb9d-dcd0-4ca1-a96d-bdfa92f48067",
+            "started_at": {
+              "epoch_ms": "1794293475125"
+            },
+            "state": "TASK_STATE_COSCHED_FAILED",
+            "terminal_reason": "",
+            "worker_id": ""
+          },
+          {
+            "attempt_id": 3,
+            "attempt_uid": "6496b4641b07bd6f",
+            "error": "",
+            "exit_code": 0,
+            "finished_at": {
+              "epoch_ms": "1794315403756"
+            },
+            "is_worker_failure": false,
+            "node_name": "g5303b8",
+            "pod_name": "iris-eczech-exp593-dna-ready-202611-794172bd-3-6496b4641b07bd6f",
+            "pod_uid": "50f23949-58e8-44cf-b0ee-64978d7b75c9",
+            "started_at": {
+              "epoch_ms": "1794293519324"
+            },
+            "state": "TASK_STATE_SUCCEEDED",
+            "terminal_reason": "",
+            "worker_id": ""
+          }
+        ],
+        "backend_id": "",
+        "cluster": "cw-rno2a",
+        "current_attempt_id": 3,
+        "error": "Coscheduled sibling /eczech/exp593-dna-ready-20261110-rno-n8-cp600-a2/train-dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1/0 bounced for atomic re-scheduling",
+        "exit_code": 0,
+        "finished_at": {
+          "epoch_ms": "1794315403756"
+        },
+        "started_at": {
+          "epoch_ms": "1794293519324"
+        },
+        "state": "TASK_STATE_SUCCEEDED",
+        "submitted_at": {
+          "epoch_ms": "1794291001405"
+        },
+        "task_id": "/eczech/exp593-dna-ready-20261110-rno-n8-cp600-a2/train-dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1/1",
+        "worker_address": "",
+        "worker_id": ""
+      },
+      {
+        "attempts": [
+          {
+            "attempt_id": 0,
+            "attempt_uid": "166692e7cd679607",
+            "error": "Coscheduled sibling /eczech/exp593-dna-ready-20261110-rno-n8-cp600-a2/train-dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1/0 bounced for atomic re-scheduling",
+            "exit_code": 0,
+            "finished_at": {
+              "epoch_ms": "1794291874083"
+            },
+            "is_worker_failure": false,
+            "node_name": "g530748",
+            "pod_name": "iris-eczech-exp593-dna-ready-202611-9640b6d7-0-166692e7cd679607",
+            "pod_uid": "d0cf5698-5c65-4d0f-a585-8a91789adea0",
+            "started_at": {
+              "epoch_ms": "1794291793197"
+            },
+            "state": "TASK_STATE_COSCHED_FAILED",
+            "terminal_reason": "",
+            "worker_id": ""
+          },
+          {
+            "attempt_id": 1,
+            "attempt_uid": "6fa010e3fc89978e",
+            "error": "Coscheduled sibling /eczech/exp593-dna-ready-20261110-rno-n8-cp600-a2/train-dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1/0 bounced for atomic re-scheduling",
+            "exit_code": 0,
+            "finished_at": {
+              "epoch_ms": "1794292891141"
+            },
+            "is_worker_failure": false,
+            "node_name": "g8364ba",
+            "pod_name": "iris-eczech-exp593-dna-ready-202611-9640b6d7-1-6fa010e3fc89978e",
+            "pod_uid": "a8c74c42-23e3-46d4-a470-8786c2ddbbcb",
+            "started_at": {
+              "epoch_ms": "1794292847020"
+            },
+            "state": "TASK_STATE_COSCHED_FAILED",
+            "terminal_reason": "",
+            "worker_id": ""
+          },
+          {
+            "attempt_id": 2,
+            "attempt_uid": "860af9cc43ff0cd4",
+            "error": "Coscheduled sibling /eczech/exp593-dna-ready-20261110-rno-n8-cp600-a2/train-dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1/0 bounced for atomic re-scheduling",
+            "exit_code": 0,
+            "finished_at": {
+              "epoch_ms": "1794293503235"
+            },
+            "is_worker_failure": false,
+            "node_name": "g31ce4e",
+            "pod_name": "iris-eczech-exp593-dna-ready-202611-9640b6d7-2-860af9cc43ff0cd4",
+            "pod_uid": "3ebbf8cc-e601-4748-b659-fd8706f0d956",
+            "started_at": {
+              "epoch_ms": "1794293475125"
+            },
+            "state": "TASK_STATE_COSCHED_FAILED",
+            "terminal_reason": "",
+            "worker_id": ""
+          },
+          {
+            "attempt_id": 3,
+            "attempt_uid": "8545635f2af1d4e4",
+            "error": "",
+            "exit_code": 0,
+            "finished_at": {
+              "epoch_ms": "1794315403756"
+            },
+            "is_worker_failure": false,
+            "node_name": "g530748",
+            "pod_name": "iris-eczech-exp593-dna-ready-202611-9640b6d7-3-8545635f2af1d4e4",
+            "pod_uid": "c2a25413-e2a3-4a3d-89b3-e9d189a4a652",
+            "started_at": {
+              "epoch_ms": "1794293523929"
+            },
+            "state": "TASK_STATE_SUCCEEDED",
+            "terminal_reason": "",
+            "worker_id": ""
+          }
+        ],
+        "backend_id": "",
+        "cluster": "cw-rno2a",
+        "current_attempt_id": 3,
+        "error": "Coscheduled sibling /eczech/exp593-dna-ready-20261110-rno-n8-cp600-a2/train-dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1/0 bounced for atomic re-scheduling",
+        "exit_code": 0,
+        "finished_at": {
+          "epoch_ms": "1794315403756"
+        },
+        "started_at": {
+          "epoch_ms": "1794293523929"
+        },
+        "state": "TASK_STATE_SUCCEEDED",
+        "submitted_at": {
+          "epoch_ms": "1794291001405"
+        },
+        "task_id": "/eczech/exp593-dna-ready-20261110-rno-n8-cp600-a2/train-dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1/2",
+        "worker_address": "",
+        "worker_id": ""
+      },
+      {
+        "attempts": [
+          {
+            "attempt_id": 0,
+            "attempt_uid": "fe0a53c2b4a487ea",
+            "error": "Coscheduled sibling /eczech/exp593-dna-ready-20261110-rno-n8-cp600-a2/train-dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1/0 bounced for atomic re-scheduling",
+            "exit_code": 0,
+            "finished_at": {
+              "epoch_ms": "1794291874083"
+            },
+            "is_worker_failure": false,
+            "node_name": "g779de0",
+            "pod_name": "iris-eczech-exp593-dna-ready-202611-78384273-0-fe0a53c2b4a487ea",
+            "pod_uid": "2e81776c-ac0e-4ddb-8a2d-4887e3573bc1",
+            "started_at": {
+              "epoch_ms": "1794291787028"
+            },
+            "state": "TASK_STATE_COSCHED_FAILED",
+            "terminal_reason": "",
+            "worker_id": ""
+          },
+          {
+            "attempt_id": 1,
+            "attempt_uid": "047c3386c4bbc86d",
+            "error": "Coscheduled sibling /eczech/exp593-dna-ready-20261110-rno-n8-cp600-a2/train-dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1/0 bounced for atomic re-scheduling",
+            "exit_code": 0,
+            "finished_at": {
+              "epoch_ms": "1794292891141"
+            },
+            "is_worker_failure": false,
+            "node_name": "g8368bc",
+            "pod_name": "iris-eczech-exp593-dna-ready-202611-78384273-1-047c3386c4bbc86d",
+            "pod_uid": "2cb3de45-d0f4-44f8-8856-c1370ec6f6fe",
+            "started_at": {
+              "epoch_ms": "1794292847020"
+            },
+            "state": "TASK_STATE_COSCHED_FAILED",
+            "terminal_reason": "",
+            "worker_id": ""
+          },
+          {
+            "attempt_id": 2,
+            "attempt_uid": "28ff05eb9a3b13eb",
+            "error": "Coscheduled sibling /eczech/exp593-dna-ready-20261110-rno-n8-cp600-a2/train-dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1/0 bounced for atomic re-scheduling",
+            "exit_code": 0,
+            "finished_at": {
+              "epoch_ms": "1794293503235"
+            },
+            "is_worker_failure": false,
+            "node_name": "g31cfa4",
+            "pod_name": "iris-eczech-exp593-dna-ready-202611-78384273-2-28ff05eb9a3b13eb",
+            "pod_uid": "023fd78c-498f-4273-86f0-76dc64980c83",
+            "started_at": {
+              "epoch_ms": "1794293475125"
+            },
+            "state": "TASK_STATE_COSCHED_FAILED",
+            "terminal_reason": "",
+            "worker_id": ""
+          },
+          {
+            "attempt_id": 3,
+            "attempt_uid": "25333f0dba3c8ad7",
+            "error": "",
+            "exit_code": 0,
+            "finished_at": {
+              "epoch_ms": "1794315403756"
+            },
+            "is_worker_failure": false,
+            "node_name": "g779de0",
+            "pod_name": "iris-eczech-exp593-dna-ready-202611-78384273-3-25333f0dba3c8ad7",
+            "pod_uid": "c4bae18c-46cf-4064-90eb-a5260b3fd43a",
+            "started_at": {
+              "epoch_ms": "1794293519324"
+            },
+            "state": "TASK_STATE_SUCCEEDED",
+            "terminal_reason": "",
+            "worker_id": ""
+          }
+        ],
+        "backend_id": "",
+        "cluster": "cw-rno2a",
+        "current_attempt_id": 3,
+        "error": "Coscheduled sibling /eczech/exp593-dna-ready-20261110-rno-n8-cp600-a2/train-dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1/0 bounced for atomic re-scheduling",
+        "exit_code": 0,
+        "finished_at": {
+          "epoch_ms": "1794315403756"
+        },
+        "started_at": {
+          "epoch_ms": "1794293519324"
+        },
+        "state": "TASK_STATE_SUCCEEDED",
+        "submitted_at": {
+          "epoch_ms": "1794291001405"
+        },
+        "task_id": "/eczech/exp593-dna-ready-20261110-rno-n8-cp600-a2/train-dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1/3",
+        "worker_address": "",
+        "worker_id": ""
+      },
+      {
+        "attempts": [
+          {
+            "attempt_id": 0,
+            "attempt_uid": "b8864b39fd70b067",
+            "error": "Coscheduled sibling /eczech/exp593-dna-ready-20261110-rno-n8-cp600-a2/train-dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1/0 bounced for atomic re-scheduling",
+            "exit_code": 0,
+            "finished_at": {
+              "epoch_ms": "1794291874083"
+            },
+            "is_worker_failure": false,
+            "node_name": "g82a648",
+            "pod_name": "iris-eczech-exp593-dna-ready-202611-f5be9a66-0-b8864b39fd70b067",
+            "pod_uid": "c3131f31-c4bc-4f1c-8f36-0eec1479036a",
+            "started_at": {
+              "epoch_ms": "1794291787028"
+            },
+            "state": "TASK_STATE_COSCHED_FAILED",
+            "terminal_reason": "",
+            "worker_id": ""
+          },
+          {
+            "attempt_id": 1,
+            "attempt_uid": "952b07eb2ccd6d56",
+            "error": "Coscheduled sibling /eczech/exp593-dna-ready-20261110-rno-n8-cp600-a2/train-dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1/0 bounced for atomic re-scheduling",
+            "exit_code": 0,
+            "finished_at": {
+              "epoch_ms": "1794292891141"
+            },
+            "is_worker_failure": false,
+            "node_name": "ga8afb0",
+            "pod_name": "iris-eczech-exp593-dna-ready-202611-f5be9a66-1-952b07eb2ccd6d56",
+            "pod_uid": "e658852b-3357-4872-98bc-9a89d9506794",
+            "started_at": {
+              "epoch_ms": "1794292847020"
+            },
+            "state": "TASK_STATE_COSCHED_FAILED",
+            "terminal_reason": "",
+            "worker_id": ""
+          },
+          {
+            "attempt_id": 2,
+            "attempt_uid": "2365f2438d9ade46",
+            "error": "Coscheduled sibling /eczech/exp593-dna-ready-20261110-rno-n8-cp600-a2/train-dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1/0 bounced for atomic re-scheduling",
+            "exit_code": 0,
+            "finished_at": {
+              "epoch_ms": "1794293503235"
+            },
+            "is_worker_failure": false,
+            "node_name": "g322ffa",
+            "pod_name": "iris-eczech-exp593-dna-ready-202611-f5be9a66-2-2365f2438d9ade46",
+            "pod_uid": "5694609b-4160-4973-a9c6-b6f82bfbac66",
+            "started_at": {
+              "epoch_ms": "1794293475125"
+            },
+            "state": "TASK_STATE_COSCHED_FAILED",
+            "terminal_reason": "",
+            "worker_id": ""
+          },
+          {
+            "attempt_id": 3,
+            "attempt_uid": "b07f8c1d2a689e5f",
+            "error": "",
+            "exit_code": 0,
+            "finished_at": {
+              "epoch_ms": "1794315403756"
+            },
+            "is_worker_failure": false,
+            "node_name": "g82a648",
+            "pod_name": "iris-eczech-exp593-dna-ready-202611-f5be9a66-3-b07f8c1d2a689e5f",
+            "pod_uid": "9fc48b4d-0ca8-4261-8bed-337036980bb4",
+            "started_at": {
+              "epoch_ms": "1794293523929"
+            },
+            "state": "TASK_STATE_SUCCEEDED",
+            "terminal_reason": "",
+            "worker_id": ""
+          }
+        ],
+        "backend_id": "",
+        "cluster": "cw-rno2a",
+        "current_attempt_id": 3,
+        "error": "Coscheduled sibling /eczech/exp593-dna-ready-20261110-rno-n8-cp600-a2/train-dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1/0 bounced for atomic re-scheduling",
+        "exit_code": 0,
+        "finished_at": {
+          "epoch_ms": "1794315403756"
+        },
+        "started_at": {
+          "epoch_ms": "1794293523929"
+        },
+        "state": "TASK_STATE_SUCCEEDED",
+        "submitted_at": {
+          "epoch_ms": "1794291001405"
+        },
+        "task_id": "/eczech/exp593-dna-ready-20261110-rno-n8-cp600-a2/train-dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1/4",
+        "worker_address": "",
+        "worker_id": ""
+      },
+      {
+        "attempts": [
+          {
+            "attempt_id": 0,
+            "attempt_uid": "5cde329710b859b2",
+            "error": "Coscheduled sibling /eczech/exp593-dna-ready-20261110-rno-n8-cp600-a2/train-dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1/0 bounced for atomic re-scheduling",
+            "exit_code": 0,
+            "finished_at": {
+              "epoch_ms": "1794291874083"
+            },
+            "is_worker_failure": false,
+            "node_name": "g830782",
+            "pod_name": "iris-eczech-exp593-dna-ready-202611-9b5513a1-0-5cde329710b859b2",
+            "pod_uid": "be46338b-e8cc-4a4c-8168-8ebbdebf85cf",
+            "started_at": {
+              "epoch_ms": "1794291787028"
+            },
+            "state": "TASK_STATE_COSCHED_FAILED",
+            "terminal_reason": "",
+            "worker_id": ""
+          },
+          {
+            "attempt_id": 1,
+            "attempt_uid": "9ec1fa9e1940ec04",
+            "error": "Coscheduled sibling /eczech/exp593-dna-ready-20261110-rno-n8-cp600-a2/train-dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1/0 bounced for atomic re-scheduling",
+            "exit_code": 0,
+            "finished_at": {
+              "epoch_ms": "1794292891141"
+            },
+            "is_worker_failure": false,
+            "node_name": "gb95eb0",
+            "pod_name": "iris-eczech-exp593-dna-ready-202611-9b5513a1-1-9ec1fa9e1940ec04",
+            "pod_uid": "37d240bb-8024-4c98-97f0-9ae40b82d664",
+            "started_at": {
+              "epoch_ms": "1794292847020"
+            },
+            "state": "TASK_STATE_COSCHED_FAILED",
+            "terminal_reason": "",
+            "worker_id": ""
+          },
+          {
+            "attempt_id": 2,
+            "attempt_uid": "c2a0a42872579640",
+            "error": "Coscheduled sibling /eczech/exp593-dna-ready-20261110-rno-n8-cp600-a2/train-dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1/0 bounced for atomic re-scheduling",
+            "exit_code": 0,
+            "finished_at": {
+              "epoch_ms": "1794293503235"
+            },
+            "is_worker_failure": false,
+            "node_name": "g779de0",
+            "pod_name": "iris-eczech-exp593-dna-ready-202611-9b5513a1-2-c2a0a42872579640",
+            "pod_uid": "a86b5c77-c356-4d39-9358-3389345b00b1",
+            "started_at": {
+              "epoch_ms": "1794293486325"
+            },
+            "state": "TASK_STATE_COSCHED_FAILED",
+            "terminal_reason": "",
+            "worker_id": ""
+          },
+          {
+            "attempt_id": 3,
+            "attempt_uid": "77f3446c86f3b874",
+            "error": "",
+            "exit_code": 0,
+            "finished_at": {
+              "epoch_ms": "1794315403756"
+            },
+            "is_worker_failure": false,
+            "node_name": "g830782",
+            "pod_name": "iris-eczech-exp593-dna-ready-202611-9b5513a1-3-77f3446c86f3b874",
+            "pod_uid": "0027d458-a9f7-4996-a6ca-cf02f543f23b",
+            "started_at": {
+              "epoch_ms": "1794293523929"
+            },
+            "state": "TASK_STATE_SUCCEEDED",
+            "terminal_reason": "",
+            "worker_id": ""
+          }
+        ],
+        "backend_id": "",
+        "cluster": "cw-rno2a",
+        "current_attempt_id": 3,
+        "error": "Coscheduled sibling /eczech/exp593-dna-ready-20261110-rno-n8-cp600-a2/train-dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1/0 bounced for atomic re-scheduling",
+        "exit_code": 0,
+        "finished_at": {
+          "epoch_ms": "1794315403756"
+        },
+        "started_at": {
+          "epoch_ms": "1794293523929"
+        },
+        "state": "TASK_STATE_SUCCEEDED",
+        "submitted_at": {
+          "epoch_ms": "1794291001405"
+        },
+        "task_id": "/eczech/exp593-dna-ready-20261110-rno-n8-cp600-a2/train-dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1/5",
+        "worker_address": "",
+        "worker_id": ""
+      },
+      {
+        "attempts": [
+          {
+            "attempt_id": 0,
+            "attempt_uid": "205214ed9aafcaca",
+            "error": "Coscheduled sibling /eczech/exp593-dna-ready-20261110-rno-n8-cp600-a2/train-dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1/0 bounced for atomic re-scheduling",
+            "exit_code": 0,
+            "finished_at": {
+              "epoch_ms": "1794291874083"
+            },
+            "is_worker_failure": false,
+            "node_name": "g8364ba",
+            "pod_name": "iris-eczech-exp593-dna-ready-202611-ba4c644b-0-205214ed9aafcaca",
+            "pod_uid": "b18490a8-ebad-4f6f-8a46-2d38db8dfd72",
+            "started_at": {
+              "epoch_ms": "1794291787028"
+            },
+            "state": "TASK_STATE_COSCHED_FAILED",
+            "terminal_reason": "",
+            "worker_id": ""
+          },
+          {
+            "attempt_id": 1,
+            "attempt_uid": "be3675f121e01f3b",
+            "error": "Coscheduled sibling /eczech/exp593-dna-ready-20261110-rno-n8-cp600-a2/train-dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1/0 bounced for atomic re-scheduling",
+            "exit_code": 0,
+            "finished_at": {
+              "epoch_ms": "1794292891141"
+            },
+            "is_worker_failure": false,
+            "node_name": "gb95f50",
+            "pod_name": "iris-eczech-exp593-dna-ready-202611-ba4c644b-1-be3675f121e01f3b",
+            "pod_uid": "bdc4fd47-2ae7-4b9e-b719-a31c5698bf6a",
+            "started_at": {
+              "epoch_ms": "1794292847020"
+            },
+            "state": "TASK_STATE_COSCHED_FAILED",
+            "terminal_reason": "",
+            "worker_id": ""
+          },
+          {
+            "attempt_id": 2,
+            "attempt_uid": "de317f1bf962cbae",
+            "error": "Coscheduled sibling /eczech/exp593-dna-ready-20261110-rno-n8-cp600-a2/train-dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1/0 bounced for atomic re-scheduling",
+            "exit_code": 0,
+            "finished_at": {
+              "epoch_ms": "1794293503235"
+            },
+            "is_worker_failure": false,
+            "node_name": "g8364ba",
+            "pod_name": "iris-eczech-exp593-dna-ready-202611-ba4c644b-2-de317f1bf962cbae",
+            "pod_uid": "a03f286c-9d84-47a5-b0ba-58f85ce8df8f",
+            "started_at": {
+              "epoch_ms": "1794293475125"
+            },
+            "state": "TASK_STATE_COSCHED_FAILED",
+            "terminal_reason": "",
+            "worker_id": ""
+          },
+          {
+            "attempt_id": 3,
+            "attempt_uid": "26cfe54d20fea2c6",
+            "error": "",
+            "exit_code": 0,
+            "finished_at": {
+              "epoch_ms": "1794315403756"
+            },
+            "is_worker_failure": false,
+            "node_name": "g8364ba",
+            "pod_name": "iris-eczech-exp593-dna-ready-202611-ba4c644b-3-26cfe54d20fea2c6",
+            "pod_uid": "a1a2ceba-9168-4377-91bd-65298f1c808e",
+            "started_at": {
+              "epoch_ms": "1794293519324"
+            },
+            "state": "TASK_STATE_SUCCEEDED",
+            "terminal_reason": "",
+            "worker_id": ""
+          }
+        ],
+        "backend_id": "",
+        "cluster": "cw-rno2a",
+        "current_attempt_id": 3,
+        "error": "Coscheduled sibling /eczech/exp593-dna-ready-20261110-rno-n8-cp600-a2/train-dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1/0 bounced for atomic re-scheduling",
+        "exit_code": 0,
+        "finished_at": {
+          "epoch_ms": "1794315403756"
+        },
+        "started_at": {
+          "epoch_ms": "1794293519324"
+        },
+        "state": "TASK_STATE_SUCCEEDED",
+        "submitted_at": {
+          "epoch_ms": "1794291001405"
+        },
+        "task_id": "/eczech/exp593-dna-ready-20261110-rno-n8-cp600-a2/train-dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1/6",
+        "worker_address": "",
+        "worker_id": ""
+      },
+      {
+        "attempts": [
+          {
+            "attempt_id": 0,
+            "attempt_uid": "6c774a501fdaba8d",
+            "error": "Coscheduled sibling /eczech/exp593-dna-ready-20261110-rno-n8-cp600-a2/train-dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1/0 bounced for atomic re-scheduling",
+            "exit_code": 0,
+            "finished_at": {
+              "epoch_ms": "1794291874083"
+            },
+            "is_worker_failure": false,
+            "node_name": "ga8afb0",
+            "pod_name": "iris-eczech-exp593-dna-ready-202611-8dca84f5-0-6c774a501fdaba8d",
+            "pod_uid": "cb6013ee-b615-4045-805f-c6702293b3a5",
+            "started_at": {
+              "epoch_ms": "1794291793197"
+            },
+            "state": "TASK_STATE_COSCHED_FAILED",
+            "terminal_reason": "",
+            "worker_id": ""
+          },
+          {
+            "attempt_id": 1,
+            "attempt_uid": "e48e6021908f1028",
+            "error": "Coscheduled sibling /eczech/exp593-dna-ready-20261110-rno-n8-cp600-a2/train-dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1/0 bounced for atomic re-scheduling",
+            "exit_code": 0,
+            "finished_at": {
+              "epoch_ms": "1794292891141"
+            },
+            "is_worker_failure": false,
+            "node_name": "gb977f0",
+            "pod_name": "iris-eczech-exp593-dna-ready-202611-8dca84f5-1-e48e6021908f1028",
+            "pod_uid": "4d421fb0-e29a-431c-a4a2-dc79025b8e5c",
+            "started_at": {
+              "epoch_ms": "1794292847020"
+            },
+            "state": "TASK_STATE_COSCHED_FAILED",
+            "terminal_reason": "",
+            "worker_id": ""
+          },
+          {
+            "attempt_id": 2,
+            "attempt_uid": "465a52c75ada0fcb",
+            "error": "Coscheduled sibling /eczech/exp593-dna-ready-20261110-rno-n8-cp600-a2/train-dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1/0 bounced for atomic re-scheduling",
+            "exit_code": 0,
+            "finished_at": {
+              "epoch_ms": "1794293503235"
+            },
+            "is_worker_failure": false,
+            "node_name": "g8368bc",
+            "pod_name": "iris-eczech-exp593-dna-ready-202611-8dca84f5-2-465a52c75ada0fcb",
+            "pod_uid": "262e6896-9b04-4d8b-9515-db52a07beca7",
+            "started_at": {
+              "epoch_ms": "1794293475125"
+            },
+            "state": "TASK_STATE_COSCHED_FAILED",
+            "terminal_reason": "",
+            "worker_id": ""
+          },
+          {
+            "attempt_id": 3,
+            "attempt_uid": "a1cd7441c74409cf",
+            "error": "",
+            "exit_code": 0,
+            "finished_at": {
+              "epoch_ms": "1794315403756"
+            },
+            "is_worker_failure": false,
+            "node_name": "g8368bc",
+            "pod_name": "iris-eczech-exp593-dna-ready-202611-8dca84f5-3-a1cd7441c74409cf",
+            "pod_uid": "7c2d7df8-ae69-4d9c-90d0-a216c387e10b",
+            "started_at": {
+              "epoch_ms": "1794293519324"
+            },
+            "state": "TASK_STATE_SUCCEEDED",
+            "terminal_reason": "",
+            "worker_id": ""
+          }
+        ],
+        "backend_id": "",
+        "cluster": "cw-rno2a",
+        "current_attempt_id": 3,
+        "error": "Coscheduled sibling /eczech/exp593-dna-ready-20261110-rno-n8-cp600-a2/train-dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1/0 bounced for atomic re-scheduling",
+        "exit_code": 0,
+        "finished_at": {
+          "epoch_ms": "1794315403756"
+        },
+        "started_at": {
+          "epoch_ms": "1794293519324"
+        },
+        "state": "TASK_STATE_SUCCEEDED",
+        "submitted_at": {
+          "epoch_ms": "1794291001405"
+        },
+        "task_id": "/eczech/exp593-dna-ready-20261110-rno-n8-cp600-a2/train-dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1/7",
+        "worker_address": "",
+        "worker_id": ""
+      }
+    ],
+    "gpus": 64,
+    "jobs": {
+      "/eczech/exp593-dna-ready-20261110-rno-n8-cp600-a2": {
+        "completed_count": 1,
+        "job_id": "/eczech/exp593-dna-ready-20261110-rno-n8-cp600-a2",
+        "resources": {
+          "cpu_millicores": 1000,
+          "device": {},
+          "disk_bytes": "8589934592",
+          "memory_bytes": "3221225472"
+        },
+        "state": "JOB_STATE_SUCCEEDED",
+        "task_count": 1,
+        "task_state_counts": {
+          "succeeded": 1
+        }
+      },
+      "/eczech/exp593-dna-ready-20261110-rno-n8-cp600-a2/train-dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1": {
+        "completed_count": 8,
+        "job_id": "/eczech/exp593-dna-ready-20261110-rno-n8-cp600-a2/train-dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1",
+        "resources": {
+          "cpu_millicores": 32000,
+          "device": {
+            "gpu": {
+              "count": 8,
+              "variant": "H100"
+            }
+          },
+          "disk_bytes": "966367641600",
+          "memory_bytes": "644245094400"
+        },
+        "state": "JOB_STATE_SUCCEEDED",
+        "task_count": 8,
+        "task_state_counts": {
+          "succeeded": 8
+        }
+      }
+    },
+    "native_final_checkpoint": {
+      "checkpoint": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/training/dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1/checkpoints/step-626011",
+      "clock": {
+        "dna_tokens": 214510513106,
+        "examples": 40064704,
+        "fim_examples": 20028652,
+        "input_tokens": 216158719114,
+        "loss_targets": 108722713297,
+        "rc_examples": 20033707,
+        "text_tokens": 1648206008,
+        "updates": 626011
+      },
+      "metadata_sha256": "ee340e80cec5113c94c902e8ad14cb3bb49a1b979f6b35871842b4354225107f",
+      "scientific_bindings_verified": true,
+      "temporary": false
+    },
+    "nodes": 8,
+    "observed_at": "2026-11-10T12:57:51.204010+00:00",
+    "old_child": "/eczech/exp593-dna-ready-20261110-rno-n8-cp600-a2/train-dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1",
+    "old_root": "/eczech/exp593-dna-ready-20261110-rno-n8-cp600-a2",
+    "process_exit_acceptance": true,
+    "production_trial": "exp593-augmented-d768-dna216b-lrm0p5-seed0-v1",
+    "scope": "Final W&B/native-clock and exact task/process-exit evidence only. Independent fixed/functional diagnostics, full128-array reads, sparse norm coverage, final publication and unused-preparation release remain separate gates. No cancellation or final-trial completion is performed here.",
+    "wandb": {
+      "final_checkpoint": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/training/dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1/checkpoints/step-626011",
+      "final_clock": {
+        "dna_tokens": 214510513106,
+        "examples": 40064704,
+        "fim_examples": 20028652,
+        "input_tokens": 216158719114,
+        "loss_targets": 108722713297,
+        "rc_examples": 20033707,
+        "text_tokens": 1648206008,
+        "updates": 626011
+      },
+      "input_token_overshoot": 19594,
+      "phase": "complete",
+      "run_progress": 1,
+      "state": "finished",
+      "summary_clock_encoding": "training/final_clock.<field> dotted keys"
+    }
+  },
+  "limitations": [
+    "All saved arrays were decoded and checked; no additional independent JAX restore or inference parity is claimed.",
+    "Norm coverage proves at least one finite twenty-scalar snapshot at each expected1000-update point; not all replay duplicates or unsampled gradients.",
+    "Frozen development diagnostics do not establish downstream benchmark gains; separate evaluation owns those results.",
+    "Conditions differ in initialization, prior DNA exposure and learning rates; this comparison does not isolate augmentation effects."
+  ],
+  "matches_text_quarter_1_full_clock": null,
+  "nominal_input_tokens": 216158699520,
+  "norm_count": 20,
+  "norm_coverage": {
+    "condition": "dna216b",
+    "covered_update_points": 626,
+    "expected_update_points": 626,
+    "invalid_returned_complete_rows": [],
+    "missing_updates": [],
+    "observed_at": "2026-11-10T12:57:26.218717+00:00",
+    "partial_returned_rows": 0,
+    "returned_rows": 637,
+    "rows": {
+      "bytes": 653691,
+      "path": "/home/exedev/repos/marin-dna-br/codex-issue-593-augmentation/scratch/exp593/norm-coverage-dna216b-final-20261110.rows.json",
+      "sha256": "81a90d29c1277fe8f8066f6a7caedce75568b3b4addb96c356d9bdfc1829c667"
+    },
+    "run_id": "dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1",
+    "scope": "At least one returned complete finite nonnegative snapshot of all twenty norms for every expected 1000-update point through the captured summary update. This does not exhaustively audit duplicate or replayed log rows, nor unsampled gradients.",
+    "summary_update_at_query_start": 626011,
+    "verified": true,
+    "verifier_sha256": "62b851d4d1f8935cc7b3b1e1355c44c09bae619613323231e698b14b40dc2780"
+  },
+  "norms_all_finite": true,
+  "routing_drops": {
+    "moe/dropped_assignments": 0,
+    "moe/receiver_dropped_assignments": 0,
+    "moe/sender_dropped_assignments": 0
+  },
+  "run_id": "dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1",
+  "runtime_source_commit": "ea5e3eeb71dac55fcbb9b3924f799ef4afe0b23c",
+  "storage_array_readback": {
+    "all_read_arrays_finite": true,
+    "decoded_bytes": 16716379160,
+    "jax_restore_performed": false,
+    "manifest_sha256": "e79ad55ce6da6d072a493260d0a86888521f76dde1475e35013936ea5f1f0aa2",
+    "metadata_sha256": "ee340e80cec5113c94c902e8ad14cb3bb49a1b979f6b35871842b4354225107f",
+    "observed_at": "2026-11-10T12:58:53.353672+00:00",
+    "read_arrays": 128,
+    "scope": "every_manifest_array",
+    "total_manifest_arrays": 128
+  },
+  "validation": {
+    "eval/disjoint_examples": 512,
+    "eval/examples": 512,
+    "eval/fim_base_accuracy": 0.5122674639331815,
+    "eval/fim_dna_exact_match": 0.16666666666666666,
+    "eval/fim_exact_match": 0.16666666666666666,
+    "eval/fim_examples": 1024,
+    "eval/fim_formatted_base_accuracy": 0.5116268033409264,
+    "eval/fim_formatted_dna_exact_match": 0.16666666666666666,
+    "eval/fim_formatted_exact_match": 0.16666666666666666,
+    "eval/fim_formatted_examples": 512,
+    "eval/fim_formatted_generated_examples": 18,
+    "eval/fim_formatted_loss": 1.0842065811157229,
+    "eval/fim_formatted_targets": 21072,
+    "eval/fim_gap_128_base_accuracy": 0.4984375,
+    "eval/fim_gap_128_dna_exact_match": 0,
+    "eval/fim_gap_128_exact_match": 0,
+    "eval/fim_gap_128_examples": 40,
+    "eval/fim_gap_128_generated_examples": 4,
+    "eval/fim_gap_128_loss": 1.1119499206542969,
+    "eval/fim_gap_128_targets": 5120,
+    "eval/fim_gap_16_base_accuracy": 0.49899193548387094,
+    "eval/fim_gap_16_dna_exact_match": 0,
+    "eval/fim_gap_16_exact_match": 0,
+    "eval/fim_gap_16_examples": 62,
+    "eval/fim_gap_16_generated_examples": 4,
+    "eval/fim_gap_16_loss": 1.1658122539520264,
+    "eval/fim_gap_16_targets": 992,
+    "eval/fim_gap_1_base_accuracy": 0.5333333333333333,
+    "eval/fim_gap_1_dna_exact_match": 0.5,
+    "eval/fim_gap_1_exact_match": 0.5,
+    "eval/fim_gap_1_examples": 240,
+    "eval/fim_gap_1_generated_examples": 4,
+    "eval/fim_gap_1_loss": 1.0857391357421875,
+    "eval/fim_gap_1_targets": 240,
+    "eval/fim_gap_256_base_accuracy": 0.5205829326923077,
+    "eval/fim_gap_256_dna_exact_match": 0,
+    "eval/fim_gap_256_exact_match": 0,
+    "eval/fim_gap_256_examples": 26,
+    "eval/fim_gap_256_generated_examples": 4,
+    "eval/fim_gap_256_loss": 1.0752887725830078,
+    "eval/fim_gap_256_targets": 6656,
+    "eval/fim_gap_2_base_accuracy": 0.5344202898550725,
+    "eval/fim_gap_2_dna_exact_match": 0.5,
+    "eval/fim_gap_2_exact_match": 0.5,
+    "eval/fim_gap_2_examples": 276,
+    "eval/fim_gap_2_generated_examples": 4,
+    "eval/fim_gap_2_loss": 1.0433906316757202,
+    "eval/fim_gap_2_targets": 552,
+    "eval/fim_gap_32_base_accuracy": 0.43914473684210525,
+    "eval/fim_gap_32_dna_exact_match": 0,
+    "eval/fim_gap_32_exact_match": 0,
+    "eval/fim_gap_32_examples": 38,
+    "eval/fim_gap_32_generated_examples": 4,
+    "eval/fim_gap_32_loss": 1.1864862442016602,
+    "eval/fim_gap_32_targets": 1216,
+    "eval/fim_gap_3_base_accuracy": 0.5282258064516129,
+    "eval/fim_gap_3_dna_exact_match": 0.5,
+    "eval/fim_gap_3_exact_match": 0.5,
+    "eval/fim_gap_3_examples": 248,
+    "eval/fim_gap_3_generated_examples": 4,
+    "eval/fim_gap_3_loss": 1.0823549032211304,
+    "eval/fim_gap_3_targets": 744,
+    "eval/fim_gap_512_base_accuracy": 0.5234375,
+    "eval/fim_gap_512_dna_exact_match": 0,
+    "eval/fim_gap_512_exact_match": 0,
+    "eval/fim_gap_512_examples": 46,
+    "eval/fim_gap_512_generated_examples": 4,
+    "eval/fim_gap_512_loss": 1.0670640468597412,
+    "eval/fim_gap_512_targets": 23552,
+    "eval/fim_gap_64_base_accuracy": 0.4554036458333333,
+    "eval/fim_gap_64_dna_exact_match": 0,
+    "eval/fim_gap_64_exact_match": 0,
+    "eval/fim_gap_64_examples": 48,
+    "eval/fim_gap_64_generated_examples": 4,
+    "eval/fim_gap_64_loss": 1.1764589548110962,
+    "eval/fim_gap_64_targets": 3072,
+    "eval/fim_generated_examples": 36,
+    "eval/fim_guided_base_accuracy": 0.5913978494623656,
+    "eval/fim_guided_dna_exact_match": 0,
+    "eval/fim_guided_exact_match": 0,
+    "eval/fim_guided_examples": 178,
+    "eval/fim_guided_generated_examples": 2,
+    "eval/fim_guided_loss": 0.8696750402450562,
+    "eval/fim_guided_targets": 372,
+    "eval/fim_long_base_accuracy": 0.5115494483845547,
+    "eval/fim_long_dna_exact_match": 0,
+    "eval/fim_long_exact_match": 0,
+    "eval/fim_long_examples": 260,
+    "eval/fim_long_generated_examples": 24,
+    "eval/fim_long_loss": 1.135989785194397,
+    "eval/fim_long_targets": 40608,
+    "eval/fim_loss": 1.0862642526626587,
+    "eval/fim_minimal_base_accuracy": 0.5129081245254365,
+    "eval/fim_minimal_dna_exact_match": 0.16666666666666666,
+    "eval/fim_minimal_exact_match": 0.16666666666666666,
+    "eval/fim_minimal_examples": 512,
+    "eval/fim_minimal_generated_examples": 18,
+    "eval/fim_minimal_loss": 1.0883219242095947,
+    "eval/fim_minimal_targets": 21072,
+    "eval/fim_random_base_accuracy": 0.5115627693191611,
+    "eval/fim_random_dna_exact_match": 0.17647058823529413,
+    "eval/fim_random_exact_match": 0.17647058823529413,
+    "eval/fim_random_examples": 846,
+    "eval/fim_random_generated_examples": 34,
+    "eval/fim_random_loss": 1.1318351030349731,
+    "eval/fim_random_targets": 41772,
+    "eval/fim_short_base_accuracy": 0.53125,
+    "eval/fim_short_dna_exact_match": 0.5,
+    "eval/fim_short_exact_match": 0.5,
+    "eval/fim_short_examples": 764,
+    "eval/fim_short_generated_examples": 12,
+    "eval/fim_short_loss": 1.069342017173767,
+    "eval/fim_short_targets": 1536,
+    "eval/fim_targets": 42144,
+    "eval/generation_seconds": 11.683154547936285,
+    "eval/loss": 1.11269054245397,
+    "eval/loss_disjoint": 1.09563946723938,
+    "eval/loss_nonsoftmasked": 1.1749413284726349,
+    "eval/loss_softmasked": 0.5161640482011467,
+    "eval/loss_weighted_10to1": 1.168137629344333,
+    "eval/nonsoftmasked_targets": 3797502,
+    "eval/seconds": 13.082638113992289,
+    "eval/softmasked_targets": 396290,
+    "eval/unknown_N_targets": 5286
+  },
+  "validation_source": "W&B summary at exact completed evaluation clock",
+  "verified_at": "2026-11-10T12:57:41.206300+00:00",
+  "wandb": {
+    "phase": "complete",
+    "run_progress": 1.0,
+    "state": "finished",
+    "url": "https://forge.coreweave.com/api/wandb/eric-czech/marin/runs/dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1"
+  }
+}

@@ -318,7 +318,7 @@
     "Storage verification decoded every saved array; no additional independent JAXrestore or inferenceparity claim.",
     "Sparse normcoverage verifies everyexpected1000-update point, not unrecorded gradients or all replayduplicates.",
     "These development diagnostics do not establish downstream benchmark gains; separate evaluation owns those results.",
-    "The separately approved DNA216B-initialized run remains incomplete, so the full experiment goal is active."
+    "Historical scope: this text-final verification preceded DNA216B completion; the paired-final-v1 report records current experiment completion."
   ],
   "matches_text_quarter_1_full_clock": null,
   "nominal_input_tokens": 216158699520,
