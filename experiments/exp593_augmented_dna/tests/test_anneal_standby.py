@@ -3,9 +3,11 @@
 import hashlib
 import io
 import json
+import sys
 
 import pytest
 
+from exp593_dna import anneal_standby
 from exp593_dna.anneal_standby import _verify_recovery_pointer
 from exp593_dna.anneal_train import TrainingConfig
 
@@ -49,3 +51,34 @@ def test_recovery_gate_accepts_newer_verified_pointer():
     store.objects[root + "/latest.json"] = json.dumps(pointer).encode()
     with pytest.raises(ValueError, match="does not bind"):
         _verify_recovery_pointer(store, config, gate)
+
+
+def test_qualified_181b_east_one_node_production_standby(monkeypatch):
+    dispatched = []
+    monkeypatch.setattr(
+        anneal_standby, "dispatch", lambda config, gate: dispatched.append(config)
+    )
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "anneal_standby",
+            "--trial",
+            "181b",
+            "--cluster",
+            "cw-us-east-02a",
+            "--nodes",
+            "1",
+            "--gate-uri",
+            f"{anneal_standby.OWNER}/annealing/operations/gates/test.json",
+            "--gate-nonce",
+            "x" * 24,
+        ],
+    )
+    anneal_standby.main()
+    assert len(dispatched) == 1
+    assert (dispatched[0].trial, dispatched[0].cluster, dispatched[0].nodes) == (
+        "181b",
+        "cw-us-east-02a",
+        1,
+    )
