@@ -141,7 +141,7 @@ def dispatch(config: TrainingConfig, gate: Gate) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--trial", choices=("181b",), required=True)
+    parser.add_argument("--trial", choices=("181b", "364b"), required=True)
     parser.add_argument("--cluster", choices=("cw-rno2a", "cw-us-east-02a"), required=True)
     parser.add_argument("--nodes", type=int, choices=(1, 8), required=True)
     parser.add_argument("--gate-uri", required=True)
@@ -157,7 +157,7 @@ def main() -> None:
         run_id=args.run_id,
     )
     if config.validation_updates is None and (config.nodes != 8 or config.cluster != "cw-rno2a"):
-        raise ValueError("Only the qualified Reno eight-node 181b production standby is allowed")
+        raise ValueError("Production standby requires a qualified Reno eight-node placement")
     dispatch(config, Gate(args.gate_uri, args.gate_nonce))
 
 
