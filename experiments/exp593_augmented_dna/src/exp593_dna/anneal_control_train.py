@@ -509,7 +509,7 @@ def _run(config: TrainingConfig) -> None:
                 source,
                 mesh,
                 trial,
-                stage_tokens=trial.ramp_tokens,
+                stage_tokens=c.stage.input_tokens,
                 stage_examples=c.stage.examples,
             )
 
