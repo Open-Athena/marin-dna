@@ -8,6 +8,7 @@ the unchanged anneal_train.run implementation and stable trial identity.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import time
@@ -45,6 +46,48 @@ class Gate:
             raise ValueError("Standby gate path or nonce is invalid")
 
 
+def _verify_recovery_pointer(client, config: TrainingConfig, payload: dict) -> None:
+    """Accept the released checkpoint or a later checkpoint from this run.
+
+    Iris may restart this same job after preemption. The original gate remains
+    immutable while the training pointer advances (and old checkpoints expire).
+    """
+    root = config.checkpoint_root.rstrip("/")
+
+    def step(uri: str) -> int:
+        prefix = root + "/step-"
+        if not uri.startswith(prefix) or not uri[len(prefix) :].isdigit():
+            raise ValueError("Standby recovery checkpoint escaped its run namespace")
+        return int(uri[len(prefix) :])
+
+    released_step = step(payload["checkpoint"])
+    pointer_uri = urlparse(root + "/latest.json")
+    pointer = json.loads(
+        client.get_object(Bucket=pointer_uri.netloc, Key=pointer_uri.path.lstrip("/"))[
+            "Body"
+        ].read()
+    )
+    current_step = step(pointer["checkpoint"])
+    if current_step < released_step or (
+        current_step == released_step
+        and pointer["metadata_sha256"] != payload["metadata_sha256"]
+    ):
+        raise ValueError(
+            "Recovery pointer precedes or contradicts the released checkpoint"
+        )
+    metadata_uri = urlparse(pointer["checkpoint"] + "/metadata.json")
+    metadata_bytes = client.get_object(
+        Bucket=metadata_uri.netloc, Key=metadata_uri.path.lstrip("/")
+    )["Body"].read()
+    metadata = json.loads(metadata_bytes)
+    if not (
+        hashlib.sha256(metadata_bytes).hexdigest() == pointer["metadata_sha256"]
+        and metadata["step"] == current_step
+        and metadata["exp593_anneal_clock"] == pointer["clock"]
+    ):
+        raise ValueError("Recovery pointer does not bind its checkpoint metadata")
+
+
 def wait_for_gate(config: TrainingConfig, gate: Gate) -> dict:
     client = coreweave_client()
     parsed = urlparse(gate.uri)
@@ -78,19 +121,7 @@ def wait_for_gate(config: TrainingConfig, gate: Gate) -> dict:
                     raise ValueError(
                         "Production standby gate lacks a writer fence or checkpoint"
                     )
-                pointer_uri = urlparse(config.checkpoint_root + "/latest.json")
-                pointer = json.loads(
-                    client.get_object(
-                        Bucket=pointer_uri.netloc, Key=pointer_uri.path.lstrip("/")
-                    )["Body"].read()
-                )
-                if (
-                    pointer["checkpoint"] != payload["checkpoint"]
-                    or pointer["metadata_sha256"] != payload["metadata_sha256"]
-                ):
-                    raise ValueError(
-                        "Released checkpoint differs from the recovery pointer"
-                    )
+                _verify_recovery_pointer(client, config, payload)
             elif payload.get("bounded_canary") is not True:
                 raise ValueError("Validation standby gate lacks its canary marker")
             return payload
