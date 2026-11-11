@@ -82,7 +82,8 @@ def test_sequence_integrity_and_loss_contracts(kind, raw, encoder):
             target_mask.extend([s.score] * n)
         assert np.array_equal(e.loss_weights[:-1] > 0, np.asarray(target_mask[1:]))
         assert e.loss_weights[-1] == 0
-        assert np.isclose(e.loss_weights.sum(), 1)
+        assert e.loss_weights.sum() == e.scored_tokens
+        assert np.all(e.loss_weights[e.loss_weights > 0] == 1)
         assert 2048 <= len(e.token_ids) <= e.bucket <= 8192
         assert len(e.token_ids) / e.bucket >= 0.875
     assert rc_states == {True, False}
@@ -110,7 +111,10 @@ def test_one_window_per_row_and_batch_buckets(raw, encoder):
         assert len({e.bucket for e in examples}) == 1
         buckets.add(examples[0].bucket)
         b = collate(examples)
-        assert np.allclose(b["loss_weights"].sum(axis=1), 1)
+        assert np.array_equal(
+            b["loss_weights"].sum(axis=1),
+            np.asarray([e.scored_tokens for e in examples]),
+        )
         assert np.all(b["loss_weights"][b["segment_ids"] == -1] == 0)
         assert set(np.unique(b["segment_ids"])) <= {-1, 0}
         assert np.array_equal((b["segment_ids"] == 0).sum(axis=1), b["lengths"])

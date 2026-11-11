@@ -74,7 +74,8 @@ def audit(prep: Path, annotations: Path, count: int) -> dict[str, Any]:
                 length_counts[str(a["bucket"])] += 1
                 inputs += len(e.token_ids)
                 pads += e.bucket
-                assert np.isclose(e.loss_weights.sum(), 1)
+                assert int(e.loss_weights.sum()) == e.scored_tokens
+                assert np.all(e.loss_weights[e.loss_weights > 0] == 1)
                 assert not a["metadata_fields"] and a["case"] == "unmasked_lower"
                 assert all(
                     s.text == s.text.lower() for s in e.spans if s.role != "text"
@@ -97,7 +98,11 @@ def audit(prep: Path, annotations: Path, count: int) -> dict[str, Any]:
                 "examples": count,
                 "counts": dict(counts),
                 "target_counts": dict(target_counts),
-                "fim_example_and_objective_fraction": counts["fim"] / count,
+                "fim_example_fraction": counts["fim"] / count,
+                "fim_scored_target_fraction": (
+                    target_counts["short_fim"] + target_counts["long_fim"]
+                )
+                / max(sum(target_counts.values()), 1),
                 "guided_fraction_of_fim": counts["guided"] / max(counts["fim"], 1),
                 "input_tokens": inputs,
                 "padding_fraction": 1 - inputs / pads,

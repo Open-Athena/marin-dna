@@ -30,10 +30,13 @@ from exp586_moe.perf5_optimizer import (
 from exp586_moe.schedule import optimizer_config, set_token_learning_rates
 from exp586_moe.state import fresh_state, state_all_finite, state_max_abs_error
 from exp586_moe.tracking import wandb_history_offset
-from exp586_moe.train import primary_json
+from exp586_moe.train import primary_json, theoretical_flops
 from experiments.grug.dispatch import _forwarded_env_vars
 from experiments.grug.moe_hero_ep.model import Transformer
-from experiments.grug.moe_hero_ep.train import _apply_hero_ep_runtime_defaults
+from experiments.grug.moe_hero_ep.train import (
+    _apply_hero_ep_runtime_defaults,
+    _compute_flops,
+)
 from fray.cluster import ResourceConfig
 from fray.current_client import current_client
 from fray.types import Entrypoint, JobRequest, create_environment
@@ -57,7 +60,12 @@ from exp593_dna.anneal import (
 from exp593_dna.anneal_data import GuidedAugmenter, GuidedSource
 from exp593_dna.anneal_evaluate import CompactEvaluator
 from exp593_dna.anneal_state import AnnealClock
-from exp593_dna.anneal_tasks import TaskEvaluator, fetch_panels, panel_binding
+from exp593_dna.anneal_tasks import (
+    TaskEvaluator,
+    compact_task_metrics,
+    fetch_panels,
+    panel_binding,
+)
 from exp593_dna.anneal_tokenizer import verify_source_tokenizer
 from exp593_dna.annotations import load_annotations
 from exp593_dna.corpus import open_corpus
@@ -75,6 +83,48 @@ from exp593_dna.train import (
 from exp593_dna.train_step import make_train_step
 
 LOGGER = logging.getLogger(__name__)
+
+_MOE_CHARTS = {
+    "moe/drop_fraction",
+    "moe/sender_drop_fraction",
+    "moe/receiver_drop_fraction",
+    "moe/skipped_padding_fraction",
+    "moe/valid_assignments",
+}
+
+
+def compact_training_metrics(values: dict[str, float | int]) -> dict[str, float | int]:
+    """Keep aggregate optimization/MoE charts after all raw invariants are checked."""
+    active = [
+        v
+        for k, v in values.items()
+        if k.startswith("train/router/layer_") and k.endswith("/active_experts")
+    ]
+    imbalance = [
+        v
+        for k, v in values.items()
+        if k.startswith("train/router/layer_") and k.endswith("/max_to_mean_load")
+    ]
+    if len(active) != 8 or len(imbalance) != 8:
+        raise ValueError("Expected routing diagnostics from every MoE layer")
+    result = {
+        k: v
+        for k, v in values.items()
+        if not k.startswith("train/router/layer_")
+        and (not k.startswith("moe/") or k in _MOE_CHARTS)
+    }
+    result["train/router/active_experts_min"] = min(active)
+    result["train/router/max_to_mean_load_max"] = max(imbalance)
+    return result
+
+
+def species_counts(mixture: dict[str, int]) -> dict[str, int]:
+    """One W&B summary map, rather than per-species step-history charts."""
+    return {
+        key.removeprefix("species/"): int(value)
+        for key, value in sorted(mixture.items())
+        if key.startswith("species/")
+    }
 
 
 @dataclass(frozen=True)
@@ -162,7 +212,7 @@ def bindings(
     return json.loads(
         canonical_json(
             {
-                "protocol": "exp593-annotation-only-fim-annealing-v1",
+                "protocol": "exp593-annotation-only-fim-annealing-equalbase-v2",
                 "run_id": config.identity,
                 "trial": asdict(config.recipe),
                 "model": asdict(d768_config("pretrained")),
@@ -224,13 +274,30 @@ def _run(config: TrainingConfig) -> None:
         "H100" in d.device_kind for d in jax.devices()
     ):
         raise ValueError("Annealing did not receive its requested H100 gang")
+    device_kind = jax.devices()[0].device_kind
+    peak_per_device, peak_total = theoretical_flops(device_kind, jax.device_count())
+    flops_per_example = {
+        bucket: _compute_flops(
+            model_config=replace(d768_config("pretrained"), max_seq_len=bucket)
+        )[0]
+        for bucket in (2048, 4096, 6144, 8192)
+    }
     if config.validation_updates is not None and jax.process_index() == 0:
         # Bounded placement checks expose Python wait locations when numerical
         # progress stops. Only the global primary dumps; production stays quiet.
         faulthandler.dump_traceback_later(120, repeat=True)
     tracker.log_configuration(config)
     log_step = wandb_history_offset()
-    tracker.log_summary({"training/phase": "loading_inputs"})
+    tracker.log_summary(
+        {
+            "training/phase": "loading_inputs",
+            "throughput/device_kind": device_kind,
+            "throughput/theoretical_flops_per_device": peak_per_device,
+            "throughput/theoretical_flops": peak_total,
+            "throughput/flops_per_example_by_bucket": flops_per_example,
+            "throughput/mfu_method": "exp586_analytic_padded_bucket_flops_over_H100_BF16_peak",
+        }
+    )
     inputs = PreparedInputs.open(Path("/tmp/exp593-inputs"))
     encoder = load_encoder()
     scientific = bindings(config, inputs, encoder.digest)
@@ -345,7 +412,20 @@ def _run(config: TrainingConfig) -> None:
             values = evaluator.evaluate(state)
             if include_tasks:
                 tracker.log_summary({"training/phase": "evaluating_tasks"})
-                values.update(tasks.evaluate(state))
+                task_details = tasks.evaluate(state)
+                values.update(
+                    compact_task_metrics(task_details, tasks.panels, pilot=tasks.pilot)
+                )
+                tracker.log_summary(
+                    {
+                        "training/last_task_panel_scores_json": json.dumps(
+                            task_details, sort_keys=True
+                        ),
+                        f"training/task_panel_at_{clock.stage.input_tokens}_json": json.dumps(
+                            task_details, sort_keys=True
+                        ),
+                    }
+                )
             log(values)
             tracker.log_summary(
                 {"training/last_eval_input_tokens": clock.stage.input_tokens, **values}
@@ -374,6 +454,7 @@ def _run(config: TrainingConfig) -> None:
             values = {
                 "training/latest_checkpoint": path,
                 "training/latest_checkpoint_metadata_sha256": digest,
+                "data_mix/species_examples": species_counts(clock.mixture),
             }
             if permanent:
                 values["training/latest_permanent_checkpoint"] = path
@@ -468,9 +549,14 @@ def _run(config: TrainingConfig) -> None:
                 compiled.add(batch.bucket)
                 previous = clock
                 clock = next_clock
-                values = metric_values(metrics, norms, batch, collect_norms=norms_due)
+                values = compact_training_metrics(
+                    metric_values(metrics, norms, batch, collect_norms=norms_due)
+                )
                 elapsed = time.monotonic() - started
                 examples, fim = clock.stage.examples, clock.stage.fim_examples
+                achieved_flops_per_second = (
+                    flops_per_example[batch.bucket] * 64 / elapsed
+                )
                 values.update(
                     {
                         "run_progress": min(
@@ -505,7 +591,6 @@ def _run(config: TrainingConfig) -> None:
                         else trial.fim_probability(previous.stage.input_tokens),
                         "curriculum/batch_fim_fraction": batch.counts["fim_examples"]
                         / 64,
-                        "curriculum/fim_objective_mass_fraction": fim / examples,
                         "curriculum/fim_supervised_target_fraction": clock.mixture.get(
                             "fim_targets", 0
                         )
@@ -517,15 +602,32 @@ def _run(config: TrainingConfig) -> None:
                             clock.stage.input_tokens - previous.stage.input_tokens
                         )
                         / elapsed,
-                        **{
-                            f"augmentation/{k}_examples": v
-                            for k, v in batch.mixture.items()
-                        },
-                        **{
-                            f"data_mix/{k}_fraction": v / examples
-                            for k, v in clock.mixture.items()
-                            if k != "fim_targets"
-                        },
+                        "throughput/gflops_per_second": achieved_flops_per_second / 1e9,
+                        "throughput/mfu": achieved_flops_per_second / peak_total * 100,
+                        "throughput/total_gflops": sum(
+                            flops_per_example[b] * clock.mixture.get(f"bucket/{b}", 0)
+                            for b in flops_per_example
+                        )
+                        / 1e9,
+                        "data_mix/short_fim_examples": clock.mixture.get(
+                            "short_fim", 0
+                        ),
+                        "data_mix/long_fim_examples": clock.mixture.get("long_fim", 0),
+                        "data_mix/nearby_fim_examples": clock.mixture.get("nearby", 0),
+                        "data_mix/right_flank_first_examples": clock.mixture.get(
+                            "right_flank_first", 0
+                        ),
+                        "data_mix/fim_scored_targets": clock.mixture.get(
+                            "fim_targets", 0
+                        ),
+                        "data_mix/splice_landmark_examples": sum(
+                            clock.mixture.get(f"landmark/{kind}", 0)
+                            for kind in ("splice_acceptor", "splice_donor")
+                        ),
+                        "data_mix/translation_landmark_examples": sum(
+                            clock.mixture.get(f"landmark/{kind}", 0)
+                            for kind in ("translation_start", "translation_stop")
+                        ),
                     }
                 )
                 if first_compile:

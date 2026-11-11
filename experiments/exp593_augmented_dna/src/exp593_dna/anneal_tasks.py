@@ -422,3 +422,31 @@ class TaskEvaluator:
         if not all(np.isfinite(v) for v in metrics.values()):
             raise ValueError("Nonfinite benchmark metric")
         return metrics
+
+
+def compact_task_metrics(
+    details: dict[str, float | int], panels: dict[str, Any], *, pilot: bool
+) -> dict[str, float | int]:
+    """Keep family-level W&B curves while preserving exact task scores as JSON."""
+    prefix = "validation/tasks" if pilot else "eval/tasks"
+    grouped: dict[tuple[str, str, str], list[float]] = {}
+    for task, panel in panels.items():
+        family = panel["spec"]["kind"]
+        for view in ("raw", "fim"):
+            stem = f"{prefix}/{task}/{view}_"
+            scores = [
+                (key.removeprefix(stem), value)
+                for key, value in details.items()
+                if key.startswith(stem)
+            ]
+            if len(scores) != 1:
+                raise ValueError(f"Expected one score for {task}/{view}")
+            metric, value = scores[0]
+            grouped.setdefault((family, view, metric), []).append(float(value))
+    result: dict[str, float | int] = {
+        f"{prefix}/{family}/{view}_{metric}_mean": float(np.mean(values))
+        for (family, view, metric), values in grouped.items()
+    }
+    result[f"{prefix}/task_count"] = len(panels)
+    result[f"{prefix}/seconds"] = details[f"{prefix}/seconds"]
+    return result

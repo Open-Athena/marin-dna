@@ -81,7 +81,7 @@ def test_input_download_rejects_corruption_and_reuses_only_verified_cache(tmp_pa
     assert not path.exists() and not path.with_suffix(".json.part").exists()
 
 
-def test_distributed_batch_counts_actual_input_and_normalized_fim_loss():
+def test_distributed_batch_counts_actual_input_and_unit_scored_base_loss():
     import jax
     import numpy as np
     from exp586_moe.data_parallel import replicated_mesh
@@ -129,7 +129,9 @@ def test_distributed_batch_counts_actual_input_and_normalized_fim_loss():
             == result.mixture["short_fim"] + result.mixture["long_fim"]
         )
         assert result.model_batch.tokens.shape == (64, 2048)
-        assert np.allclose(np.asarray(result.model_batch.loss_weight).sum(axis=1), 1)
+        weights = np.asarray(result.model_batch.loss_weight)
+        assert np.array_equal(weights, (weights > 0).astype(np.float32))
+        assert int(weights.sum()) == result.counts["loss_targets"]
         clock = TokenClock().advance(**result.counts)
         assert clock.input_tokens == 64 * 2048 and clock.updates == 1
         assert 0 < clock.loss_targets < clock.input_tokens - 64

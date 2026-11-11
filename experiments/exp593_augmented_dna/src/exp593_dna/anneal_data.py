@@ -41,7 +41,7 @@ class Presentation:
 
 
 class GuidedAugmenter:
-    """Retain example-normalized objectives, RC, lengths and structural diversity."""
+    """Use equal scored-base weights with RC, lengths and structural diversity."""
 
     def __init__(self, encoder: Encoder, *, seed: int = 472) -> None:
         self.encoder = encoder
@@ -195,8 +195,9 @@ class GuidedAugmenter:
             for s in spans
         )
         tokens, weights = self.encoder.encode(spans)
-        if len(tokens) != p.length or not np.isclose(weights.sum(), 1):
-            raise ValueError("Annealing input length or objective mass differs")
+        expected_targets = p.gap if p.fim else dna_length - 1
+        if len(tokens) != p.length or int(weights.sum()) != expected_targets:
+            raise ValueError("Annealing input length or scored target count differs")
         attributes = {
             "occurrence": p.occurrence,
             "raw_row": raw.row,

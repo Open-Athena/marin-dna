@@ -56,7 +56,7 @@ def test_paired_presentations_share_exact_dna_crop_gap_case_and_orientation(enco
         ).casefold() == native[start : start + length].casefold()
         for member in (minimal, formatted):
             assert len(member.token_ids) <= member.bucket
-            assert np.isclose(member.loss_weights.sum(), 1)
+            assert member.loss_weights.sum() == member.scored_tokens
             prompt, target = prompt_and_target(member)
             assert len(prompt) + len(target) == len(member.token_ids)
             assert len(target) == member.attributes["gap_length"]

@@ -19,7 +19,7 @@ def loss_views(
 
     N stays in the original loss and uppercase N is in the unmasked partition.
     Uppercase means unmasked, not independently verified nonrepetitive biology.
-    Inputs are token losses, before any sample-normalized training loss weights.
+    Inputs are per-token losses on the frozen historical validation examples.
     """
     if not sequences or any(len(s) != 8192 for s in sequences):
         raise ValueError("Validation requires original 8192-base windows")

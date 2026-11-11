@@ -24,10 +24,6 @@ class NormPolicy:
         """Gradients are available only after a positive training update."""
         return update > 0 and update % self.every_updates == 0
 
-    @property
-    def layers(self) -> tuple[int, ...]:
-        return tuple(sorted({0, self.num_layers // 2, self.num_layers - 1}))
-
 
 def named_model_arrays(model: Any, tree_util: Any) -> dict[str, Any]:
     """Flatten a Grug/Equinox tree using jax.tree_util, without host transfers."""
@@ -53,7 +49,7 @@ def collect_norms(
     clipping/optimizer transforms. For JAX pass xp=jax.numpy inside the compiled
     diagnostic branch. The returned scalars can join the ordinary W&B log dict.
     No array is copied to the host here. Overall norms include every float leaf
-    once; selected expert norms cover the whole bank, not individual experts.
+    once; selected projection norms cover all layers and the whole expert bank.
     """
     policy = policy or NormPolicy()
     if not parameters or parameters.keys() != gradients.keys():
@@ -80,10 +76,9 @@ def collect_norms(
                         raise ValueError(
                             "Expected stacked layer axis for selected projection"
                         )
-                    for layer in policy.layers:
-                        output[f"norms/{category}/layer_{layer}/{label}"] = xp.sqrt(
-                            xp.sum(xp.square(values[layer]), dtype=xp.float32)
-                        )
+                    output[f"norms/{category}/{label}"] = xp.sqrt(
+                        xp.sum(xp.square(values), dtype=xp.float32)
+                    )
         output[f"norms/{category}/overall"] = xp.sqrt(xp.sum(xp.stack(totals)))
     return output
 

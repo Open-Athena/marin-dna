@@ -5,6 +5,7 @@ from tokenizers import Tokenizer, models, pre_tokenizers
 from exp593_dna.anneal_tasks import (
     af_alleles,
     combine_strands,
+    compact_task_metrics,
     paired_suffix_llr,
     sv_queries,
     sv_scores,
@@ -12,6 +13,27 @@ from exp593_dna.anneal_tasks import (
     true_probabilities,
 )
 from exp593_dna.pipeline import ALPHABET, Encoder, reverse_complement
+
+
+def test_task_panel_curves_aggregate_families_without_losing_task_detail():
+    panels = {
+        "maize_donor": {"spec": {"kind": "motif"}},
+        "tomato_donor": {"spec": {"kind": "motif"}},
+    }
+    details = {
+        "eval/tasks/maize_donor/raw_accuracy": 0.3,
+        "eval/tasks/maize_donor/fim_accuracy": 0.5,
+        "eval/tasks/tomato_donor/raw_accuracy": 0.7,
+        "eval/tasks/tomato_donor/fim_accuracy": 0.9,
+        "eval/tasks/seconds": 12.0,
+    }
+    result = compact_task_metrics(details, panels, pilot=False)
+    assert result == {
+        "eval/tasks/motif/raw_accuracy_mean": pytest.approx(0.5),
+        "eval/tasks/motif/fim_accuracy_mean": pytest.approx(0.7),
+        "eval/tasks/task_count": 2,
+        "eval/tasks/seconds": 12.0,
+    }
 
 
 @pytest.fixture
@@ -37,7 +59,8 @@ def test_target_shift_and_no_answer_in_fim_flanks(encoder, fim, positions):
         assert parts["middle"] == expected
         assert parts["left"].endswith(sequence[: positions[0]].lower()[-128:])
         assert parts["right"].startswith(sequence[positions[-1] + 1 :].lower()[:128])
-        assert example.loss_weights[query - 1].sum() == pytest.approx(1)
+        assert example.loss_weights[query - 1].sum() == len(positions)
+        assert np.all(example.loss_weights[query - 1] == 1)
     else:
         assert query.tolist() == positions
 

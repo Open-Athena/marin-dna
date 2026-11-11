@@ -50,7 +50,7 @@ def test_blind_junction_and_control_share_dna_and_obey_rc_coordinates():
                 )
                 assert len(parts["left"]) >= 128 and len(parts["right"]) >= 128
                 assert len(item.token_ids) <= 8192
-                assert np.isclose(item.loss_weights.sum(), 1)
+                assert item.loss_weights.sum() == item.scored_tokens
                 assert len(prompt_and_target(item)[1]) == 2
                 text = "".join(s.text for s in item.spans if s.role == "text")
                 assert (

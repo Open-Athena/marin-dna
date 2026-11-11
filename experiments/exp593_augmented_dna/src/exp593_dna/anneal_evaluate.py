@@ -16,6 +16,16 @@ from exp593_dna.pipeline import Encoder, Example, Span
 from exp593_dna.validation import loss_views
 
 
+def scored_base_loss(
+    readouts: list[tuple[np.ndarray, np.ndarray]],
+) -> float:
+    """Use the same per-target averaging convention as equal-base training."""
+    count = sum(len(nll) for nll, _ in readouts)
+    if count == 0:
+        raise ValueError("FIM loss needs scored targets")
+    return float(sum(float(nll.sum(dtype=np.float64)) for nll, _ in readouts) / count)
+
+
 def lowercase_minimal(
     example: Example, encoder: Encoder, *, suffix: bool = True
 ) -> Example:
@@ -98,6 +108,7 @@ class CompactEvaluator(DevelopmentEvaluator):
             raise ValueError("Historical validation membership/targets changed")
         self.progress("compact_fim", 0, len(self.examples))
         teacher = self.readout(state, self.examples)
+        result["eval/fim_loss"] = scored_base_loss(teacher)
         result["eval/fim_base_accuracy"] = float(
             np.mean(
                 [

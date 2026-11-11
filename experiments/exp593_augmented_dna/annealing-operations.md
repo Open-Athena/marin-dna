@@ -12,6 +12,8 @@ These runs expand issue #593 and the existing permanent MarinDNA PR #594; keep t
 The user requires explicit approval before posting or editing any GitHub comment.
 Keep operational notes local and report progress in chat; do not restore comments the user deletes.
 The user's November 10 authorization permits implementation, bounded validation, and all three full training runs with new personal W&B identities.
+On November 11 the user superseded the three v1 jobs with an equal-scored-base restart: each exact old root and child was cancelled and physically fenced, and its latest checkpoint pointer preserved in the operations ledger. The v1 ledger trials are abandoned, not resumed. The replacement v2 trials restore the same original 1T full native source states and retain the fixed source-specific horizons and LR/FIM schedules; their checkpoint and personal W&B identities contain `equalbase-seed0-v2`.
+The new encoder gives every scored causal or FIM base unit weight. The weighted-mean training reduction divides by all scored targets in the batch; it does not normalize within examples. New monitoring includes held-out token-weighted `eval/fim_loss` and exp586-style analytic padded-bucket MFU. W&B chart series are aggregate; cumulative species counts and individual zero-shot task scores live in summary records.
 Schedules are fixed; evaluation results must never trigger early stopping, LR changes, horizon changes, or enrichment of the training sampler.
 Do not initialize from weights alone, reset optimizer/global counters, or infer repeat labels from uniformly lowercase inputs.
 All FIM samples are annotation-guided original training rows; raw causal samples retain the original all-species stream.
@@ -46,13 +48,13 @@ Targets marked eligible below permit bounded validation only until the source-sp
 
 | Cluster | GPU | Nodes | GPUs | State | Scope |
 | --- | --- | ---: | ---: | --- | --- |
-| cw-rno2a | H100 | 1 | 8 | eligible | Production for the qualified 181b and 545b recipes; bounded validation for other sources |
+| cw-rno2a | H100 | 1 | 8 | eligible | Bounded v2 validation; production requires a v2 source-specific full-loop result |
 | cw-rno2a | H100 | 2 | 16 | unvalidated | — |
-| cw-rno2a | H100 | 4 | 32 | eligible | Production for the qualified 181b and 545b recipes; bounded validation for other sources |
+| cw-rno2a | H100 | 4 | 32 | eligible | Bounded v2 validation; production requires a v2 source-specific full-loop result |
 | cw-rno2a | H100 | 8 | 64 | unqualified | New bounded diagnostic basis required; no production placement |
-| cw-us-east-02a | H100 | 1 | 8 | eligible | Production for the qualified 181b and 364b recipes; bounded validation for other sources |
+| cw-us-east-02a | H100 | 1 | 8 | eligible | Bounded v2 validation; production requires a v2 source-specific full-loop result |
 | cw-us-east-02a | H100 | 2 | 16 | unvalidated | — |
-| cw-us-east-02a | H100 | 4 | 32 | eligible | Production for the qualified 364b recipe; bounded validation for other sources |
+| cw-us-east-02a | H100 | 4 | 32 | eligible | Bounded v2 validation; production requires a v2 source-specific full-loop result |
 | cw-us-east-02a | H100 | 8 | 64 | eligible | Bounded validation only; static H100 fit established, distributed runtime remains unqualified |
 
 ## Operating policy

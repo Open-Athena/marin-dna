@@ -39,9 +39,8 @@ def make_train_step(
     }
     empty_norms.update(
         {
-            f"norms/{category}/layer_{layer}/{projection}": jnp.float32(0)
+            f"norms/{category}/{projection}": jnp.float32(0)
             for category in ("param", "grad")
-            for layer in policy.layers
             for projection in ("attention_q", "router", "expert_down")
         }
     )

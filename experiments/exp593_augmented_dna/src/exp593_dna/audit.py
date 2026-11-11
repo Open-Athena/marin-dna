@@ -198,8 +198,10 @@ def run_audit(
         input_by_kind[kind] += len(e.token_ids)
         targets_by_kind[kind] += e.scored_tokens
         lengths.append(len(e.token_ids))
-        if not np.isclose(e.loss_weights.sum(dtype=np.float64), 1, atol=1e-6):
-            raise AssertionError("Per-example objective weights must sum to one")
+        if int(e.loss_weights.sum(dtype=np.float64)) != e.scored_tokens or not np.all(
+            e.loss_weights[e.loss_weights > 0] == 1
+        ):
+            raise AssertionError("Scored target positions must have unit weight")
         signatures.add(
             hashlib.sha256(
                 "".join(
@@ -281,7 +283,6 @@ def run_audit(
                 "observed": histograms["kind"][k] / count,
                 "input_token_fraction": input_by_kind[k] / input_tokens,
                 "scored_target_fraction": targets_by_kind[k] / targets,
-                "normalized_objective_mass_fraction": histograms["kind"][k] / count,
             }
             for k in KINDS
         },

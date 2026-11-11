@@ -1,7 +1,6 @@
 import hashlib
 from dataclasses import replace
 
-import numpy as np
 import pytest
 from tokenizers import Tokenizer, models, pre_tokenizers
 
@@ -99,7 +98,7 @@ def test_guided_geometry_and_objective(encoder, source, rc, gap):
         )
         assert len(dna["left"]) >= 128 and len(dna["right"]) >= 128
         assert a["annotation_guided"] and not a["metadata_fields"]
-        assert np.isclose(example.loss_weights.sum(), 1)
+        assert example.loss_weights.sum() == example.scored_tokens
         assert example.scored_tokens == gap
         assert all(s.text == s.text.lower() for s in example.spans if s.role != "text")
         _, target = prompt_and_target(example)

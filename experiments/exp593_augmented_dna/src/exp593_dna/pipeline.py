@@ -113,7 +113,7 @@ class Span:
 
 @dataclass(frozen=True)
 class Example:
-    """Loss weights at position i supervise token i+1, normalized per example."""
+    """Unit loss weights at position i supervise token i+1."""
 
     token_ids: np.ndarray
     loss_weights: np.ndarray
@@ -187,7 +187,7 @@ class Encoder:
         return self._text_cache[text]
 
     def encode(self, spans: tuple[Span, ...]) -> tuple[np.ndarray, np.ndarray]:
-        """Return tokens and normalized prediction-position loss weights."""
+        """Return tokens and a unit-weight mask for scored prediction positions."""
         tokens, scored = [], []
         for span in spans:
             if span.role == "text":
@@ -204,10 +204,8 @@ class Encoder:
         targets = np.concatenate(scored)
         weights = np.zeros(len(token_ids), dtype=np.float32)
         weights[:-1] = targets[1:]
-        count = int(weights.sum())
-        if count == 0:
+        if not np.any(weights):
             raise ValueError("Every example needs at least one prediction target")
-        weights /= count
         return token_ids, weights
 
 

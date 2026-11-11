@@ -160,7 +160,7 @@ def test_minimal_fim_retains_hints_rc_and_dna_targets():
         )
         assert f"[gap:{a['gap_length']}]" in e.text
         assert e.scored_tokens == a["gap_length"]
-        assert np.isclose(e.loss_weights.sum(), 1)
+        assert e.loss_weights.sum() == e.scored_tokens
         assert e.spans[-1].role == "middle"
     assert orientations == {True, False}
     no_hint = Augmenter(encoder, replace(config, gap_length_probability=0)).build(

@@ -44,7 +44,7 @@ class AnnealTrial:
 
     @property
     def run_id(self) -> str:
-        return f"dna-exp593-anneal-{self.key}-guidedfim30-seed0-v1"
+        return f"dna-exp593-anneal-{self.key}-guidedfim30-equalbase-seed0-v2"
 
     @property
     def ramp_tokens(self) -> int:

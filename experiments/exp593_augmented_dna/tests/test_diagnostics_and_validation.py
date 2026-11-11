@@ -9,7 +9,7 @@ from exp593_dna.validation import (
 )
 
 
-def test_norms_include_all_leaves_once_and_selected_stacked_layers():
+def test_norms_include_all_leaves_once_and_selected_projections():
     arrays = {
         ".token_embed": np.array([[3.0, 4.0]], dtype=np.float32),
         ".stacked_blocks.stacked.attn.w_q": np.arange(
@@ -25,10 +25,10 @@ def test_norms_include_all_leaves_once_and_selected_stacked_layers():
     expected = np.linalg.norm(np.concatenate([v.ravel() for v in arrays.values()]))
     assert np.isclose(result["norms/param/overall"], expected)
     assert np.isclose(result["norms/grad/overall"], expected * 0.25)
-    assert len(result) == 20
+    assert len(result) == 8
     assert np.isclose(
-        result["norms/param/layer_4/attention_q"],
-        np.linalg.norm(arrays[".stacked_blocks.stacked.attn.w_q"][4]),
+        result["norms/param/attention_q"],
+        np.linalg.norm(arrays[".stacked_blocks.stacked.attn.w_q"]),
     )
     p = NormPolicy()
     assert not p.due(0) and not p.due(1) and p.due(1000)
