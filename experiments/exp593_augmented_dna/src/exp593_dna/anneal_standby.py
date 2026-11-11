@@ -56,7 +56,9 @@ def wait_for_gate(config: TrainingConfig, gate: Gate) -> dict:
             if error.response["Error"]["Code"] not in ("404", "NoSuchKey", "NotFound"):
                 raise
         else:
-            payload = json.loads(client.get_object(Bucket=bucket, Key=key)["Body"].read())
+            payload = json.loads(
+                client.get_object(Bucket=bucket, Key=key)["Body"].read()
+            )
             if not (
                 payload.get("version") == 1
                 and payload.get("run_id") == config.identity
@@ -73,16 +75,22 @@ def wait_for_gate(config: TrainingConfig, gate: Gate) -> dict:
                     and payload.get("checkpoint")
                     and payload.get("metadata_sha256")
                 ):
-                    raise ValueError("Production standby gate lacks a writer fence or checkpoint")
+                    raise ValueError(
+                        "Production standby gate lacks a writer fence or checkpoint"
+                    )
                 pointer_uri = urlparse(config.checkpoint_root + "/latest.json")
-                pointer = json.loads(client.get_object(
-                    Bucket=pointer_uri.netloc, Key=pointer_uri.path.lstrip("/")
-                )["Body"].read())
+                pointer = json.loads(
+                    client.get_object(
+                        Bucket=pointer_uri.netloc, Key=pointer_uri.path.lstrip("/")
+                    )["Body"].read()
+                )
                 if (
                     pointer["checkpoint"] != payload["checkpoint"]
                     or pointer["metadata_sha256"] != payload["metadata_sha256"]
                 ):
-                    raise ValueError("Released checkpoint differs from the recovery pointer")
+                    raise ValueError(
+                        "Released checkpoint differs from the recovery pointer"
+                    )
             elif payload.get("bounded_canary") is not True:
                 raise ValueError("Validation standby gate lacks its canary marker")
             return payload
@@ -111,7 +119,10 @@ def dispatch(config: TrainingConfig, gate: Gate) -> None:
         {
             **_forwarded_env_vars(),
             "MARIN_PREFIX": "s3://marin-us-east-02a/marin",
-            **{name: os.environ[name] for name in ("CW_KEY_ID", "CW_KEY_SECRET", "WANDB_API_KEY")},
+            **{
+                name: os.environ[name]
+                for name in ("CW_KEY_ID", "CW_KEY_SECRET", "WANDB_API_KEY")
+            },
             "WANDB_BASE_URL": WANDB_BASE_URL,
             "WANDB_ENTITY": "eric-czech",
             "WANDB_PROJECT": "marin",
@@ -142,7 +153,9 @@ def dispatch(config: TrainingConfig, gate: Gate) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--trial", choices=("181b", "364b"), required=True)
-    parser.add_argument("--cluster", choices=("cw-rno2a", "cw-us-east-02a"), required=True)
+    parser.add_argument(
+        "--cluster", choices=("cw-rno2a", "cw-us-east-02a"), required=True
+    )
     parser.add_argument("--nodes", type=int, choices=(1, 8), required=True)
     parser.add_argument("--gate-uri", required=True)
     parser.add_argument("--gate-nonce", required=True)
