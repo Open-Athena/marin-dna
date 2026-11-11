@@ -1,13 +1,13 @@
 # exp593 annotation-guided annealing operations
 
-Read this document before every placement or recovery decision for the three additional annealing runs.
+Read this document before every placement or recovery decision for the four additional annealing runs.
 It supplements the historical operations document without reopening its completed runs or sealed ledger.
 The full authorized research plan remains untracked at scratch/exp593-annealing-plan.md.
 
 ## Scientific ownership
 
 The immutable trial catalog and LR/FIM schedules live in src/exp593_dna/anneal.py.
-The entry point is exp593_dna.anneal_train, with data, native state, batching, audit, and compact validation modules prefixed anneal_.
+The three FIM runs use exp593_dna.anneal_train; the old-distribution control uses exp593_dna.anneal_control_train. Data, native state, batching, audit, and compact validation modules are prefixed anneal_.
 These runs expand issue #593 and the existing permanent MarinDNA PR #594; keep the branch unmerged and do not create another issue or PR.
 The user requires explicit approval before posting or editing any GitHub comment.
 Keep operational notes local and report progress in chat; do not restore comments the user deletes.
@@ -26,7 +26,7 @@ The approved aggregate ceiling is 512 GPUs, counting productive, validation, and
 Prefer 64-H100 production gangs from the outset when qualified and available.
 Submit every root through the marin controller with explicit --target-cluster, --priority batch, and --user eczech.
 The launcher explicitly assigns batch priority to child gangs and forwards storage/W&B credentials without printing them.
-Other accelerator families and changes to scientific global batch remain outside scope.
+Other accelerator families and changes to scientific global batch remain outside scope. The eight-node Reno qualification for the old-distribution control does not qualify the three separate FIM recipes for eight nodes.
 There is no experiment-level calendar deadline and the user explicitly prohibited early stopping; allocation timeouts remain recoverable placement events.
 
 ## Durable identities and state
@@ -103,3 +103,13 @@ The exact v2 step-zero validation and 42-task baselines were captured from each 
 The first equal-base production checkpoint native audit succeeded on 545b step-1042670 while its writer continued. Its immutable report at `s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/annealing/native_audits/dna-exp593-anneal-545b-guidedfim30-equalbase-seed0-v2/step-1042670-d2fb358be4313529f614d3fb546a7edca162887cffbefac5db6c9e342efff85f.json` verified all 128 arrays, finiteness, model/master consistency, and optimizer clock with complete readback. Both separate audit Iris writers succeeded. This interim check does not replace each branch's required final native audit.
 The same independent native restore check also passed on 181b step-353106 and 364b step-700893 while their production writers continued. The readback-verified immutable reports are `s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/annealing/native_audits/dna-exp593-anneal-181b-guidedfim30-equalbase-seed0-v2/step-353106-946d5ea56fe28476410668e9e88ff8b6741a93dbc043685b92292889164cc06a.json` and `s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/annealing/native_audits/dna-exp593-anneal-364b-guidedfim30-equalbase-seed0-v2/step-700893-6adae22c440f86fade9a60de2449afa35a146e42c0a5e12afd06406e48daaac6.json`. All 128 arrays were finite, compute weights matched FP32 masters, optimizer clocks matched, and each separate batch/eczech Iris root and child succeeded. Final native audits are still required.
 W&B flattens the final native clock into a second per-species summary family. After a run is finished and audited, remove only `training/final_clock.mixture.species/*` from its W&B summary; retain the 65 canonical `data_mix/species_examples.*` counts and the complete mixture in checkpoint metadata. This procedure was verified on all three completed disposable validators without changing their scientific metrics; the immutable before-state/verification record is `s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/annealing/evidence/wandb-validation-species-cleanup-v2b-5cadf379356ddf0b96347976620317b5a7ecd6820447e689944ad94d4c43f2bc.json`.
+
+## Old-distribution control added November 11
+
+The user authorized a fourth branch from the same 545.455B permanent 1T source checkpoint and complete native model/FP32-master/optimizer/global-step state. Its separate entry point, `exp593_dna.anneal_control_train`, is at scientific revision `66c9c57e`, with new control-only files so the 19-file bindings of the live FIM branches remain unchanged. It uses the same optimized update, model, optimizer, LR program, validation/task panels and monitoring cadence as the 545b FIM branch. Relative to the old 1T executable, both new branches use local scatter MoE transport, device-resident FP32 masters and an inherited-LR hold for the first 20% of their stage followed by linear cooling to 5% of the old peak. The controlled variable is the training data presentation.
+
+The control's training stream uses the exact old corpus inventory and seed-0 block/Feistel mixture shuffle; each original 8192-base window is lowercase-tokenized with the pinned exp586 DNA tokenizer, has the exp586 occurrence-seeded reverse-complement draw, and scores its 8191 next-base targets once each. It has no FIM, text, metadata, crops, packing, or partial windows. The nearest whole-batch horizon below 120B is `119999561728` input tokens (`228881` updates), 438272 tokens short of nominal 120B. Its W&B identity is `dna-exp593-anneal-545b-originaldata-equalbase-seed0-v1`, with an independent production checkpoint namespace under the same annealing owner.
+
+The first disposable smoke failed before any update because its validation-only data clock reused the FIM ramp override. Its exact root and child reached terminal failed states; the ledger trial `smoke-545b-control-rno-n8-v1` is abandoned. The corrected 64-update eight-node Reno smoke, `smoke-545b-control-rno-n8-v2`, succeeded on both Iris writers: exact source optimizer count 1040373 and 54 optimizer arrays, approved historical BF16 head preserved until the first normal update, zero FIM/text examples, all 42 finite pilot task scores, finite FIM validation loss and MFU, and a zero-error full native checkpoint roundtrip. The verification receipt is `scratch/exp593-anneal/smoke-545b-control-rno-n8-v2-verification.json` and the ledger backup is immutable in the same operations prefix.
+
+Production trial `v1-control-545b` was submitted on 64 Reno H100s as batch/eczech under `/eczech/exp593-anneal-v1-control-545b-rno-n8-a1`. The personal W&B run has advanced past 158M input tokens; `scratch/exp593-anneal/v1-control-545b-production-advancing.json` independently verifies numerical progress, exact root/child liveness, restored optimizer state, zero FIM/text data, original full-window target counts, and its new permanent checkpoint namespace. The read-only remote checkpoint audit is `scratch/exp593-anneal/audit_control_checkpoint.py`. Keep the four runs' identities independent; do not change their schedules based on losses. The control also needs a final full native tensor audit before completion.
