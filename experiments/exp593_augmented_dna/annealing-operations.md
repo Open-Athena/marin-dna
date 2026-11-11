@@ -51,7 +51,7 @@ Targets marked eligible below permit bounded validation only until the source-sp
 | cw-rno2a | H100 | 1 | 8 | eligible | Bounded v2 validation; production requires a v2 source-specific full-loop result |
 | cw-rno2a | H100 | 2 | 16 | unvalidated | — |
 | cw-rno2a | H100 | 4 | 32 | eligible | Bounded v2 validation; production requires a v2 source-specific full-loop result |
-| cw-rno2a | H100 | 8 | 64 | unqualified | New bounded diagnostic basis required; no production placement |
+| cw-rno2a | H100 | 8 | 64 | eligible for 181b equal-base v2 | Current-graph 64-update default-runtime smoke passed full-state and native roundtrip checks; use only after a fresh capacity check and physical writer fence |
 | cw-us-east-02a | H100 | 1 | 8 | eligible | Bounded v2 validation; production requires a v2 source-specific full-loop result |
 | cw-us-east-02a | H100 | 2 | 16 | unvalidated | — |
 | cw-us-east-02a | H100 | 4 | 32 | eligible | Bounded v2 validation; production requires a v2 source-specific full-loop result |
