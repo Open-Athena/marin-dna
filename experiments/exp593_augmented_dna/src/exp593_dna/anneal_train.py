@@ -294,7 +294,9 @@ def _run(config: TrainingConfig) -> None:
             "throughput/device_kind": device_kind,
             "throughput/theoretical_flops_per_device": peak_per_device,
             "throughput/theoretical_flops": peak_total,
-            "throughput/flops_per_example_by_bucket": flops_per_example,
+            "throughput/flops_per_example_by_bucket": {
+                str(bucket): value for bucket, value in flops_per_example.items()
+            },
             "throughput/mfu_method": "exp586_analytic_padded_bucket_flops_over_H100_BF16_peak",
         }
     )
