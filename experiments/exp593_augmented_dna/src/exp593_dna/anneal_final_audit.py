@@ -47,8 +47,15 @@ from exp593_dna.anneal import (
     REFERENCE_TOKENS,
     TRIALS,
 )
+from exp593_dna.anneal_control_train import CONTROL_ID, CONTROL_TRIAL
 from exp593_dna.publish_inputs import put_immutable
 from exp593_dna.storage import coreweave_client
+
+
+def audit_recipe(trial: str):
+    if trial == "545b-control":
+        return CONTROL_TRIAL, CONTROL_ID
+    return TRIALS[trial], TRIALS[trial].run_id
 
 
 @dataclass(frozen=True)
@@ -61,9 +68,8 @@ class AuditConfig:
 
     @property
     def checkpoint_parts(self) -> tuple[int, str | None]:
-        prefix = (
-            f"{OWNER}/annealing/training/{TRIALS[self.trial].run_id}/checkpoints/step-"
-        )
+        _, run_id = audit_recipe(self.trial)
+        prefix = f"{OWNER}/annealing/training/{run_id}/checkpoints/step-"
         if not self.checkpoint.startswith(prefix):
             raise ValueError("Native audit checkpoint escaped the production namespace")
         match = re.fullmatch(
@@ -80,7 +86,7 @@ class AuditConfig:
         return f"dna-exp593-anneal-nativeaudit-{self.trial}-step-{step}{suffix}-v1"
 
     def __post_init__(self) -> None:
-        if self.trial not in TRIALS or self.cluster not in (
+        if self.trial not in (*TRIALS, "545b-control") or self.cluster not in (
             "cw-rno2a",
             "cw-us-east-02a",
         ):
@@ -93,7 +99,7 @@ class AuditConfig:
 
 
 def run(config: AuditConfig) -> None:
-    recipe = TRIALS[config.trial]
+    recipe, run_id = audit_recipe(config.trial)
     mp = jmp.get_policy("params=bfloat16,compute=bfloat16,output=bfloat16")
     trainer = TrainerConfig(
         id=config.identity,
@@ -117,7 +123,7 @@ def run(config: AuditConfig) -> None:
         raise ValueError("Selected checkpoint metadata changed")
     metadata = json.loads(raw)
     binding = metadata["exp593_bindings"]
-    if binding["run_id"] != recipe.run_id or binding["validation_updates"] is not None:
+    if binding["run_id"] != run_id or binding["validation_updates"] is not None:
         raise ValueError("Selected checkpoint is not bound to production")
     for name, expected in binding["source_code_sha256"].items():
         if (
@@ -192,7 +198,7 @@ def run(config: AuditConfig) -> None:
         path.write_bytes(data)
         key = (
             f"MarinDNA/exp593_augmented_dna/annealing/native_audits/"
-            f"{recipe.run_id}/step-{metadata['step']}-{digest}.json"
+            f"{run_id}/step-{metadata['step']}-{digest}.json"
         )
         receipt = put_immutable(
             coreweave_client(), path, key, hashlib.sha256(data).hexdigest(), len(data)
@@ -239,7 +245,7 @@ def dispatch(config: AuditConfig) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--trial", choices=tuple(TRIALS), required=True)
+    parser.add_argument("--trial", choices=(*TRIALS, "545b-control"), required=True)
     parser.add_argument("--checkpoint", required=True)
     parser.add_argument("--metadata-sha256", required=True)
     parser.add_argument(
