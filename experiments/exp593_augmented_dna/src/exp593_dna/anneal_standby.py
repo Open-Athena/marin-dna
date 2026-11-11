@@ -156,7 +156,7 @@ def main() -> None:
     parser.add_argument(
         "--cluster", choices=("cw-rno2a", "cw-us-east-02a"), required=True
     )
-    parser.add_argument("--nodes", type=int, choices=(1, 8), required=True)
+    parser.add_argument("--nodes", type=int, choices=(1, 4, 8), required=True)
     parser.add_argument("--gate-uri", required=True)
     parser.add_argument("--gate-nonce", required=True)
     parser.add_argument("--validation-updates", type=int)
@@ -173,7 +173,7 @@ def main() -> None:
         (config.nodes == 8 and config.cluster == "cw-rno2a")
         or (
             config.trial == "364b"
-            and config.nodes == 1
+            and config.nodes in (1, 4)
             and config.cluster == "cw-us-east-02a"
         )
     ):
