@@ -156,8 +156,15 @@ def main() -> None:
         validation_updates=args.validation_updates,
         run_id=args.run_id,
     )
-    if config.validation_updates is None and (config.nodes != 8 or config.cluster != "cw-rno2a"):
-        raise ValueError("Production standby requires a qualified Reno eight-node placement")
+    if config.validation_updates is None and not (
+        (config.nodes == 8 and config.cluster == "cw-rno2a")
+        or (
+            config.trial == "364b"
+            and config.nodes == 1
+            and config.cluster == "cw-us-east-02a"
+        )
+    ):
+        raise ValueError("Production standby requires an approved H100 placement")
     dispatch(config, Gate(args.gate_uri, args.gate_nonce))
 
 
