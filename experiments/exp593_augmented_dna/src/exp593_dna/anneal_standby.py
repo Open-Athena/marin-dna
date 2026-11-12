@@ -203,6 +203,11 @@ def main() -> None:
     if config.validation_updates is None and not (
         (config.nodes == 8 and config.cluster == "cw-rno2a")
         or (
+            config.trial == "181b"
+            and config.nodes == 8
+            and config.cluster == "cw-us-east-02a"
+        )
+        or (
             config.trial in ("181b", "364b")
             and config.nodes in (1, 4)
             and config.cluster == "cw-us-east-02a"
