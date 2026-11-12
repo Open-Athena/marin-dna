@@ -3,13 +3,13 @@
 Train augmented d768 models for [experiment #593](https://github.com/Open-Athena/marin-dna/issues/593), starting from either the same text-pretrained checkpoint as #586 or its final 216B DNA checkpoint.
 All implementation and artifacts belong to the permanent, unmerged [companion PR #594](https://github.com/Open-Athena/marin-dna/pull/594).
 
-Experiment #593 also includes three full-state annealing branches from the old 1T run's 181.818B, 363.637B, and 545.455B checkpoints.
-Their additional input horizons are fixed at 216B, 168B, and 120B, with annotation-only FIM ramping from 0% to 30%, uniformly lowercase DNA, no biological metadata, and preserved native optimizer history.
+Experiment #593 also includes three full-state annealing branches from the old 1T run's 181.818B, 363.637B, and 545.455B checkpoints, plus a 545.455B original-data control.
+Their additional input horizons are fixed at 216B, 168B, and 120B, respectively; the matched control also runs for approximately 120B inputs. The FIM branches ramp annotation-only FIM from 0% to 30% with uniformly lowercase DNA, no biological metadata, and preserved native optimizer history.
 Use `python -m exp593_dna.anneal_train --trial <181b|364b|545b> --cluster <peer> --nodes <count>` through the normal Iris coordinator; bounded validation additionally requires a distinct smoke ID and `--validation-updates 64`.
-Production remains explicitly gated while downsampled benchmark monitoring is prepared and validated.
-See [annealing-operations.md](annealing-operations.md) for the new identities, ledger, qualification requirements, and placement policy.
+The 364B, 545B, and matched control branches have completed their fixed schedules and native checkpoint audits; the 181B branch remains in production toward 216B additional inputs.
+See [annealing-operations.md](annealing-operations.md) for identities, ledger, qualification requirements, placement, and checkpoint evidence.
 
-The user has authorized preparation, single-node H100 validation, and full training when ready.
+Preparation, single-node H100 validation, and full training were authorized before these production runs started.
 Data preparation and the single-node H100 smoke are complete.
 The [text-initialized final model](artifacts/production-final-v1/result.json) completed 216,158,719,114 actual input tokens at update 626,011.
 Its final fixed panels, 640 functional records, all 128 stored arrays and all 626 expected sparse norm checkpoints are verified; W&B finished and every GPU task plus both Iris jobs succeeded.
@@ -196,7 +196,7 @@ Start/stop bounds are inferred from complete CDS when explicit codon features ar
 The first frozen bank annotates 909,773 train windows across 23 species, 34.479% of the original corpus.
 The train bank is approximately 109 MB compressed and uses an Arrow-backed row index rather than materializing millions of Python feature objects per worker.
 The corresponding validation bank is separate and cannot pass the training augmentation entry point.
-All other genomes and rows remain in training, with random FIM placement when no usable annotation exists.
+In the original augmented runs, all other genomes and rows remain in training, with random FIM placement when no usable annotation exists. The later annealing branches instead draw every FIM example from an annotated original training row; their causal examples still use the original training corpus.
 
 ## Objective and joint augmentation
 
@@ -319,10 +319,10 @@ See `operations.md` for the approved two-model placement and recovery policy.
 
 ## Full-state annealing continuations
 
-The additional three runs continue the old 1T exp586 checkpoints using the immutable recipes in `src/exp593_dna/anneal.py` and entry point `python -m exp593_dna.anneal_train`.
+The three FIM runs continue the old 1T exp586 checkpoints using the immutable recipes in `src/exp593_dna/anneal.py` and entry point `python -m exp593_dna.anneal_train`. A fourth run continues the 545.455B checkpoint on the original data distribution through `python -m exp593_dna.anneal_control_train`.
 These restore the entire native optimizer and model state, retain its lifetime counters, and track additional inputs with a separate stage clock.
-All DNA inputs are lowercase, with no biological metadata; every FIM example is drawn from annotated original training windows.
-The source corpus, annotation provenance, reverse-complement augmentation, variable-length examples, and per-example objective normalization remain explicit in the scientific checkpoint bindings.
+The FIM branches use lowercase DNA without biological metadata; every FIM example is drawn from annotated original training windows. The control uses the original 1T training distribution and contains no FIM examples.
+The source corpus, annotation provenance, reverse-complement augmentation, variable-length examples, and equal scored-base weighting remain explicit in the FIM branches' scientific checkpoint bindings.
 See [annealing-operations.md](annealing-operations.md) for placement and recovery policy.
 
 The compact primary panel preserves the historical 512 examples and `eval/loss`, with repeat/nonrepeat/10:1 partitions only for that primary loss.
