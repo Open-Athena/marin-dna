@@ -1,0 +1,414 @@
+{
+  "checkpoint_timing": {
+    "primary_log_lines": [
+      "[21:48:21] task=/eczech/exp593-dna-ready-20261108-rno-n8-cp120-a1/train-dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1/0 attempt=1 | [rank0] I20261108 21:48:21 124441624850880 __main__ Validation complete: event=resume update=137600 tokens=47478549689 loss=1.199573",
+      "[21:48:23] task=/eczech/exp593-dna-ready-20261108-rno-n8-cp120-a1/train-dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1/0 attempt=1 | [rank0] I20261108 21:48:23 124441624850880 __main__ Functional development complete: s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/training/dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1/development/4a5dd5c05b42aea7b88c83c4ec9473523aa33f1231a4223634a9680a661fc4da/result.json",
+      "[21:50:24] task=/eczech/exp593-dna-ready-20261108-rno-n8-cp120-a1/train-dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1/0 attempt=1 | [rank0] I20261108 21:50:24 124441624850880 levanter.checkpoint Saving checkpoint to s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/training/dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1/checkpoints/step-138303 for step 138303",
+      "[21:50:33] task=/eczech/exp593-dna-ready-20261108-rno-n8-cp120-a1/train-dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1/0 attempt=1 | [rank0] I20261108 21:50:33 124441624850880 levanter.tensorstore_serialization Checkpoint staged 0.42 GiB peak against a 16.00 GiB budget across 21 writes (about 2 GiB of host memory while in flight)",
+      "[21:51:45] task=/eczech/exp593-dna-ready-20261108-rno-n8-cp120-a1/train-dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1/0 attempt=1 | [rank0] I20261108 21:51:45 124392554067648 levanter.checkpoint Saved checkpoint to s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/training/dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1/checkpoints/step-138303 for step 138303",
+      "[21:53:48] task=/eczech/exp593-dna-ready-20261108-rno-n8-cp120-a1/train-dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1/0 attempt=1 | [rank0] I20261108 21:53:48 124441624850880 levanter.checkpoint Saving checkpoint to s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/training/dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1/checkpoints/step-138838 for step 138838",
+      "[21:53:50] task=/eczech/exp593-dna-ready-20261108-rno-n8-cp120-a1/train-dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1/0 attempt=1 | [rank0] I20261108 21:53:50 124441624850880 levanter.tensorstore_serialization Checkpoint staged 0.42 GiB peak against a 16.00 GiB budget across 21 writes (about 2 GiB of host memory while in flight)",
+      "[21:55:09] task=/eczech/exp593-dna-ready-20261108-rno-n8-cp120-a1/train-dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1/0 attempt=1 | [rank0] I20261108 21:55:09 124390017582784 levanter.checkpoint Saved checkpoint to s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/training/dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1/checkpoints/step-138838 for step 138838"
+    ],
+    "running_configuration_interval_seconds": 120,
+    "running_configuration_temporary_retention": 30,
+    "saving_to_saved_seconds": [
+      81,
+      81
+    ],
+    "scope": "Two observed native saves; current job uses the verified120sec/30-save policy. Agent will prepare a longer operational interval without stopping this writer to reduce measured checkpoint cost.",
+    "steady_checkpoint_pause_fraction_estimate": 0.40298507462686567
+  },
+  "first_1000_resumed_updates": {
+    "all_losses_finite": true,
+    "first": {
+      "_step": 141156,
+      "_timestamp": 1794174505.7517514,
+      "moe/dropped_assignments": 0,
+      "moe/receiver_dropped_assignments": 0,
+      "moe/sender_dropped_assignments": 0,
+      "train/input_tokens": 47479042008.0,
+      "train/loss": 1.205399513244629,
+      "train/step": 137601
+    },
+    "history_archive": {
+      "bytes": 312049,
+      "complete_readback_verified": true,
+      "etag": "\"4c6ac53cb235d2f8c9b24f8e579c3b67\"",
+      "sha256": "8b657e4e6dff29e136aeda00ae606f4be89480fec04cc10695350ec24c7a4857",
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/placements/exp593-dna-ready-20261108-rno-n8-cp120-a1/agent-verification/first-1000.json"
+    },
+    "last": {
+      "_step": 142155,
+      "_timestamp": 1794174763.2321682,
+      "moe/dropped_assignments": 0,
+      "moe/receiver_dropped_assignments": 0,
+      "moe/sender_dropped_assignments": 0,
+      "train/input_tokens": 47820646772.0,
+      "train/loss": 1.2395215034484863,
+      "train/step": 138600
+    },
+    "logged_update_gap_seconds": 207.36759424209595,
+    "norm_event": {
+      "_step": 141555,
+      "_timestamp": 1794174568.5618289,
+      "norms/grad/layer_0/attention_q": 0.01732132025063038,
+      "norms/grad/layer_0/expert_down": 0.007155751809477806,
+      "norms/grad/layer_0/router": 0.0020999859552830458,
+      "norms/grad/layer_4/attention_q": 0.03769020736217499,
+      "norms/grad/layer_4/expert_down": 0.055451687425374985,
+      "norms/grad/layer_4/router": 0.006752384826540947,
+      "norms/grad/layer_7/attention_q": 0.14154818654060364,
+      "norms/grad/layer_7/expert_down": 0.019011830911040306,
+      "norms/grad/layer_7/router": 0.014378314837813377,
+      "norms/grad/overall": 9.922760009765625,
+      "norms/param/layer_0/attention_q": 13.670984268188477,
+      "norms/param/layer_0/expert_down": 133.9290313720703,
+      "norms/param/layer_0/router": 243.13082885742188,
+      "norms/param/layer_4/attention_q": 13.67105770111084,
+      "norms/param/layer_4/expert_down": 133.95498657226562,
+      "norms/param/layer_4/router": 132.8756103515625,
+      "norms/param/layer_7/attention_q": 13.670252799987793,
+      "norms/param/layer_7/expert_down": 133.94021606445312,
+      "norms/param/layer_7/router": 73.51326751708984,
+      "norms/param/overall": 2381.956298828125,
+      "train/input_tokens": 47614300518.0,
+      "train/step": 138000
+    },
+    "norm_scalars": 20,
+    "old_final": {
+      "_step": 141153,
+      "_timestamp": 1794174298.3841572,
+      "moe/dropped_assignments": 0,
+      "moe/receiver_dropped_assignments": 0,
+      "moe/sender_dropped_assignments": 0,
+      "train/input_tokens": 47478549689.0,
+      "train/loss": 1.3323884010314941,
+      "train/step": 137600
+    },
+    "routing_drops": 0,
+    "run_url": "https://forge.coreweave.com/api/wandb/eric-czech/marin/runs/dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1",
+    "updates_verified": 1000,
+    "verified": true,
+    "verified_at": "2026-11-08T21:56:08.318753+00:00"
+  },
+  "global_batch": 64,
+  "new_target": {
+    "cluster": "cw-rno2a",
+    "h100s": 64,
+    "nodes": 8
+  },
+  "new_temporary_checkpoints": [
+    {
+      "checkpoint": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/training/dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1/checkpoints/step-138303",
+      "clock": {
+        "dna_tokens": 47353693708,
+        "examples": 8851392,
+        "fim_examples": 4424941,
+        "input_tokens": 47717893588,
+        "loss_targets": 24000345468,
+        "rc_examples": 4427829,
+        "text_tokens": 364199880,
+        "updates": 138303
+      },
+      "metadata_and_scientific_bindings_readback_verified": true,
+      "metadata_sha256": "3ba89f212786d51413a36874e04144a7010bc8bc52b4131fe3738e226fa99b69"
+    },
+    {
+      "checkpoint": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/training/dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1/checkpoints/step-138838",
+      "clock": {
+        "dna_tokens": 47539345243,
+        "examples": 8885632,
+        "fim_examples": 4441979,
+        "input_tokens": 47904965635,
+        "loss_targets": 24094861493,
+        "rc_examples": 4445072,
+        "text_tokens": 365620392,
+        "updates": 138838
+      },
+      "metadata_and_scientific_bindings_readback_verified": true,
+      "metadata_sha256": "3864f9082784b4c2a747f7b20ca253e4457e8840d9a06c908f902e4a69d53978"
+    }
+  ],
+  "old_target": {
+    "cluster": "cw-us-east-02a",
+    "h100s": 8,
+    "nodes": 1
+  },
+  "original_root": "/eczech/exp593-dna216b-fallback-20261108-east-n1-v1-a1",
+  "preserved": {
+    "input_token_horizon": 216158699520,
+    "learning_rate_multiplier": 0.5,
+    "run_optimizer_and_full_model_state": true,
+    "source_optimizer_never_imported": true,
+    "token_and_example_cursor": true,
+    "wandb_identity": true
+  },
+  "priority": "batch",
+  "promoted_root": "/eczech/exp593-dna-ready-20261108-rno-n8-cp120-a1",
+  "promotion": {
+    "checkpoint": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/training/dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1/checkpoints/step-137600",
+    "child_state": "JOB_STATE_SUCCEEDED",
+    "clock": {
+      "dna_tokens": 47116208388,
+      "examples": 8806400,
+      "fim_examples": 4402340,
+      "input_tokens": 47478549689,
+      "loss_targets": 23880632426,
+      "rc_examples": 4405333,
+      "text_tokens": 362341301,
+      "updates": 137600
+    },
+    "graceful_exit_evidence": {
+      "ack": {
+        "checkpoint": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/training/dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1/checkpoints/step-137600",
+        "clock": {
+          "dna_tokens": 47116208388,
+          "examples": 8806400,
+          "fim_examples": 4402340,
+          "input_tokens": 47478549689,
+          "loss_targets": 23880632426,
+          "rc_examples": 4405333,
+          "text_tokens": 362341301,
+          "updates": 137600
+        }
+      },
+      "checkpoint_acknowledged": true,
+      "graceful_exit_verified": true,
+      "interpretation": "The explicit checkpoint-and-exit path acknowledged the final cursor and both coordinator/GPU tasks exited successfully; this is process-exit evidence, without forced cancellation.",
+      "metadata_sha256": "658246fc72202f1c403ba3f90b1528a293829a847e4bbbcbcd395080ac98a4bd",
+      "observed_at": "2026-11-08T21:46:32.496083+00:00",
+      "old_child": "/eczech/exp593-dna216b-fallback-20261108-east-n1-v1-a1/train-dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1",
+      "old_root": "/eczech/exp593-dna216b-fallback-20261108-east-n1-v1-a1",
+      "request": {
+        "last_logged_input_tokens": 47469237984,
+        "last_logged_update": 137567,
+        "new_root": "/eczech/exp593-dna-ready-20261108-rno-n8-cp120-a1",
+        "old_root": "/eczech/exp593-dna216b-fallback-20261108-east-n1-v1-a1",
+        "ready_sha256": "86c330ac9defc79645a6f7f41ae74ede57114150c1273b8c7ba23a36bedbdf10",
+        "reason": "Ready held64-H100 target; checkpoint and exit East8 before full-state same-W&B promotion.",
+        "requested_at": "2026-11-08T21:44:47.011556+00:00",
+        "stop_sha256": "0730025171e89d662904d356756b9c00c66328fb746bbb7278d86bc24ec87885",
+        "stop_uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/placements/exp593-dna216b-fallback-20261108-east-n1-v1-a1/stop.json"
+      },
+      "states": {
+        "/eczech/exp593-dna216b-fallback-20261108-east-n1-v1-a1": "JOB_STATE_SUCCEEDED",
+        "/eczech/exp593-dna216b-fallback-20261108-east-n1-v1-a1/train-dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1": "JOB_STATE_SUCCEEDED"
+      },
+      "stopped_sha256": "b1f08b17dd557a1ba70e0922b97af55602e0a209e6598e9ad624e5ec18041eea",
+      "stopped_uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/placements/exp593-dna216b-fallback-20261108-east-n1-v1-a1/stopped.json",
+      "tasks": {
+        "/eczech/exp593-dna216b-fallback-20261108-east-n1-v1-a1": {
+          "attempts": [
+            {
+              "attempt_id": 0,
+              "attempt_uid": "f3ad4f859a20f2b1",
+              "error": "",
+              "exit_code": 0,
+              "finished_at": {
+                "epoch_ms": "1794174361182"
+              },
+              "is_worker_failure": false,
+              "node_name": "g739e00",
+              "output_archive": {
+                "skipped_count": 0,
+                "state": "TASK_OUTPUT_ARCHIVE_STATE_EMPTY"
+              },
+              "pod_name": "iris-eczech-exp593-dna216b-fallback-708676e1-0-f3ad4f859a20f2b1",
+              "pod_uid": "8f6effc3-fa49-4a98-96e0-6a9129811225",
+              "started_at": {
+                "epoch_ms": "1794169343200"
+              },
+              "state": "TASK_STATE_SUCCEEDED",
+              "terminal_reason": "",
+              "worker_id": ""
+            }
+          ],
+          "backend_id": "",
+          "cluster": "cw-us-east-02a",
+          "current_attempt_id": 0,
+          "error": "",
+          "exit_code": 0,
+          "finished_at": {
+            "epoch_ms": "1794174361182"
+          },
+          "started_at": {
+            "epoch_ms": "1794169343200"
+          },
+          "state": "TASK_STATE_SUCCEEDED",
+          "submitted_at": {
+            "epoch_ms": "1794169332756"
+          },
+          "task_id": "/eczech/exp593-dna216b-fallback-20261108-east-n1-v1-a1/0",
+          "worker_address": "",
+          "worker_id": ""
+        },
+        "/eczech/exp593-dna216b-fallback-20261108-east-n1-v1-a1/train-dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1": {
+          "attempts": [
+            {
+              "attempt_id": 0,
+              "attempt_uid": "eb7d7ce9c04bb67a",
+              "error": "",
+              "exit_code": 0,
+              "finished_at": {
+                "epoch_ms": "1794174323704"
+              },
+              "is_worker_failure": false,
+              "node_name": "g73b892",
+              "pod_name": "iris-eczech-exp593-dna216b-fallback-c8fb5684-0-eb7d7ce9c04bb67a",
+              "pod_uid": "660d4fc9-75d8-4093-9392-7020a422a00d",
+              "started_at": {
+                "epoch_ms": "1794169495149"
+              },
+              "state": "TASK_STATE_SUCCEEDED",
+              "terminal_reason": "",
+              "worker_id": ""
+            }
+          ],
+          "backend_id": "",
+          "cluster": "cw-us-east-02a",
+          "current_attempt_id": 0,
+          "error": "",
+          "exit_code": 0,
+          "finished_at": {
+            "epoch_ms": "1794174323704"
+          },
+          "started_at": {
+            "epoch_ms": "1794169495149"
+          },
+          "state": "TASK_STATE_SUCCEEDED",
+          "submitted_at": {
+            "epoch_ms": "1794169366879"
+          },
+          "task_id": "/eczech/exp593-dna216b-fallback-20261108-east-n1-v1-a1/train-dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1/0",
+          "worker_address": "",
+          "worker_id": ""
+        }
+      }
+    },
+    "metadata_sha256": "658246fc72202f1c403ba3f90b1528a293829a847e4bbbcbcd395080ac98a4bd",
+    "old_child": "/eczech/exp593-dna216b-fallback-20261108-east-n1-v1-a1/train-dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1",
+    "old_root": "/eczech/exp593-dna216b-fallback-20261108-east-n1-v1-a1",
+    "protocol": "exp593-standby-promotion-v1",
+    "ready_sha256": "86c330ac9defc79645a6f7f41ae74ede57114150c1273b8c7ba23a36bedbdf10",
+    "replayed_logged_input_tokens": 0,
+    "requested_at": "2026-11-08T21:47:39.139645+00:00",
+    "root_state": "JOB_STATE_SUCCEEDED",
+    "standby_id": "exp593-dna-ready-20261108-rno-n8-cp120-a1"
+  },
+  "resident_readiness": {
+    "all_buckets_and_norm_branches": true,
+    "all_fixed_and_functional_panels_passed": true,
+    "all_metrics_finite": true,
+    "finite_norms_per_norm_probe": 20,
+    "probes": 16,
+    "routing_drops": 0,
+    "sha256": "86c330ac9defc79645a6f7f41ae74ede57114150c1273b8c7ba23a36bedbdf10",
+    "source_checkpoint": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/training/dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1/checkpoints/step-133524",
+    "source_clock": {
+      "dna_tokens": 45733547241,
+      "examples": 8545536,
+      "fim_examples": 4271684,
+      "input_tokens": 46085103785,
+      "loss_targets": 23181022209,
+      "rc_examples": 4275044,
+      "text_tokens": 351556544,
+      "updates": 133524
+    },
+    "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/placements/exp593-dna-ready-20261108-rno-n8-cp120-a1/ready.json"
+  },
+  "resume_functional_records": {
+    "all_640_prediction_records_match_frozen_membership_and_targets": true,
+    "all_functional_metrics_independently_recomputed": true,
+    "all_six_frozen_payloads_read_back_and_hashed": true,
+    "clock": {
+      "dna_tokens": 47116208388,
+      "examples": 8806400,
+      "fim_examples": 4402340,
+      "input_tokens": 47478549689,
+      "loss_targets": 23880632426,
+      "rc_examples": 4405333,
+      "text_tokens": 362341301,
+      "updates": 137600
+    },
+    "data_manifest_sha256": "73904d171e8d90b1345b0688d20338f31dc9146de9e5c7ff1be3ab66d98a2c0a",
+    "event": "resume",
+    "metrics": {
+      "eval/development_conservation_bare_auroc": 0.54669189453125,
+      "eval/development_conservation_bare_average_precision": 0.5320948886594222,
+      "eval/development_conservation_bare_examples": 512,
+      "eval/development_conservation_bare_negatives": 256,
+      "eval/development_conservation_bare_positives": 256,
+      "eval/development_conservation_fim_auroc": 0.5441131591796875,
+      "eval/development_conservation_fim_average_precision": 0.5316088377360095,
+      "eval/development_conservation_fim_examples": 512,
+      "eval/development_conservation_fim_negatives": 256,
+      "eval/development_conservation_fim_positives": 256,
+      "eval/development_junction_random_control_base_accuracy": 0.375,
+      "eval/development_junction_random_control_dna_exact_match": 0.171875,
+      "eval/development_junction_random_control_exact_match": 0.171875,
+      "eval/development_junction_random_control_examples": 64,
+      "eval/development_junction_random_control_loss": 1.2842160277068615,
+      "eval/development_junction_random_control_targets": 128,
+      "eval/development_junction_splice_acceptor_base_accuracy": 0.921875,
+      "eval/development_junction_splice_acceptor_dna_exact_match": 0.84375,
+      "eval/development_junction_splice_acceptor_exact_match": 0.84375,
+      "eval/development_junction_splice_acceptor_examples": 32,
+      "eval/development_junction_splice_acceptor_loss": 0.3133802246302366,
+      "eval/development_junction_splice_acceptor_targets": 64,
+      "eval/development_junction_splice_donor_base_accuracy": 0.828125,
+      "eval/development_junction_splice_donor_dna_exact_match": 0.78125,
+      "eval/development_junction_splice_donor_exact_match": 0.78125,
+      "eval/development_junction_splice_donor_examples": 32,
+      "eval/development_junction_splice_donor_loss": 0.5018886886537075,
+      "eval/development_junction_splice_donor_targets": 64
+    },
+    "prediction_counts": {
+      "conservation": 512,
+      "random_control": 64,
+      "splice_acceptor": 32,
+      "splice_donor": 32
+    },
+    "predictions": {
+      "bytes": 172861,
+      "complete_readback_verified": true,
+      "etag": "\"cd84c209793442662f32edb4301259ef\"",
+      "sha256": "cc4542b9469ed2f90cfdf1b0b7720f48faa41149e12f852156f81638e95fe4bf",
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/training/dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1/development/cc4542b9469ed2f90cfdf1b0b7720f48faa41149e12f852156f81638e95fe4bf/predictions.jsonl"
+    },
+    "result_sha256": "4a5dd5c05b42aea7b88c83c4ec9473523aa33f1231a4223634a9680a661fc4da",
+    "result_uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/training/dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1/development/4a5dd5c05b42aea7b88c83c4ec9473523aa33f1231a4223634a9680a661fc4da/result.json",
+    "scoring_protocol": {
+      "bytes": 1114,
+      "complete_readback_verified": true,
+      "etag": "\"8e0f4573e828f7137a8a74436261d468\"",
+      "sha256": "7b9845c6f614c115fc4c354900d6f812cbe46886c2d81f18826b3eda9efeb996",
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/training/dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1/development/7b9845c6f614c115fc4c354900d6f812cbe46886c2d81f18826b3eda9efeb996/protocol.json"
+    },
+    "training_bindings_sha256": "512ea5478153806ffd0070b4e91691bb39ab97e23945057ec30c8cde0b782cb2",
+    "verified_at": "2026-11-08T21:50:43.481956+00:00"
+  },
+  "runtime_configuration": {
+    "policy_and_placement": {
+      "checkpoint_interval_seconds": 120,
+      "cluster": "cw-rno2a",
+      "keep_temporary_checkpoints": 30,
+      "nodes": 8,
+      "standby_id": "exp593-dna-ready-20261108-rno-n8-cp120-a1"
+    },
+    "state": "running",
+    "summary": {
+      "_step": 141591,
+      "eval/development_result": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/training/dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1/development/4a5dd5c05b42aea7b88c83c4ec9473523aa33f1231a4223634a9680a661fc4da/result.json",
+      "train/input_tokens": 47627132104,
+      "train/step": 138036,
+      "training/phase": "training",
+      "training/resume_update": 137600,
+      "training/standby_id": "exp593-dna-ready-20261108-rno-n8-cp120-a1"
+    }
+  },
+  "runtime_source_commit": "92a8af07c9f8abbbb3acd3c6d4abf6af60f0419e",
+  "scientific_binding_sha256": "512ea5478153806ffd0070b4e91691bb39ab97e23945057ec30c8cde0b782cb2",
+  "user": "eczech",
+  "verified_at": "2026-11-08T21:57:57.472991+00:00"
+}

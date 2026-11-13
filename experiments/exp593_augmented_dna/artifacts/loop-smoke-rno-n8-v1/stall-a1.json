@@ -1,0 +1,35 @@
+{
+  "source_commit": "db4464d87bdbdd06979a4ba576540c9a2f2ffc2a",
+  "iris_root": "/eczech/exp593-loop-smoke-20261107-rno-n8-v1-a1",
+  "cluster": "cw-rno2a",
+  "nodes": 8,
+  "gpus": 64,
+  "gpu_variant": "H100",
+  "outcome": "stopped_compiler_coordination_stall",
+  "initial_causal_fim_functional_evaluation": "passed",
+  "completed_update_reports": 64,
+  "completed_updates": 1,
+  "input_tokens": 131072,
+  "first_update_loss": 7.236813,
+  "gpu_activity_check": "All 64 GPUs returned zero utilization; Python CPUs were approximately idle in one-second samples on all eight tasks.",
+  "native_stack_check": "Sampled task-zero training processes wait in ConfigAssigner distributed BlockingKeyValueGet during backend_compile_and_load.",
+  "compaction_finished_utc": "2026-11-07T23:23:57Z",
+  "retry_workaround": "GPU worker XLA_FLAGS include --xla_gpu_shard_autotuning=false; other optimized flags preserved.",
+  "scope": "Bounded target validation only; production weights and token clock have not advanced. The precise compiler-rendezvous cause is not established.",
+  "profiles": {
+    "reno-n8-task0-threads.txt": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/validation/dna-exp593-loop-smoke-20261107-rno-n8-v1/operator/stall-a1/302e7c9b99509a27697a40112f23a6c28f837e2f9d77556292dafc9f8496729d/reno-n8-task0-threads.txt",
+      "sha256": "302e7c9b99509a27697a40112f23a6c28f837e2f9d77556292dafc9f8496729d",
+      "bytes": 31437,
+      "etag": "\"d65b8d7c9395b91fb74dd4bf566cbae1\"",
+      "complete_readback_verified": true
+    },
+    "reno-n8-task0-native-threads.txt": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/validation/dna-exp593-loop-smoke-20261107-rno-n8-v1/operator/stall-a1/de6c461f2c41dded37df9ffd8ae2a083dab948ef80b9c71509973a44d8de0c75/reno-n8-task0-native-threads.txt",
+      "sha256": "de6c461f2c41dded37df9ffd8ae2a083dab948ef80b9c71509973a44d8de0c75",
+      "bytes": 73210,
+      "etag": "\"df57d8237f14af3e7af1c7454a24c1ae\"",
+      "complete_readback_verified": true
+    }
+  }
+}

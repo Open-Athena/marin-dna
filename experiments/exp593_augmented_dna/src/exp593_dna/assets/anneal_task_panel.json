@@ -1,0 +1,9 @@
+{
+  "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/annealing/validation/task-panels/v1-f75dc913681bcf8c22ed6d85d2fbd6f14dd579468df0a60b7eba05ae8a9fbe04/manifest-v2.json",
+  "sha256": "2ed5b9c8d9437301a52c069b8105d01a5e8f2e47c2b14d77db99877aa02517c2",
+  "bytes": 723861,
+  "etag": "\"8e32544c1b9ac1d19b75ae4b6cefd2dc\"",
+  "complete_readback_verified": true,
+  "tasks": 21,
+  "examples": 43008
+}

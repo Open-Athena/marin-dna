@@ -1,0 +1,1473 @@
+{
+  "scope": "CPU augmentation only; 100% train-split sources. Raw record-batch samples are reused to exercise deterministic occurrence choices, not a full-corpus training-order replay.",
+  "examples": 100000,
+  "unique_raw_train_windows": 2640,
+  "species": 65,
+  "dataset_revision": "4a444fff5520b992aa978d92a5af509a81977098",
+  "tokenizer_sha256": "a43c95c64d7293d06f0c6c4713f95e0036738248f881315910c703307bdd2a2b",
+  "config": {
+    "seed": 472,
+    "kind_probabilities": [
+      0.4,
+      0.1,
+      0.375,
+      0.125
+    ],
+    "case_probabilities": [
+      0.5,
+      0.25,
+      0.25
+    ],
+    "length_buckets": [
+      2048,
+      4096,
+      6144,
+      8192
+    ],
+    "bucket_probabilities": [
+      0.15,
+      0.25,
+      0.25,
+      0.35
+    ],
+    "global_batch_size": 64,
+    "minimum_fill_fraction": 0.875,
+    "species_probability": 0.7,
+    "taxonomy_probability": 0.35,
+    "chrom_probability": 0.25,
+    "assembly_probability": 0.15,
+    "source_strand_probability": 0.15,
+    "orientation_probability": 0.2,
+    "mask_description_probability": 0.85,
+    "description_probability": 0.8,
+    "center_gap_probability": 0.2
+  },
+  "marginal_augmentations": {
+    "annotated": {
+      "examples": 59849,
+      "fraction_all_examples": 0.59849
+    },
+    "assembly": {
+      "examples": 9001,
+      "fraction_all_examples": 0.09001
+    },
+    "bare_dna": {
+      "examples": 39992,
+      "fraction_all_examples": 0.39992
+    },
+    "causal": {
+      "examples": 49934,
+      "fraction_all_examples": 0.49934
+    },
+    "center_gap": {
+      "examples": 10036,
+      "fraction_all_examples": 0.10036
+    },
+    "chrom": {
+      "examples": 15029,
+      "fraction_all_examples": 0.15029
+    },
+    "description": {
+      "examples": 47988,
+      "fraction_all_examples": 0.47988
+    },
+    "fim": {
+      "examples": 50066,
+      "fraction_all_examples": 0.50066
+    },
+    "mask_description": {
+      "examples": 51236,
+      "fraction_all_examples": 0.51236
+    },
+    "metadata": {
+      "examples": 54881,
+      "fraction_all_examples": 0.54881
+    },
+    "native_softmask": {
+      "examples": 49953,
+      "fraction_all_examples": 0.49953
+    },
+    "orientation": {
+      "examples": 11924,
+      "fraction_all_examples": 0.11924
+    },
+    "rc": {
+      "examples": 50060,
+      "fraction_all_examples": 0.5006
+    },
+    "right_flank_first": {
+      "examples": 12447,
+      "fraction_all_examples": 0.12447
+    },
+    "shorter_than_8192": {
+      "examples": 99973,
+      "fraction_all_examples": 0.99973
+    },
+    "source_strand": {
+      "examples": 8991,
+      "fraction_all_examples": 0.08991
+    },
+    "species": {
+      "examples": 42015,
+      "fraction_all_examples": 0.42015
+    },
+    "taxonomy": {
+      "examples": 20869,
+      "fraction_all_examples": 0.20869
+    },
+    "unmasked_lower": {
+      "examples": 24908,
+      "fraction_all_examples": 0.24908
+    },
+    "unmasked_upper": {
+      "examples": 25139,
+      "fraction_all_examples": 0.25139
+    }
+  },
+  "joint_augmentations": {
+    "annotated & assembly": {
+      "examples": 9001,
+      "fraction_all_examples": 0.09001
+    },
+    "annotated & causal": {
+      "examples": 9915,
+      "fraction_all_examples": 0.09915
+    },
+    "annotated & center_gap": {
+      "examples": 10013,
+      "fraction_all_examples": 0.10013
+    },
+    "annotated & chrom": {
+      "examples": 15029,
+      "fraction_all_examples": 0.15029
+    },
+    "annotated & description": {
+      "examples": 47988,
+      "fraction_all_examples": 0.47988
+    },
+    "annotated & fim": {
+      "examples": 49934,
+      "fraction_all_examples": 0.49934
+    },
+    "annotated & mask_description": {
+      "examples": 51236,
+      "fraction_all_examples": 0.51236
+    },
+    "annotated & metadata": {
+      "examples": 54881,
+      "fraction_all_examples": 0.54881
+    },
+    "annotated & native_softmask": {
+      "examples": 29927,
+      "fraction_all_examples": 0.29927
+    },
+    "annotated & orientation": {
+      "examples": 11924,
+      "fraction_all_examples": 0.11924
+    },
+    "annotated & rc": {
+      "examples": 29982,
+      "fraction_all_examples": 0.29982
+    },
+    "annotated & right_flank_first": {
+      "examples": 12415,
+      "fraction_all_examples": 0.12415
+    },
+    "annotated & shorter_than_8192": {
+      "examples": 59831,
+      "fraction_all_examples": 0.59831
+    },
+    "annotated & source_strand": {
+      "examples": 8991,
+      "fraction_all_examples": 0.08991
+    },
+    "annotated & species": {
+      "examples": 42015,
+      "fraction_all_examples": 0.42015
+    },
+    "annotated & taxonomy": {
+      "examples": 20869,
+      "fraction_all_examples": 0.20869
+    },
+    "annotated & unmasked_lower": {
+      "examples": 14822,
+      "fraction_all_examples": 0.14822
+    },
+    "annotated & unmasked_upper": {
+      "examples": 15100,
+      "fraction_all_examples": 0.151
+    },
+    "assembly & causal": {
+      "examples": 1529,
+      "fraction_all_examples": 0.01529
+    },
+    "assembly & center_gap": {
+      "examples": 1445,
+      "fraction_all_examples": 0.01445
+    },
+    "assembly & chrom": {
+      "examples": 2252,
+      "fraction_all_examples": 0.02252
+    },
+    "assembly & description": {
+      "examples": 7152,
+      "fraction_all_examples": 0.07152
+    },
+    "assembly & fim": {
+      "examples": 7472,
+      "fraction_all_examples": 0.07472
+    },
+    "assembly & mask_description": {
+      "examples": 7659,
+      "fraction_all_examples": 0.07659
+    },
+    "assembly & metadata": {
+      "examples": 9001,
+      "fraction_all_examples": 0.09001
+    },
+    "assembly & native_softmask": {
+      "examples": 4490,
+      "fraction_all_examples": 0.0449
+    },
+    "assembly & orientation": {
+      "examples": 1752,
+      "fraction_all_examples": 0.01752
+    },
+    "assembly & rc": {
+      "examples": 4463,
+      "fraction_all_examples": 0.04463
+    },
+    "assembly & right_flank_first": {
+      "examples": 1909,
+      "fraction_all_examples": 0.01909
+    },
+    "assembly & shorter_than_8192": {
+      "examples": 8997,
+      "fraction_all_examples": 0.08997
+    },
+    "assembly & source_strand": {
+      "examples": 1346,
+      "fraction_all_examples": 0.01346
+    },
+    "assembly & species": {
+      "examples": 6370,
+      "fraction_all_examples": 0.0637
+    },
+    "assembly & taxonomy": {
+      "examples": 3182,
+      "fraction_all_examples": 0.03182
+    },
+    "assembly & unmasked_lower": {
+      "examples": 2230,
+      "fraction_all_examples": 0.0223
+    },
+    "assembly & unmasked_upper": {
+      "examples": 2281,
+      "fraction_all_examples": 0.02281
+    },
+    "bare_dna & causal": {
+      "examples": 39992,
+      "fraction_all_examples": 0.39992
+    },
+    "bare_dna & native_softmask": {
+      "examples": 19952,
+      "fraction_all_examples": 0.19952
+    },
+    "bare_dna & rc": {
+      "examples": 20003,
+      "fraction_all_examples": 0.20003
+    },
+    "bare_dna & shorter_than_8192": {
+      "examples": 39983,
+      "fraction_all_examples": 0.39983
+    },
+    "bare_dna & unmasked_lower": {
+      "examples": 10035,
+      "fraction_all_examples": 0.10035
+    },
+    "bare_dna & unmasked_upper": {
+      "examples": 10005,
+      "fraction_all_examples": 0.10005
+    },
+    "causal & chrom": {
+      "examples": 2437,
+      "fraction_all_examples": 0.02437
+    },
+    "causal & description": {
+      "examples": 7943,
+      "fraction_all_examples": 0.07943
+    },
+    "causal & mask_description": {
+      "examples": 8541,
+      "fraction_all_examples": 0.08541
+    },
+    "causal & metadata": {
+      "examples": 9082,
+      "fraction_all_examples": 0.09082
+    },
+    "causal & native_softmask": {
+      "examples": 24949,
+      "fraction_all_examples": 0.24949
+    },
+    "causal & orientation": {
+      "examples": 1952,
+      "fraction_all_examples": 0.01952
+    },
+    "causal & rc": {
+      "examples": 25059,
+      "fraction_all_examples": 0.25059
+    },
+    "causal & shorter_than_8192": {
+      "examples": 49921,
+      "fraction_all_examples": 0.49921
+    },
+    "causal & source_strand": {
+      "examples": 1539,
+      "fraction_all_examples": 0.01539
+    },
+    "causal & species": {
+      "examples": 6954,
+      "fraction_all_examples": 0.06954
+    },
+    "causal & taxonomy": {
+      "examples": 3443,
+      "fraction_all_examples": 0.03443
+    },
+    "causal & unmasked_lower": {
+      "examples": 12530,
+      "fraction_all_examples": 0.1253
+    },
+    "causal & unmasked_upper": {
+      "examples": 12455,
+      "fraction_all_examples": 0.12455
+    },
+    "center_gap & chrom": {
+      "examples": 2519,
+      "fraction_all_examples": 0.02519
+    },
+    "center_gap & description": {
+      "examples": 8005,
+      "fraction_all_examples": 0.08005
+    },
+    "center_gap & fim": {
+      "examples": 10036,
+      "fraction_all_examples": 0.10036
+    },
+    "center_gap & mask_description": {
+      "examples": 8617,
+      "fraction_all_examples": 0.08617
+    },
+    "center_gap & metadata": {
+      "examples": 9180,
+      "fraction_all_examples": 0.0918
+    },
+    "center_gap & native_softmask": {
+      "examples": 5065,
+      "fraction_all_examples": 0.05065
+    },
+    "center_gap & orientation": {
+      "examples": 1987,
+      "fraction_all_examples": 0.01987
+    },
+    "center_gap & rc": {
+      "examples": 5014,
+      "fraction_all_examples": 0.05014
+    },
+    "center_gap & right_flank_first": {
+      "examples": 2534,
+      "fraction_all_examples": 0.02534
+    },
+    "center_gap & shorter_than_8192": {
+      "examples": 10034,
+      "fraction_all_examples": 0.10034
+    },
+    "center_gap & source_strand": {
+      "examples": 1561,
+      "fraction_all_examples": 0.01561
+    },
+    "center_gap & species": {
+      "examples": 7107,
+      "fraction_all_examples": 0.07107
+    },
+    "center_gap & taxonomy": {
+      "examples": 3470,
+      "fraction_all_examples": 0.0347
+    },
+    "center_gap & unmasked_lower": {
+      "examples": 2447,
+      "fraction_all_examples": 0.02447
+    },
+    "center_gap & unmasked_upper": {
+      "examples": 2524,
+      "fraction_all_examples": 0.02524
+    },
+    "chrom & description": {
+      "examples": 12048,
+      "fraction_all_examples": 0.12048
+    },
+    "chrom & fim": {
+      "examples": 12592,
+      "fraction_all_examples": 0.12592
+    },
+    "chrom & mask_description": {
+      "examples": 12794,
+      "fraction_all_examples": 0.12794
+    },
+    "chrom & metadata": {
+      "examples": 15029,
+      "fraction_all_examples": 0.15029
+    },
+    "chrom & native_softmask": {
+      "examples": 7501,
+      "fraction_all_examples": 0.07501
+    },
+    "chrom & orientation": {
+      "examples": 2999,
+      "fraction_all_examples": 0.02999
+    },
+    "chrom & rc": {
+      "examples": 7468,
+      "fraction_all_examples": 0.07468
+    },
+    "chrom & right_flank_first": {
+      "examples": 3123,
+      "fraction_all_examples": 0.03123
+    },
+    "chrom & shorter_than_8192": {
+      "examples": 15022,
+      "fraction_all_examples": 0.15022
+    },
+    "chrom & source_strand": {
+      "examples": 2238,
+      "fraction_all_examples": 0.02238
+    },
+    "chrom & species": {
+      "examples": 10526,
+      "fraction_all_examples": 0.10526
+    },
+    "chrom & taxonomy": {
+      "examples": 5218,
+      "fraction_all_examples": 0.05218
+    },
+    "chrom & unmasked_lower": {
+      "examples": 3742,
+      "fraction_all_examples": 0.03742
+    },
+    "chrom & unmasked_upper": {
+      "examples": 3786,
+      "fraction_all_examples": 0.03786
+    },
+    "description & fim": {
+      "examples": 40045,
+      "fraction_all_examples": 0.40045
+    },
+    "description & mask_description": {
+      "examples": 40938,
+      "fraction_all_examples": 0.40938
+    },
+    "description & metadata": {
+      "examples": 43919,
+      "fraction_all_examples": 0.43919
+    },
+    "description & native_softmask": {
+      "examples": 24010,
+      "fraction_all_examples": 0.2401
+    },
+    "description & orientation": {
+      "examples": 9482,
+      "fraction_all_examples": 0.09482
+    },
+    "description & rc": {
+      "examples": 24104,
+      "fraction_all_examples": 0.24104
+    },
+    "description & right_flank_first": {
+      "examples": 9865,
+      "fraction_all_examples": 0.09865
+    },
+    "description & shorter_than_8192": {
+      "examples": 47975,
+      "fraction_all_examples": 0.47975
+    },
+    "description & source_strand": {
+      "examples": 7121,
+      "fraction_all_examples": 0.07121
+    },
+    "description & species": {
+      "examples": 33681,
+      "fraction_all_examples": 0.33681
+    },
+    "description & taxonomy": {
+      "examples": 16760,
+      "fraction_all_examples": 0.1676
+    },
+    "description & unmasked_lower": {
+      "examples": 11901,
+      "fraction_all_examples": 0.11901
+    },
+    "description & unmasked_upper": {
+      "examples": 12077,
+      "fraction_all_examples": 0.12077
+    },
+    "fim & mask_description": {
+      "examples": 42695,
+      "fraction_all_examples": 0.42695
+    },
+    "fim & metadata": {
+      "examples": 45799,
+      "fraction_all_examples": 0.45799
+    },
+    "fim & native_softmask": {
+      "examples": 25004,
+      "fraction_all_examples": 0.25004
+    },
+    "fim & orientation": {
+      "examples": 9972,
+      "fraction_all_examples": 0.09972
+    },
+    "fim & rc": {
+      "examples": 25001,
+      "fraction_all_examples": 0.25001
+    },
+    "fim & right_flank_first": {
+      "examples": 12447,
+      "fraction_all_examples": 0.12447
+    },
+    "fim & shorter_than_8192": {
+      "examples": 50052,
+      "fraction_all_examples": 0.50052
+    },
+    "fim & source_strand": {
+      "examples": 7452,
+      "fraction_all_examples": 0.07452
+    },
+    "fim & species": {
+      "examples": 35061,
+      "fraction_all_examples": 0.35061
+    },
+    "fim & taxonomy": {
+      "examples": 17426,
+      "fraction_all_examples": 0.17426
+    },
+    "fim & unmasked_lower": {
+      "examples": 12378,
+      "fraction_all_examples": 0.12378
+    },
+    "fim & unmasked_upper": {
+      "examples": 12684,
+      "fraction_all_examples": 0.12684
+    },
+    "mask_description & metadata": {
+      "examples": 46861,
+      "fraction_all_examples": 0.46861
+    },
+    "mask_description & native_softmask": {
+      "examples": 25636,
+      "fraction_all_examples": 0.25636
+    },
+    "mask_description & orientation": {
+      "examples": 10141,
+      "fraction_all_examples": 0.10141
+    },
+    "mask_description & rc": {
+      "examples": 25678,
+      "fraction_all_examples": 0.25678
+    },
+    "mask_description & right_flank_first": {
+      "examples": 10653,
+      "fraction_all_examples": 0.10653
+    },
+    "mask_description & shorter_than_8192": {
+      "examples": 51219,
+      "fraction_all_examples": 0.51219
+    },
+    "mask_description & source_strand": {
+      "examples": 7599,
+      "fraction_all_examples": 0.07599
+    },
+    "mask_description & species": {
+      "examples": 35887,
+      "fraction_all_examples": 0.35887
+    },
+    "mask_description & taxonomy": {
+      "examples": 17794,
+      "fraction_all_examples": 0.17794
+    },
+    "mask_description & unmasked_lower": {
+      "examples": 12657,
+      "fraction_all_examples": 0.12657
+    },
+    "mask_description & unmasked_upper": {
+      "examples": 12943,
+      "fraction_all_examples": 0.12943
+    },
+    "metadata & native_softmask": {
+      "examples": 27400,
+      "fraction_all_examples": 0.274
+    },
+    "metadata & orientation": {
+      "examples": 11924,
+      "fraction_all_examples": 0.11924
+    },
+    "metadata & rc": {
+      "examples": 27529,
+      "fraction_all_examples": 0.27529
+    },
+    "metadata & right_flank_first": {
+      "examples": 11364,
+      "fraction_all_examples": 0.11364
+    },
+    "metadata & shorter_than_8192": {
+      "examples": 54863,
+      "fraction_all_examples": 0.54863
+    },
+    "metadata & source_strand": {
+      "examples": 8991,
+      "fraction_all_examples": 0.08991
+    },
+    "metadata & species": {
+      "examples": 42015,
+      "fraction_all_examples": 0.42015
+    },
+    "metadata & taxonomy": {
+      "examples": 20869,
+      "fraction_all_examples": 0.20869
+    },
+    "metadata & unmasked_lower": {
+      "examples": 13617,
+      "fraction_all_examples": 0.13617
+    },
+    "metadata & unmasked_upper": {
+      "examples": 13864,
+      "fraction_all_examples": 0.13864
+    },
+    "native_softmask & orientation": {
+      "examples": 6069,
+      "fraction_all_examples": 0.06069
+    },
+    "native_softmask & rc": {
+      "examples": 24914,
+      "fraction_all_examples": 0.24914
+    },
+    "native_softmask & right_flank_first": {
+      "examples": 6205,
+      "fraction_all_examples": 0.06205
+    },
+    "native_softmask & shorter_than_8192": {
+      "examples": 49942,
+      "fraction_all_examples": 0.49942
+    },
+    "native_softmask & source_strand": {
+      "examples": 4540,
+      "fraction_all_examples": 0.0454
+    },
+    "native_softmask & species": {
+      "examples": 20923,
+      "fraction_all_examples": 0.20923
+    },
+    "native_softmask & taxonomy": {
+      "examples": 10421,
+      "fraction_all_examples": 0.10421
+    },
+    "orientation & rc": {
+      "examples": 6013,
+      "fraction_all_examples": 0.06013
+    },
+    "orientation & right_flank_first": {
+      "examples": 2515,
+      "fraction_all_examples": 0.02515
+    },
+    "orientation & shorter_than_8192": {
+      "examples": 11921,
+      "fraction_all_examples": 0.11921
+    },
+    "orientation & source_strand": {
+      "examples": 1701,
+      "fraction_all_examples": 0.01701
+    },
+    "orientation & species": {
+      "examples": 8357,
+      "fraction_all_examples": 0.08357
+    },
+    "orientation & taxonomy": {
+      "examples": 4132,
+      "fraction_all_examples": 0.04132
+    },
+    "orientation & unmasked_lower": {
+      "examples": 2907,
+      "fraction_all_examples": 0.02907
+    },
+    "orientation & unmasked_upper": {
+      "examples": 2948,
+      "fraction_all_examples": 0.02948
+    },
+    "rc & right_flank_first": {
+      "examples": 6146,
+      "fraction_all_examples": 0.06146
+    },
+    "rc & shorter_than_8192": {
+      "examples": 50045,
+      "fraction_all_examples": 0.50045
+    },
+    "rc & source_strand": {
+      "examples": 4539,
+      "fraction_all_examples": 0.04539
+    },
+    "rc & species": {
+      "examples": 21105,
+      "fraction_all_examples": 0.21105
+    },
+    "rc & taxonomy": {
+      "examples": 10381,
+      "fraction_all_examples": 0.10381
+    },
+    "rc & unmasked_lower": {
+      "examples": 12518,
+      "fraction_all_examples": 0.12518
+    },
+    "rc & unmasked_upper": {
+      "examples": 12628,
+      "fraction_all_examples": 0.12628
+    },
+    "right_flank_first & shorter_than_8192": {
+      "examples": 12443,
+      "fraction_all_examples": 0.12443
+    },
+    "right_flank_first & source_strand": {
+      "examples": 1931,
+      "fraction_all_examples": 0.01931
+    },
+    "right_flank_first & species": {
+      "examples": 8701,
+      "fraction_all_examples": 0.08701
+    },
+    "right_flank_first & taxonomy": {
+      "examples": 4367,
+      "fraction_all_examples": 0.04367
+    },
+    "right_flank_first & unmasked_lower": {
+      "examples": 3085,
+      "fraction_all_examples": 0.03085
+    },
+    "right_flank_first & unmasked_upper": {
+      "examples": 3157,
+      "fraction_all_examples": 0.03157
+    },
+    "shorter_than_8192 & source_strand": {
+      "examples": 8990,
+      "fraction_all_examples": 0.0899
+    },
+    "shorter_than_8192 & species": {
+      "examples": 42001,
+      "fraction_all_examples": 0.42001
+    },
+    "shorter_than_8192 & taxonomy": {
+      "examples": 20862,
+      "fraction_all_examples": 0.20862
+    },
+    "shorter_than_8192 & unmasked_lower": {
+      "examples": 24899,
+      "fraction_all_examples": 0.24899
+    },
+    "shorter_than_8192 & unmasked_upper": {
+      "examples": 25132,
+      "fraction_all_examples": 0.25132
+    },
+    "source_strand & species": {
+      "examples": 6257,
+      "fraction_all_examples": 0.06257
+    },
+    "source_strand & taxonomy": {
+      "examples": 3127,
+      "fraction_all_examples": 0.03127
+    },
+    "source_strand & unmasked_lower": {
+      "examples": 2167,
+      "fraction_all_examples": 0.02167
+    },
+    "source_strand & unmasked_upper": {
+      "examples": 2284,
+      "fraction_all_examples": 0.02284
+    },
+    "species & taxonomy": {
+      "examples": 14666,
+      "fraction_all_examples": 0.14666
+    },
+    "species & unmasked_lower": {
+      "examples": 10407,
+      "fraction_all_examples": 0.10407
+    },
+    "species & unmasked_upper": {
+      "examples": 10685,
+      "fraction_all_examples": 0.10685
+    },
+    "taxonomy & unmasked_lower": {
+      "examples": 5223,
+      "fraction_all_examples": 0.05223
+    },
+    "taxonomy & unmasked_upper": {
+      "examples": 5225,
+      "fraction_all_examples": 0.05225
+    }
+  },
+  "conditional_augmentations": {
+    "causal": {
+      "annotated": {
+        "examples": 9915,
+        "fraction_within_group": 0.19856210197460647
+      },
+      "assembly": {
+        "examples": 1529,
+        "fraction_within_group": 0.030620418953017984
+      },
+      "bare_dna": {
+        "examples": 39992,
+        "fraction_within_group": 0.8008971842832538
+      },
+      "causal": {
+        "examples": 49934,
+        "fraction_within_group": 1.0
+      },
+      "center_gap": {
+        "examples": 0,
+        "fraction_within_group": 0.0
+      },
+      "chrom": {
+        "examples": 2437,
+        "fraction_within_group": 0.04880442183682461
+      },
+      "description": {
+        "examples": 7943,
+        "fraction_within_group": 0.15906997236351986
+      },
+      "fim": {
+        "examples": 0,
+        "fraction_within_group": 0.0
+      },
+      "mask_description": {
+        "examples": 8541,
+        "fraction_within_group": 0.17104578043016783
+      },
+      "metadata": {
+        "examples": 9082,
+        "fraction_within_group": 0.18188008170785436
+      },
+      "native_softmask": {
+        "examples": 24949,
+        "fraction_within_group": 0.49963952417190693
+      },
+      "orientation": {
+        "examples": 1952,
+        "fraction_within_group": 0.03909160091320543
+      },
+      "rc": {
+        "examples": 25059,
+        "fraction_within_group": 0.5018424320102536
+      },
+      "right_flank_first": {
+        "examples": 0,
+        "fraction_within_group": 0.0
+      },
+      "shorter_than_8192": {
+        "examples": 49921,
+        "fraction_within_group": 0.9997396563463772
+      },
+      "source_strand": {
+        "examples": 1539,
+        "fraction_within_group": 0.030820683301958585
+      },
+      "species": {
+        "examples": 6954,
+        "fraction_within_group": 0.13926382825329434
+      },
+      "taxonomy": {
+        "examples": 3443,
+        "fraction_within_group": 0.06895101534024912
+      },
+      "unmasked_lower": {
+        "examples": 12530,
+        "fraction_within_group": 0.25093122922257377
+      },
+      "unmasked_upper": {
+        "examples": 12455,
+        "fraction_within_group": 0.2494292466055193
+      }
+    },
+    "bare_dna": {
+      "annotated": {
+        "examples": 0,
+        "fraction_within_group": 0.0
+      },
+      "assembly": {
+        "examples": 0,
+        "fraction_within_group": 0.0
+      },
+      "bare_dna": {
+        "examples": 39992,
+        "fraction_within_group": 1.0
+      },
+      "causal": {
+        "examples": 39992,
+        "fraction_within_group": 1.0
+      },
+      "center_gap": {
+        "examples": 0,
+        "fraction_within_group": 0.0
+      },
+      "chrom": {
+        "examples": 0,
+        "fraction_within_group": 0.0
+      },
+      "description": {
+        "examples": 0,
+        "fraction_within_group": 0.0
+      },
+      "fim": {
+        "examples": 0,
+        "fraction_within_group": 0.0
+      },
+      "mask_description": {
+        "examples": 0,
+        "fraction_within_group": 0.0
+      },
+      "metadata": {
+        "examples": 0,
+        "fraction_within_group": 0.0
+      },
+      "native_softmask": {
+        "examples": 19952,
+        "fraction_within_group": 0.4988997799559912
+      },
+      "orientation": {
+        "examples": 0,
+        "fraction_within_group": 0.0
+      },
+      "rc": {
+        "examples": 20003,
+        "fraction_within_group": 0.5001750350070014
+      },
+      "right_flank_first": {
+        "examples": 0,
+        "fraction_within_group": 0.0
+      },
+      "shorter_than_8192": {
+        "examples": 39983,
+        "fraction_within_group": 0.9997749549909982
+      },
+      "source_strand": {
+        "examples": 0,
+        "fraction_within_group": 0.0
+      },
+      "species": {
+        "examples": 0,
+        "fraction_within_group": 0.0
+      },
+      "taxonomy": {
+        "examples": 0,
+        "fraction_within_group": 0.0
+      },
+      "unmasked_lower": {
+        "examples": 10035,
+        "fraction_within_group": 0.2509251850370074
+      },
+      "unmasked_upper": {
+        "examples": 10005,
+        "fraction_within_group": 0.2501750350070014
+      }
+    },
+    "fim": {
+      "annotated": {
+        "examples": 49934,
+        "fraction_within_group": 0.9973634802061279
+      },
+      "assembly": {
+        "examples": 7472,
+        "fraction_within_group": 0.14924299924100187
+      },
+      "bare_dna": {
+        "examples": 0,
+        "fraction_within_group": 0.0
+      },
+      "causal": {
+        "examples": 0,
+        "fraction_within_group": 0.0
+      },
+      "center_gap": {
+        "examples": 10036,
+        "fraction_within_group": 0.20045539887348698
+      },
+      "chrom": {
+        "examples": 12592,
+        "fraction_within_group": 0.25150800942755563
+      },
+      "description": {
+        "examples": 40045,
+        "fraction_within_group": 0.799844205648544
+      },
+      "fim": {
+        "examples": 50066,
+        "fraction_within_group": 1.0
+      },
+      "mask_description": {
+        "examples": 42695,
+        "fraction_within_group": 0.8527743378740064
+      },
+      "metadata": {
+        "examples": 45799,
+        "fraction_within_group": 0.9147725002996046
+      },
+      "native_softmask": {
+        "examples": 25004,
+        "fraction_within_group": 0.4994207645907402
+      },
+      "orientation": {
+        "examples": 9972,
+        "fraction_within_group": 0.19917708624615507
+      },
+      "rc": {
+        "examples": 25001,
+        "fraction_within_group": 0.49936084368633404
+      },
+      "right_flank_first": {
+        "examples": 12447,
+        "fraction_within_group": 0.24861183238125675
+      },
+      "shorter_than_8192": {
+        "examples": 50052,
+        "fraction_within_group": 0.9997203691127712
+      },
+      "source_strand": {
+        "examples": 7452,
+        "fraction_within_group": 0.14884352654496066
+      },
+      "species": {
+        "examples": 35061,
+        "fraction_within_group": 0.7002956097950706
+      },
+      "taxonomy": {
+        "examples": 17426,
+        "fraction_within_group": 0.34806056006071984
+      },
+      "unmasked_lower": {
+        "examples": 12378,
+        "fraction_within_group": 0.2472336515799145
+      },
+      "unmasked_upper": {
+        "examples": 12684,
+        "fraction_within_group": 0.25334558382934524
+      }
+    }
+  },
+  "histograms": {
+    "kind": {
+      "bare_causal": 39992,
+      "short_fim": 37556,
+      "annotated_causal": 9942,
+      "long_fim": 12510
+    },
+    "case": {
+      "native_softmask": 49953,
+      "unmasked_lower": 24908,
+      "unmasked_upper": 25139
+    },
+    "rc": {
+      "False": 49940,
+      "True": 50060
+    },
+    "bucket": {
+      "2048": 15232,
+      "6144": 26368,
+      "4096": 25152,
+      "8192": 33248
+    },
+    "mask_description": {
+      "False": 48764,
+      "True": 51236
+    },
+    "description": {
+      "False": 52012,
+      "True": 47988
+    },
+    "metadata_structure": {
+      "none": 39992,
+      "brackets": 7608,
+      "comments": 7460,
+      "xml": 7543,
+      "prose": 7471,
+      "json": 7495,
+      "inline": 7694,
+      "lines": 7372,
+      "fasta": 7365
+    },
+    "layout": {
+      "causal": 49934,
+      "instruction_first": 16671,
+      "compact": 16679,
+      "instruction_after_flanks": 16716
+    },
+    "right_flank_first": {
+      "False": 87553,
+      "True": 12447
+    },
+    "gap_length": {
+      "0": 49934,
+      "2": 12661,
+      "1": 12497,
+      "3": 12398,
+      "16": 2063,
+      "64": 2124,
+      "128": 2057,
+      "256": 2112,
+      "32": 2049,
+      "512": 2105
+    },
+    "center_gap": {
+      "False": 89964,
+      "True": 10036
+    },
+    "species": {
+      "Hannuus": 1820,
+      "Ahypogaea": 1360,
+      "Lalbus": 1629,
+      "Mdomestica": 1816,
+      "Rcommunis": 1023,
+      "Soleracea": 1666,
+      "Bvulgaris": 2081,
+      "Vunguiculata": 1361,
+      "Dalata": 1741,
+      "Lervoides": 1745,
+      "Lsativa": 1364,
+      "Vdarrowii": 1668,
+      "Ecoracana": 1631,
+      "Cillinoinensis": 1670,
+      "Mesculenta": 1403,
+      "Cavellana": 1516,
+      "Acomosus": 1779,
+      "Pvaginatum": 1631,
+      "Ptrifoliata": 1743,
+      "Carietinum": 1480,
+      "Bdistachyon": 1250,
+      "Hvulgare": 1401,
+      "Qrubra": 1517,
+      "Esalsugineum": 1474,
+      "Cquinoa": 1551,
+      "Vvinifera": 1818,
+      "Dcarota": 1285,
+      "Ptrichocarpa": 2425,
+      "Sbicolor": 1629,
+      "Ahypochondriacus": 1778,
+      "Sparvula": 1557,
+      "Egrandis": 1402,
+      "Ljaponicus": 1480,
+      "Vfaba": 1859,
+      "Ppersica": 1593,
+      "Osativa": 1439,
+      "Carabica": 1209,
+      "Mtruncatula": 1440,
+      "Csativus": 1290,
+      "Fvesca": 1481,
+      "Ccitriodora": 1516,
+      "Lusitatissimum": 1174,
+      "Gmax": 1745,
+      "Tintermedium": 1854,
+      "Macuminata": 1551,
+      "Taestivum": 1214,
+      "Athaliana": 1400,
+      "Crubella": 1364,
+      "Othomaeum": 1362,
+      "Ckanehirae": 2041,
+      "Pvirgatum": 2043,
+      "Spurpurea": 1366,
+      "Pamilis": 1554,
+      "Acoerulea": 1288,
+      "Ncolorata": 1326,
+      "Cclementina": 1555,
+      "Aofficinalis": 2160,
+      "Bplatyphylla": 1629,
+      "Oeuropaea": 1285,
+      "Zmays": 1623,
+      "Sviridis": 1323,
+      "Bstricta": 1553,
+      "Spolyrhiza": 986,
+      "Msinensis": 948,
+      "Zmarina": 1135
+    },
+    "metadata_field": {
+      "species": 42015,
+      "taxonomy": 20869,
+      "orientation": 11924,
+      "source_strand": 8991,
+      "assembly": 9001,
+      "chrom": 15029
+    }
+  },
+  "kind_rates": {
+    "bare_causal": {
+      "configured": 0.4,
+      "observed": 0.39992,
+      "input_token_fraction": 0.4000254731590028,
+      "scored_target_fraction": 0.7953778012726448,
+      "normalized_objective_mass_fraction": 0.39992
+    },
+    "annotated_causal": {
+      "configured": 0.1,
+      "observed": 0.09942,
+      "input_token_fraction": 0.09985175495565038,
+      "scored_target_fraction": 0.19647612310901405,
+      "normalized_objective_mass_fraction": 0.09942
+    },
+    "short_fim": {
+      "configured": 0.375,
+      "observed": 0.37556,
+      "input_token_fraction": 0.3761071418101107,
+      "scored_target_fraction": 0.00027886399715533667,
+      "normalized_objective_mass_fraction": 0.37556
+    },
+    "long_fim": {
+      "configured": 0.125,
+      "observed": 0.1251,
+      "input_token_fraction": 0.12401563007523621,
+      "scored_target_fraction": 0.00786721162118579,
+      "normalized_objective_mass_fraction": 0.1251
+    }
+  },
+  "conditional_by_kind": {
+    "bare_causal": {
+      "examples": 39992,
+      "rc": 0.5001750350070014,
+      "native_softmask": 0.4988997799559912,
+      "unmasked_lower": 0.2509251850370074,
+      "unmasked_upper": 0.2501750350070014
+    },
+    "short_fim": {
+      "examples": 37556,
+      "rc": 0.49896155075087867,
+      "native_softmask": 0.49896155075087867,
+      "unmasked_upper": 0.2537543934391309,
+      "unmasked_lower": 0.2472840558099904
+    },
+    "annotated_causal": {
+      "examples": 9942,
+      "rc": 0.5085495876081272,
+      "native_softmask": 0.5026151679742507,
+      "unmasked_lower": 0.2509555421444377,
+      "unmasked_upper": 0.2464292898813116
+    },
+    "long_fim": {
+      "examples": 12510,
+      "rc": 0.5005595523581136,
+      "unmasked_lower": 0.24708233413269384,
+      "native_softmask": 0.5007993605115907,
+      "unmasked_upper": 0.25211830535571544
+    }
+  },
+  "active_rates": {
+    "rc": 0.5006,
+    "mask_description": 0.51236,
+    "description": 0.47988,
+    "right_flank_first": 0.12447,
+    "center_gap": 0.10036
+  },
+  "metadata_rates": {
+    "species": 0.42015,
+    "taxonomy": 0.20869,
+    "orientation": 0.11924,
+    "source_strand": 0.08991,
+    "assembly": 0.09001,
+    "chrom": 0.15029
+  },
+  "actual_input_tokens": 534947393,
+  "allocated_tokens": 568590336,
+  "pad_fraction": 0.05916903765314785,
+  "text_token_fraction": 0.008842770451635793,
+  "length_quantiles": {
+    "0": 2048.0,
+    "0.1": 2048.0,
+    "0.25": 3782.0,
+    "0.5": 5651.0,
+    "0.75": 7421.0,
+    "0.9": 7889.0,
+    "1": 8192.0
+  },
+  "distinct_rendered_prompt_signatures": 59983,
+  "semantic_component_count": 576,
+  "elapsed_seconds": 65.77766607678495,
+  "source_files": [
+    {
+      "path": "metadata/train/data-00000-of-00044.sample.jsonl",
+      "sha256": "d59ee4507157debc94542f492c14efe296484cfc9b27741671de92ed04716a9d"
+    },
+    {
+      "path": "metadata/train/data-00001-of-00044.sample.jsonl",
+      "sha256": "3cc605a9312c1e711922a49834dec76dab77bc7189c1c6e3ca725b60507bd721"
+    },
+    {
+      "path": "metadata/train/data-00002-of-00044.sample.jsonl",
+      "sha256": "cbf1cf725cbcc66272d3c46eb027225c982e99f029dba2f9bd87e5ab5b904f6b"
+    },
+    {
+      "path": "metadata/train/data-00003-of-00044.sample.jsonl",
+      "sha256": "9624e042164eea353d8ffcdd8fb9e3f34edae9b951001098cf7159fa92e95f10"
+    },
+    {
+      "path": "metadata/train/data-00004-of-00044.sample.jsonl",
+      "sha256": "4c20158bd4381b28a7371fa3b5ddd5977022ed562b71fc3359073d1e0695e7cf"
+    },
+    {
+      "path": "metadata/train/data-00005-of-00044.sample.jsonl",
+      "sha256": "cc93f36dd09b5b0bd2411606884d57f014b431149048977b2e61db68945fe8e3"
+    },
+    {
+      "path": "metadata/train/data-00006-of-00044.sample.jsonl",
+      "sha256": "3dd155c54b3cff8b16858352eed7eb2a72248fa5ff0b839cd6ef779669eaefb2"
+    },
+    {
+      "path": "metadata/train/data-00007-of-00044.sample.jsonl",
+      "sha256": "07a8bef9c21abf74a4522b03a8eace07937e838b6bf8a8ee8ac8da411ab7fb55"
+    },
+    {
+      "path": "metadata/train/data-00008-of-00044.sample.jsonl",
+      "sha256": "0e6625af30cd8ce6b5e8d816e3ac312cbc8dc9a88df5af66a88134c536ba3e3a"
+    },
+    {
+      "path": "metadata/train/data-00009-of-00044.sample.jsonl",
+      "sha256": "7d4229dcf6334ded12ae160e889c1dc4418d2e23732ad4ccab512e81b017ef5d"
+    },
+    {
+      "path": "metadata/train/data-00010-of-00044.sample.jsonl",
+      "sha256": "66266f5b565e5527246aba267eb31fa53d9c48f5619b02556f7db0e5a70e1008"
+    },
+    {
+      "path": "metadata/train/data-00011-of-00044.sample.jsonl",
+      "sha256": "3fe93e1fb3be06ae71b241aee513cc60b3c7ea5b6a9334d8f2ff744b8c0695da"
+    },
+    {
+      "path": "metadata/train/data-00012-of-00044.sample.jsonl",
+      "sha256": "07000ed0889cbd15aa022e47e614e48f21cc79ea6c8a1738f6d4902ee6e82ff0"
+    },
+    {
+      "path": "metadata/train/data-00013-of-00044.sample.jsonl",
+      "sha256": "9c8207af187e6a6e369677f6461ce0ba85d778a8b47ab3041d7a30f98ad30ae0"
+    },
+    {
+      "path": "metadata/train/data-00014-of-00044.sample.jsonl",
+      "sha256": "93566edba4f8d26b0d813355db1fca2707794bcef21fb9ab2f0b563d7d59dc4b"
+    },
+    {
+      "path": "metadata/train/data-00015-of-00044.sample.jsonl",
+      "sha256": "99ea89c511d1b879eed7e73785d40facc33e7707661825b67cfd845595bf3b51"
+    },
+    {
+      "path": "metadata/train/data-00016-of-00044.sample.jsonl",
+      "sha256": "a10d12a6f760e76b90111338cd1f76c8e930820a330233a9ee3c68a38be97553"
+    },
+    {
+      "path": "metadata/train/data-00017-of-00044.sample.jsonl",
+      "sha256": "0a6754ca749df1589ce2c3fb7c7208bf94f70498c8cd5bafc41ce065cac89a5a"
+    },
+    {
+      "path": "metadata/train/data-00018-of-00044.sample.jsonl",
+      "sha256": "ea83a5dc7525c498cf590618084aa17d9029bc0911df861fee8168263769dd58"
+    },
+    {
+      "path": "metadata/train/data-00019-of-00044.sample.jsonl",
+      "sha256": "764ae05a8c7b85174a98f94ffe78ba9d7ffa4de6fffc25ddc2e378ab6865b988"
+    },
+    {
+      "path": "metadata/train/data-00020-of-00044.sample.jsonl",
+      "sha256": "dac50fe56305f2b58cf55e361c9e09ee4fe219d8806bdc06e1ccb9c425ed9d81"
+    },
+    {
+      "path": "metadata/train/data-00021-of-00044.sample.jsonl",
+      "sha256": "5523754a0b992036df065e6aa0b028d0e46cc4bfddac238c94ca08af05b35d76"
+    },
+    {
+      "path": "metadata/train/data-00022-of-00044.sample.jsonl",
+      "sha256": "b59b81e8e5e9c33386480cbc75eb4043b2ecf958c2820d49214f6345265c0472"
+    },
+    {
+      "path": "metadata/train/data-00023-of-00044.sample.jsonl",
+      "sha256": "b69018b0cb0c73320e20373f55edf024301864de11255f1d7f77f292ffe011da"
+    },
+    {
+      "path": "metadata/train/data-00024-of-00044.sample.jsonl",
+      "sha256": "f56bf885b496c343d115fca46aeb8365745aa00c779f77e6d7befffd10ce1edb"
+    },
+    {
+      "path": "metadata/train/data-00025-of-00044.sample.jsonl",
+      "sha256": "4285a4fd115ac0c2b07a13218e0f3c80e20f5441fca6d616dc42d16bec019f79"
+    },
+    {
+      "path": "metadata/train/data-00026-of-00044.sample.jsonl",
+      "sha256": "56860df5d8e3d366c0b6017502a6cbf29031464a0e4131aac34c9e6c051a1c80"
+    },
+    {
+      "path": "metadata/train/data-00027-of-00044.sample.jsonl",
+      "sha256": "60d2489771cd1adb02992d60ef23d8bba83c1851623c8b013bae83f1ef5c80e8"
+    },
+    {
+      "path": "metadata/train/data-00028-of-00044.sample.jsonl",
+      "sha256": "c24fc191153a89fd442b77f43a0c4b56c25461c9a047b53ecd83b66bdfa93aa9"
+    },
+    {
+      "path": "metadata/train/data-00029-of-00044.sample.jsonl",
+      "sha256": "0fd276409fd7756e2202e49436d43cd654c9f15504186a7395ce55fa0c0738e0"
+    },
+    {
+      "path": "metadata/train/data-00030-of-00044.sample.jsonl",
+      "sha256": "3100a4f114be8c28d52a2a261f0d1be6913d4f190cdf49088887bfd217a22cb9"
+    },
+    {
+      "path": "metadata/train/data-00031-of-00044.sample.jsonl",
+      "sha256": "7e15043847ba53b49bb8644d795dfee547e2a75300a646fa91a1e895cceb56cd"
+    },
+    {
+      "path": "metadata/train/data-00032-of-00044.sample.jsonl",
+      "sha256": "6db9d8a75395ed3752e26d473c9ce616be635bd86da0052b99325bb1124f8536"
+    },
+    {
+      "path": "metadata/train/data-00033-of-00044.sample.jsonl",
+      "sha256": "95e68036324c238091212f662e0955b890bea24f3887854561497fac65a3f137"
+    },
+    {
+      "path": "metadata/train/data-00034-of-00044.sample.jsonl",
+      "sha256": "a1226c3d76611fed9ba33d0c6f9d75d0359f928e028877eb88745050aa7e7867"
+    },
+    {
+      "path": "metadata/train/data-00035-of-00044.sample.jsonl",
+      "sha256": "7299645b2a39394bc26a90fbd06aa7e02f5ffc848f61fae77019140f025d1ec4"
+    },
+    {
+      "path": "metadata/train/data-00036-of-00044.sample.jsonl",
+      "sha256": "10ce309b8f7e07599b4b006b56f5971b34d0a815205654378e0c74f9c3581bdc"
+    },
+    {
+      "path": "metadata/train/data-00037-of-00044.sample.jsonl",
+      "sha256": "888255b47aed817cf5fa4a1bcd39b8e5e03f7d49d109adbc4614fe5e0a40030a"
+    },
+    {
+      "path": "metadata/train/data-00038-of-00044.sample.jsonl",
+      "sha256": "dfc46ea5623a4a620b3cb44e587d1a2d1bf680f0e291afd6a6ec1ffdfff81af4"
+    },
+    {
+      "path": "metadata/train/data-00039-of-00044.sample.jsonl",
+      "sha256": "6a22ceb29c2e82fdf16b63c071c5a9ce124069b7ee19de55618ddd79c4370116"
+    },
+    {
+      "path": "metadata/train/data-00040-of-00044.sample.jsonl",
+      "sha256": "cdd8994b0e7d601fc23e99b0bb8181c40351c1605b0dba4796713ad4ad5c5ba6"
+    },
+    {
+      "path": "metadata/train/data-00041-of-00044.sample.jsonl",
+      "sha256": "b2dbd6e3b78d6f32bb6e26b2f4f859faac8d409d679878fc4aba74c0cb245793"
+    },
+    {
+      "path": "metadata/train/data-00042-of-00044.sample.jsonl",
+      "sha256": "dfd4b903fcc9a82839ca759389baf88722eedd8e3f7791957efcdeaeede8d00a"
+    },
+    {
+      "path": "metadata/train/data-00043-of-00044.sample.jsonl",
+      "sha256": "eea7ad9f1b29d0ddf4bf655d5ba91f09c88355eaa5ec556822541413f6ab067a"
+    }
+  ]
+}

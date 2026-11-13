@@ -1,0 +1,107 @@
+{
+  "caveats": [
+    "Subsequent preemptions can replay the same native checkpoint again; history above the committed clock is not durable.",
+    "This deployment retains the serialized thirty-minute checkpoint policy; shorter intervals are available for later allocations."
+  ],
+  "fresh_norm_verification": {
+    "all_norms_finite": true,
+    "history_row": {
+      "_step": 289045,
+      "_timestamp": 1794169508.174508,
+      "norms/grad/layer_0/attention_q": 0.006234423257410526,
+      "norms/grad/layer_0/expert_down": 0.001575983944348991,
+      "norms/grad/layer_0/router": 0.0006694059120491147,
+      "norms/grad/layer_4/attention_q": 0.02999691665172577,
+      "norms/grad/layer_4/expert_down": 0.0016937903128564358,
+      "norms/grad/layer_4/router": 0.0009039948927238584,
+      "norms/grad/layer_7/attention_q": 0.06609653681516647,
+      "norms/grad/layer_7/expert_down": 0.0031856282148510218,
+      "norms/grad/layer_7/router": 0.006206868216395378,
+      "norms/grad/overall": 8.957662582397461,
+      "norms/param/layer_0/attention_q": 13.670217514038086,
+      "norms/param/layer_0/expert_down": 133.9379119873047,
+      "norms/param/layer_0/router": 186.87020874023438,
+      "norms/param/layer_4/attention_q": 13.669048309326172,
+      "norms/param/layer_4/expert_down": 133.95138549804688,
+      "norms/param/layer_4/router": 176.16122436523438,
+      "norms/param/layer_7/attention_q": 13.668465614318848,
+      "norms/param/layer_7/expert_down": 133.9445037841797,
+      "norms/param/layer_7/router": 135.1696319580078,
+      "norms/param/overall": 2378.5029296875,
+      "train/input_tokens": 96658040261.0,
+      "train/step": 280000
+    },
+    "norm_count": 20,
+    "norm_update": 280000,
+    "old_history_highwater": 289030,
+    "resume_checkpoint": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/training/dna-exp593-augmented-d768-pretrained-seed0-v1/checkpoints/step-279987",
+    "resume_update": 279987,
+    "run_id": "dna-exp593-augmented-d768-pretrained-seed0-v1",
+    "same_wandb_identity": true
+  },
+  "minimum_previously_logged_inputs_to_replay": 2925518048,
+  "new_root": "/eczech/exp593-production-20261108-rno-n8-recovery-v1-a1",
+  "observed_production": {
+    "input_tokens": 97489296070,
+    "latest_routing_drops": {
+      "moe/dropped_assignments": 0,
+      "moe/receiver_dropped_assignments": 0,
+      "moe/sender_dropped_assignments": 0
+    },
+    "observed_at": "2026-11-08T21:08:27.166995+00:00",
+    "phase": "training",
+    "resume_eval_input_tokens": 96653483395,
+    "resume_primary_loss": 1.2800649466096543,
+    "resume_update": 279987,
+    "state": "running",
+    "updates": 282419
+  },
+  "old_root": "/eczech/exp593-standby-20261108-rno-n8-v1-a1",
+  "physical_fence": {
+    "backend_measured_at": "2026-11-08T20:07:22.524000+00:00",
+    "child_state": "JOB_STATE_KILLED",
+    "fresh_after_stop": true,
+    "measurement_recent": true,
+    "observed_at": "2026-11-08T20:07:53.973237+00:00",
+    "old_pods": [],
+    "old_root": "/eczech/exp593-standby-20261108-rno-n8-v1-a1",
+    "old_training_pods": [],
+    "old_writer_physically_terminal": true,
+    "remaining_coordinator_tasks_exited": true,
+    "root_state": "JOB_STATE_KILLED"
+  },
+  "prior_last_logged_input_tokens": 99579001443,
+  "purpose": "Recover the text-initialized model after scheduler preemption and the old promoted-standby launcher failing on a pruned preparation checkpoint.",
+  "run_id": "dna-exp593-augmented-d768-pretrained-seed0-v1",
+  "runtime_source_commit": "de5f428fc7b2bac8b6e40697f905c8b99ca3580d",
+  "source_checkpoint": {
+    "available": true,
+    "checkpoint": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/training/dna-exp593-augmented-d768-pretrained-seed0-v1/checkpoints/step-279987",
+    "clock": {
+      "dna_tokens": 95916161553,
+      "examples": 17919168,
+      "fim_examples": 8958688,
+      "input_tokens": 96653483395,
+      "loss_targets": 48613920738,
+      "rc_examples": 8961992,
+      "text_tokens": 737321842,
+      "updates": 279987
+    },
+    "metadata_sha256": "bf27c572face560254d608ae5742c1d4e16ce498085994c2152d5ee6b3368700",
+    "native_discovery_verified": true,
+    "scientific_bindings_verified": true,
+    "temporary": true,
+    "verified": true
+  },
+  "source_commit": "3f0536ae97266df0b6fae2c11566931ebb470003",
+  "submitted_at": "2026-11-08T20:09:02+00:00",
+  "target": {
+    "cluster": "cw-rno2a",
+    "gpu": "H100",
+    "gpus": 64,
+    "nodes": 8,
+    "priority": "batch",
+    "user": "eczech"
+  },
+  "wandb_url": "https://forge.coreweave.com/api/wandb/eric-czech/marin/runs/dna-exp593-augmented-d768-pretrained-seed0-v1"
+}

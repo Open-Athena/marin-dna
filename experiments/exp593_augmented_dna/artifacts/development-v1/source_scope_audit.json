@@ -1,0 +1,14 @@
+{
+  "upstream_validation_rows": 38060,
+  "unique_512bp_sequences": 38047,
+  "benchmark_rows": 38060,
+  "benchmark_center_512_matches": 38060,
+  "benchmark_label_column_read": false,
+  "reference_accession": "GCF_000003195.3",
+  "reference_matches_first_128": 128,
+  "source_sequence_length": 512,
+  "source_start_0based": "pos - 256",
+  "target_index_0based": 255,
+  "target_genomic_position_0based": "pos - 1",
+  "decision": "Do not use upstream validation as development: its DNA is reused by the PlantCAD2 Andropogoneae test benchmark."
+}

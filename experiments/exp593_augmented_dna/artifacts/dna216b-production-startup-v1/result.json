@@ -1,0 +1,76 @@
+{
+  "first_1000_updates": {
+    "all_logged_losses_finite": true,
+    "buckets": [
+      2048,
+      4096,
+      6144,
+      8192
+    ],
+    "input_tokens": 339790830,
+    "last_update": 1000,
+    "logged_rows": 1000,
+    "matches_original_text_run_input_prefix": true,
+    "norm_count": 20,
+    "norms": {
+      "norms/grad/layer_0/attention_q": 0.032930728048086166,
+      "norms/grad/layer_0/expert_down": 0.007775491569191217,
+      "norms/grad/layer_0/router": 0.00033985116169787943,
+      "norms/grad/layer_4/attention_q": 0.015129286795854568,
+      "norms/grad/layer_4/expert_down": 0.05807933956384659,
+      "norms/grad/layer_4/router": 0.0088646300137043,
+      "norms/grad/layer_7/attention_q": 0.09520699828863144,
+      "norms/grad/layer_7/expert_down": 0.14143982529640198,
+      "norms/grad/layer_7/router": 0.023926924914121628,
+      "norms/grad/overall": 6.03148078918457,
+      "norms/param/layer_0/attention_q": 13.671001434326172,
+      "norms/param/layer_0/expert_down": 133.93264770507812,
+      "norms/param/layer_0/router": 235.63128662109375,
+      "norms/param/layer_4/attention_q": 13.670702934265137,
+      "norms/param/layer_4/expert_down": 133.95516967773438,
+      "norms/param/layer_4/router": 121.41615295410156,
+      "norms/param/layer_7/attention_q": 13.669806480407715,
+      "norms/param/layer_7/expert_down": 133.93988037109375,
+      "norms/param/layer_7/router": 61.1053466796875,
+      "norms/param/overall": 2377.632568359375
+    },
+    "norms_all_finite": true,
+    "routing_drops": 0
+  },
+  "first_native_checkpoint": "Not yet due; verify independently after the first scheduled save.",
+  "initial_history": {
+    "input_tokens": 0,
+    "model_step": 0,
+    "primary_eval_loss": 0.9475007150951535
+  },
+  "iris_root": "/eczech/exp593-dna216b-production-20261108-rno-n4-v1-a1",
+  "latest_observation": {
+    "fim_fraction": 0.5002171255790016,
+    "input_tokens": 662218127,
+    "observed_at": "2026-11-08T11:58:20.986049+00:00",
+    "rc_fraction": 0.4998713329902213,
+    "run_progress": 0.0030635737930997707,
+    "step": 1943
+  },
+  "lr_multiplier": 0.5,
+  "native_training_bindings_readback_verified": true,
+  "resume_update": 0,
+  "run_id": "dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1",
+  "runtime_source_commit": "6573755dd89604fcd81a929b6e3ee4967c729ec0",
+  "scientific_bindings_sha256": "512ea5478153806ffd0070b4e91691bb39ab97e23945057ec30c8cde0b782cb2",
+  "source_checkpoint": "s3://marin-us-east-02a/MarinDNA/exp586_plantcad2_moe/checkpoints/exp586-plantcad2-d768-pretrained-lrm1-seed0-v1/2026.10.08/checkpoints/step-412290",
+  "source_metadata_canonical_sha256": "275e68e8a521333a4dd5c7bf2aa8f9c79c11517677a8af47ce7abc1aa5004a89",
+  "source_optimizer_restored": false,
+  "source_state_import": "weights_only",
+  "target": {
+    "cluster": "cw-rno2a",
+    "gpus": 32,
+    "nodes": 4,
+    "priority": "batch",
+    "user": "eczech"
+  },
+  "training_input_tokens": 216158699520,
+  "verified_at": "2026-11-08T12:00:46.832509+00:00",
+  "wandb_url": "https://forge.coreweave.com/api/wandb/eric-czech/marin/runs/dna-exp593-augmented-d768-dna216b-lrm0p5-seed0-v1",
+  "warmup_input_tokens": 2161115136
+}

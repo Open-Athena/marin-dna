@@ -1,0 +1,40 @@
+{
+  "candidate_counts": {
+    "duplicate_dna_or_rc": 6,
+    "eligible_unique_sites": 125183,
+    "invalid_target": 106,
+    "odd_chromosome_rows": 493246,
+    "source_rows": 858086,
+    "training_source_region_overlap": 367951
+  },
+  "chromosome_target_base_matching": true,
+  "coordinate_convention": "Zero-based half-open start=pos-256, end=pos+256; published pos is one-based; target index 255.",
+  "coverage": {
+    "all_training_rows_checked": 2638656,
+    "sorghum_training_rows": 39976
+  },
+  "exclusion_file": "Evolutionary_constraint/valid.tsv",
+  "exclusion_reason": "The upstream validation DNA is reused by PlantCAD2's final Andropogoneae benchmark.",
+  "exclusion_sha256": "57c06cab418804fac34d7b5a31e1ea88064f465ef659de466d288bf3c78d9413",
+  "label_counts": {
+    "0": 256,
+    "1": 256
+  },
+  "limitation": "Source-coordinate and exact benchmark-DNA separation do not establish absence of homology across the 65 training genomes.",
+  "lm_inputs_manifest_sha256": "33d8d87b7ee9edbba457504632936cfd7eccb00523a74726ed6a08098047f0e3",
+  "panel_sha256": "50f84f2a68425fe1d494a1bd92dfe3fbafe87ef48c05be3e40100dcbf58ea7fe",
+  "purpose": "evaluation_only; never training or annotation guidance",
+  "reference": {
+    "accession": "GCF_000003195.3",
+    "genome_gzip_sha256": "72c2890ef4021483e18b018655038bb25ed87da67cfc555c308f7bd094a96c98",
+    "genome_url": "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/003/195/GCF_000003195.3_Sorghum_bicolor_NCBIv3/GCF_000003195.3_Sorghum_bicolor_NCBIv3_genomic.fna.gz"
+  },
+  "scoring_protocol": "Before any prediction, freeze bare left/right-RC true-base log-probability average as the primary conservation score, plus minimal-FIM true-base log-probability. Report AUROC and average precision; no supervised fitting or model selection.",
+  "selected_contexts_disjoint": true,
+  "selected_sites": 512,
+  "selection_seed": 593,
+  "source_dataset": "kuleshov-group/cross-species-single-nucleotide-annotation",
+  "source_file": "Evolutionary_constraint/train.tsv",
+  "source_revision": "ce38574d8a2aa8737167c6d5416a37a82d15eba4",
+  "source_sha256": "67b986a54fcdef1a759da49164d1b210e216523c912e63513af972d4c869cb7c"
+}

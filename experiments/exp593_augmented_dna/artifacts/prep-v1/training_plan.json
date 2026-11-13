@@ -1,0 +1,38 @@
+{
+  "training_authorized": false,
+  "input_token_budget": 216158699520,
+  "warmup_input_tokens": 2161115136,
+  "schedule_clock": "actual input tokens including text, excluding padding",
+  "global_batch_size": 64,
+  "runtime_source_commit": "de5f428fc7b2bac8b6e40697f905c8b99ca3580d",
+  "wandb": {
+    "entity": "eric-czech",
+    "project": "marin",
+    "base_url": "https://forge.coreweave.com/api/wandb"
+  },
+  "norm_policy": {
+    "every_updates": 1000,
+    "num_layers": 8
+  },
+  "norm_source": {
+    "params": "FP32 master parameters",
+    "gradients": "globally reduced and unscaled, before clipping and optimizer transforms"
+  },
+  "validation": {
+    "primary_examples": 512,
+    "disjoint_examples": 512,
+    "metrics": [
+      "eval/loss",
+      "eval/loss_softmasked",
+      "eval/loss_nonsoftmasked",
+      "eval/loss_weighted_10to1",
+      "eval/loss_disjoint"
+    ],
+    "interval_input_tokens": 5242880000,
+    "extra_events": [
+      "initial",
+      "warmup_end",
+      "final"
+    ]
+  }
+}

@@ -1,0 +1,102 @@
+{
+  "source_commit": "7057c1d443ed06f7b77ee93106b2ea367ac72728",
+  "iris_root": "/eczech/exp593-loop-smoke-20261107-rno-n8-v1-a2",
+  "cluster": "cw-rno2a",
+  "nodes": 8,
+  "gpus": 64,
+  "runtime_override": "--xla_gpu_shard_autotuning=false",
+  "initial_causal_fim_functional_evaluation": "passed",
+  "initial_evaluation_finished_utc": "2026-11-07T23:42:39Z",
+  "outcome": "stopped_runtime_execution_stall",
+  "completed_updates": 0,
+  "checkpoint": null,
+  "native_stack": "Sampled task-zero processes wait in CUDA stream synchronization / ConditionalThunk during train.py:512; they have moved beyond evaluation and compiler autotuning.",
+  "nccl_ras": {
+    "detail": "stall",
+    "nccl_version": "2.32.3",
+    "cuda_runtime_version": "13040",
+    "cuda_driver_version": "13020",
+    "collection_time_seconds": 0.003,
+    "ras_timeouts": 0,
+    "input_communicators": 1,
+    "emitted_communicators": 1,
+    "invalid_communicators": 0,
+    "omitted_communicators": 0,
+    "communicators": [
+      {
+        "communicator_hash": "0x83b0ac1d044d074a",
+        "secondary_hash": "0x275e68630b707d6c:0x56ffb752067d71ad",
+        "size": 64,
+        "reported_ranks": 64,
+        "missing_ranks": 0,
+        "unresponsive_ranks": 0,
+        "considered_dead_ranks": 0,
+        "lifecycle_state": "running",
+        "collective_mismatch": false
+      }
+    ],
+    "progress": [
+      {
+        "communicator_hash": "0x83b0ac1d044d074a",
+        "secondary_hash": "0x275e68630b707d6c:0x56ffb752067d71ad",
+        "collective": "AllGather",
+        "minimum": 665,
+        "maximum": 665
+      },
+      {
+        "communicator_hash": "0x83b0ac1d044d074a",
+        "secondary_hash": "0x275e68630b707d6c:0x56ffb752067d71ad",
+        "collective": "AllReduce",
+        "minimum": 111,
+        "maximum": 111
+      },
+      {
+        "communicator_hash": "0x83b0ac1d044d074a",
+        "secondary_hash": "0x275e68630b707d6c:0x56ffb752067d71ad",
+        "collective": "Broadcast",
+        "minimum": 0,
+        "maximum": 0
+      },
+      {
+        "communicator_hash": "0x83b0ac1d044d074a",
+        "secondary_hash": "0x275e68630b707d6c:0x56ffb752067d71ad",
+        "collective": "Reduce",
+        "minimum": 0,
+        "maximum": 0
+      },
+      {
+        "communicator_hash": "0x83b0ac1d044d074a",
+        "secondary_hash": "0x275e68630b707d6c:0x56ffb752067d71ad",
+        "collective": "ReduceScatter",
+        "minimum": 42,
+        "maximum": 42
+      }
+    ],
+    "rank_observations": []
+  },
+  "progress_unchanged_between_two_live_reads": true,
+  "scope": "No precise hardware/compiler/kernel cause established. Defer eight-node eligibility and validate the original optimized four-node shape. No production update.",
+  "evidence": {
+    "reno-n8-a2-task0-native-2350.txt": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/validation/dna-exp593-loop-smoke-20261107-rno-n8-v1/operator/stall-a2/dfe3c60afb5ac1606418d4c550250ea282547411ff3238e2830ab1427f89db8f/reno-n8-a2-task0-native-2350.txt",
+      "sha256": "dfe3c60afb5ac1606418d4c550250ea282547411ff3238e2830ab1427f89db8f",
+      "bytes": 72110,
+      "etag": "\"7a97a2bbdc0511909514eb333e6537f2\"",
+      "complete_readback_verified": true
+    },
+    "reno-n8-a2-nccl-ras-2352.json": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/validation/dna-exp593-loop-smoke-20261107-rno-n8-v1/operator/stall-a2/d262ded735d0d8d9155db3d02b7c88084218843f90a8519d808e606be2706c34/reno-n8-a2-nccl-ras-2352.json",
+      "sha256": "d262ded735d0d8d9155db3d02b7c88084218843f90a8519d808e606be2706c34",
+      "bytes": 1403,
+      "etag": "\"6b4d8caf27b931dfe4a9fa14bbc68d67\"",
+      "complete_readback_verified": true
+    },
+    "reno-n8-a2-nccl-ras-second.json": {
+      "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/validation/dna-exp593-loop-smoke-20261107-rno-n8-v1/operator/stall-a2/d262ded735d0d8d9155db3d02b7c88084218843f90a8519d808e606be2706c34/reno-n8-a2-nccl-ras-second.json",
+      "sha256": "d262ded735d0d8d9155db3d02b7c88084218843f90a8519d808e606be2706c34",
+      "bytes": 1403,
+      "etag": "\"6b4d8caf27b931dfe4a9fa14bbc68d67\"",
+      "complete_readback_verified": true
+    }
+  }
+}

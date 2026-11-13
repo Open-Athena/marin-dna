@@ -1,0 +1,69 @@
+{
+  "after": {
+    "case_folded_dna_correct": 2,
+    "disjoint_loss": 1.2543728351593018,
+    "evaluation_input_tokens": 183501251502,
+    "event": "interval_35",
+    "fim_macro_loss": 1.1818958520889282,
+    "fim_teacher_forced_base_accuracy": 0.4085041761579347,
+    "formatted_correct": 1,
+    "formatted_presentations": 18,
+    "greedy_correct": 2,
+    "greedy_presentations": 36,
+    "minimal_correct": 1,
+    "minimal_presentations": 18,
+    "one_base_correct": 0,
+    "one_base_presentations": 4,
+    "primary_loss": 1.257565910561455,
+    "summary_observed_at": "2026-11-09T16:45:20.779423+00:00"
+  },
+  "aggregate_metrics_only": true,
+  "all_other_gap_exact_match_values_unchanged": true,
+  "before": {
+    "case_folded_dna_correct": 4,
+    "disjoint_loss": 1.2542250156402588,
+    "evaluation_input_tokens": 178258092771,
+    "event": "interval_34",
+    "fim_macro_loss": 1.1757245063781738,
+    "fim_teacher_forced_base_accuracy": 0.4092160212604404,
+    "formatted_correct": 2,
+    "formatted_presentations": 18,
+    "greedy_correct": 4,
+    "greedy_presentations": 36,
+    "minimal_correct": 2,
+    "minimal_presentations": 18,
+    "one_base_correct": 2,
+    "one_base_presentations": 4,
+    "primary_loss": 1.2578107946842103,
+    "summary_observed_at": "2026-11-09T16:15:02.447628+00:00"
+  },
+  "condition": "text-initialized d768 Grug MoE",
+  "frozen_fim_manifest": {
+    "bytes": 1968,
+    "complete_readback_verified": true,
+    "etag": "\"e7d07ae1b45b1e6498efac1b3fc3bbec\"",
+    "sha256": "099f19b989cf7b2fedf1ae9038f903fd8e9b1eac20c8684d279b32cb88a71dd6",
+    "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/inputs/prep-v2-46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a/audit/fim_validation_manifest.json"
+  },
+  "full_comparison_evidence": {
+    "bytes": 15394,
+    "complete_readback_verified": true,
+    "etag": "\"83b96d1cedea490abba253ad9c1bc15e\"",
+    "sha256": "f19eaf8f9e92eb675d6b20b2b0f73708dbeb8fb35ad43029bb200082ebcf8a7f",
+    "uri": "s3://marin-us-east-02a/MarinDNA/exp593_augmented_dna/verification/fim-greedy-diagnostics/f19eaf8f9e92eb675d6b20b2b0f73708dbeb8fb35ad43029bb200082ebcf8a7f.json"
+  },
+  "generation_denominators_unchanged": true,
+  "input_bundle_fingerprint": "46933a19e9bd5c0b1f33be5496f0e0c6705f382859f1f1b847b568d07a65672a",
+  "interpretation": "Greedy correct counts fell from 4/36 to 2/36. The one-base bucket changed from 2/4 to 0/4; minimal and formatted views each lost one completion, and case-folded DNA exact match fell equally. All generation denominators are unchanged. Aggregated metrics do not identify exact underlying source pairs or establish an overfitting mechanism.",
+  "limitations": [
+    "The aggregate metrics do not identify which underlying DNA source pairs or predicted bases changed.",
+    "Case-sensitive and case-folded DNA exact-match counts changed equally.",
+    "The panel is small and its presentation pairs are correlated; this observation does not establish an overfitting mechanism or broader benchmark performance."
+  ],
+  "panel_definition": "Case-sensitive greedy exact match at caller-specified gap length, with full-vocabulary output. Two fixed sequence/gap examples per gap length are each shown with minimal and formatted prompts: 36 total correlated presentations over nine gap lengths. Capitalization is held fixed within each matched prompt pair.",
+  "run_id": "dna-exp593-augmented-d768-pretrained-seed0-v1",
+  "runtime_source_commit": "3f0536ae97266df0b6fae2c11566931ebb470003",
+  "source": "Cached W&B aggregate metrics from the frozen FIM validation panel; no new inference was run for this comparison.",
+  "training_decision": "Retain the approved training schedule; compare with subsequent fixed panels and separately owned benchmark evaluation. No training or evaluation-data selection change.",
+  "verified_at": "2026-11-09T16:54:07.673111+00:00"
+}
