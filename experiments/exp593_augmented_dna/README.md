@@ -6,8 +6,7 @@ All implementation and artifacts belong to the permanent, unmerged [companion PR
 Experiment #593 also includes three full-state annealing branches from the old 1T run's 181.818B, 363.637B, and 545.455B checkpoints, plus a 545.455B original-data control.
 Their additional input horizons are fixed at 216B, 168B, and 120B, respectively; the matched control also runs for approximately 120B inputs. The FIM branches ramp annotation-only FIM from 0% to 30% with uniformly lowercase DNA, no biological metadata, and preserved native optimizer history.
 Use `python -m exp593_dna.anneal_train --trial <181b|364b|545b> --cluster <peer> --nodes <count>` through the normal Iris coordinator; bounded validation additionally requires a distinct smoke ID and `--validation-updates 64`.
-The 364B, 545B, and matched control branches have completed their fixed schedules and native checkpoint audits; the 181B branch remains in production toward 216B additional inputs.
-See [annealing-operations.md](annealing-operations.md) for identities, ledger, qualification requirements, placement, and checkpoint evidence.
+All four branches completed their fixed schedules and independent native final-checkpoint audits. See the [annealing results](artifacts/annealing-final-v2/report.md) for the paired control comparison, validation and task readouts, permanent checkpoints, and audit receipts. [Annealing operations](annealing-operations.md) records placement, recovery, and ledger evidence.
 
 Preparation, single-node H100 validation, and full training were authorized before these production runs started.
 Data preparation and the single-node H100 smoke are complete.
