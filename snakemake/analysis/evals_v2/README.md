@@ -460,3 +460,32 @@ These are tested at `tests/evals/test_grouped_vep_metrics.py`,
 `tests/evals/test_metrics.py`,
 `tests/evals/test_inference.py`,
 `tests/evals/test_ll_gap.py`, and `tests/model/test_scoring.py`.
+
+## Figure 2 reserved Mendelian evaluation
+
+Paper issue 22 uses the published Staged 1B and Evo 2 40B checkpoints and each model's saved development classifiers.
+Store each reserved score bundle in a dedicated test namespace because the standard `compute_scores` output path omits the split.
+The postprocessing commands below run locally from this workflow directory after GPU scoring.
+Pass the pinned Mendelian release's original `test.parquet` file at revision `4aed58e50c5dea0b878a665007af2ef9e5108e9f`.
+Each prediction command validates the release and trusted classifier file against its SHA-256 digest, reads only variant identities and model outputs, and preserves the release row order.
+Use the locked environment, which includes the classifier-producing scikit-learn version 1.9.0.
+
+```bash
+uv run --locked python -m marin_dna_evals.mendelian_holdout \
+  --model marin --test-release test.parquet --scores marin_test_scores.parquet \
+  --classifiers marin_development.joblib --output marin_test_predictions.parquet
+uv run --locked python -m marin_dna_evals.mendelian_holdout \
+  --model evo2_40b --test-release test.parquet --scores evo2_test_scores.parquet \
+  --classifiers evo2_development.joblib --output evo2_test_predictions.parquet
+uv run --locked python -m marin_dna_evals.mendelian_holdout_metrics \
+  --test-release test.parquet --marin marin_test_predictions.parquet \
+  --evo2-40b evo2_test_predictions.parquet --output mendelian_test_comparison.csv
+```
+
+The comparison joins both prediction files to the release by chromosome, position, and alleles and checks the consequence class.
+It reports per-class and eight-class macro average precision for both readouts.
+Zero-shot scores use whole matched-group bootstrap draws within class.
+Probe scores use chromosome-weighted average precision with joint chromosome draws across classes.
+Each paired 95% percentile interval uses identical draws for Marin and Evo 2 (1,000 draws, seed 0).
+Model scores and standard errors are fractions, and the Marin minus Evo difference and its interval are percentage points.
+Mature miRNA is excluded from the macro, and synonymous stays in the macro on both splits.
