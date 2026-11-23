@@ -1,8 +1,6 @@
 import numpy as np
 import pandas as pd
 import pytest
-from sklearn.metrics import average_precision_score
-
 from marin_dna_evals.mendelian_holdout import (
     EXCLUDED,
     HEADLINE,
@@ -12,6 +10,7 @@ from marin_dna_evals.mendelian_holdout import (
 )
 from marin_dna_evals.mendelian_holdout_metrics import MODELS, align_predictions, compare
 from marin_dna_evals.metrics import MACRO_AVG_SUBSET, per_chrom_weighted_ap
+from sklearn.metrics import average_precision_score
 
 
 class FrozenClassifier:
