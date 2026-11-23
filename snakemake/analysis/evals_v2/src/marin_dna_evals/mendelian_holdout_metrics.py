@@ -1,4 +1,4 @@
-"""Compute the paired, eight-class Marin–Evo 2 test comparison for Figure 2."""
+"""Compare Marin and Evo 2 on eight Mendelian variant classes on held-out chromosomes."""
 
 import argparse
 from pathlib import Path

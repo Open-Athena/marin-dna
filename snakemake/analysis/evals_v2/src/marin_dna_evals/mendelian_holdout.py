@@ -1,4 +1,4 @@
-"""Apply the frozen Figure 2 probes to the reserved Mendelian variants."""
+"""Apply development-fitted linear probes to held-out Mendelian variants."""
 
 import argparse
 from hashlib import file_digest

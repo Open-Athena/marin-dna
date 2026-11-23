@@ -461,9 +461,10 @@ These are tested at `tests/evals/test_grouped_vep_metrics.py`,
 `tests/evals/test_inference.py`,
 `tests/evals/test_ll_gap.py`, and `tests/model/test_scoring.py`.
 
-## Figure 2 reserved Mendelian evaluation
+## Mendelian variant-effect prediction on held-out chromosomes
 
-Paper issue 22 uses the published Staged 1B and Evo 2 40B checkpoints and each model's saved development classifiers.
+Evaluate the published Marin DNA 1B m5.1 and Evo 2 40B checkpoints using each model's saved development classifiers.
+The paper tracks this comparison at <https://github.com/Open-Athena/marin-dna-paper/issues/22>.
 Store each reserved score bundle in a dedicated test namespace because the standard `compute_scores` output path omits the split.
 The postprocessing commands below run locally from this workflow directory after GPU scoring.
 Pass the pinned Mendelian release's original `test.parquet` file at revision `4aed58e50c5dea0b878a665007af2ef9e5108e9f`.
