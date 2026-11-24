@@ -142,6 +142,14 @@ jobs:
         if: ${{ !matrix.skip }}
         run: uv python install 3.13
 
+      - name: Set up Conda for Snakemake
+        if: ${{ matrix.dry_run }}
+        uses: conda-incubator/setup-miniconda@be893c923ea9cf1cf7cd510fbdde27c7e18cbdcb # v4.1.0
+        with:
+          miniforge-version: "26.9.4-2"
+          activate-environment: ""
+          auto-activate: false
+
       - name: Install locked project
         if: ${{ !matrix.skip }}
         working-directory: ${{ matrix.directory }}
