@@ -47,3 +47,21 @@ def test_missing_explicit_config_fails_before_launch(
     monkeypatch.setenv("SKYPILOT_PROJECT_CONFIG", "missing.yaml")
     with pytest.raises(FileNotFoundError):
         check_clusters(["evals-v2-a"])
+
+
+@pytest.mark.parametrize("selection", ["active_workspace: default", ""])
+def test_workspace_identity_overrides_global(selection: str) -> None:
+    Path(".sky.yaml").write_text(
+        f"{selection}\naws: {{remote_identity: OtherRole}}\n"
+        "workspaces: {default: {aws: {remote_identity: BolinasJob}}}\n"
+    )
+    with pytest.raises(ValueError, match="selects BolinasJob"):
+        check_clusters(["evals-v2-a"])
+
+
+def test_explicit_workspace_uses_its_own_identity() -> None:
+    Path(".sky.yaml").write_text(
+        "active_workspace: sweep\naws: {remote_identity: BolinasJob}\n"
+        "workspaces: {sweep: {aws: {remote_identity: OtherRole}}}\n"
+    )
+    check_clusters(["evals-v2-a"])

@@ -71,6 +71,8 @@ External bioinformatics programs remain in each rule's Conda environment. A root
 For a direct EC2 worker in `oa-bolinas`, authenticate the SkyPilot provisioner to that account and pass `--config "$(git rev-parse --show-toplevel)/sky-bolinas.yaml"` to `sky launch`.
 Check that `sky launch --help` lists `--config` before using this option.
 Select the configuration when provisioning a new cluster.
+If the active SkyPilot workspace specifies its own AWS worker identity, it takes precedence and must also select `BolinasJob` for this procedure.
+To verify the identity, run `aws sts get-caller-identity` on the worker and check the role name and account in the returned ARN.
 An existing cluster keeps its original instance profile.
 The `BolinasJob` instance profile lets the worker list `s3://oa-bolinas` and read or upload objects, including overwriting results.
 Workers can delete objects anywhere in this bucket, including inputs and final results.

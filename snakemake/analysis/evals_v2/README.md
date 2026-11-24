@@ -401,7 +401,8 @@ or one cluster per (model, dataset) combination — use
 g5.xlarge per target with `--down` on idle, and waits for all to finish.
 Use a worker identity with EC2 teardown permissions.
 Before launching any targets, the helper checks the local SkyPilot configuration for `BolinasJob`.
-If you use a remote API server or reuse an existing cluster, verify its worker identity separately.
+If the local configuration leaves the active workspace unspecified, the helper checks every locally configured workspace.
+Verify the worker identity separately when a remote server supplies configuration or when reusing an existing cluster.
 
 The helper `cd`s to the repo root internally, so it's safe to invoke
 from anywhere (e.g. from this pipeline dir or from `~`). Target paths
