@@ -65,3 +65,11 @@ External bioinformatics programs remain in each rule's Conda environment. A root
 - For repository changes intended for review, commit and push the branch, open or update a draft pull request, run an independent review over the published diff, and address its findings without asking for separate permission for these delivery steps.
 - Mark the pull request ready and ask for human feedback only after implementation, validation, publication, and independent review are complete.
 - Never push directly to `main` or merge or close a pull request without explicit user approval.
+
+## AWS SkyPilot workers
+
+Launch project workers using AWS credentials for the `oa-bolinas` account.
+The repository's `.sky.yaml` selects the `BolinasJob` EC2 instance profile for new AWS workers.
+SkyPilot discovers this configuration when launched from the repository root.
+When launching from a workflow subdirectory, set `export SKYPILOT_PROJECT_CONFIG="$(git rev-parse --show-toplevel)/.sky.yaml"` in the launch shell first.
+The worker can list `s3://oa-bolinas` and read or upload objects throughout the bucket, including overwriting results.
