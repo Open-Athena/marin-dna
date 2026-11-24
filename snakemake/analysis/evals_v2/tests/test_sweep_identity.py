@@ -49,11 +49,10 @@ def test_missing_explicit_config_fails_before_launch(
         check_clusters(["evals-v2-a"])
 
 
-@pytest.mark.parametrize("selection", ["active_workspace: default", ""])
-def test_workspace_identity_overrides_global(selection: str) -> None:
+def test_bolinas_in_another_workspace_blocks_sweep() -> None:
     Path(".sky.yaml").write_text(
-        f"{selection}\naws: {{remote_identity: OtherRole}}\n"
-        "workspaces: {default: {aws: {remote_identity: BolinasJob}}}\n"
+        "active_workspace: default\naws: {remote_identity: OtherRole}\n"
+        "workspaces: {other: {aws: {remote_identity: BolinasJob}}}\n"
     )
     with pytest.raises(ValueError, match="may use BolinasJob"):
         check_clusters(["evals-v2-a"])
