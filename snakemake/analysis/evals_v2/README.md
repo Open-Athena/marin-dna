@@ -192,6 +192,10 @@ It validates finite, equally sized Float16 embedding vectors and checks the four
 The LLR tolerance covers the accumulated bf16 kernel differences observed when moving the fixed cell to the new driver, CUDA, and PyTorch stack.
 Run the gate on a fresh one-GPU cluster with:
 
+When launching in the dedicated `oa-bolinas` account, select the [Bolinas worker configuration](../../../AGENTS.md#aws-skypilot-workers) for S3 access.
+With this profile, omit worker-side `--down` and idle-stop flags and run `sky down <cluster-name>` from the launcher after the job ends.
+Use the fan-out helper only with a worker identity that supports its automatic teardown.
+
 ```bash
 sky launch snakemake/analysis/evals_v2/sky/run.yaml \
   -c evals-v2-gpu-runtime-462 \

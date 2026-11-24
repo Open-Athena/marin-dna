@@ -68,8 +68,9 @@ External bioinformatics programs remain in each rule's Conda environment. A root
 
 ## AWS SkyPilot workers
 
-Launch project workers using AWS credentials for the `oa-bolinas` account.
-The repository's `.sky.yaml` selects the `BolinasJob` EC2 instance profile for new AWS workers.
-SkyPilot discovers this configuration when launched from the repository root.
-When launching from a workflow subdirectory, set `export SKYPILOT_PROJECT_CONFIG="$(git rev-parse --show-toplevel)/.sky.yaml"` in the launch shell first.
-The worker can list `s3://oa-bolinas` and read or upload objects throughout the bucket, including overwriting results.
+For a direct EC2 worker in `oa-bolinas`, authenticate the SkyPilot provisioner to that account and pass `--config "$(git rev-parse --show-toplevel)/sky-bolinas.yaml"` to `sky launch`.
+For repeated launches in that account, set `export SKYPILOT_PROJECT_CONFIG="$(git rev-parse --show-toplevel)/sky-bolinas.yaml"` once in the launch shell instead.
+The `BolinasJob` instance profile lets the worker list `s3://oa-bolinas` and read or upload objects, including overwriting results.
+This profile is for data access on workers.
+End the cluster with `sky down <cluster-name>` from your authenticated launcher after the run, including after a failed run.
+SkyPilot's worker-side autostop and autodown need additional EC2 permissions, so use launcher-side cleanup when selecting this profile.
