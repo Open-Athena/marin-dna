@@ -190,11 +190,10 @@ The smoke gate requires `torch.cuda.is_available()`, the exact image runtime met
 The numerical gate re-scores the full 16,140-row `exp351-centered-step-1000` × `mendelian_traits@4aed58e` train cell in memory with compilation, BF16, and pooled embeddings enabled.
 It validates finite, equally sized Float16 embedding vectors and checks the four raw score atoms against the checksummed PyTorch 2.8 parquet, using `rtol=1e-4, atol=0.15` for LLR and `rtol=1e-3, atol=1e-4` for mean JSD.
 The LLR tolerance covers the accumulated bf16 kernel differences observed when moving the fixed cell to the new driver, CUDA, and PyTorch stack.
-Run the gate on a fresh one-GPU cluster with:
+The example below uses a worker with automatic EC2 teardown.
+For a fresh `oa-bolinas` cluster using the [Bolinas worker configuration](../../../AGENTS.md#aws-skypilot-workers), replace `--down` with `--config "$(git rev-parse --show-toplevel)/sky-bolinas.yaml"` and run `sky down evals-v2-gpu-runtime-462` from the launcher after completion or failure.
 
-When launching in the dedicated `oa-bolinas` account, select the [Bolinas worker configuration](../../../AGENTS.md#aws-skypilot-workers) for S3 access.
-With this profile, omit worker-side `--down` and idle-stop flags and run `sky down <cluster-name>` from the launcher after the job ends.
-Use the fan-out helper only with a worker identity that supports its automatic teardown.
+Run the gate on a fresh one-GPU cluster:
 
 ```bash
 sky launch snakemake/analysis/evals_v2/sky/run.yaml \
@@ -247,6 +246,8 @@ at `s3://oa-bolinas/snakemake/analysis/evals_v2/`.
 `config/issue517_gpn_uniform.yaml` registers the six GPN-Star-P-filtered uniform-grid specialists at terminal step 4,999.
 It reads only the development `train` splits and removes complete mature-miRNA match groups from Mendelian metrics.
 Each arm runs Mendelian Traits and Complex Traits; CDS also runs the biologically scoped SGE evaluation.
+The following example uses a worker that supports `--down`.
+For `BolinasJob`, replace that flag with the project configuration as above and run `sky down evals-v2-exp517-gpn-cds-mendelian` from the launcher after the run.
 Launch one model-dataset target per Sky cluster so completed arms can begin evaluation independently:
 
 ```bash
@@ -395,6 +396,7 @@ For a grid of independent targets — e.g. all checkpoints of one model arm,
 or one cluster per (model, dataset) combination — use
 [`sky/parallel_sweep.sh`](sky/parallel_sweep.sh). It dispatches one
 g5.xlarge per target with `--down` on idle, and waits for all to finish.
+Use `sky/parallel_sweep.sh` with a worker identity that supports automatic teardown.
 
 The helper `cd`s to the repo root internally, so it's safe to invoke
 from anywhere (e.g. from this pipeline dir or from `~`). Target paths

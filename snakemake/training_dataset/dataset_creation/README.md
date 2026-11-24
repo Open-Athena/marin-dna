@@ -155,7 +155,9 @@ Conda must be available for bioinformatics CLI tools.
 Pipeline results are stored in S3 (`s3://oa-bolinas/snakemake/training_dataset/dataset_creation/`). A default Snakemake profile at `workflow/profiles/default/config.yaml` configures S3 storage, conda, and cores automatically.
 
 You need AWS credentials with S3 access:
-- **On EC2 in oa-bolinas**: Attach the `BolinasJob` instance profile for read/write access to the project bucket.
+- **On EC2 in oa-bolinas**: The `BolinasJob` profile supports reads and uploads, including overwrites.
+  This workflow also removes consumed temporary S3 objects and can remove incomplete outputs after failures.
+  For those runs, use a worker role with `s3:DeleteObject` scoped to the workflow output prefix; cleanup with `BolinasJob` can fail with `AccessDenied`.
 - **On your laptop**: Run `aws configure` with an IAM user's access key
 
 ## Configuration

@@ -65,6 +65,10 @@ repo_root=$(cd "$here/../../../.." && pwd)
     echo "[parallel_sweep] expected pyproject.toml at $repo_root — has the helper moved?" >&2
     exit 1
 }
+if [[ -n ${SKYPILOT_PROJECT_CONFIG:-} ]] && cmp -s "$SKYPILOT_PROJECT_CONFIG" "$repo_root/sky-bolinas.yaml"; then
+    echo "The BolinasJob profile lacks the EC2 permissions this sweep needs for automatic teardown." >&2
+    exit 2
+fi
 cd "$repo_root"
 
 stagger=${SKY_STAGGER:-3}
