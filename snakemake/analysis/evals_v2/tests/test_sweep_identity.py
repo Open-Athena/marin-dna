@@ -36,7 +36,7 @@ def test_cluster_pattern_order_and_config_precedence(
         "aws:\n  remote_identity:\n    - evals-v2-a: OtherRole\n    - 'evals-*': BolinasJob\n"
     )
     check_clusters(["evals-v2-a"])
-    with pytest.raises(ValueError, match="evals-v2-b selects BolinasJob"):
+    with pytest.raises(ValueError, match="evals-v2-b may use BolinasJob"):
         check_clusters(["evals-v2-a", "evals-v2-b"])
 
 
@@ -55,13 +55,23 @@ def test_workspace_identity_overrides_global(selection: str) -> None:
         f"{selection}\naws: {{remote_identity: OtherRole}}\n"
         "workspaces: {default: {aws: {remote_identity: BolinasJob}}}\n"
     )
-    with pytest.raises(ValueError, match="selects BolinasJob"):
+    with pytest.raises(ValueError, match="may use BolinasJob"):
         check_clusters(["evals-v2-a"])
 
 
-def test_explicit_workspace_uses_its_own_identity() -> None:
-    Path(".sky.yaml").write_text(
-        "active_workspace: sweep\naws: {remote_identity: BolinasJob}\n"
-        "workspaces: {sweep: {aws: {remote_identity: OtherRole}}}\n"
+@pytest.mark.parametrize("project_override", [False, True])
+def test_workspace_display_name_and_conflicting_project_role(
+    project_override: bool,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    Path("server.yaml").write_text(
+        "active_workspace: dna\naws: {remote_identity: OtherRole}\n"
+        "workspaces: {ws-123: {name: dna, aws: {remote_identity: BolinasJob}}}\n"
     )
-    check_clusters(["evals-v2-a"])
+    monkeypatch.setenv("SKYPILOT_GLOBAL_CONFIG", "server.yaml")
+    if project_override:
+        Path(".sky.yaml").write_text(
+            "workspaces: {ws-123: {name: dna, aws: {remote_identity: OtherRole}}}\n"
+        )
+    with pytest.raises(ValueError, match="may use BolinasJob"):
+        check_clusters(["evals-v2-a"])

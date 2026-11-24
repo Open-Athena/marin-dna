@@ -401,7 +401,8 @@ or one cluster per (model, dataset) combination — use
 g5.xlarge per target with `--down` on idle, and waits for all to finish.
 Use a worker identity with EC2 teardown permissions.
 Before launching any targets, the helper checks the local SkyPilot configuration for `BolinasJob`.
-If the local configuration leaves the active workspace unspecified, the helper checks every locally configured workspace.
+The helper checks all locally declared workspace roles because the API server resolves workspace names and overrides.
+A matching `BolinasJob` declaration in another workspace can therefore block a sweep; use the single-cluster launch and launcher-side teardown procedure above in that case.
 Verify the worker identity separately when a remote server supplies configuration or when reusing an existing cluster.
 
 The helper `cd`s to the repo root internally, so it's safe to invoke

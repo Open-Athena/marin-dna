@@ -23,27 +23,24 @@ def configured_identities() -> list[Identity]:
     if "SKYPILOT_CONFIG" in os.environ:
         sources = [("SKYPILOT_CONFIG", "")]
 
-    identities: dict[str | None, Identity] = {}
-    active_workspace = None
+    global_identity = None
+    workspace_identities: list[Identity] = []
     for variable, default in sources:
         path = Path(os.environ.get(variable, default)).expanduser()
         if variable not in os.environ and not path.exists():
             continue
         config = yaml.safe_load(path.read_text()) or {}
-        active_workspace = config.get("active_workspace", active_workspace)
-        for workspace, settings in [
-            (None, config),
-            *config.get("workspaces", {}).items(),
-        ]:
-            aws = settings.get("aws", {}) if settings else {}
+        global_identity = config.get("aws", {}).get("remote_identity", global_identity)
+        # SkyPilot resolves workspace aliases and applies workspace settings on the
+        # server. A client workspace declaration cannot rule out a server identity.
+        for workspace in config.get("workspaces", {}).values():
+            aws = (workspace or {}).get("aws", {})
             if "remote_identity" in aws:
-                identities[workspace] = aws["remote_identity"]
+                workspace_identities.append(aws["remote_identity"])
 
-    if active_workspace:
-        identity = identities.get(active_workspace, identities.get(None))
-        return [] if identity is None else [identity]
-    # A saved server-side workspace preference may select any local workspace.
-    return list(identities.values())
+    if global_identity is not None:
+        workspace_identities.append(global_identity)
+    return workspace_identities
 
 
 def check_clusters(clusters: list[str]) -> None:
@@ -66,7 +63,7 @@ def check_identity(cluster: str, identity: Identity) -> None:
         )
     if isinstance(profile, str) and profile.casefold() == "bolinasjob":
         raise ValueError(
-            f"{cluster} selects BolinasJob, which lacks EC2 teardown permissions. "
+            f"{cluster} may use BolinasJob, which lacks EC2 teardown permissions. "
             "Launch it separately and run sky down from the launcher."
         )
 
