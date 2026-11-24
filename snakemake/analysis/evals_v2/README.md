@@ -191,7 +191,7 @@ The numerical gate re-scores the full 16,140-row `exp351-centered-step-1000` × 
 It validates finite, equally sized Float16 embedding vectors and checks the four raw score atoms against the checksummed PyTorch 2.8 parquet, using `rtol=1e-4, atol=0.15` for LLR and `rtol=1e-3, atol=1e-4` for mean JSD.
 The LLR tolerance covers the accumulated bf16 kernel differences observed when moving the fixed cell to the new driver, CUDA, and PyTorch stack.
 The example below uses a worker with automatic EC2 teardown.
-For a fresh `oa-bolinas` cluster using the [Bolinas worker configuration](../../../AGENTS.md#aws-skypilot-workers), replace `--down` with `--config "$(git rev-parse --show-toplevel)/sky-bolinas.yaml"` and run `sky down evals-v2-gpu-runtime-462` from the launcher after completion or failure.
+For a fresh EC2 cluster using the [Bolinas worker configuration](../../../AGENTS.md#aws-skypilot-workers), replace `--down` with `--config "$(git rev-parse --show-toplevel)/sky-bolinas.yaml"` and run `sky down evals-v2-gpu-runtime-462` from the launcher after completion or failure.
 
 Run the gate on a fresh one-GPU cluster:
 
@@ -423,10 +423,8 @@ model in one invocation — split into two batches.
 
 Two unavoidable AWS-side failure modes worth knowing about:
 
-- **`VcpuLimitExceeded`**: bursting more g5.xlarge in one invocation than
-  `vCPU_limit / 4` (us-east-2 default: 128 / 4 = 32 simultaneous
-  g5.xlarge) hits the account-level vCPU limit. Re-run the helper with
-  the failed target names after other clusters `--down`.
+- **`VcpuLimitExceeded`**: each `g5.xlarge` needs four available vCPUs from the regional G/VT quota for its purchase option (On-Demand or Spot).
+  Retry failed targets after other clusters terminate.
 - **`ResourcesUnavailableError: Failed to acquire resources in all zones
   in us-east-2`**: occasional transient AZ saturation, even when well
   under the vCPU limit. Single-target retry usually succeeds on the

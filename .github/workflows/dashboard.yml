@@ -18,7 +18,7 @@ name: Dashboard
 # Setup (one-time, by a repo admin):
 #   1. Settings → Pages → Source: "GitHub Actions".
 #   2. AWS S3 access for the data loaders via GitHub OIDC (no long-lived keys):
-#       - In the marin-dna AWS account (836683583872):
+#       - In the AWS account that owns the dashboard read role:
 #         * GitHub OIDC identity provider for `token.actions.githubusercontent.com`
 #           with audience `sts.amazonaws.com`.
 #         * IAM policy `BolinasDnaDashboardMetricsRead` granting `s3:GetObject`
