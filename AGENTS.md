@@ -65,3 +65,17 @@ External bioinformatics programs remain in each rule's Conda environment. A root
 - For repository changes intended for review, commit and push the branch, open or update a draft pull request, run an independent review over the published diff, and address its findings without asking for separate permission for these delivery steps.
 - Mark the pull request ready and ask for human feedback only after implementation, validation, publication, and independent review are complete.
 - Never push directly to `main` or merge or close a pull request without explicit user approval.
+
+## AWS SkyPilot workers
+
+For a direct EC2 worker in `oa-bolinas`, authenticate the SkyPilot provisioner to that account and pass `--config "$(git rev-parse --show-toplevel)/sky-bolinas.yaml"` to `sky launch`.
+For the config-file option, use [SkyPilot 0.9.1](https://github.com/skypilot-org/skypilot/blob/v0.9.1/docs/source/reference/config-sources.rst#cli-flag) or later and check that `sky launch --help` lists `--config`.
+Select the configuration when provisioning a new cluster.
+If the active SkyPilot workspace specifies its own AWS worker identity, it takes precedence and must also select `BolinasJob` for this procedure.
+To verify the identity, run `aws sts get-caller-identity` on the worker and check the role name and account in the returned ARN.
+An existing cluster keeps its original instance profile.
+EC2 attaches the `BolinasJob` instance profile to the worker.
+The profile contains the IAM role also named `BolinasJob`, which grants the worker permission to list `s3://oa-bolinas` and read, upload, or overwrite objects.
+Workers can delete objects anywhere in this bucket, including inputs and final results.
+End the cluster with `sky down <cluster-name>` from your authenticated launcher after the run, including after a failed run.
+SkyPilot's worker-side autostop and autodown need additional EC2 permissions, so use launcher-side cleanup when selecting this profile.

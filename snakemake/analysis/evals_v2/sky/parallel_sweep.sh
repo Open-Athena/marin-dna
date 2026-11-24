@@ -66,6 +66,13 @@ repo_root=$(cd "$here/../../../.." && pwd)
     exit 1
 }
 cd "$repo_root"
+clusters=()
+for target in "$@"; do
+    model=$(basename "$(dirname "$target")")
+    clusters+=("evals-v2-${model}")
+done
+# Validate the entire batch before starting the first billable launch.
+uv run --script "$here/../src/marin_dna_evals/sweep_identity.py" "${clusters[@]}" || exit $?
 
 stagger=${SKY_STAGGER:-3}
 autostop=${SKY_AUTOSTOP_MIN:-1}
@@ -74,9 +81,9 @@ mkdir -p "$log_dir"
 echo "[parallel_sweep] log_dir=$log_dir" >&2
 
 pids=()
-for target in "$@"; do
-    model=$(basename "$(dirname "$target")")
-    cluster="evals-v2-${model}"
+for cluster in "${clusters[@]}"; do
+    target=$1
+    shift
     sky launch -c "$cluster" \
         --env SNAKEMAKE_ARGS="-- $target" \
         --idle-minutes-to-autostop="$autostop" \

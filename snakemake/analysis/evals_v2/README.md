@@ -190,9 +190,13 @@ The smoke gate requires `torch.cuda.is_available()`, the exact image runtime met
 The numerical gate re-scores the full 16,140-row `exp351-centered-step-1000` × `mendelian_traits@4aed58e` train cell in memory with compilation, BF16, and pooled embeddings enabled.
 It validates finite, equally sized Float16 embedding vectors and checks the four raw score atoms against the checksummed PyTorch 2.8 parquet, using `rtol=1e-4, atol=0.15` for LLR and `rtol=1e-3, atol=1e-4` for mean JSD.
 The LLR tolerance covers the accumulated bf16 kernel differences observed when moving the fixed cell to the new driver, CUDA, and PyTorch stack.
-Run the gate on a fresh one-GPU cluster with:
+The example below uses a worker with automatic EC2 teardown.
+For a fresh `oa-bolinas` cluster using the [Bolinas worker configuration](../../../AGENTS.md#aws-skypilot-workers), replace `--down` with `--config "$(git rev-parse --show-toplevel)/sky-bolinas.yaml"` and run `sky down evals-v2-gpu-runtime-462` from the launcher after completion or failure.
+
+Run the gate on a fresh one-GPU cluster:
 
 ```bash
+cd "$(git rev-parse --show-toplevel)"
 sky launch snakemake/analysis/evals_v2/sky/run.yaml \
   -c evals-v2-gpu-runtime-462 \
   --env GPU_RUNTIME_PARITY=true \
@@ -243,10 +247,13 @@ at `s3://oa-bolinas/snakemake/analysis/evals_v2/`.
 `config/issue517_gpn_uniform.yaml` registers the six GPN-Star-P-filtered uniform-grid specialists at terminal step 4,999.
 It reads only the development `train` splits and removes complete mature-miRNA match groups from Mendelian metrics.
 Each arm runs Mendelian Traits and Complex Traits; CDS also runs the biologically scoped SGE evaluation.
+The following example uses a worker that supports `--down`.
+For `BolinasJob`, replace that flag with the project configuration as above and run `sky down evals-v2-exp517-gpn-cds-mendelian` from the launcher after the run.
 Launch one model-dataset target per Sky cluster so completed arms can begin evaluation independently:
 
 ```bash
-sky launch sky/run.yaml \
+cd "$(git rev-parse --show-toplevel)"
+sky launch snakemake/analysis/evals_v2/sky/run.yaml \
   -c evals-v2-exp517-gpn-cds-mendelian \
   --env SNAKEMAKE_ARGS="--configfile config/issue517_gpn_uniform.yaml -- results/metrics/exp517-gpn-uniform-cds-step-4999/mendelian_traits.parquet" \
   --down
@@ -281,7 +288,8 @@ name:
   `uv run` by `sky/run.yaml`):
 
   ```bash
-  sky launch sky/run.yaml -c evals-umap \
+  cd "$(git rev-parse --show-toplevel)"
+  sky launch snakemake/analysis/evals_v2/sky/run.yaml -c evals-umap \
     --env EXTRA_UV_GROUPS="--group umap" \
     --env SNAKEMAKE_ARGS="-- umap"
   ```
@@ -391,6 +399,11 @@ For a grid of independent targets — e.g. all checkpoints of one model arm,
 or one cluster per (model, dataset) combination — use
 [`sky/parallel_sweep.sh`](sky/parallel_sweep.sh). It dispatches one
 g5.xlarge per target with `--down` on idle, and waits for all to finish.
+Use a worker identity with EC2 teardown permissions.
+Before launching any targets, the helper checks the local SkyPilot configuration for `BolinasJob`.
+The helper checks all locally declared workspace roles because the API server resolves workspace names and overrides.
+A matching `BolinasJob` declaration in another workspace can therefore block a sweep; use the single-cluster launch and launcher-side teardown procedure above in that case.
+Verify the worker identity separately when a remote server supplies configuration or when reusing an existing cluster.
 
 The helper `cd`s to the repo root internally, so it's safe to invoke
 from anywhere (e.g. from this pipeline dir or from `~`). Target paths
