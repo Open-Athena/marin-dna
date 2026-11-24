@@ -156,8 +156,8 @@ Pipeline results are stored in S3 (`s3://oa-bolinas/snakemake/training_dataset/d
 
 You need AWS credentials with S3 access:
 - **On EC2 in oa-bolinas**: The `BolinasJob` profile supports reads and uploads, including overwrites.
-  This workflow also removes consumed temporary S3 objects and can remove incomplete outputs after failures.
-  For those runs, use a worker role with `s3:DeleteObject` scoped to the workflow output prefix; cleanup with `BolinasJob` can fail with `AccessDenied`.
+  The role can delete the following temporary objects under the workflow's `results/` prefix: `intervals_for_window_seq/*/*.bed.gz`, `intervals_seq/*/*/*/*.fa`, `interval_alignment/*/*.query.bed`, `interval_alignment/*/*.query.fa`, `interval_alignment/*/*.hits.tsv`, and `cre/all.tsv`.
+  If Snakemake needs to remove an incomplete output outside those patterns after a failed job, a bucket administrator must handle that cleanup.
 - **On your laptop**: Run `aws configure` with an IAM user's access key
 
 ## Configuration

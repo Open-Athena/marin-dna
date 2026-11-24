@@ -73,6 +73,6 @@ Check that `sky launch --help` lists `--config` before using this option.
 Select the configuration when provisioning a new cluster.
 An existing cluster keeps its original instance profile.
 The `BolinasJob` instance profile lets the worker list `s3://oa-bolinas` and read or upload objects, including overwriting results.
-This profile is for data access on workers.
+Deletion is limited to the [dataset-creation temporary object patterns](snakemake/training_dataset/dataset_creation/README.md#storage).
 End the cluster with `sky down <cluster-name>` from your authenticated launcher after the run, including after a failed run.
 SkyPilot's worker-side autostop and autodown need additional EC2 permissions, so use launcher-side cleanup when selecting this profile.
