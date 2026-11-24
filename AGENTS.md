@@ -68,17 +68,18 @@ External bioinformatics programs remain in each rule's Conda environment. A root
 
 ## AWS SkyPilot workers
 
-Choose a workload account and region with enough EC2 quota for the instance type and purchase option you plan to use.
+Use the workload account where the project’s `BolinasJob` instance profile is configured, and check the regional quota for your instance type and purchase option.
 For a direct EC2 launch, select your AWS SSO profile and run `aws sts get-caller-identity --query Account --output text` to verify the intended account.
-For SkyPilot, run `sky check aws -v` against the API server and workspace you will use and verify the activated AWS account.
+In the EC2 launch wizard, select **Advanced details → IAM instance profile → BolinasJob**, or pass `--iam-instance-profile Name=BolinasJob` to `aws ec2 run-instances`.
+For SkyPilot, run `sky check aws -v` against the API server you will use and verify the activated AWS account.
+When using SkyPilot workspaces, scope the check with `sky check aws -v --workspace <workspace>` and launch in that same workspace.
 Pass `--config "$(git rev-parse --show-toplevel)/sky-bolinas.yaml"` to `sky launch`.
 For the config-file option, use [SkyPilot 0.9.1](https://github.com/skypilot-org/skypilot/blob/v0.9.1/docs/source/reference/config-sources.rst#cli-flag) or later and check that `sky launch --help` lists `--config`.
 Select the configuration when provisioning a new cluster.
 If the active SkyPilot workspace specifies its own AWS worker identity, it takes precedence and must also select `BolinasJob` for this procedure.
 To verify the worker identity, run `aws sts get-caller-identity` on the instance and verify the workload account and `assumed-role/BolinasJob/` in the ARN.
 An existing cluster keeps its original instance profile.
-EC2 attaches the `BolinasJob` instance profile to the worker.
-The profile contains the IAM role also named `BolinasJob`, which grants the worker permission to list `s3://oa-bolinas` and read, upload, or overwrite objects.
+The `BolinasJob` instance profile contains the IAM role also named `BolinasJob`, which grants the worker permission to list `s3://oa-bolinas` and read, upload, or overwrite objects.
 Workers can delete objects anywhere in this bucket, including inputs and final results.
 After the run, including after a failure, terminate a directly launched instance from EC2 or run `sky down <cluster-name>` from the authenticated SkyPilot launcher.
 SkyPilot's worker-side autostop and autodown need additional EC2 permissions, so use launcher-side cleanup when selecting this profile.
