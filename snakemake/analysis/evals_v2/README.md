@@ -196,6 +196,7 @@ For a fresh `oa-bolinas` cluster using the [Bolinas worker configuration](../../
 Run the gate on a fresh one-GPU cluster:
 
 ```bash
+cd "$(git rev-parse --show-toplevel)"
 sky launch snakemake/analysis/evals_v2/sky/run.yaml \
   -c evals-v2-gpu-runtime-462 \
   --env GPU_RUNTIME_PARITY=true \
@@ -251,7 +252,8 @@ For `BolinasJob`, replace that flag with the project configuration as above and 
 Launch one model-dataset target per Sky cluster so completed arms can begin evaluation independently:
 
 ```bash
-sky launch sky/run.yaml \
+cd "$(git rev-parse --show-toplevel)"
+sky launch snakemake/analysis/evals_v2/sky/run.yaml \
   -c evals-v2-exp517-gpn-cds-mendelian \
   --env SNAKEMAKE_ARGS="--configfile config/issue517_gpn_uniform.yaml -- results/metrics/exp517-gpn-uniform-cds-step-4999/mendelian_traits.parquet" \
   --down
@@ -286,7 +288,8 @@ name:
   `uv run` by `sky/run.yaml`):
 
   ```bash
-  sky launch sky/run.yaml -c evals-umap \
+  cd "$(git rev-parse --show-toplevel)"
+  sky launch snakemake/analysis/evals_v2/sky/run.yaml -c evals-umap \
     --env EXTRA_UV_GROUPS="--group umap" \
     --env SNAKEMAKE_ARGS="-- umap"
   ```
@@ -396,7 +399,9 @@ For a grid of independent targets — e.g. all checkpoints of one model arm,
 or one cluster per (model, dataset) combination — use
 [`sky/parallel_sweep.sh`](sky/parallel_sweep.sh). It dispatches one
 g5.xlarge per target with `--down` on idle, and waits for all to finish.
-Use `sky/parallel_sweep.sh` with a worker identity that supports automatic teardown.
+Use a worker identity with EC2 teardown permissions.
+Before launching any targets, the helper checks the local SkyPilot configuration for `BolinasJob`.
+If you use a remote API server or reuse an existing cluster, verify its worker identity separately.
 
 The helper `cd`s to the repo root internally, so it's safe to invoke
 from anywhere (e.g. from this pipeline dir or from `~`). Target paths
