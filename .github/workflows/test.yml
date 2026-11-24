@@ -17,7 +17,7 @@ permissions:
 
 jobs:
   select:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       matrix: ${{ steps.projects.outputs.matrix }}
     steps:
@@ -126,7 +126,7 @@ jobs:
       fail-fast: false
       max-parallel: 2
       matrix: ${{ fromJSON(needs.select.outputs.matrix) }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     name: test (${{ matrix.name }})
     steps:
@@ -141,14 +141,6 @@ jobs:
       - name: Set up Python
         if: ${{ !matrix.skip }}
         run: uv python install 3.13
-
-      - name: Set up Conda for Snakemake
-        if: ${{ matrix.dry_run }}
-        uses: conda-incubator/setup-miniconda@be893c923ea9cf1cf7cd510fbdde27c7e18cbdcb # v4.1.0
-        with:
-          miniforge-version: "26.9.4-2"
-          activate-environment: ""
-          auto-activate: false
 
       - name: Install locked project
         if: ${{ !matrix.skip }}
@@ -186,7 +178,7 @@ jobs:
   required-test:
     if: ${{ always() }}
     needs: test
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     name: test
     steps:
       - name: Verify project test matrix
