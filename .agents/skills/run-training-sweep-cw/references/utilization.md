@@ -16,7 +16,7 @@ The script calls `iris rpc controller list-peers` and emits:
 - UTC observation time and aggregate free/held/total GPUs by variant.
 - One target per selected peer backend with GPU variant, free/total GPUs, priority-band holds, observation age, and pending/running task counts.
 
-It exits nonzero when a selected peer is missing or unreachable, the availability metric is unsupported or stale, the expected GPU is absent, or capacity accounting is inconsistent.
+It exits nonzero when a selected peer is missing or unreachable, the availability metric is unsupported or stale, the expected GPU is absent, or reported free capacity exceeds physical capacity. During preemption handoff, admitted replacement pods can briefly overlap terminating pods and make `free + held` differ from `total`; the snapshot preserves that discrepancy as `accounting_delta_gpus` while continuing to use the peer's reported free amount for placement.
 Extra response fields are safe.
 
 At batch priority, immediately usable capacity is the reported free amount.
